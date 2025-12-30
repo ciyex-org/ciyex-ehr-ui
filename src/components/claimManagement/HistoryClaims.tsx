@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Edit, Eye, Paperclip, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 
 const API_BASE = "/api/patient-billing";
@@ -15,6 +16,7 @@ type ClaimLineDetail = {
 };
 
 const HistoryClaims: React.FC = () => {
+  const router = useRouter();
 
   const [claims, setClaims] = useState<any[]>([]);
   const [uniqueCarriers, setUniqueCarriers] = useState<string[]>([]);
@@ -137,6 +139,13 @@ const HistoryClaims: React.FC = () => {
   // ✅ Print functionality
   const handlePrint = () => {
     window.print();
+  };
+
+  // ✅ Navigate to patient page
+  const navigateToPatientBilling = (patientId: number) => {
+    if (patientId) {
+      router.push(`/patients/${patientId}`);
+    }
   };
 
   // ✅ Fetch claim line details
@@ -390,7 +399,15 @@ const HistoryClaims: React.FC = () => {
                     onChange={() => toggleSelect(claim.id)}
                   />
                 </td>
-                <td className="p-2">{claim.patientName}</td>
+                <td className="p-2">
+                  <button 
+                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left"
+                    onClick={() => navigateToPatientBilling(claim.patientId)}
+                    title="View patient billing"
+                  >
+                    {claim.patientName}
+                  </button>
+                </td>
                 <td className="p-2">{claim.id}</td>
                 <td className="p-2">{claim.type}</td>
                 <td className="p-2">{formatDate(claim.sentOn || claim.createdOn)}</td>
