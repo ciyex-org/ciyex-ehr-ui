@@ -210,6 +210,7 @@ export default function LabOrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<LabOrder[]>([]);
   const [selected, setSelected] = useState<LabOrder | null>(null);
+  const [patientCache, setPatientCache] = useState<Map<number, { firstName: string; lastName: string }>>(new Map());
 
   // filters
   const [query, setQuery] = useState("");
@@ -246,6 +247,29 @@ export default function LabOrdersPage() {
       if (flag) sessionStorage.removeItem('labOrderToast');
     }
   }, []);
+
+  // Fetch patient names for orders that don't have them
+  useEffect(() => {
+    const missingPatients = orders.filter(o => !o.patientFirstName && o.patientId && !patientCache.has(o.patientId));
+    if (missingPatients.length === 0) return;
+    
+    Promise.all(missingPatients.map(async (o) => {
+      try {
+        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${o.patientId}`);
+        const json = await res.json();
+        if (json?.success && json?.data) {
+          return { id: o.patientId, firstName: json.data.firstName, lastName: json.data.lastName };
+        }
+      } catch (e) {
+        console.error('Failed to fetch patient', o.patientId, e);
+      }
+      return null;
+    })).then(results => {
+      const newCache = new Map(patientCache);
+      results.forEach(r => r && newCache.set(r.id, { firstName: r.firstName, lastName: r.lastName }));
+      setPatientCache(newCache);
+    });
+  }, [orders]);
 
   // All create/edit form logic removed (handled in LabOrderForm component on /labs/orders/new)
 
@@ -428,6 +452,7 @@ export default function LabOrdersPage() {
 
   async function deleteOrder(o: LabOrder) {
     if (!o?.id) { setToast({ type: "error", text: "Order ID missing" }); return; }
+    if (!o?.patientId) { setToast({ type: "error", text: "Patient ID missing" }); return; }
     if (!confirm("Are you sure you want to delete this order?")) return;
     try {
       const org = resolveOrgId();
@@ -435,15 +460,21 @@ export default function LabOrdersPage() {
         `${process.env.NEXT_PUBLIC_API_URL}/api/lab-order/${o.patientId}/${o.id}`,
         { method: "DELETE", headers: { orgId: org, 'X-Org-Id': org } }
       );
-      const json = await res.json();
-      if (json?.success) {
+      
+      const text = await res.text();
+      let json: { success?: boolean; message?: string } | null = null;
+      try { json = text ? JSON.parse(text) : null; } catch {}
+      
+      if (res.ok || (json?.success === true)) {
         setOrders((p) => p.filter((x) => x.id !== o.id));
         if (selected?.id === o.id) setSelected(null);
         setViewOpen(false);
         setToast({ type: "success", text: "Deleted successfully" });
-      } else {
-        setToast({ type: "error", text: `Failed to delete: ${json?.message ?? "Unknown error"}` });
+        return;
       }
+      
+      console.error('Delete failed:', { status: res.status, response: text });
+      setToast({ type: "error", text: `Failed to delete: ${json?.message || text || `HTTP ${res.status}`}` });
     } catch (e) {
       console.error("delete error", e);
       setToast({ type: "error", text: "Error connecting to backend" });
@@ -598,7 +629,14 @@ export default function LabOrdersPage() {
                 <tr key={o.id ?? `${o.orderNumber}-${o.patientId}`} className="border-t hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs text-gray-900">{o.orderNumber}</td>
                   <td className="px-4 py-3 text-gray-900">
-                    <div className="font-medium">{o.patientId || '—'}</div>
+                    <div className="font-medium">
+                      {o.patientFirstName && o.patientLastName 
+                        ? `${o.patientFirstName} ${o.patientLastName}`
+                        : patientCache.get(o.patientId)
+                        ? `${patientCache.get(o.patientId)!.firstName} ${patientCache.get(o.patientId)!.lastName}`
+                        : o.patientId || '—'
+                      }
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-gray-900">
                     <div className="font-medium">{o.orderName}</div>

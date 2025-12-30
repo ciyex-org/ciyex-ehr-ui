@@ -445,6 +445,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   const [patientMatches, setPatientMatches] = useState<LabOrder[]>([]);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [allPatients, setAllPatients] = useState<LabOrder[]>([]);
   const [providerMatches, setProviderMatches] = useState<string[]>([]);
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
   const [physicianMatches, setPhysicianMatches] = useState<string[]>([]);
@@ -465,6 +466,29 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
       return [];
     } catch (e) {
       console.error("searchOrders error", e);
+      return [];
+    }
+  }
+
+  async function fetchAllPatients(): Promise<LabOrder[]> {
+    try {
+      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      if (!base) return [];
+      const url = `${base}/api/patients?page=0&size=1000&sort=id,asc`;
+      const res = await fetchWithAuth(url, { method: "GET" });
+      const json = await res.json().catch(() => null);
+      if (json?.success && json?.data?.content) {
+        return json.data.content.map((p: { id: number; firstName: string; lastName: string; phoneNumber?: string; email?: string }) => ({
+          patientId: p.id,
+          patientFirstName: p.firstName,
+          patientLastName: p.lastName,
+          patientHomePhone: p.phoneNumber || '',
+          mrn: String(p.id)
+        })) as LabOrder[];
+      }
+      return [];
+    } catch (e) {
+      console.error("fetchAllPatients error", e);
       return [];
     }
   }
@@ -603,16 +627,14 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     }
 
     if (_searchTimer.current) window.clearTimeout(_searchTimer.current);
-    _searchTimer.current = window.setTimeout(async () => {
-      const orders = await searchOrders(q);
+    _searchTimer.current = window.setTimeout(() => {
       const qq = q.toLowerCase();
-      const matches = orders.filter((o) => {
-        const fullname = `${o.patientFirstName} ${o.patientLastName}`.toLowerCase();
-        return fullname.includes(qq) || String(o.mrn || "").toLowerCase().includes(qq) || String(o.patientId || "").includes(qq);
+      const matches = allPatients.filter((p) => {
+        const fullname = `${p.patientFirstName} ${p.patientLastName}`.toLowerCase();
+        return fullname.includes(qq) || String(p.mrn || "").toLowerCase().includes(qq) || String(p.patientId || "").includes(qq);
       });
-      const uniqueByPatient = Array.from(new Map(matches.map((m) => [String(m.patientId), m])).values());
-      setPatientMatches(uniqueByPatient.slice(0, 8));
-      setShowPatientDropdown(uniqueByPatient.length > 0);
+      setPatientMatches(matches.slice(0, 8));
+      setShowPatientDropdown(matches.length > 0);
     }, 220) as unknown as number;
   }
 
@@ -665,6 +687,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
   }
 
   useEffect(() => {
+    fetchAllPatients().then(setAllPatients);
     return () => { if (_searchTimer.current) window.clearTimeout(_searchTimer.current); };
   }, []);
 
