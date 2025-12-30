@@ -31,7 +31,7 @@ export default function PracticeSelection() {
       if (!data.requiresSelection) {
         if (data.tenants.length === 1) {
           setSelectedTenant(data.tenants[0]);
-          router.push('/dashboard');
+          router.push('/calendar');
         }
         return;
       }
@@ -60,7 +60,7 @@ export default function PracticeSelection() {
 
   const handleSelectPractice = (tenantName: string) => {
     setSelectedTenant(tenantName);
-    router.push('/dashboard');
+    router.push('/calendar');
   };
 
   if (loading) {

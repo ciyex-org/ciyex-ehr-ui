@@ -49,11 +49,6 @@ type NavItem = {
 // ===== Data =====
 const navItems: NavItem[] = [
   {
-    icon: <GridIcon />,
-    name: "Dashboard",
-    path: "/dashboard",
-  },
-  {
     icon: <CalenderIcon />,
     name: "Calendar",
     path: "/calendar",
@@ -475,7 +470,7 @@ const AppSidebar: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={`py-6 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}>
-        <Link href="/dashboard">
+        <Link href="/calendar">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <Image

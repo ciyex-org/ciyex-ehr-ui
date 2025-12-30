@@ -19,7 +19,7 @@ export default function SignInForm() {
             try {
                 const decoded: { exp: number } = jwtDecode(token);
                 if (decoded.exp * 1000 > Date.now()) {
-                    router.push("/dashboard");
+                    router.push("/calendar");
                 }
             } catch {
                 // Invalid token, proceed to login
