@@ -37,21 +37,6 @@ interface Lab {
     status: string;
 }
 
-interface ReportFlatProps {
-    useDateRange: boolean;
-    setUseDateRange: (value: boolean) => void;
-    startDate: string;
-    setStartDate: (value: string) => void;
-    endDate: string;
-    setEndDate: (value: string) => void;
-    reportFilters: string[];
-    toggleFilter: (filter: string) => void;
-    generateReport: (type: string, filters?: string[]) => void;
-    downloadReport: (type: string, filters?: string[]) => void;
-    lastVisitedTab: string;
-    setActiveTab: (tab: string) => void;
-}
-
 /* ---------------- APPOINTMENTS ---------------- */
 export const AppointmentsFlat: React.FC<{
     patientId: number;
@@ -215,7 +200,7 @@ export const AppointmentsFlat: React.FC<{
                                 </td>
                                 <td className="px-4 py-2">
                                     {(appt.status === "Scheduled" && (appt.visitType === "Telehealth" || appt.visitType === "Video Consultation")) ? (
-                                        <VideoCallButton 
+                                        <VideoCallButton
                                             patientId={appt.patientId}
                                             appointmentId={appt.id} providerId={0}                                        />
                                     ) : (
@@ -368,135 +353,7 @@ export { default as HealthcareServicesFlat } from "@/components/HealthcareServic
 export { default as PaymentFlat } from "@/components/PaymentFlat";
 
 /* ---------------- REPORT ---------------- */
-export const ReportFlat: React.FC<ReportFlatProps> = ({
-                                                          useDateRange,
-                                                          setUseDateRange,
-                                                          startDate,
-                                                          setStartDate,
-                                                          endDate,
-                                                          setEndDate,
-                                                          reportFilters,
-                                                          toggleFilter,
-                                                          generateReport,
-                                                          downloadReport,
-                                                          lastVisitedTab,
-                                                          setActiveTab,
-                                                      }) => (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
-        <h4 className="font-semibold text-lg text-gray-800">Reports</h4>
-
-        {/* CCR */}
-        <div>
-            <h5 className="font-medium mb-2">Continuity of Care Record (CCR)</h5>
-            <label className="flex items-center gap-2 mb-2 text-sm">
-                <input
-                    type="checkbox"
-                    checked={useDateRange}
-                    onChange={(e) => setUseDateRange(e.target.checked)}
-                />
-                Use Date Range
-            </label>
-            {useDateRange && (
-                <div className="flex gap-2 mb-2">
-                    <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="border rounded px-2 py-1 text-sm"
-                    />
-                    <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="border rounded px-2 py-1 text-sm"
-                    />
-                </div>
-            )}
-            <div className="space-x-2">
-                <button
-                    onClick={() => generateReport("CCR")}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                >
-                    Generate
-                </button>
-                <button
-                    onClick={() => downloadReport("CCR")}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                >
-                    Download
-                </button>
-            </div>
-        </div>
-
-        {/* CCD */}
-        <div>
-            <h5 className="font-medium mb-2">Continuity of Care Document (CCD)</h5>
-            <div className="space-x-2">
-                <button
-                    onClick={() => generateReport("CCD")}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                >
-                    Generate
-                </button>
-                <button
-                    onClick={() => downloadReport("CCD")}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                >
-                    Download
-                </button>
-            </div>
-        </div>
-
-        {/* Patient Report */}
-        <div>
-            <h5 className="font-medium mb-2">Patient Report</h5>
-            <div className="flex flex-wrap gap-3 mb-4 text-sm">
-                {[
-                    "Demographics",
-                    "History",
-                    "Insurance",
-                    "Billing",
-                    "Immunizations",
-                    "Notes",
-                    "Transactions",
-                    "Communications",
-                ].map((f) => (
-                    <label key={f} className="flex items-center gap-1">
-                        <input
-                            type="checkbox"
-                            checked={reportFilters.includes(f)}
-                            onChange={() => toggleFilter(f)}
-                        />
-                        {f}
-                    </label>
-                ))}
-            </div>
-            <div className="space-x-2 mb-4">
-                <button
-                    onClick={() => generateReport("Patient", reportFilters)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                >
-                    Generate
-                </button>
-                <button
-                    onClick={() => downloadReport("Patient", reportFilters)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                >
-                    Download
-                </button>
-            </div>
-        </div>
-
-        <div>
-            <button
-                onClick={() => setActiveTab(lastVisitedTab)}
-                className="px-4 py-2 bg-gray-500 text-white rounded text-sm"
-            >
-                Cancel
-            </button>
-        </div>
-    </div>
-);
+export { ReportFlat } from "@/components/report";
 
 /* ---------------- LABS ---------------- */
 export const LabsFlat: React.FC<{ labsData: Lab[] }> = ({ labsData }) => (
@@ -530,3 +387,243 @@ export const LabsFlat: React.FC<{ labsData: Lab[] }> = ({ labsData }) => (
         )}
     </div>
 );
+
+/* ---------------- VITALS ---------------- */
+export const VitalsFlat: React.FC<{ patientId: number }> = ({ patientId }) => {
+    const [vitals, setVitals] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetchVitals = async () => {
+        if (!patientId) return;
+        
+        try {
+            setLoading(true);
+            console.log('Fetching encounters for patient ID:', patientId);
+            const encountersRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/${patientId}/encounters`);
+            
+            if (!encountersRes.ok) {
+                console.error('Failed to fetch encounters:', encountersRes.status);
+                return;
+            }
+            
+            const encountersJson = await encountersRes.json();
+            const encounters = encountersJson.data || [];
+            
+            if (encounters.length === 0) {
+                console.log('No encounters found');
+                return;
+            }
+            
+            const latestEncounter = encounters.sort((a: any, b: any) => {
+                const dateA = new Date(a.audit?.createdDate || 0).getTime();
+                const dateB = new Date(b.audit?.createdDate || 0).getTime();
+                return dateB - dateA;
+            })[0];
+            
+            const latestEncounterId = latestEncounter.id;
+            
+            console.log('Fetching vitals for encounter ID:', latestEncounterId);
+            const vitalsRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/vitals/${patientId}/${latestEncounterId}`);
+            
+            if (!vitalsRes.ok) {
+                console.error('Failed to fetch vitals:', vitalsRes.status);
+                return;
+            }
+            
+            const vitalsJson = await vitalsRes.json();
+            const vitalsData = vitalsJson.data || [];
+            
+            if (vitalsData.length > 0) {
+                const latestVital = vitalsData.sort((a: any, b: any) => {
+                    const dateA = new Date(a.audit?.createdDate || 0).getTime();
+                    const dateB = new Date(b.audit?.createdDate || 0).getTime();
+                    
+                    if (dateA === dateB) {
+                        return b.id - a.id;
+                    }
+                    
+                    return dateB - dateA;
+                })[0];
+                
+                setVitals(latestVital);
+            } else {
+                // Fallback: fetch last available vital for this patient
+                console.log('No vitals in latest encounter, fetching last available vital for patient');
+                try {
+                    const allVitalsRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/vitals/patient/${patientId}`);
+                    
+                    if (allVitalsRes.ok) {
+                        const allVitalsJson = await allVitalsRes.json();
+                        const allVitals = allVitalsJson.data || [];
+                        
+                        if (allVitals.length > 0) {
+                            const lastVital = allVitals.sort((a: any, b: any) => {
+                                const dateA = new Date(a.audit?.createdDate || 0).getTime();
+                                const dateB = new Date(b.audit?.createdDate || 0).getTime();
+                                
+                                if (dateA === dateB) {
+                                    return b.id - a.id;
+                                }
+                                
+                                return dateB - dateA;
+                            })[0];
+                            
+                            setVitals(lastVital);
+                        }
+                    }
+                } catch (fallbackErr) {
+                    console.error('Error fetching fallback vitals:', fallbackErr);
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching vitals:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchVitals();
+    }, [patientId]);
+
+    return (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+                <h4 className="font-bold text-xl text-gray-800 flex items-center gap-2">
+                    <span className="text-2xl">💊</span>
+                    Latest Vitals
+                </h4>
+                {vitals && (
+                    <div className="text-xs text-gray-600 bg-white px-3 py-1 rounded-full border">
+                        Last updated: {new Date(vitals.audit?.createdDate || Date.now()).toLocaleDateString()}
+                    </div>
+                )}
+            </div>
+            
+            {loading ? (
+                <div className="text-center py-8">
+                    <div className="inline-flex items-center gap-2 text-blue-600">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <span className="text-sm font-medium">Loading vitals...</span>
+                    </div>
+                </div>
+            ) : !vitals ? (
+                <div className="text-center py-8">
+                    <div className="text-6xl mb-4">🏥</div>
+                    <p className="text-gray-600 font-medium">No vitals found</p>
+                    <p className="text-sm text-gray-500 mt-1">Vitals will appear here once recorded</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                ⚖️ Weight
+                            </span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {vitals.weightKg || 'N/A'}
+                            {vitals.weightKg && <span className="text-sm font-normal text-gray-500 ml-1">kg</span>}
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                📏 Height
+                            </span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {vitals.heightCm || 'N/A'}
+                            {vitals.heightCm && <span className="text-sm font-normal text-gray-500 ml-1">cm</span>}
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                💓 Blood Pressure
+                            </span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {vitals.bpSystolic || 'N/A'}
+                            {vitals.bpSystolic && <span className="text-sm font-normal text-gray-500 ml-1">mmHg</span>}
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                💗 Pulse
+                            </span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {vitals.pulse || 'N/A'}
+                            {vitals.pulse && <span className="text-sm font-normal text-gray-500 ml-1">bpm</span>}
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                🫁 Respiration
+                            </span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {vitals.respiration || 'N/A'}
+                            {vitals.respiration && <span className="text-sm font-normal text-gray-500 ml-1">/min</span>}
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                🌡️ Temperature
+                            </span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {vitals.temperatureC || 'N/A'}
+                            {vitals.temperatureC && <span className="text-sm font-normal text-gray-500 ml-1">°C</span>}
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                🩸 Oxygen Saturation
+                            </span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {vitals.oxygenSaturation || 'N/A'}
+                            {vitals.oxygenSaturation && <span className="text-sm font-normal text-gray-500 ml-1">%</span>}
+                        </div>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                📊 BMI
+                            </span>
+                        </div>
+                        <div className="text-2xl font-bold text-gray-900">
+                            {vitals.bmi || 'N/A'}
+                        </div>
+                    </div>
+                    
+                    {vitals.notes && (
+                        <div className="p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow md:col-span-2 lg:col-span-3">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                                    📝 Notes
+                                </span>
+                            </div>
+                            <div className="text-sm text-gray-700">
+                                {vitals.notes}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};

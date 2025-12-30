@@ -124,16 +124,14 @@ export default function EncounterReportPage() {
       if (Array.isArray(encounterList)) {
         const uniquePatientIds = [...new Set(encounterList.map((e: Encounter) => e.patientId))];
         
-        setPatientNames(prevNames => {
-          const newNames = new Map(prevNames);
-          uniquePatientIds.forEach(async (id) => {
-            if (!newNames.has(id)) {
-              const name = await fetchPatientName(id);
-              setPatientNames(current => new Map(current.set(id, name)));
-            }
-          });
-          return newNames;
+        const namePromises = uniquePatientIds.map(async (id) => {
+          const name = await fetchPatientName(id);
+          return { id, name };
         });
+        
+        const nameResults = await Promise.all(namePromises);
+        const namesMap = new Map(nameResults.map(({ id, name }) => [id, name]));
+        setPatientNames(namesMap);
       }
     } catch (error) {
       console.error('Failed to fetch encounters:', error);

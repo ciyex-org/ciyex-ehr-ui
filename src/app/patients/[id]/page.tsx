@@ -24,7 +24,8 @@ import {
     IssuesFlat,
     MedicalProblemsFlat,
     ImmunizationsFlat,
-    HealthcareServicesFlat  // ✅ add this
+    HealthcareServicesFlat,
+    VitalsFlat
 } from "@/components/PatientComponents";
 import DocumentsFlat from "@/components/Documents/Documents";
 import EncounterTableExpandable from "@/components/encounter/EncounterTableExpandable";
@@ -1157,6 +1158,7 @@ export default function PatientDashboardPage() {
             case "report":
                 return (
                     <ReportFlat
+                        patientId={Number(patient.id)}
                         useDateRange={useDateRange}
                         setUseDateRange={setUseDateRange}
                         startDate={startDate}
@@ -1220,9 +1222,8 @@ export default function PatientDashboardPage() {
                             tabContentRefs.current["vitals"] = el;
                         }}
                         style={{ scrollMarginTop: headerH + 12 }}
-                        className="bg-white rounded-lg border border-gray-200 shadow-sm p-6"
-
                     >
+                        <VitalsFlat patientId={Number(patient.id)} />
                     </div>
                 );
 
