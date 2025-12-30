@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Edit, Eye, Paperclip, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 
 const API_BASE = "/api/patient-billing";
@@ -15,6 +16,7 @@ type ClaimLineDetail = {
 };
 
 const RejectedClaims: React.FC = () => {
+  const router = useRouter();
   // selection
   const [selectedClaims, setSelectedClaims] = useState<Set<number>>(new Set());
 
@@ -248,6 +250,13 @@ const RejectedClaims: React.FC = () => {
       setSelectedClaims(new Set());
     } else {
       setSelectedClaims(new Set(filteredClaims.map((c: any) => c.id)));
+    }
+  };
+
+  // ✅ Navigate to patient page
+  const navigateToPatientBilling = (patientId: number) => {
+    if (patientId) {
+      router.push(`/patients/${patientId}`);
     }
   };
 
@@ -583,7 +592,15 @@ const RejectedClaims: React.FC = () => {
                     onChange={() => toggleSelect(claim.id)}
                   />
                 </td>
-                <td className="p-2">{claim.patientName}</td>
+                <td className="p-2">
+                  <button 
+                    className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left"
+                    onClick={() => navigateToPatientBilling(claim.patientId)}
+                    title="View patient billing"
+                  >
+                    {claim.patientName}
+                  </button>
+                </td>
                 <td className="p-2">{claim.id}</td>
                 <td className="p-2">{claim.type}</td>
                 <td className="p-2">{formatDate(claim.createdOn)}</td>
