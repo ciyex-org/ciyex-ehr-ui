@@ -828,6 +828,7 @@ export default function LabOrdersPage() {
         ) : (
           <div className="py-8 text-center text-gray-500">No order selected.</div>
         )}
+        
       </Modal>
 
       {/* Toast */}

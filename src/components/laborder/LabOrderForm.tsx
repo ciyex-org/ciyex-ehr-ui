@@ -1204,4 +1204,3 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     </div>
   );
 }
-
