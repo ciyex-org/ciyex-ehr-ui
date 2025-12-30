@@ -37,7 +37,7 @@ function AuthCallbackContent() {
                     },
                     body: JSON.stringify({
                         code,
-                        redirectUri: window.location.origin + "/callback",
+                        redirectUri: `${window.location.origin}/callback`,
                         codeVerifier: codeVerifier || undefined,
                     }),
                 });
@@ -99,30 +99,30 @@ function AuthCallbackContent() {
                         const tenantsData = await getAccessibleTenants(token);
                         console.log("Tenants data:", tenantsData);
                         
-                        // If user already has a selected practice, skip selection and go to dashboard
+                        // If user already has a selected practice, skip selection and go to calendar
                         if (existingTenant) {
                             console.log("User already has selected practice:", existingTenant);
-                            console.log("Skipping practice selection, going to dashboard");
-                            router.push("/dashboard");
-                        } else if (tenantsData.requiresSelection && tenantsData.tenants.length > 1) {
+                            console.log("Skipping practice selection, going to calendar");
+                            router.push("/calendar");
+                        } else if (tenantsData.requiresSelection && tenantsData.tenants?.length > 1) {
                             // Multi-tenant user without selected practice, redirect to practice selection
                             console.log("User has multiple tenants, redirecting to practice selection");
                             router.push("/select-practice");
-                        } else if (tenantsData.tenants && tenantsData.tenants.length === 1) {
-                            // Single tenant, auto-select and redirect to dashboard
+                        } else if (tenantsData.tenants?.length === 1) {
+                            // Single tenant, auto-select and redirect to calendar
                             console.log("User has single tenant, auto-selecting:", tenantsData.tenants[0]);
                             setSelectedTenant(tenantsData.tenants[0]);
-                            router.push("/dashboard");
+                            router.push("/calendar");
                         } else {
-                            // No tenants or full access, redirect to dashboard
-                            console.log("User has full access or no tenants, redirecting to dashboard");
-                            router.push("/dashboard");
+                            // No tenants or full access, redirect to calendar
+                            console.log("User has full access or no tenants, redirecting to calendar");
+                            router.push("/calendar");
                         }
                     } catch (tenantErr) {
                         console.error("Failed to check tenants:", tenantErr);
-                        // Fallback to dashboard - don't block login
-                        console.log("Continuing to dashboard despite tenant check failure");
-                        router.push("/dashboard");
+                        // Fallback to calendar - don't block login
+                        console.log("Continuing to calendar despite tenant check failure");
+                        router.push("/calendar");
                     }
                 } else {
                     setError(data.message || "Authentication failed");
