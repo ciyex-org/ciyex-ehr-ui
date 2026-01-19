@@ -731,30 +731,56 @@ export default function PatientDashboardPage() {
     }, [id, router]);
 
     async function saveDemographics() {
-        if (!demoForm || !patient) return;
-        const payload = { ...patient, ...demoForm };
-        const res = await fetchWithAuth(
-            `${API_BASE}/api/patients/${patient.id}`,
-            {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            }
-        );
-
-        const text = await res.text();
-        const data =
-            res.headers.get("content-type")?.includes("application/xml") || text.startsWith("<")
-                ? await parseXmlResponse(text)
-                : JSON.parse(text);
-
-        if (!res.ok || !data.success) {
-            throw new Error(data.message || "Failed to save demographics");
+        if (!demoForm || !patient) {
+            console.error('Missing demoForm or patient data');
+            throw new Error('Missing required data');
         }
+        
+        try {
+            const payload = { ...patient, ...demoForm };
+            console.log('Saving demographics with payload:', payload);
+            
+            const res = await fetchWithAuth(
+                `${API_BASE}/api/patients/${patient.id}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                }
+            );
 
-        const updated: Patient = data.data ?? payload;
-        setPatient(updated);
-        setEditDemographics(false);
+            console.log('Response status:', res.status, res.statusText);
+            
+            const text = await res.text();
+            console.log('Response text:', text);
+            
+            if (!text || text.trim() === '') {
+                throw new Error('Empty response from server');
+            }
+            
+            const data =
+                res.headers.get("content-type")?.includes("application/xml") || text.startsWith("<")
+                    ? await parseXmlResponse(text)
+                    : JSON.parse(text);
+
+            console.log('Parsed response data:', data);
+            
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}: ${data.message || res.statusText}`);
+            }
+            
+            if (!data.success) {
+                throw new Error(data.message || "Server returned success=false");
+            }
+
+            const updated: Patient = data.data ?? payload;
+            setPatient(updated);
+            setEditDemographics(false);
+            console.log('Demographics saved successfully');
+        } catch (error) {
+            console.error('Error in saveDemographics:', error);
+            throw error;
+        }
     }
 
     async function saveHistory() {

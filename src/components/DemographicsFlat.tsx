@@ -261,18 +261,24 @@ export default function DemographicsFlat({
                             <button
                                 onClick={async () => {
                                     try {
+                                        console.log('Starting demographics save...');
                                         await saveDemographics();
                                         setAlertState({
                                             type: "success",
                                             message: "Demographics updated successfully.",
                                         });
-                                    } catch {
+                                        console.log('Demographics save completed successfully');
+                                    } catch (error) {
+                                        console.error('Demographics save failed:', error);
+                                        const errorMessage = error instanceof Error 
+                                            ? error.message 
+                                            : 'Unknown error occurred';
                                         setAlertState({
                                             type: "error",
-                                            message: "Failed to update demographics.",
+                                            message: `Failed to update demographics: ${errorMessage}`,
                                         });
                                     }
-                                    setTimeout(() => setAlertState(null), 4000);
+                                    setTimeout(() => setAlertState(null), 6000);
                                     setEditDemographics(false);
                                 }}
                                 className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs"
