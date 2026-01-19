@@ -771,6 +771,8 @@ export default function AppointmentPage() {
   // NEW — status filter & inline status edit
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
+  const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   // drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -806,6 +808,27 @@ export default function AppointmentPage() {
     secondary: null,
     tertiary: null
   });
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Fetch available statuses
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/appointments/status-options`);
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableStatuses(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch status options:', error);
+      }
+    };
+    fetchStatuses();
+  }, []);
 
   // Visit Categories (active only)
   useEffect(() => {
@@ -861,12 +884,14 @@ export default function AppointmentPage() {
 
   // Default date range: last month -> today
   useEffect(() => {
-    const today = new Date();
-    const lastMonth = new Date(today);
-    lastMonth.setMonth(today.getMonth() - 1);
-    const fmt = (d: Date) => `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
-    setFrom(fmt(lastMonth));
-    setTo(fmt(today));
+    if (typeof window !== 'undefined') {
+      const today = new Date();
+      const lastMonth = new Date(today);
+      lastMonth.setMonth(today.getMonth() - 1);
+      const fmt = (d: Date) => `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
+      setFrom(fmt(lastMonth));
+      setTo(fmt(today));
+    }
   }, []);
 
   // ---- Appointments loader ----
@@ -929,7 +954,7 @@ export default function AppointmentPage() {
 
   // NEW — update status
   const updateStatus = useCallback(
-      async (row: AppointmentDTO, newStatus: "Checked" | "Unchecked") => {
+      async (row: AppointmentDTO, newStatus: string) => {
         try {
           const res = await fetchWithAuth(
               `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/${row.id}/status`,
@@ -990,9 +1015,19 @@ export default function AppointmentPage() {
       case "CONFIRMED":  return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
       case "SCHEDULED":  return "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200";
       case "PENDING":    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
-      case "CANCELLED":  return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "CANCELLED":
+      case "CANCELED":   return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "CANCELED LESS THAN 24H": return "bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100";
       case "CHECKED":    return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
       case "UNCHECKED":  return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200";
+      case "CHECKED OUT": return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "ARRIVED LATE": return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+      case "LEFT W/O APT": return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      case "NO-FILL ISSUE": return "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200";
+      case "CODING ISSUE": return "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200";
+      case "AM CONFIRMED": return "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200";
+      case "EMAIL CONFIRMED": return "bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200";
+      case "CALLBACK REQUESTED": return "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200";
       default:           return "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200";
     }
   };
@@ -1160,6 +1195,8 @@ export default function AppointmentPage() {
     setVerificationResults({ primary: null, secondary: null, tertiary: null });
   };
 
+  if (!mounted) return null;
+
   return (
       <AdminLayout>
         <div className="container mx-auto p-6 overflow-x-hidden text-gray-800 dark:text-gray-200">
@@ -1208,9 +1245,9 @@ export default function AppointmentPage() {
                   className="rounded-md border px-3 py-2 bg-white dark:bg-gray-800 dark:border-gray-600"
               >
                 <option value="All">All Statuses</option>
-                <option value="Scheduled">Scheduled</option>
-                <option value="Checked">Checked</option>
-                <option value="Unchecked">Unchecked</option>
+                {availableStatuses.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
               </select>
 
               <input type="text" placeholder="Patient Name" value={patientName} onChange={(e) => setPatientName(e.target.value)}
@@ -1299,17 +1336,14 @@ export default function AppointmentPage() {
                                     }
                                     className="rounded-md border px-2 py-1 bg-white dark:bg-gray-800 dark:border-gray-600 text-sm"
                                     onChange={(e) => {
-                                      const val = e.target.value as "Checked" | "Unchecked" | "";
-                                      if (val) updateStatus(r, val);
+                                      const val = e.target.value;
+                                      if (val && val !== r.status) updateStatus(r, val);
                                     }}
                                     onBlur={() => setEditingStatusId(null)}
                                 >
-                                  {/* Placeholder if current is not checked/unchecked */}
-                                  {!(["CHECKED","UNCHECKED"].includes((r.status || "").toUpperCase())) && (
-                                      <option value="">{r.status}</option>
-                                  )}
-                                  <option value="Checked">Checked</option>
-                                  <option value="Unchecked">Unchecked</option>
+                                  {availableStatuses.map((status) => (
+                                    <option key={status} value={status}>{status}</option>
+                                  ))}
                                 </select>
 
                                 <button
