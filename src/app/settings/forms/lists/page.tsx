@@ -309,6 +309,8 @@ export default function ListsPage(): JSX.Element {
     const originalByIdRef = useRef<Map<string, Row>>(new Map());
     // Track listIds created in UI so we skip one-time fetch (show empty table)
     const newlyCreatedLists = useRef<Set<string>>(new Set());
+    // Track manually created lists to keep them in dropdown even if backend doesn't return them
+    const manuallyCreatedLists = useRef<Set<string>>(new Set());
 
     const filteredListIds = useMemo(() => {
         const q = listQuery.trim().toLowerCase();
@@ -337,44 +339,49 @@ export default function ListsPage(): JSX.Element {
         // Only run when component mounts or when attachCids changes
     }, [attachCids]);
 
-    /* Fetch available lists */
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                setError(null);
-                console.log("Fetching list IDs from:", `${API_BASE}/api/list-options`);
-                const res = await fetchWithAuth(`${API_BASE}/api/list-options`, {
-                    method: "GET",
-                    headers: { Accept: "application/json" },
-                });
-                
-                if (!res.ok) throw new Error("Failed to load list IDs");
-                const bodyText = await res.text();
-                console.log("List IDs response:", bodyText);
+    /* Helper: fetch available lists */
+    const fetchListIds = useCallback(async () => {
+        try {
+            setError(null);
+            console.log("Fetching list IDs from:", `${API_BASE}/api/list-options`);
+            const res = await fetchWithAuth(`${API_BASE}/api/list-options`, {
+                method: "GET",
+                headers: { Accept: "application/json" },
+            });
+            
+            if (!res.ok) throw new Error("Failed to load list IDs");
+            const bodyText = await res.text();
+            console.log("List IDs response:", bodyText);
 
-                const rawIds = extractListIdsFromResponseText(bodyText);
-                console.log("Extracted list IDs:", rawIds);
-                const uniq = uniqueCaseInsensitive(rawIds);
-                console.log("Unique list IDs:", uniq);
-
-                if (mounted) {
-                    setListIds(uniq);
-                    if (uniq.length && !selectedListId) {
-                        setSelectedListId(uniq[0]);
-                        setListQuery(uniq[0]);
-                    }
-                }
-            } catch (e: unknown) {
-                console.error("Failed to fetch listIds:", e instanceof Error ? e.message : String(e));
-                if (mounted) setError(e instanceof Error ? e.message : "Failed to load list IDs");
+            const rawIds = extractListIdsFromResponseText(bodyText);
+            console.log("Extracted list IDs:", rawIds);
+            let uniq = uniqueCaseInsensitive(rawIds);
+            
+            // Merge manually created lists that might not be in backend response yet
+            const manualLists = Array.from(manuallyCreatedLists.current);
+            if (manualLists.length > 0) {
+                uniq = uniqueCaseInsensitive([...uniq, ...manualLists]);
             }
-        })();
-        return () => {
-            mounted = false;
-        };
+            console.log("Unique list IDs (with manual):", uniq);
+
+            setListIds(uniq);
+            if (uniq.length && !selectedListId) {
+                setSelectedListId(uniq[0]);
+                setListQuery(uniq[0]);
+            }
+            return uniq;
+        } catch (e: unknown) {
+            console.error("Failed to fetch listIds:", e instanceof Error ? e.message : String(e));
+            setError(e instanceof Error ? e.message : "Failed to load list IDs");
+            return [];
+        }
+    }, [selectedListId]);
+
+    /* Fetch available lists on mount */
+    useEffect(() => {
+        fetchListIds();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [API_BASE]);
+    }, []);
 
     /* Helper: fetch rows for a list */
     const fetchRowsForList = useCallback(
@@ -506,6 +513,7 @@ export default function ListsPage(): JSX.Element {
         });
 
         newlyCreatedLists.current.add(trimmed);
+        manuallyCreatedLists.current.add(trimmed);
 
         setSelectedListId(trimmed);
         setListQuery(trimmed);
@@ -818,23 +826,11 @@ export default function ListsPage(): JSX.Element {
 
             // Always refresh list IDs and data
             console.log("Refreshing after save...");
-            const listRes = await fetchWithAuth(`${API_BASE}/api/list-options`, {
-                method: "GET",
-                headers: { Accept: "application/json" },
-            });
-            if (listRes.ok) {
-                const bodyText = await listRes.text();
-                console.log("Refresh list IDs response:", bodyText);
-                const rawIds = extractListIdsFromResponseText(bodyText);
-                const uniq = uniqueCaseInsensitive(rawIds);
-                console.log("Refreshed list IDs:", uniq);
-                
-                // Ensure current list is in the dropdown even if API returns empty
-                if (!uniq.includes(selectedListId)) {
-                    uniq.push(selectedListId);
-                    uniq.sort();
-                }
-                setListIds(uniq);
+            const refreshedIds = await fetchListIds();
+            
+            // Ensure current list is in the dropdown even if API returns empty
+            if (refreshedIds.length > 0 && !refreshedIds.includes(selectedListId)) {
+                setListIds([selectedListId, ...refreshedIds].sort());
             }
 
             // Small delay to ensure backend has committed the data
