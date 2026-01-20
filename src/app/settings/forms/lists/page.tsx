@@ -54,31 +54,33 @@ function extractListIdsFromResponseText(text: string): string[] {
         const data = JSON.parse(text) as unknown;
 
         if (Array.isArray(data)) {
-            // Extract unique listId values from the array of ListOptionDto objects
             const listIds = (data as UnknownRecord[])
                 .map((x) => asString(x["listId"] ?? x["list_id"] ?? ""))
                 .filter(Boolean);
-            
-            // Return unique values
             return Array.from(new Set(listIds)).sort();
         }
 
         if (data && typeof data === "object") {
             const obj = data as UnknownRecord;
-            const items = Array.isArray(obj.items) ? (obj.items as UnknownRecord[]) : [];
-            if (items.length) {
-                const listIds = items
+            // Check for data, items, or results array
+            const arr = Array.isArray(obj.data) 
+                ? (obj.data as UnknownRecord[])
+                : Array.isArray(obj.items) 
+                ? (obj.items as UnknownRecord[]) 
+                : Array.isArray(obj.results)
+                ? (obj.results as UnknownRecord[])
+                : [];
+            
+            if (arr.length) {
+                const listIds = arr
                     .map((x) => asString(x["listId"] ?? x["list_id"] ?? ""))
                     .filter(Boolean);
                 return Array.from(new Set(listIds)).sort();
             }
         }
     } catch {
-        // Fallback: return empty array if JSON parsing fails
         return [];
     }
-    
-    // Remove XML parsing fallback since we're using JSON API
     return [];
 }
 
@@ -112,19 +114,19 @@ function parseListOptionsFlexible(text: string): Row[] {
 
         if (data && typeof data === "object") {
             const obj = data as UnknownRecord;
-            const arr = Array.isArray(obj.items)
+            // Check for data, items, or results array
+            const arr = Array.isArray(obj.data)
+                ? (obj.data as UnknownRecord[])
+                : Array.isArray(obj.items)
                 ? (obj.items as UnknownRecord[])
-                : Array.isArray(obj.data)
-                    ? (obj.data as UnknownRecord[])
-                    : [];
+                : Array.isArray(obj.results)
+                ? (obj.results as UnknownRecord[])
+                : [];
             if (arr.length) return arr.map(mapItem);
         }
     } catch {
-        // Return empty array if JSON parsing fails
         return [];
     }
-
-    // Remove XML parsing since we're using JSON API
     return [];
 }
 
@@ -341,6 +343,7 @@ export default function ListsPage(): JSX.Element {
         (async () => {
             try {
                 setError(null);
+                console.log("Fetching list IDs from:", `${API_BASE}/api/list-options`);
                 const res = await fetchWithAuth(`${API_BASE}/api/list-options`, {
                     method: "GET",
                     headers: { Accept: "application/json" },
@@ -348,9 +351,12 @@ export default function ListsPage(): JSX.Element {
                 
                 if (!res.ok) throw new Error("Failed to load list IDs");
                 const bodyText = await res.text();
+                console.log("List IDs response:", bodyText);
 
                 const rawIds = extractListIdsFromResponseText(bodyText);
+                console.log("Extracted list IDs:", rawIds);
                 const uniq = uniqueCaseInsensitive(rawIds);
+                console.log("Unique list IDs:", uniq);
 
                 if (mounted) {
                     setListIds(uniq);
@@ -376,18 +382,20 @@ export default function ListsPage(): JSX.Element {
             setLoading(true);
             setError(null);
             try {
+                console.log("Fetching rows for list:", listId);
                 const res = await fetchWithAuth(
-                    `${API_BASE}/api/list-options/list/${encodeURIComponent(listId)}`,
+                    `${API_BASE}/api/list-options/list/${encodeURIComponent(listId)}?_t=${Date.now()}`,
                     {
                         method: "GET",
                         headers: {
                             Accept: "application/json",
+                            "Cache-Control": "no-cache",
                         },
                     }
                 );
 
                 if (res.status === 404) {
-                    // Treat as empty list (brand new)
+                    console.log("List not found (404), treating as empty");
                     setRows([]);
                     existingIdsRef.current = new Set();
                     originalByIdRef.current = new Map();
@@ -401,7 +409,9 @@ export default function ListsPage(): JSX.Element {
                 }
 
                 const payload = await res.text();
+                console.log("List rows response:", payload);
                 const parsed = parseListOptionsFlexible(payload);
+                console.log("Parsed rows:", parsed);
                 const withCid = attachCids(parsed);
                 withCid.sort(bySeqThenTitle);
                 setRows(withCid);
@@ -425,6 +435,7 @@ export default function ListsPage(): JSX.Element {
                 // Reset "new rows" tracker after load
                 newRowsRef.current = new WeakSet();
             } catch (e: unknown) {
+                console.error("Failed to fetch rows:", e);
                 setError(e instanceof Error ? e.message : "Failed to load list data");
             } finally {
                 setLoading(false);
@@ -727,8 +738,9 @@ export default function ListsPage(): JSX.Element {
             }
 
             // ---- PERFORM REQUESTS ----
+            const createErrors: string[] = [];
             const createResults = await Promise.allSettled(
-                createCandidates.map(async (r) => {
+                createCandidates.map(async (r, idx) => {
                     const body = {
                         listId: String(selectedListId),
                         optionId: String(r.option_id).trim(),
@@ -753,13 +765,17 @@ export default function ListsPage(): JSX.Element {
 
                     if (!res.ok) {
                         const text = await res.text().catch(() => "");
-                        throw new Error(`${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
+                        const error = `Row ${idx + 1} (${r.option_id}): ${res.status} ${text || res.statusText}`;
+                        createErrors.push(error);
+                        throw new Error(error);
                     }
+                    return res;
                 })
             );
 
+            const updateErrors: string[] = [];
             const updateResults = await Promise.allSettled(
-                updateCandidates.map(async ({ curr, pathId }) => {
+                updateCandidates.map(async ({ curr, pathId }, idx) => {
                     const body = {
                         listId: String(selectedListId),
                         optionId: String(curr.option_id).trim(),
@@ -787,8 +803,11 @@ export default function ListsPage(): JSX.Element {
 
                     if (!res.ok) {
                         const text = await res.text().catch(() => "");
-                        throw new Error(`${res.status} ${res.statusText}${text ? ` - ${text}` : ""}`);
+                        const error = `ID ${pathId} (${curr.option_id}): ${res.status} ${text || res.statusText}`;
+                        updateErrors.push(error);
+                        throw new Error(error);
                     }
+                    return res;
                 })
             );
 
@@ -797,28 +816,52 @@ export default function ListsPage(): JSX.Element {
             const createdOk = createCandidates.length - createdFailed;
             const updatedOk = updateCandidates.length - updatedFailed;
 
-            // Refresh to reflect server state and reset trackers
+            // Always refresh list IDs and data
+            console.log("Refreshing after save...");
+            const listRes = await fetchWithAuth(`${API_BASE}/api/list-options`, {
+                method: "GET",
+                headers: { Accept: "application/json" },
+            });
+            if (listRes.ok) {
+                const bodyText = await listRes.text();
+                console.log("Refresh list IDs response:", bodyText);
+                const rawIds = extractListIdsFromResponseText(bodyText);
+                const uniq = uniqueCaseInsensitive(rawIds);
+                console.log("Refreshed list IDs:", uniq);
+                
+                // Ensure current list is in the dropdown even if API returns empty
+                if (!uniq.includes(selectedListId)) {
+                    uniq.push(selectedListId);
+                    uniq.sort();
+                }
+                setListIds(uniq);
+            }
+
+            // Small delay to ensure backend has committed the data
+            await new Promise(resolve => setTimeout(resolve, 300));
             await fetchRowsForList(selectedListId);
 
-            const parts: string[] = [];
-            if (createCandidates.length) {
-                parts.push(
-                    createdFailed === 0
-                        ? `created ${createdOk}/${createCandidates.length}`
-                        : `created ${createdOk}/${createCandidates.length} (${createdFailed} failed)`
-                );
+            // Show results
+            if (createErrors.length > 0) {
+                console.error("Create errors:", createErrors);
+                pushToast("Create failed", createErrors.join("; "), "error", 6000);
             }
-            if (updateCandidates.length) {
-                parts.push(
-                    updatedFailed === 0
-                        ? `updated ${updatedOk}/${updateCandidates.length}`
-                        : `updated ${updatedOk}/${updateCandidates.length} (${updatedFailed} failed)`
-                );
+            if (updateErrors.length > 0) {
+                console.error("Update errors:", updateErrors);
+                pushToast("Update failed", updateErrors.join("; "), "error", 6000);
             }
-            pushToast("Saved", parts.join(", ") + ".", "success");
+
+            if (createdOk > 0 || updatedOk > 0) {
+                const parts: string[] = [];
+                if (createdOk > 0) parts.push(`${createdOk} created`);
+                if (updatedOk > 0) parts.push(`${updatedOk} updated`);
+                pushToast("Save successful", parts.join(", "), "success");
+            } else if (createdFailed > 0 || updatedFailed > 0) {
+                pushToast("Save failed", "All operations failed. Check errors above.", "error");
+            }
         } catch (e: unknown) {
             console.error("Save failed:", e instanceof Error ? e.message : e);
-            pushToast("Save failed", e instanceof Error ? e.message : "Unknown error", "error");
+            pushToast("Save failed", e instanceof Error ? e.message : "Unknown error occurred", "error");
         } finally {
             setSaving(false);
         }
