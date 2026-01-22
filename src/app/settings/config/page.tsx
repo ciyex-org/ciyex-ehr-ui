@@ -685,15 +685,20 @@ export default function Page() {
         dentalExchange: 'Dental Exchange Clearinghouse',
     };
 
+    // Track if config exists (has been loaded from backend)
+    const [configExists, setConfigExists] = useState(false);
+    const [saving, setSaving] = useState(false);
+
     // ---- Save handler ----
     async function handleSave(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
+        setSaving(true);
         try {
             // Coercers for numeric & boolean fields
             const toNum = (v: any) => (v === '' || v === undefined ? undefined : Number(v));
             const toBool = (v: any) => (v === '' || v === undefined ? undefined : v === true || String(v).toLowerCase() === 'true');
 
-            // Build the nested config structure - backend will flatten it
+            // Build the nested config structure
             const payload: any = {
                 storage_type: cfg.storage_type,
                 payment_provider: cfg.payment_provider,
@@ -802,7 +807,7 @@ export default function Page() {
                 },
             };
 
-            // Remove empty nested objects to keep payload clean
+            // Remove empty nested objects
             const cleanPayload = JSON.parse(JSON.stringify(payload, (key, value) => {
                 if (value && typeof value === 'object' && !Array.isArray(value)) {
                     const hasValues = Object.values(value).some(v => v !== '' && v !== null && v !== undefined);
@@ -823,7 +828,7 @@ export default function Page() {
                 return;
             }
 
-            // Response handling - refresh the config to show saved state
+            // Automatically fetch and display updated data
             const updatedRes = await fetchWithAuth(`${API_BASE}/api/orgConfig/map`);
             if (updatedRes.ok) {
                 const updatedFlatMap = await updatedRes.json();
@@ -831,6 +836,7 @@ export default function Page() {
                     const updatedNested = flatMapToNested(updatedFlatMap);
                     const updatedParsed = normalizeIntegrations(updatedNested);
                     setCfg(updatedParsed);
+                    setConfigExists(true);
                 }
             }
 
@@ -891,6 +897,8 @@ export default function Page() {
         } catch (err: any) {
             console.error('Save error', err);
             pushToast(err?.message ?? 'Unexpected error during save.', 'error', 'Error');
+        } finally {
+            setSaving(false);
         }
     }
 
@@ -903,6 +911,7 @@ export default function Page() {
                     console.warn('Org config fetch failed', res.status);
                     // Don't show error for empty/not found - just use empty config
                     setCfg(EMPTY_CONFIG());
+                    setConfigExists(false);
                     return;
                 }
                 const flatMap = await res.json();
@@ -911,6 +920,7 @@ export default function Page() {
                 if (!flatMap || Object.keys(flatMap).length === 0) {
                     console.log('No config data found, using empty config');
                     setCfg(EMPTY_CONFIG());
+                    setConfigExists(false);
                     return;
                 }
                 
@@ -918,10 +928,12 @@ export default function Page() {
                 const nested = flatMapToNested(flatMap);
                 const parsed = normalizeIntegrations(nested);
                 setCfg(parsed);
+                setConfigExists(true);
             } catch (e) {
                 console.error('Failed to load config:', e);
                 // Gracefully handle errors by using empty config
                 setCfg(EMPTY_CONFIG());
+                setConfigExists(false);
             }
         })();
     }, []);
@@ -956,11 +968,24 @@ export default function Page() {
                         <button
                             type="submit"
                             form="settingsForm"
-                            className="inline-flex items-center gap-2.5 rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-600/40 hover:bg-blue-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                            disabled={saving}
+                            className="inline-flex items-center gap-2.5 rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-600/40 hover:bg-blue-700 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:scale-100"
                             title="Save all settings"
                         >
-                            <Icon path={paths.save} className="h-5 w-5 text-white" />
-                            Save
+                            {saving ? (
+                                <>
+                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Icon path={paths.save} className="h-5 w-5 text-white" />
+                                    Save
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
