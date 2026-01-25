@@ -41,11 +41,9 @@ jobs:
       - name: Extract version from package.json
         id: version
         run: |
-          # Extract version from package.json (e.g., "2.0.2")
-          BASE_VERSION=$(node -p "require('./package.json').version")
+          BASE_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
           echo "Base version from package.json: $BASE_VERSION"
           
-          # Create full version with run number for alpha builds
           FULL_VERSION="${BASE_VERSION}-alpha.${{ github.run_number }}"
           echo "Full version: $FULL_VERSION"
           
