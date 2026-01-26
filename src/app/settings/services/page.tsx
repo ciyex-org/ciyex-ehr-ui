@@ -46,19 +46,45 @@ function ServiceForm({
     const [error, setError] = useState<string | null>(null);
 
     async function handleSubmit() {
+        if (!name.trim()) {
+            setError("Service name is required");
+            return;
+        }
+        if (!defaultPrice.trim()) {
+            setError("Default price is required");
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
-            const url =
-                mode === "add"
-                    ? `${process.env.NEXT_PUBLIC_API_URL}/api/services`
-                    : `${process.env.NEXT_PUBLIC_API_URL}/api/services/${service?.id}`;
+            const payload = {
+                id: service?.id,
+                name: name.trim(),
+                defaultPrice: defaultPrice.trim()
+            };
+
+            const url = mode === "add"
+                ? `${process.env.NEXT_PUBLIC_API_URL}/api/services`
+                : `${process.env.NEXT_PUBLIC_API_URL}/api/services/${service?.id}`;
 
             const res = await fetchWithAuth(url, {
                 method: mode === "add" ? "POST" : "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, defaultPrice }),
+                body: JSON.stringify(payload),
             });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                console.error("Server error:", errorText);
+                
+                if (errorText.includes("parameter name information not available")) {
+                    setError("Backend needs to be recompiled with '-parameters' flag. Please contact your system administrator.");
+                } else {
+                    setError(`Failed to save (${res.status})`);
+                }
+                return;
+            }
 
             const json = await safeJson<Service>(res);
             if (!json || json.success) {
@@ -69,7 +95,7 @@ function ServiceForm({
             }
         } catch (err) {
             console.error("Error saving service:", err);
-            setError("Unexpected error occurred");
+            setError(err instanceof Error ? err.message : "Unexpected error occurred");
         } finally {
             setLoading(false);
         }
@@ -81,41 +107,46 @@ function ServiceForm({
                 <h2 className="text-lg font-semibold mb-4">
                     {mode === "add" ? "Add Service" : "Edit Service"}
                 </h2>
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-700 text-sm">{error}</p>
+                    </div>
+                )}
                 <div className="space-y-3">
                     <div>
-                        <label className="block text-sm mb-1">Name</label>
+                        <label className="block text-sm font-medium mb-1">Name <span className="text-red-600">*</span></label>
                         <input
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             placeholder="Service name"
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm mb-1">Default Price</label>
+                        <label className="block text-sm font-medium mb-1">Default Price <span className="text-red-600">*</span></label>
                         <input
                             value={defaultPrice}
                             onChange={(e) => setDefaultPrice(e.target.value)}
                             placeholder="Default price"
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             required
                         />
                     </div>
-                    {error && <p className="text-red-600 text-sm">{error}</p>}
                     <div className="flex justify-between items-center gap-2 pt-3 border-t mt-4">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200"
+                            disabled={loading}
+                            className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={loading}
+                            disabled={loading || !name.trim() || !defaultPrice.trim()}
                             className={`px-4 py-2 rounded ${
-                                loading
-                                    ? "bg-gray-300 text-gray-600"
+                                loading || !name.trim() || !defaultPrice.trim()
+                                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                                     : "bg-blue-600 text-white hover:bg-blue-700"
                             }`}
                         >
