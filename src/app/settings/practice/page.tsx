@@ -6,7 +6,6 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 interface PracticeSettings {
     name: string;
     enablePatientPractice: boolean;
-    tokenExpiryMinutes?: number;
 }
 interface RegionalSettings {
     unitsForVisitForms: "US" | "Metric" | "Both";
@@ -121,18 +120,8 @@ export default function RegionalFormattingSettingsPage() {
     const [practiceSettings, setPracticeSettings] = useState<PracticeSettings>({
         name: "",
         enablePatientPractice: false,
-    tokenExpiryMinutes: 5,
     });
     
-    // persist fetched expiry to localStorage per org
-    const persistExpiryLocally = (orgId: string | null, mins: number | undefined) => {
-        try {
-            const keyOrg = orgId || "default";
-            const m = typeof mins === 'number' && mins > 0 ? mins : 5;
-            localStorage.setItem(`tokenExpiryMinutes_${keyOrg}`, String(m));
-            localStorage.setItem('tokenExpiryMinutes', String(m));
-        } catch {}
-    };
     const [practiceId, setPracticeId] = useState<string | null>(null);
     const [settings, setSettings] = useState<RegionalSettings>({
         unitsForVisitForms: "US",
@@ -195,9 +184,7 @@ export default function RegionalFormattingSettingsPage() {
                         setPracticeSettings({
                             name: response.data.name || "",
                             enablePatientPractice: response.data.practiceSettings?.enablePatientPractice || false,
-                            tokenExpiryMinutes: response.data.practiceSettings?.tokenExpiryMinutes ?? response.data.tokenExpiryMinutes ?? 5,
                         });
-                        persistExpiryLocally(response.data.id || orgId, response.data.practiceSettings?.tokenExpiryMinutes ?? response.data.tokenExpiryMinutes);
                         if (response.data.regionalSettings) {
                             setSettings(response.data.regionalSettings);
                         }
@@ -243,7 +230,7 @@ export default function RegionalFormattingSettingsPage() {
                 headers,
                 body: JSON.stringify({
                     name: practiceSettings.name,
-                    practiceSettings: { enablePatientPractice: practiceSettings.enablePatientPractice, tokenExpiryMinutes: practiceSettings.tokenExpiryMinutes ?? 5 },
+                    practiceSettings: { enablePatientPractice: practiceSettings.enablePatientPractice },
                     regionalSettings: settings
                 }),
             });
@@ -252,20 +239,6 @@ export default function RegionalFormattingSettingsPage() {
                 if (!practiceId && response.success && response.data) {
                     setPracticeId(response.data.id);
                 }
-                // persist expiry locally for session manager and notify it in this tab
-                try {
-                    const orgKey = response?.data?.id || practiceId || orgId || "default";
-                    const mins = practiceSettings.tokenExpiryMinutes ?? 5;
-                    localStorage.setItem(`tokenExpiryMinutes_${orgKey}`, String(mins));
-                    localStorage.setItem('tokenExpiryMinutes', String(mins));
-                    try {
-                        sessionStorage.setItem('lastActivity', String(Date.now()));
-                    } catch {}
-                    // notify SessionManager in same tab (storage events don't fire in same tab)
-                    try {
-                        window.dispatchEvent(new CustomEvent('tokenExpiryUpdated', { detail: { orgId: orgKey, mins } }));
-                    } catch {}
-                } catch {}
                 showNotification("Practice settings saved successfully!", "success");
             } else {
                 showNotification("Failed to save practice settings.", "error");
@@ -291,7 +264,7 @@ export default function RegionalFormattingSettingsPage() {
                 headers,
                 body: JSON.stringify({
                     name: practiceSettings.name,
-                    practiceSettings: { enablePatientPractice: practiceSettings.enablePatientPractice, tokenExpiryMinutes: practiceSettings.tokenExpiryMinutes ?? 5 },
+                    practiceSettings: { enablePatientPractice: practiceSettings.enablePatientPractice },
                     regionalSettings: settings
                 }),
             });
@@ -300,15 +273,6 @@ export default function RegionalFormattingSettingsPage() {
                 if (!practiceId && response.success && response.data) {
                     setPracticeId(response.data.id);
                 }
-                // persist expiry locally for session manager and notify it in this tab
-                try {
-                    const orgKey = response?.data?.id || practiceId || orgId || "default";
-                    const mins = practiceSettings.tokenExpiryMinutes ?? 5;
-                    localStorage.setItem(`tokenExpiryMinutes_${orgKey}`, String(mins));
-                    localStorage.setItem('tokenExpiryMinutes', String(mins));
-                    try { sessionStorage.setItem('lastActivity', String(Date.now())); } catch {}
-                    try { window.dispatchEvent(new CustomEvent('tokenExpiryUpdated', { detail: { orgId: orgKey, mins } })); } catch {}
-                } catch {}
                 showNotification("Regional settings saved successfully!", "success");
             } else {
                 showNotification("Failed to save regional settings.", "error");
@@ -363,21 +327,6 @@ export default function RegionalFormattingSettingsPage() {
     }`}
 />
                         </button>
-                    </FormRow>
-                    {/* Session timeout for organization (minutes) */}
-                    <FormRow label="Session timeout (minutes)">
-                        <select
-                            value={practiceSettings.tokenExpiryMinutes}
-                            onChange={(e) => handlePracticeInputChange("tokenExpiryMinutes", Number(e.target.value))}
-                            className="p-2 border rounded w-full max-w-xs"
-                        >
-                            <option value={5}>5</option>
-                            <option value={10}>10</option>
-                            <option value={15}>15</option>
-                            <option value={20}>20</option>
-                            <option value={25}>25</option>
-                            <option value={30}>30</option>
-                        </select>
                     </FormRow>
                 </ConfigCard>
                 {/* --- Regional & Locale Card (merged) --- */}

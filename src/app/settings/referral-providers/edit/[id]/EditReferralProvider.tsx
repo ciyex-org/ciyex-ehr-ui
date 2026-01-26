@@ -110,9 +110,19 @@ const EditReferralProvider = ({ id }: { id: string }) => {
                 const providerData = responseData.data || responseData;
                 
                 if (providerData && providerData.id) {
+                    // Extract practiceId from various possible structures
+                    let extractedPracticeId = "";
+                    if (providerData.practiceId) {
+                        extractedPracticeId = providerData.practiceId.toString();
+                    } else if (providerData.practice?.id) {
+                        extractedPracticeId = providerData.practice.id.toString();
+                    } else if (providerData.referralPractice?.id) {
+                        extractedPracticeId = providerData.referralPractice.id.toString();
+                    }
+                    
                     setFormData({
                         name: providerData.name || "",
-                        practiceId: providerData.practiceId?.toString() || providerData.practice?.id?.toString() || "",
+                        practiceId: extractedPracticeId,
                         specialty: providerData.specialty || "",
                         phoneNumber: providerData.phoneNumber || "",
                         email: providerData.email || "",
