@@ -87,13 +87,13 @@ export default function EncounterForm({ patientId, editing, onSaved, onCancel }:
             const base: Omit<EncounterDto, "id"> = { patientId, encounterDate, reason, status };
 
             let method: "POST" | "PUT" = "POST";
-            let url = `/api/encounters`;
+            let url = `/api/${patientId}/encounters`;
             const payload: Partial<EncounterDto> =
                 editing && editing.id ? { ...base, id: editing.id } : base;
 
             if (editing && editing.id) {
                 method = "PUT";
-                url = `/api/encounters/${editing.id}`;
+                url = `/api/${patientId}/encounters/${editing.id}`;
             }
 
             const res = await fetchWithOrg(url, { method, body: JSON.stringify(payload) });
