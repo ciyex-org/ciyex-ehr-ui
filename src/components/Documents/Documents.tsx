@@ -681,11 +681,11 @@ export default function Page({ patientId: propPatientId }: DocumentsProps = {}) 
   // Get tenant name from localStorage (client only)
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const tenant = localStorage.getItem("primaryGroup");
+      const tenant = localStorage.getItem("tenantName") || localStorage.getItem("selectedTenant");
       if (tenant) {
         setTenantName(tenant);
       } else {
-        pushBanner("error", "Primary group not found in localStorage", "Configuration Error");
+        pushBanner("error", "Tenant name not found in localStorage", "Configuration Error");
       }
     }
   }, [pushBanner]);
@@ -876,7 +876,8 @@ export default function Page({ patientId: propPatientId }: DocumentsProps = {}) 
       setTimeout(() => setUploadProgress(0), 300);
       setUploading(false);
       setPending([]);
-      loadDocuments();
+      // Delay to allow server to process and save documents
+      setTimeout(() => loadDocuments(), 500);
     }
   }, [pending, tenantName, patientId, category, loadDocuments, pushBanner]);
 

@@ -227,6 +227,10 @@ export const clearAuth = (): void => {
     localStorage.removeItem('orgIds');
     localStorage.removeItem('facilityId');
     localStorage.removeItem('role');
+    
+    // Clear tenant data
+    localStorage.removeItem('selectedTenant');
+    localStorage.removeItem('tenantName');
 };
 
 /**
@@ -315,4 +319,46 @@ export const getUserGroupsWithDisplayNames = (): Array<{ name: string; displayNa
         name: group,
         displayName: getGroupDisplayName(group),
     }));
+};
+
+/**
+ * Get tenant name from JWT token or localStorage
+ */
+export const getTenantName = (): string | null => {
+    if (typeof window === 'undefined') return null;
+    
+    // First check localStorage (cached from JWT)
+    const cachedTenant = localStorage.getItem('tenantName');
+    if (cachedTenant) return cachedTenant;
+    
+    // Then check localStorage selectedTenant
+    const selectedTenant = localStorage.getItem('selectedTenant');
+    if (selectedTenant) return selectedTenant;
+    
+    // Finally try to decode from token
+    const token = localStorage.getItem('token');
+    if (token) {
+        try {
+            const { jwtDecode } = require('jwt-decode');
+            const decoded: any = jwtDecode(token);
+            const org = decoded.organization;
+            
+            // Handle if organization is an object with a name property, or just a string
+            let tenantName: string | null = null;
+            if (typeof org === 'string') {
+                tenantName = org;
+            } else if (org && typeof org === 'object' && org.name) {
+                tenantName = String(org.name);
+            }
+            
+            if (tenantName) {
+                localStorage.setItem('tenantName', tenantName);
+                return tenantName;
+            }
+        } catch (error) {
+            console.warn('Failed to decode JWT for tenant name:', error);
+        }
+    }
+    
+    return null;
 };
