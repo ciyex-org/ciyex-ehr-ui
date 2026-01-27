@@ -9,7 +9,7 @@ spec:
         - name: regcred
       containers:
         - name: ciyex-ehr-ui
-          image: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui:2.0.2-alpha.12
+          image: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui:2.0.2-alpha.13
           env:
             - name: NODE_ENV
               value: "development"
