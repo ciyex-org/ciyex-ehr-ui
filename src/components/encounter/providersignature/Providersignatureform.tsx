@@ -112,7 +112,7 @@
 //                 setComments("");
 //                 if (fileRef.current) fileRef.current.value = "";
 //             }
-//         } catch (e: any) {
+//         } catch (e: unknown) {
 //             setErr(e?.message ?? "Something went wrong");
 //         } finally {
 //             setSaving(false);

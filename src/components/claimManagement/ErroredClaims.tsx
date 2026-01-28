@@ -75,7 +75,7 @@ const ErroredClaims: React.FC = () => {
       const response = await res.json();
       setPatientSearchResults(response.data?.content || []);
       setShowPatientDropdown(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Patient search error:", err);
       setPatientSearchResults([]);
     }
@@ -110,7 +110,7 @@ const ErroredClaims: React.FC = () => {
         Array.from(new Set((response.data || []).map((c: any) => String(c.provider)).filter(Boolean)))
       );
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || "Error fetching patient claims");
     } finally {
       setLoading(false);
@@ -134,7 +134,7 @@ const ErroredClaims: React.FC = () => {
       );
 
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || "Error fetching claims");
     } finally {
       setLoading(false);
@@ -181,7 +181,7 @@ const ErroredClaims: React.FC = () => {
       setInsurancePaymentAmount("");
 
       await reloadClaims();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionError(err.message || "Error changing status");
     } finally {
       setActionLoading(false);
@@ -212,7 +212,7 @@ const ErroredClaims: React.FC = () => {
       setShowVoidRecreateModal(false);
       setSelectedClaims(new Set());
       await reloadClaims();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setActionError(err.message || "Error voiding & recreating claims");
     } finally {
       setActionLoading(false);
@@ -276,7 +276,7 @@ const ErroredClaims: React.FC = () => {
       const response = await res.json();
       setLineDetails(response.data || []);
       setShowLineDetailsModal(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching line details:", err);
       alert("Failed to load procedure details");
     } finally {

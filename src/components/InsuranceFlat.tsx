@@ -217,7 +217,7 @@ export default function InsuranceFlat({
                     ? { ...current, patientId, coverageType: mapTabToCoverageType(insuranceSubTab) }
                     : { patientId, coverageType: mapTabToCoverageType(insuranceSubTab) }
             );
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e?.message || "Failed to load coverages");
         } finally {
             setLoading(false);
@@ -273,7 +273,7 @@ export default function InsuranceFlat({
             setEditInsurance(false);
             setViewMode("dashboard");
             setHighlightedTab("dashboard");
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e?.message || "Save failed");
         } finally {
             setSaving(false);
@@ -298,7 +298,7 @@ export default function InsuranceFlat({
             if (!res.ok || !body.success) throw new Error(body.message || "Delete failed");
             setInfo(`${tabLabels[insuranceSubTab]} insurance deleted`);
             await load();
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e?.message || "Delete failed");
         } finally {
             setSaving(false);
@@ -335,7 +335,7 @@ export default function InsuranceFlat({
             setVerificationResult(result);
             setShowVerificationModal(true);
             setInfo(`${tabLabels[insuranceSubTab]} insurance verified successfully`);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err?.message || "Verification failed");
         } finally {
             setVerifying(false);
