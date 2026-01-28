@@ -32,7 +32,7 @@ async function getZuubCredentials() {
       throw new Error("Organization ID not found. Please log in again.");
     }
 
-    console.log("🔍 Fetching Zuub credentials from database...");
+    // Removed debug log
     const res = await fetchWithAuth(`${API_BASE}/api/org-configs/by-org/${orgId}`);
     
     if (!res.ok) {
@@ -45,7 +45,7 @@ async function getZuubCredentials() {
     }
     
     const data = await res.json();
-    console.log("📦 Org config fetched for Zuub");
+    // Removed debug log
     
     const zuub = data.integrations?.zuub;
     
@@ -55,13 +55,13 @@ async function getZuubCredentials() {
       );
     }
     
-    console.log("✅ Zuub credentials loaded successfully");
+    // Removed debug log
     return {
       apiKey: zuub.apiKey,
       apiUrl: zuub.apiUrl || ZUUB_API_BASE_URL, // Use custom URL or default
     };
   } catch (error) {
-    console.error("❌ Error fetching Zuub credentials:", error);
+    // logger.error(" Error fetching Zuub credentials:", error);
     throw new Error(
       "Unable to load Zuub credentials. Please configure them in Settings → Integration."
     );
@@ -130,10 +130,10 @@ export async function verifyInsuranceEligibility(
 
     if (request.patientData) {
       patient = request.patientData;
-      console.log("✅ Using provided patient data");
+      // Removed debug log
     } else {
       // Fetch patient details from your API
-      console.log(`📞 Fetching patient data for patient ID: ${request.patientId}`);
+      // logger.debug(` Fetching patient data for patient ID: ${request.patientId}`);
       const patientRes = await fetchWithAuth(`${API_BASE}/api/patients/${request.patientId}`);
       
       if (!patientRes.ok) {
@@ -141,15 +141,15 @@ export async function verifyInsuranceEligibility(
       }
       
       patient = await patientRes.json();
-      console.log("✅ Patient data fetched");
+      // Removed debug log
     }
 
     if (request.providerData) {
       provider = request.providerData;
-      console.log("✅ Using provided provider data");
+      // Removed debug log
     } else {
       // Fetch provider details from your API
-      console.log(`📞 Fetching provider data for provider ID: ${request.providerId}`);
+      // logger.debug(` Fetching provider data for provider ID: ${request.providerId}`);
       const providerRes = await fetchWithAuth(`${API_BASE}/api/providers/${request.providerId}`);
       
       if (!providerRes.ok) {
@@ -157,7 +157,7 @@ export async function verifyInsuranceEligibility(
       }
       
       provider = await providerRes.json();
-      console.log("✅ Provider data fetched");
+      // Removed debug log
     }
 
     // Step 3: Build Zuub API request
@@ -194,8 +194,8 @@ export async function verifyInsuranceEligibility(
       appointment_id: request.appointmentId?.toString(),
     };
 
-    console.log("🦷 Verifying DENTAL insurance eligibility with Zuub AI...");
-    console.log("📡 Request payload:", JSON.stringify(zuubRequest, null, 2));
+    // Removed debug log
+    // logger.debug(" Request payload:", JSON.stringify(zuubRequest, null, 2));
 
     // Step 4: Call Zuub API
     const response = await fetch(`${credentials.apiUrl}/eligibility/verify`, {
@@ -213,7 +213,7 @@ export async function verifyInsuranceEligibility(
       const errorData = await response.json().catch(() => null);
       const errorText = errorData ? JSON.stringify(errorData) : await response.text();
       
-      console.error("❌ Zuub API error:", errorText);
+      // logger.error(" Zuub API error:", errorText);
       
       // Handle specific error codes
       if (response.status === 401) {
@@ -239,8 +239,8 @@ export async function verifyInsuranceEligibility(
     }
 
     const eligibilityData = await response.json();
-    console.log("✅ Insurance verification successful");
-    console.log("📊 Eligibility data:", eligibilityData);
+    // Removed debug log
+    // Removed debug log
 
     return {
       success: true,
@@ -249,7 +249,7 @@ export async function verifyInsuranceEligibility(
     };
 
   } catch (error: any) {
-    console.error("❌ Error verifying insurance eligibility:", error);
+    // logger.error(" Error verifying insurance eligibility:", error);
     
     return {
       success: false,
@@ -273,7 +273,7 @@ export async function getBenefitDetails(
   try {
     const credentials = await getZuubCredentials();
 
-    console.log(`🔍 Fetching benefit details for procedure: ${procedureCode}`);
+    // logger.debug(` Fetching benefit details for procedure: ${procedureCode}`);
 
     const response = await fetch(`${credentials.apiUrl}/benefits/procedure`, {
       method: "POST",
@@ -292,11 +292,11 @@ export async function getBenefitDetails(
     }
 
     const benefitData = await response.json();
-    console.log("✅ Benefit details fetched successfully");
+    // Removed debug log
 
     return benefitData;
   } catch (error: any) {
-    console.error("❌ Error fetching benefit details:", error);
+    // logger.error(" Error fetching benefit details:", error);
     throw error;
   }
 }
@@ -316,7 +316,7 @@ export async function getBenefitUsage(
     const credentials = await getZuubCredentials();
 
     const currentYear = year || new Date().getFullYear();
-    console.log(`📊 Fetching benefit usage for year: ${currentYear}`);
+    // logger.debug(` Fetching benefit usage for year: ${currentYear}`);
 
     const response = await fetch(`${credentials.apiUrl}/benefits/usage`, {
       method: "POST",
@@ -335,11 +335,11 @@ export async function getBenefitUsage(
     }
 
     const usageData = await response.json();
-    console.log("✅ Benefit usage fetched successfully");
+    // Removed debug log
 
     return usageData;
   } catch (error: any) {
-    console.error("❌ Error fetching benefit usage:", error);
+    // logger.error(" Error fetching benefit usage:", error);
     throw error;
   }
 }
