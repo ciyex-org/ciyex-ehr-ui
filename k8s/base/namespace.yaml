@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ciyex-ehr-ui
+  labels:
+    app.kubernetes.io/name: ciyex-ehr-ui
+    app.kubernetes.io/managed-by: argocd
