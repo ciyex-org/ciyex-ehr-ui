@@ -284,10 +284,8 @@ export default function RegionalFormattingSettingsPage() {
             };
             if (orgId) headers["orgId"] = orgId;
             const currentPracticeId = practiceId || orgId || "1";
-            const url = practiceId ? `${API_BASE}/api/practices/${currentPracticeId}` : `${API_BASE}/api/practices`;
-            const method = practiceId ? "PUT" : "POST";
-            const res = await fetch(url, {
-                method,
+            const res = await fetch(`${API_BASE}/api/practices/${currentPracticeId}`, {
+                method: "PUT",
                 headers,
                 body: JSON.stringify({
                     name: practiceSettings.name,

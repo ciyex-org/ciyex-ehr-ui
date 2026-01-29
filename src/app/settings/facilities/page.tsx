@@ -869,10 +869,10 @@ export default function FacilitiesPage() {
         try {
             setLoading(true);
             const response = await facilityAPI.getAll();
-            if (response.success) {
+            if (response.success && Array.isArray(response.data)) {
                 // Map backend data to frontend format
                 const mappedFacilities = response.data.map((facility: any) => ({
-                    id: facility.id.toString(),
+                    id: (facility.fhirId || facility.externalId || facility.id || Date.now().toString()),
                     name: facility.name || "",
                     physicalAddress: facility.physicalAddress || "",
                     physicalCity: facility.physicalCity || "",
@@ -907,7 +907,17 @@ export default function FacilitiesPage() {
                     info: facility.info || "",
                     isActive: facility.isActive !== undefined ? facility.isActive : true,
                 }));
-                setFacilities(mappedFacilities);
+                setFacilities(mappedFacilities.reverse());
+                
+                // Calculate statistics from the loaded data
+                const total = mappedFacilities.length;
+                const active = mappedFacilities.filter(f => f.isActive).length;
+                const inactive = total - active;
+                setStatistics({
+                    totalCount: total,
+                    activeCount: active,
+                    inactiveCount: inactive,
+                });
             } else {
                 showNotification(response.message || "Failed to load facilities", "error");
             }
