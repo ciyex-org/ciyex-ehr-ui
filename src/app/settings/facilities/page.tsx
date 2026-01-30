@@ -872,6 +872,54 @@ export default function FacilitiesPage() {
             setError(null);
             const response = await facilityAPI.getAll();
             if (response.success && Array.isArray(response.data)) {
+                // Map backend data to frontend format
+                const mappedFacilities = response.data.map((facility: any) => ({
+                    id: (facility.fhirId || facility.externalId || facility.id || Date.now().toString()),
+                    name: facility.name || "",
+                    physicalAddress: facility.physicalAddress || "",
+                    physicalCity: facility.physicalCity || "",
+                    physicalState: facility.physicalState || "",
+                    physicalZipCode: facility.physicalZipCode || "",
+                    physicalCountry: facility.physicalCountry || "",
+                    mailingAddress: facility.mailingAddress || "",
+                    mailingCity: facility.mailingCity || "",
+                    mailingState: facility.mailingState || "",
+                    mailingZipCode: facility.mailingZipCode || "",
+                    mailingCountry: facility.mailingCountry || "",
+                    phone: facility.phone || "",
+                    fax: facility.fax || "",
+                    website: facility.website || "",
+                    email: facility.email || "",
+                    color: facility.color || "#3B82F6",
+                    iban: facility.iban || "",
+                    posCode: facility.posCode || "01: Pharmacy **",
+                    facilityTaxonomy: facility.facilityTaxonomy || "",
+                    cliaNumber: facility.cliaNumber || "",
+                    taxIdType: facility.taxIdType || "EIN",
+                    taxId: facility.taxId || "",
+                    billingAttn: facility.billingAttn || "",
+                    facilityLabCode: facility.facilityLabCode || "",
+                    npi: facility.npi || "",
+                    oid: facility.oid || "",
+                    billingLocation: facility.billingLocation || false,
+                    acceptsAssignment: facility.acceptsAssignment || false,
+                    serviceLocation: facility.serviceLocation || false,
+                    primaryBusinessEntity: facility.primaryBusinessEntity || false,
+                    facilityInactive: facility.facilityInactive || false,
+                    info: facility.info || "",
+                    isActive: facility.isActive !== undefined ? facility.isActive : true,
+                }));
+                setFacilities(mappedFacilities.reverse());
+                
+                // Calculate statistics from the loaded data
+                const total = mappedFacilities.length;
+                const active = mappedFacilities.filter(f => f.isActive).length;
+                const inactive = total - active;
+                setStatistics({
+                    totalCount: total,
+                    activeCount: active,
+                    inactiveCount: inactive,
+                });
                 // Map backend data to frontend format with proper null checks
                 const mappedFacilities = response.data
                     .filter((facility: any) => facility && facility.id != null) // Filter out invalid entries
