@@ -29,7 +29,7 @@ type Message = {
     status?: 'sent' | 'delivered' | 'read';
     replyTo?: { id: number; sender: string; message: string };
     isArchived?: boolean;
-    conversationPatientId?: string;
+    conversationPatientId?: number;
     conversationPatientName?: string;
     conversationProviderId?: number;
 };
@@ -48,7 +48,6 @@ type MessageThread = {
 
 type Patient = {
     id: number;
-    fhirId?: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -76,11 +75,8 @@ type CommunicationDto = {
     fromName?: string;
     toNames?: string[];
     createdDate?: string;
-    sentDate?: string;
     inResponseTo?: number;
     fromType?: 'provider' | 'patient';
-    patientId?: string;
-    providerId?: number;
 };
 
 type Attachment = {
@@ -965,25 +961,21 @@ export default function MessagingPage() {
             // Since admin is always the provider, group by patient
             let conversationParticipant: string;
             let participantType: 'patient' | 'provider';
-            let conversationPatientId: string | undefined;
 
             if (msg.type === 'provider') {
                 // If message is from provider, conversation is with the recipient (patient)
                 conversationParticipant = msg.recipient;
                 participantType = 'patient';
-                conversationPatientId = msg.conversationPatientId?.toString();
             } else {
                 // If message is from patient, conversation is with the sender (patient)
                 conversationParticipant = msg.sender;
                 participantType = 'patient';
-                conversationPatientId = msg.conversationPatientId?.toString();
             }
 
-            // Create conversation ID using patient ID if available, otherwise use name
+            // Create a consistent conversation ID based on participant
+            // Better conversation ID that includes both patient and provider when available
             let conversationId: string;
-            if (conversationPatientId) {
-                conversationId = `conversation_patient_${conversationPatientId}`;
-            } else if (msg.conversationPatientId && msg.conversationProviderId) {
+            if (msg.conversationPatientId && msg.conversationProviderId) {
                 conversationId = `conversation_p${msg.conversationPatientId}_pr${msg.conversationProviderId}`;
             } else {
                 conversationId = `conversation_${conversationParticipant.toLowerCase().replace(/\s+/g, '_')}`;
@@ -1233,34 +1225,11 @@ export default function MessagingPage() {
 
                 // Load patients
                 const patientsRes = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients?page=0&size=100`
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients?page=0&size=50`
                 );
-                
-                if (!patientsRes.ok) {
-                    console.error('Failed to fetch patients:', patientsRes.status);
-                } else {
-                    const patientsJson = await patientsRes.json();
-                    console.log('Patients API response:', patientsJson);
-                    
-                    // Handle different response formats
-                    let patientsList = [];
-                    if (patientsJson.content) {
-                        patientsList = patientsJson.content;
-                    } else if (patientsJson.data?.content) {
-                        patientsList = patientsJson.data.content;
-                    } else if (Array.isArray(patientsJson.data)) {
-                        patientsList = patientsJson.data;
-                    } else if (Array.isArray(patientsJson)) {
-                        patientsList = patientsJson;
-                    }
-                    
-                    if (Array.isArray(patientsList) && patientsList.length > 0) {
-                        const validPatients = patientsList.filter(p => p && (p.fhirId || p.id) && p.firstName && p.lastName);
-                        setPatients(validPatients);
-                        console.log(`Loaded ${validPatients.length} patients:`, validPatients);
-                    } else {
-                        console.warn('No patients found in response');
-                    }
+                const patientsJson: ApiResponse<{ content: Patient[] }> = await patientsRes.json();
+                if (patientsJson.success && Array.isArray(patientsJson.data?.content)) {
+                    setPatients(patientsJson.data.content);
                 }
 
                 // Load templates
@@ -1303,11 +1272,8 @@ export default function MessagingPage() {
 
             const json: ApiResponse<CommunicationDto[]> = await res.json();
             if (json.success && Array.isArray(json.data)) {
-                const mapped: Message[] = json.data
-                    .map((comm) => {
-                    const ts = comm.sentDate
-                        ? new Date(comm.sentDate).getTime()
-                        : comm.createdDate
+                const mapped: Message[] = json.data.map((comm) => {
+                    const ts = comm.createdDate
                         ? new Date(comm.createdDate).getTime()
                         : Date.now();
 
@@ -1320,7 +1286,7 @@ export default function MessagingPage() {
                     const recipientName = comm.toNames?.[0] || "Unknown Recipient";
 
                     // Better type detection
-                    let messageType: 'patient' | 'provider' = 'patient';
+                    let messageType: 'patient' | 'provider' = 'patient'; // default to patient
                     if (comm.fromType) {
                         messageType = comm.fromType;
                     } else if (senderName.toLowerCase().includes('provider') ||
@@ -1330,12 +1296,8 @@ export default function MessagingPage() {
                         messageType = 'provider';
                     }
 
+                    // Ensure unread is always a boolean
                     const unread = folder === 'inbox';
-
-                    // Determine the display name based on message type
-                    // For provider messages, show recipient (patient) name
-                    // For patient messages, show sender (patient) name
-                    const displayName = messageType === 'provider' ? recipientName : senderName;
 
                     return {
                         id: comm.id,
@@ -1347,7 +1309,7 @@ export default function MessagingPage() {
                         time: formatTime(ts),
                         folder,
                         avatar: {
-                            initials: initials(displayName),
+                            initials: initials(senderName),
                             color: avatarColors[colorIndex],
                         },
                         isRead: folder !== "inbox",
@@ -1357,14 +1319,10 @@ export default function MessagingPage() {
                         when: formatTime(ts),
                         unread: unread,
                         lastActive: formatRelativeTime(ts),
-                        username: generateUsername(displayName),
-                        status: 'read',
-                        conversationPatientId: comm.patientId,
-                        conversationPatientName: messageType === 'provider' ? recipientName : senderName,
-                        conversationProviderId: comm.providerId
+                        username: generateUsername(senderName),
+                        status: 'read' // Default status for existing messages
                     };
-                })
-                .sort((a, b) => b.createdAt - a.createdAt);
+                });
 
                 setMessages(mapped);
             }
@@ -1618,13 +1576,13 @@ export default function MessagingPage() {
                 });
                 
                 if (patient) {
-                    patientId = patient.fhirId || patient.id;
+                    patientId = patient.id;
                     recipientName = `${patient.firstName} ${patient.lastName}`;
                 } else {
                     // Last resort: extract patient ID from conversation ID if it follows pattern
-                    const conversationIdMatch = selectedConversation.id.match(/conversation_.*_(.+)$/);
+                    const conversationIdMatch = selectedConversation.id.match(/conversation_.*_(\d+)$/);
                     if (conversationIdMatch) {
-                        patientId = conversationIdMatch[1];
+                        patientId = parseInt(conversationIdMatch[1]);
                         recipientName = selectedConversation.participant;
                     } else {
                         throw new Error(`Cannot determine patient ID for conversation: ${selectedConversation.participant}`);
@@ -1652,7 +1610,7 @@ export default function MessagingPage() {
                 sender: `Provider/${providerId}`,
                 recipients: [`Patient/${patientId}`],
                 providerId: providerId,
-                patientId: String(patientId),
+                patientId: patientId, // CRITICAL: Use the correct patient ID
                 subject: `Re: ${selectedConversation.messages[0]?.subject || 'Conversation'}`,
                 payload: replyPayload,
                 status: "SENT",
@@ -1691,29 +1649,13 @@ export default function MessagingPage() {
                 if (pendingAttachments.length > 0) {
                     try {
                         await uploadMultipleAttachments(json.data.id, pendingAttachments);
-                showNotification(`Reply sent with ${pendingAttachments.length} attachment(s)! ✨`, 'success');
-                        
-                        // Reload to refresh conversation list
-                        await loadCommunications();
+                        showNotification(`Reply sent with ${pendingAttachments.length} attachment(s)! ✨`, 'success');
                     } catch (error) {
                         console.error('Failed to upload attachments:', error);
                         showNotification(`Reply sent but some attachments failed to upload`, 'error');
-                        await loadCommunications();
                     }
                 } else {
                     showNotification('Reply sent successfully! ✨', 'success');
-                    
-                    // Reload to refresh conversation list
-                    await loadCommunications();
-                    
-                    // Update selected conversation after reload
-                    setTimeout(async () => {
-                        await loadCommunications();
-                        const updatedConversation = conversationsByParticipant.find(conv => conv.id === selectedConversation.id);
-                        if (updatedConversation) {
-                            setSelectedConversation(updatedConversation);
-                        }
-                    }, 500);
                 }
 
                 await loadCommunications();
@@ -1724,16 +1666,10 @@ export default function MessagingPage() {
                 if (replyInputRef.current) {
                     replyInputRef.current.style.height = 'auto';
                 }
-                
-                // Refresh conversation after sending
-                setTimeout(async () => {
-                    await loadCommunications();
-                    const updatedConversation = conversationsByParticipant.find(conv => conv.id === selectedConversation.id);
-                    if (updatedConversation) {
-                        setSelectedConversation(updatedConversation);
-                    }
+
+                setTimeout(() => {
                     replyInputRef.current?.focus();
-                }, 500);
+                }, 100);
             } else {
                 throw new Error(json.message || 'Failed to send reply');
             }
@@ -1777,7 +1713,7 @@ export default function MessagingPage() {
 
         try {
             const provider = providers.find((p) => String(p.id) === selectedProviderId);
-            const patient = patients.find((p) => String(p.fhirId || p.id) === selectedPatientId);
+            const patient = patients.find((p) => String(p.id) === selectedPatientId);
 
             if (!provider || !patient) {
                 showNotification('Please select both provider and patient', 'error');
@@ -1789,9 +1725,9 @@ export default function MessagingPage() {
 
             const payloadObj = {
                 sender: `Provider/${provider.id}`,
-                recipients: [`Patient/${patient.fhirId || patient.id}`],
+                recipients: [`Patient/${patient.id}`],
                 providerId: provider.id,
-                patientId: String(patient.fhirId || patient.id),
+                patientId: patient.id,
                 subject: subject.trim(),
                 payload: body.trim(),
                 status: "SENT",
@@ -1819,28 +1755,18 @@ export default function MessagingPage() {
             const json: ApiResponse<CommunicationDto> = await res.json();
 
             if (json.success && json.data) {
-                showNotification('Message sent successfully! ✨', 'success');
+                // Handle attachments if any (for new messages)
+                // Note: EHR compose modal doesn't have attachment state yet, but this is ready for future implementation
                 
-                // Reload communications to refresh the list
                 await loadCommunications();
-                
+                showNotification('Message sent successfully! 📨', 'success');
+
                 setIsCreating(false);
                 setSubject("");
                 setBody("");
                 setSelectedPatientId("");
                 setSelectedProviderId("");
                 setSelectedTemplateId("");
-                
-                // Wait for state to update, then auto-select the conversation
-                setTimeout(async () => {
-                    await loadCommunications(); // Refresh again to ensure latest data
-                    const newConversationId = `conversation_patient_${patient.fhirId || patient.id}`;
-                    const conversation = conversationsByParticipant.find(conv => conv.id === newConversationId);
-                    if (conversation) {
-                        setSelectedConversation(conversation);
-                        setConversationView('thread');
-                    }
-                }, 800);
             } else {
                 throw new Error(json.message || 'Failed to send message');
             }
@@ -2134,7 +2060,10 @@ export default function MessagingPage() {
                 )}
             </div>
 
-            {/* Profile Sidebar - REMOVED */}
+            {/* Profile Sidebar */}
+            {selectedConversation && (
+                <ProfileSidebar selectedConversation={selectedConversation} />
+            )}
         </div>
     );
 
@@ -2191,7 +2120,7 @@ export default function MessagingPage() {
                                         >
                                             <option value="">-- Choose Patient --</option>
                                             {patients.map((p) => (
-                                                <option key={p.fhirId || p.id} value={p.fhirId || p.id}>
+                                                <option key={p.id} value={p.id}>
                                                     {p.firstName} {p.lastName}
                                                 </option>
                                             ))}
