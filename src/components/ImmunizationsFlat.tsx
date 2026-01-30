@@ -136,7 +136,7 @@ export default function ImmunizationsFlat({ patientId, orgId }: Props) {
                 throw new Error(body.message || `Failed to load immunizations`);
             }
             setItems(body.data?.immunizations ?? []);
-        } catch (e: any) {
+        } catch (e: unknown) {
             setErr(e.message || "Failed to load immunizations");
         } finally {
             setLoading(false);
@@ -245,7 +245,7 @@ export default function ImmunizationsFlat({ patientId, orgId }: Props) {
             setForm(createEmptyForm());
             setValidationErrors({});
             await load();
-        } catch (e: any) {
+        } catch (e: unknown) {
             setErr(e.message || "Save failed");
             setShowErrorPopup(true);
         } finally {
@@ -265,7 +265,7 @@ export default function ImmunizationsFlat({ patientId, orgId }: Props) {
             if (!res.ok || !body.success) throw new Error(body.message || "Delete failed");
             setConfirmDeleteId(null);
             await load();
-        } catch (e: any) {
+        } catch (e: unknown) {
             setErr(e.message || "Delete failed");
         }
     }

@@ -2,6 +2,22 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ciyex-ehr-ui
+  namespace: ciyex-ehr-ui
+  labels:
+    app: ciyex-ehr-ui
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: ciyex-ehr-ui
+apiVersion: v1
+kind: Service
+metadata:
+  name: ciyex-ehr-ui
 spec:
   type: ClusterIP
   ports:

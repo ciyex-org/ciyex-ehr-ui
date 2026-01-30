@@ -60,7 +60,7 @@ export default function HealthcareServicesFlat({ patientId }: Props) {
             if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             const json: ApiResponse<HealthcareServiceItem[]> = await res.json();
             setItems(json?.data ?? []);
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e?.message ?? "Failed to load healthcare services");
         } finally {
             setLoading(false);
@@ -149,7 +149,7 @@ export default function HealthcareServicesFlat({ patientId }: Props) {
                 setShowForm(false);
                 setSuccessMessage(null);
             }, 1500);
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e?.message ?? "Save failed");
         } finally {
             setSubmitting(false);
@@ -165,7 +165,7 @@ export default function HealthcareServicesFlat({ patientId }: Props) {
             });
             if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             setItems((prev) => prev.filter((x) => x.id !== id));
-        } catch (e: any) {
+        } catch (e: unknown) {
             alert(e?.message ?? "Delete failed");
         }
     }

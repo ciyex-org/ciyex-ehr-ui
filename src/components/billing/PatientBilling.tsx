@@ -1413,7 +1413,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
                                     setTransferToPatientId(null);
                                     setTransferAmount("");
                                     alert("Credit transferred successfully.");
-                                } catch (err: any) {
+                                } catch (err: unknown) {
                                     alert(err?.message || "Transfer failed");
                                 } finally {
                                     setTransferLoading(false);

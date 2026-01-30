@@ -105,7 +105,7 @@ export default function MedicalProblemsFlat({ patientId }: Props) {
                         title: o.title,
                     }))
             );
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(`Failed to fetch options for ${listId}`, e);
         }
     }
@@ -123,7 +123,7 @@ export default function MedicalProblemsFlat({ patientId }: Props) {
             const json: ApiResponse<MedicalProblemDto> = await res.json();
             const list = json?.data?.problemsList ?? [];
             setItems(Array.isArray(list) ? list : []);
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e?.message ?? "Failed to load medical problems");
         } finally {
             setLoading(false);
@@ -229,7 +229,7 @@ export default function MedicalProblemsFlat({ patientId }: Props) {
                 setShowForm(false);
                 setSuccessMessage(null);
             }, 1500);
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e?.message ?? "Save failed");
         } finally {
             setSubmitting(false);
@@ -248,7 +248,7 @@ export default function MedicalProblemsFlat({ patientId }: Props) {
             );
             if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
             setItems((prev) => prev.filter((x) => x.id !== id));
-        } catch (e: any) {
+        } catch (e: unknown) {
             alert(e?.message ?? "Delete failed");
         }
     }

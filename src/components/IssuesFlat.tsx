@@ -145,7 +145,7 @@ export default function IssuesFlat({ patientId, orgId }: Props) {
                     sourceId: m.id ?? null,
                 })) ?? [];
             setMedications(mdRows);
-        } catch (e: any) {
+        } catch (e: unknown) {
             setErr(e?.message || "Failed to load Issues");
         } finally {
             setLoading(false);

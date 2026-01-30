@@ -16,14 +16,14 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 const API = `${API_BASE}/api/template-documents`;
 
 // map UI context <-> backend enum
-const toServerContext = (c: "encounter" | "portal") => c;
-const fromServerContext = (c: string) =>
-  (c.toLowerCase() === "encounter" ? "encounter" : "portal") as "encounter" | "portal";
+const toServerContext = (c: "encounter" | "portal") => c.toUpperCase();
+const fromServerContext = (c: string): "encounter" | "portal" =>
+  c.toLowerCase() === "encounter" ? "encounter" : "portal";
 
 type UpsertBody = {
   name: string;
-  context: "encounter" | "portal";
-  content: string; // full <!doctype html> doc
+  context: string;
+  content: string;
   options: {
     theme: TemplateTheme;
     container: TemplateContainer;
@@ -35,7 +35,7 @@ type UpsertBody = {
 type ServerTemplate = {
   id: number;
   name: string;
-  context: "encounter" | "portal";
+  context: string;
   content: string;
   options: Record<string, unknown>;
   createdAt?: string;
@@ -45,23 +45,27 @@ type ServerTemplate = {
 async function apiCreateTemplate(body: UpsertBody): Promise<ServerTemplate> {
   const res = await fetchWithAuth(`${API}`, { method: "POST", body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const json = await res.json();
+  return json.data || json;
 }
 async function apiUpdateTemplate(id: number, body: UpsertBody): Promise<ServerTemplate> {
   const res = await fetchWithAuth(`${API}/${id}`, { method: "PUT", body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const json = await res.json();
+  return json.data || json;
 }
 async function apiGetTemplate(id: number): Promise<ServerTemplate> {
   const res = await fetchWithAuth(`${API}/${id}`, { method: "GET" });
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const json = await res.json();
+  return json.data || json;
 }
-async function apiListTemplates(context?: "encounter" | "portal"): Promise<ServerTemplate[]> {
-  const url = context ? `${API}?context=${context.toUpperCase()}` : `${API}`;
+async function apiListTemplates(context?: string): Promise<ServerTemplate[]> {
+  const url = context ? `${API}?context=${context}` : `${API}`;
   const res = await fetchWithAuth(url, { method: "GET" });
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const json = await res.json();
+  return json.data || json;
 }
 async function apiDeleteTemplate(id: number): Promise<void> {
   const res = await fetchWithAuth(`${API}/${id}`, { method: "DELETE" });
@@ -1162,19 +1166,19 @@ function baseHTMLWrapper(title: string, contentInner: string, _options: Template
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-:root{--doc-border:#e5e7eb;--doc-bg:linear-gradient(to bottom,#f8fafc,#f1f5f9);--fg:#0f172a}
+:root{}
 *{box-sizing:border-box}html,body{height:100%}
-body{margin:0;padding:2rem;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";background:var(--doc-bg);color:var(--fg)}
-.doc-card{margin:0 auto;background:#fff;border:1px solid var(--doc-border);border-radius:14px;padding:2rem;box-shadow:0 10px 30px rgba(2,6,23,.08), 0 2px 8px rgba(2,6,23,.05)}
+body{margin:0;padding:2rem;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";background:linear-gradient(to bottom,#f8fafc,#f1f5f9);color:#0f172a}
+.doc-card{margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:2rem;box-shadow:0 10px 30px rgba(2,6,23,.08), 0 2px 8px rgba(2,6,23,.05)}
 .max-w-prose{max-width:65ch;margin-left:auto;margin-right:auto}.max-w-2xl{max-width:42rem;margin-inline:auto}.max-w-3xl{max-width:48rem;margin-inline:auto}
 .doc-prose{line-height:1.65}.doc-prose h1{font-size:1.75rem;margin:0 0 .75rem;font-weight:600}
 .doc-prose h2{font-size:1.35rem;margin:1rem 0 .5rem;font-weight:600}
 .doc-prose h3{font-size:1.15rem;margin:.85rem 0 .4rem;font-weight:600}
 .doc-prose p{margin:.65rem 0}.doc-prose ul{margin:.4rem 0 .7rem 1.25rem}.doc-prose li{margin:.2rem 0}
-.doc-prose table{width:100%;border-collapse:collapse;margin:.75rem 0;border:1px solid var(--doc-border)}
-.doc-prose th,.doc-prose td{border:1px solid var(--doc-border);padding:.5rem .6rem;text-align:left}
-.doc-prose hr{border:0;border-top:1px solid var(--doc-border);margin:1rem 0}
-.doc-input,.doc-check,select,textarea{font:inherit;color:inherit;background:#fff;border:1px solid var(--doc-border);border-radius:10px;padding:.55rem .75rem}
+.doc-prose table{width:100%;border-collapse:collapse;margin:.75rem 0;border:1px solid #e5e7eb}
+.doc-prose th,.doc-prose td{border:1px solid #e5e7eb;padding:.5rem .6rem;text-align:left}
+.doc-prose hr{border:0;border-top:1px solid #e5e7eb;margin:1rem 0}
+.doc-input,.doc-check,select,textarea{font:inherit;color:inherit;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:.55rem .75rem}
 .doc-radio{display:inline-flex;align-items:center;gap:1rem}.doc-radio label{display:inline-flex;align-items:center;gap:.5rem}
 .sig-pad canvas{width:100%;height:100%;touch-action:none;display:block}
 .org-logo{display:inline-flex;align-items:center;justify-content:center;font-weight:600;letter-spacing:.2px}
@@ -1390,7 +1394,7 @@ export default function TemplateStudio() {
       }));
 
       // refresh list
-      const rows = await apiListTemplates(saved.context);
+      const rows = await apiListTemplates(toServerContext(fromServerContext(saved.context)));
       const mapped: SavedTemplate[] = rows.map((t) => {
         const o = typeof t.options === "string" ? JSON.parse(t.options) : (t.options || {});
         return {

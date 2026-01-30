@@ -2,6 +2,76 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ciyex-ehr-ui
+  namespace: ciyex-ehr-ui
+  labels:
+    app: ciyex-ehr-ui
+    app.kubernetes.io/name: ciyex-ehr-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ciyex-ehr-ui
+  template:
+    metadata:
+      labels:
+        app: ciyex-ehr-ui
+    spec:
+      imagePullSecrets:
+        - name: registry-creds
+      containers:
+        - name: ciyex-ehr-ui
+          image: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ciyex-ehr-ui-db
+                  key: spring.datasource.url
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ciyex-ehr-ui-db
+                  key: spring.datasource.username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ciyex-ehr-ui-db
+                  key: spring.datasource.password
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+      volumes:
+        - name: config
+          configMap:
+            name: ciyex-ehr-ui-config
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ciyex-ehr-ui
   labels:
     app: ciyex-ehr-ui
 spec:

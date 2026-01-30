@@ -5,10 +5,21 @@ metadata:
 spec:
   template:
     spec:
+      imagePullSecrets:
+        - name: regcred
       containers:
         - name: ciyex-ehr-ui
+          image: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui:0.0.1-rc.1
           env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: "stage"
+            - name: NODE_ENV
+              value: "staging"
             - name: NEXT_PUBLIC_ENV
               value: "staging"
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://ciyex-api.apps-stage.us-east.in.hinisoft.com"
+            - name: NEXT_PUBLIC_KEYCLOAK_URL
+              value: "https://stage.aran.me"
+            - name: NEXT_PUBLIC_KEYCLOAK_REALM
+              value: "master"
+            - name: NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
+              value: "ciyex-app"

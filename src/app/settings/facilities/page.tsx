@@ -858,6 +858,7 @@ export default function FacilitiesPage() {
         inactiveCount: 0,
     });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     // Load facilities and statistics on mount
     useEffect(() => {
@@ -868,6 +869,7 @@ export default function FacilitiesPage() {
     const loadFacilities = async () => {
         try {
             setLoading(true);
+            setError(null);
             const response = await facilityAPI.getAll();
             if (response.success && Array.isArray(response.data)) {
                 // Map backend data to frontend format
@@ -918,12 +920,58 @@ export default function FacilitiesPage() {
                     activeCount: active,
                     inactiveCount: inactive,
                 });
+                // Map backend data to frontend format with proper null checks
+                const mappedFacilities = response.data
+                    .filter((facility: any) => facility && facility.id != null) // Filter out invalid entries
+                    .map((facility: any) => ({
+                        id: String(facility.id || Date.now()), // Ensure ID is always a string
+                        name: facility.name || "",
+                        physicalAddress: facility.physicalAddress || "",
+                        physicalCity: facility.physicalCity || "",
+                        physicalState: facility.physicalState || "",
+                        physicalZipCode: facility.physicalZipCode || "",
+                        physicalCountry: facility.physicalCountry || "",
+                        mailingAddress: facility.mailingAddress || "",
+                        mailingCity: facility.mailingCity || "",
+                        mailingState: facility.mailingState || "",
+                        mailingZipCode: facility.mailingZipCode || "",
+                        mailingCountry: facility.mailingCountry || "",
+                        phone: facility.phone || "",
+                        fax: facility.fax || "",
+                        website: facility.website || "",
+                        email: facility.email || "",
+                        color: facility.color || "#3B82F6",
+                        iban: facility.iban || "",
+                        posCode: facility.posCode || "01: Pharmacy **",
+                        facilityTaxonomy: facility.facilityTaxonomy || "",
+                        cliaNumber: facility.cliaNumber || "",
+                        taxIdType: facility.taxIdType || "EIN",
+                        taxId: facility.taxId || "",
+                        billingAttn: facility.billingAttn || "",
+                        facilityLabCode: facility.facilityLabCode || "",
+                        npi: facility.npi || "",
+                        oid: facility.oid || "",
+                        billingLocation: facility.billingLocation || false,
+                        acceptsAssignment: facility.acceptsAssignment || false,
+                        serviceLocation: facility.serviceLocation || false,
+                        primaryBusinessEntity: facility.primaryBusinessEntity || false,
+                        facilityInactive: facility.facilityInactive || false,
+                        info: facility.info || "",
+                        isActive: facility.isActive !== undefined ? facility.isActive : true,
+                    }));
+                setFacilities(mappedFacilities);
+                setError(null);
             } else {
+                setFacilities([]);
+                setError(response.message || "Failed to load facilities");
                 showNotification(response.message || "Failed to load facilities", "error");
             }
         } catch (err) {
             console.error("Error loading facilities:", err);
-            showNotification("Failed to load facilities", "error");
+            setFacilities([]);
+            const errorMessage = err instanceof Error ? err.message : "Failed to load facilities";
+            setError(errorMessage);
+            showNotification(errorMessage, "error");
         } finally {
             setLoading(false);
         }
@@ -932,11 +980,16 @@ export default function FacilitiesPage() {
     const loadStatistics = async () => {
         try {
             const response = await facilityAPI.getStatistics();
-            if (response.success) {
-                setStatistics(response.data);
+            if (response.success && response.data) {
+                setStatistics({
+                    totalCount: response.data.totalCount || 0,
+                    activeCount: response.data.activeCount || 0,
+                    inactiveCount: response.data.inactiveCount || 0,
+                });
             }
         } catch (err) {
             console.error("Failed to load statistics:", err);
+            setStatistics({ totalCount: 0, activeCount: 0, inactiveCount: 0 });
         }
     };
 
@@ -1118,6 +1171,33 @@ export default function FacilitiesPage() {
                         <div className="px-6 py-12 text-center">
                             <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600"></div>
                             <p className="mt-4 text-gray-600">Loading facilities...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="px-6 py-12 text-center">
+                            <div className="mb-4">
+                                <svg className="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load facilities</h3>
+                            <p className="text-red-600 mb-4 max-w-2xl mx-auto">{error}</p>
+                            <div className="space-y-2 text-sm text-gray-600 mb-4">
+                                <p>Please check:</p>
+                                <ul className="list-disc list-inside">
+                                    <li>Backend server is running at {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}</li>
+                                    <li>You are logged in with valid credentials</li>
+                                    <li>Your network connection is stable</li>
+                                </ul>
+                            </div>
+                            <button 
+                                onClick={() => void loadFacilities()}
+                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Retry
+                            </button>
                         </div>
                     ) : filteredFacilities.length === 0 ? (
                         <div className="px-6 py-12 text-center">

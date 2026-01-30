@@ -5,13 +5,7 @@ export const metadata: Metadata = {
     title: "Edit Referral Practice",
 };
 
-interface PageProps {
-    params: Promise<{
-        id: string;
-    }>;
-}
-
-export default async function Page({ params }: PageProps) {
-    const { id } = await params;
-    return <EditReferralPractice id={id} />;
+export default async function Page(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
+    return <EditReferralPractice id={params.id} />;
 }

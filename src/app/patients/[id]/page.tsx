@@ -1166,14 +1166,14 @@ export default function PatientDashboardPage() {
                 case "encounters":
                 return (
                     <div className="min-w-0">
-                        <EncounterTableExpandable patientId={Number(patient.id)} />
+                        <EncounterTableExpandable patientId={Number(id)} />
                     </div>
                 );
               case "billing":
   return (
     <div className="min-w-0">
       <PatientBilling
-        patientId={Number(patient.id)}
+        patientId={Number(id)}
         patientName={`${patient.firstName ?? ""} ${patient.lastName ?? ""}`.trim()}
       />
     </div>

@@ -71,7 +71,7 @@
 //             const dto = list[0] as SocialHistoryDto | undefined;
 //             setShId(dto?.id ?? null);
 //             setItems(Array.isArray(dto?.entries) ? dto!.entries : []);
-//         } catch (e: any) {
+//         } catch (e: unknown) {
 //             setError(e?.message ?? "Something went wrong");
 //             setItems([]);
 //             setShId(null);
@@ -118,7 +118,7 @@
 //             setItems(next);
 //             setAlert({ type: "success", msg: "Social history entry deleted." });
 //             setTimeout(() => setAlert(null), 3000);
-//         } catch (e: any) {
+//         } catch (e: unknown) {
 //             setAlert({ type: "error", msg: e?.message ?? "Something went wrong" });
 //             setTimeout(() => setAlert(null), 3000);
 //         }
@@ -148,7 +148,7 @@
 //             if (!ok) throw new Error((json as any)?.message || "eSign failed");
 //             setAlert({ type: "success", msg: "Social history entry e-signed." });
 //             await load();
-//         } catch (e: any) {
+//         } catch (e: unknown) {
 //             setAlert({ type: "error", msg: e?.message ?? "Something went wrong" });
 //         } finally {
 //             setBusyIdx(null);
@@ -188,7 +188,7 @@
 // </body>
 // </html>`);
 //             win.document.close();
-//         } catch (e: any) {
+//         } catch (e: unknown) {
 //             window.alert(e?.message ?? "Unable to print");
 //         }
 //     }

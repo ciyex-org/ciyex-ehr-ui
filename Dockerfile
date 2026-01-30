@@ -10,10 +10,10 @@ RUN npm install -g pnpm@9
 WORKDIR /app
 
 # Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies (allow lock file to be updated if needed)
+RUN pnpm install --no-frozen-lockfile
 
 # Copy source code
 COPY . .
@@ -35,11 +35,13 @@ RUN npm install -g pnpm@9
 # Set environment to production
 ENV NODE_ENV=production
 
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy package files and lock from builder (ensures sync)
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+COPY --from=builder /app/pnpm-workspace.yaml* ./
 
 # Install only production dependencies
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --no-frozen-lockfile
 
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next

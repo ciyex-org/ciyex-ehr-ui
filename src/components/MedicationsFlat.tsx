@@ -119,7 +119,7 @@ export default function MedicationsFlat({ patientId, encounterId }: Props) {
 
             // Backend uses ApiResponse wrapper and returns 200 even on logical failures.
             // Parse JSON and check success flag to surface errors to the user.
-            let json: any = null;
+            let json: unknown = null;
             try {
                 json = await res.json();
             } catch (parseErr) {
@@ -147,7 +147,7 @@ export default function MedicationsFlat({ patientId, encounterId }: Props) {
         if (!confirm("Delete this medication?")) return;
         try {
             const res = await fetchWithAuth(`${api}/api/medication-requests/${id}`, { method: "DELETE" });
-            let json: any = null;
+            let json: unknown = null;
             try {
                 json = await res.json();
             } catch {

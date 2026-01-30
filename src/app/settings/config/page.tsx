@@ -30,7 +30,7 @@ const paths = {
     db: 'M4 6c0-1.66 3.58-3 8-3s8 1.34 8 3-3.58 3-8 3-8-1.34-8-3Zm16 4c0 1.66-3.58 3-8 3s-8-1.34-8-3m16 4c0 1.66-3.58 3-8 3s-8-1.34-8-3m16 4c0 1.66-3.58 3-8 3s-8-1.34-8-3',
     med: 'M12 3v18M3 12h18',
     card: 'M3 7h18M3 11h18M6 15h6',
-    globe: 'M3 12h18M12 3a15 15 0 0 0 0 18m0-18a15 15 0 0 1 0 18M3 12a9 9 0 0 1 18 0',
+    cloud: 'M3 12h18M12 3a15 15 0 0 0 0 18m0-18a15 15 0 0 1 0 18M3 12a9 9 0 0 1 18 0',
     sms: 'M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z',
     mail: 'M3 7l9 6 9-6M5 19h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z',
     link: 'M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1',
@@ -262,6 +262,11 @@ function normalizeIntegrations(obj: any) {
             environment: S(root.dentalExchange?.environment ?? root.dental_xchange_environment),
             enabled: S(root.dentalExchange?.enabled ?? root.dental_xchange_enabled),
         },
+
+        cloudflare: {
+            appId: S(root.cloudflare?.appId),
+            apiToken: S(root.cloudflare?.apiToken),
+        },
     };
 }
 
@@ -318,9 +323,9 @@ function PasswordField({
                 type="button"
                 onClick={() => editable && setShow((s) => !s)}
                 className={cx(
-                    'absolute inset-y-0 right-2 inline-flex items-center rounded-xl px-2 transition-colors',
+                    'absolute inset-y-0 right-2 inline-flex items-center rounded-xl px-2 transition-all duration-200',
                     editable
-                        ? 'text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200'
+                        ? 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:text-neutral-200 dark:hover:bg-[#1b2437]'
                         : 'text-neutral-400 cursor-not-allowed'
                 )}
                 aria-label="Toggle password visibility"
@@ -608,13 +613,14 @@ type SectionId =
     | 'twilio'
     | 'smtp'
     | 'weno'
-    | 'google'      // NEW combined card (Google Auth / reCAPTCHA)
+    | 'google'
     | 'telehealth'
     | 'ai'
-    | 'insurance'   // Insurance Verification (Sikka & Zuub)
+    | 'insurance'
     | 'documents'
-    | 'ghl'         // GoHighLevel Integration
-    | 'dentalExchange'; // Dental Exchange Clearinghouse
+    | 'ghl'
+    | 'dentalExchange'
+    | 'cloudflare';
 
 export default function Page() {
     const [open, setOpen] = useState<SectionId | null>(null);
@@ -632,6 +638,7 @@ export default function Page() {
         documents: false,
         ghl: false,
         dentalExchange: false,
+        cloudflare: false,
     });
     const [flashBtn, setFlashBtn] = useState<Record<SectionId, boolean>>({
         core: false,
@@ -647,6 +654,7 @@ export default function Page() {
         documents: false,
         ghl: false,
         dentalExchange: false,
+        cloudflare: false,
     });
 
     // Provider selections
@@ -683,6 +691,7 @@ export default function Page() {
         documents: 'Document Storage',
         ghl: 'GoHighLevel Integration',
         dentalExchange: 'Dental Exchange Clearinghouse',
+        cloudflare: 'Cloudflare',
     };
 
     // Track if config exists (has been loaded from backend)
@@ -805,6 +814,10 @@ export default function Page() {
                     environment: cfg.dentalExchange?.environment,
                     enabled: cfg.dentalExchange?.enabled,
                 },
+                cloudflare: {
+                    appId: cfg.cloudflare?.appId,
+                    apiToken: cfg.cloudflare?.apiToken,
+                },
             };
 
             // Remove empty nested objects
@@ -855,6 +868,7 @@ export default function Page() {
                 documents: false,
                 ghl: false,
                 dentalExchange: false,
+                cloudflare: false,
             });
 
             // flash "Saved" on all sections briefly
@@ -872,6 +886,7 @@ export default function Page() {
                 documents: true,
                 ghl: true,
                 dentalExchange: true,
+                cloudflare: true,
             });
             setTimeout(
                 () =>
@@ -889,12 +904,13 @@ export default function Page() {
                         documents: false,
                         ghl: false,
                         dentalExchange: false,
+                        cloudflare: false,
                     }),
                 1200
             );
 
             pushToast('All settings saved successfully.', 'success', 'Saved');
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Save error', err);
             pushToast(err?.message ?? 'Unexpected error during save.', 'error', 'Error');
         } finally {
@@ -1358,7 +1374,7 @@ export default function Page() {
                             {/* 7) Google Settings (Auth / reCAPTCHA) */}
                             <SettingsCard
                                 title="Google Settings"
-                                iconPath={paths.globe}
+                                iconPath={paths.cloud}
                                 isOpen={open === 'google'}
                                 isEditing={editing.google}
                                 savedFlash={flashBtn.google}
@@ -1501,7 +1517,7 @@ export default function Page() {
                             {/* 9) AI & LLM Settings */}
                             <SettingsCard
                                 title="AI & LLM Settings"
-                                iconPath={paths.globe}
+                                iconPath={paths.cloud}
                                 isOpen={open === 'ai'}
                                 isEditing={editing.ai}
                                 savedFlash={flashBtn.ai}
@@ -1897,6 +1913,46 @@ export default function Page() {
                                             icon={paths.checkCircle}
                                             editable={editing.dentalExchange}
                                             {...bind(['dentalExchange', 'enabled'])}
+                                        />
+                                    </div>
+                                </div>
+                            </SettingsCard>
+
+                            {/* 15) Cloudflare */}
+                            <SettingsCard
+                                title="Cloudflare"
+                                iconPath={paths.cloud}
+                                isOpen={open === 'cloudflare'}
+                                isEditing={editing.cloudflare}
+                                savedFlash={flashBtn.cloudflare}
+                                onToggle={() => toggleOpen('cloudflare')}
+                                onEdit={() => startEdit('cloudflare')}
+                                onDone={() => endEdit('cloudflare')}
+                            >
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div>
+                                        <label htmlFor="cloudflare.appId" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                            App ID
+                                        </label>
+                                        <TextInput
+                                            id="cloudflare.appId"
+                                            name="cloudflare[appId]"
+                                            placeholder="00c4eff9-3d67-45b5-8c95-d2d736149b9f"
+                                            icon={paths.id}
+                                            editable={editing.cloudflare}
+                                            {...bind(['cloudflare', 'appId'])}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="cloudflare.apiToken" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                                            API Token
+                                        </label>
+                                        <PasswordField
+                                            id="cloudflare.apiToken"
+                                            name="cloudflare[apiToken]"
+                                            placeholder="Enter API Token"
+                                            editable={editing.cloudflare}
+                                            {...bind(['cloudflare', 'apiToken'])}
                                         />
                                     </div>
                                 </div>

@@ -159,7 +159,7 @@ const ProviderRegistrationForm = () => {
                 body: JSON.stringify(requestData),
             });
 
-            let result: any = null;
+            let result: unknown = null;
             try {
                 result = await response.json();
             } catch (err) {

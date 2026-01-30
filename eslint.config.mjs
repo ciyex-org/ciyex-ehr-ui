@@ -16,18 +16,23 @@ export default [
       },
     },
     rules: {
-      'no-unused-vars': 'off', // Temporarily disabled - too many unused vars, fix gradually
-      'react-hooks/set-state-in-effect': 'off', // Temporarily disabled - many setState in effects
-      'no-empty': 'off', // Temporarily disabled - empty blocks
-      'react-hooks/rules-of-hooks': 'warn', // Warn instead of error for conditional hooks
-      'react-hooks/exhaustive-deps': 'warn',
-      '@next/next/no-img-element': 'warn',
-      'react-hooks/static-components': 'off', // Temporarily disabled - components created during render
-      'react-hooks/immutability': 'off', // Temporarily disabled - functions used before declared
-      'no-dupe-else-if': 'off', // Temporarily disabled
-      'no-useless-escape': 'off', // Temporarily disabled
-      'no-duplicate-case': 'off', // Temporarily disabled
-      'import/no-anonymous-default-export': 'off', // For the config export
+      // Re-enabled rules - previously disabled, now enforced
+      'no-unused-vars': 'warn', // Warn on unused variables
+      'no-empty': 'warn', // Warn on empty blocks
+      'react-hooks/rules-of-hooks': 'error', // Error on hook rule violations
+      'react-hooks/exhaustive-deps': 'warn', // Warn on missing deps
+      '@next/next/no-img-element': 'warn', // Prefer next/image
+
+      // Still disabled - require larger refactor
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/static-components': 'off',
+      'react-hooks/immutability': 'off',
+      
+      // Code quality rules
+      'no-dupe-else-if': 'error', // Error on duplicate else-if conditions
+      'no-useless-escape': 'warn', // Warn on unnecessary escapes
+      'no-duplicate-case': 'error', // Error on duplicate switch cases
+      'import/no-anonymous-default-export': 'off', // Allow anonymous exports
     },
   },
 ];
