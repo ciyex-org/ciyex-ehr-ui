@@ -393,63 +393,54 @@ export const VitalsFlat: React.FC<{ patientId: number }> = ({ patientId }) => {
     const [vitals, setVitals] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchVitals = async () => {
-        if (!patientId) return;
-        
-        try {
-            setLoading(true);
-            console.log('Fetching encounters for patient ID:', patientId);
-            const encountersRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/${patientId}/encounters`);
+    useEffect(() => {
+        const fetchVitals = async () => {
+            if (!patientId) return;
             
-            if (!encountersRes.ok) {
-                console.error('Failed to fetch encounters:', encountersRes.status);
-                return;
-            }
-            
-            const encountersJson = await encountersRes.json();
-            const encounters = encountersJson.data || [];
-            
-            if (encounters.length === 0) {
-                console.log('No encounters found');
-                return;
-            }
-            
-            const latestEncounter = encounters.sort((a: any, b: any) => {
-                const dateA = new Date(a.audit?.createdDate || 0).getTime();
-                const dateB = new Date(b.audit?.createdDate || 0).getTime();
-                return dateB - dateA;
-            })[0];
-            
-            const latestEncounterId = latestEncounter.id;
-            
-            console.log('Fetching vitals for encounter ID:', latestEncounterId);
-            const vitalsRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/vitals/${patientId}/${latestEncounterId}`);
-            
-            if (!vitalsRes.ok) {
-                console.error('Failed to fetch vitals:', vitalsRes.status);
-                return;
-            }
-            
-            const vitalsJson = await vitalsRes.json();
-            const vitalsData = vitalsJson.data || [];
-            
-            if (vitalsData.length > 0) {
-                const latestVital = vitalsData.sort((a: any, b: any) => {
+            try {
+                setLoading(true);
+                const encountersRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/${patientId}/encounters`);
+                
+                if (!encountersRes.ok) {
+                    console.error('Failed to fetch encounters:', encountersRes.status);
+                    return;
+                }
+                
+                const encountersJson = await encountersRes.json();
+                const encounters = encountersJson.data || [];
+                
+                if (encounters.length === 0) {
+                    console.log('No encounters found');
+                    return;
+                }
+                
+                const latestEncounter = encounters.sort((a: any, b: any) => {
                     const dateA = new Date(a.audit?.createdDate || 0).getTime();
                     const dateB = new Date(b.audit?.createdDate || 0).getTime();
-                    
-                    if (dateA === dateB) {
-                        return b.id - a.id;
-                    }
-                    
                     return dateB - dateA;
                 })[0];
                 
-                setVitals(latestVital);
-            } else {
-                // Fallback: fetch last available vital for this patient
-                console.log('No vitals in latest encounter, fetching last available vital for patient');
-                try {
+                const latestEncounterId = latestEncounter.id;
+                
+                const vitalsRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/vitals/${patientId}/${latestEncounterId}`);
+                
+                if (!vitalsRes.ok) {
+                    console.error('Failed to fetch vitals:', vitalsRes.status);
+                    return;
+                }
+                
+                const vitalsJson = await vitalsRes.json();
+                const vitalsData = vitalsJson.data || [];
+                
+                if (vitalsData.length > 0) {
+                    const latestVital = vitalsData.sort((a: any, b: any) => {
+                        const dateA = new Date(a.audit?.createdDate || 0).getTime();
+                        const dateB = new Date(b.audit?.createdDate || 0).getTime();
+                        return dateA === dateB ? b.id - a.id : dateB - dateA;
+                    })[0];
+                    
+                    setVitals(latestVital);
+                } else {
                     const allVitalsRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/vitals/patient/${patientId}`);
                     
                     if (allVitalsRes.ok) {
@@ -460,29 +451,20 @@ export const VitalsFlat: React.FC<{ patientId: number }> = ({ patientId }) => {
                             const lastVital = allVitals.sort((a: any, b: any) => {
                                 const dateA = new Date(a.audit?.createdDate || 0).getTime();
                                 const dateB = new Date(b.audit?.createdDate || 0).getTime();
-                                
-                                if (dateA === dateB) {
-                                    return b.id - a.id;
-                                }
-                                
-                                return dateB - dateA;
+                                return dateA === dateB ? b.id - a.id : dateB - dateA;
                             })[0];
                             
                             setVitals(lastVital);
                         }
                     }
-                } catch (fallbackErr) {
-                    console.error('Error fetching fallback vitals:', fallbackErr);
                 }
+            } catch (err) {
+                console.error('Error fetching vitals:', err);
+            } finally {
+                setLoading(false);
             }
-        } catch (err) {
-            console.error('Error fetching vitals:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
 
-    useEffect(() => {
         fetchVitals();
     }, [patientId]);
 
