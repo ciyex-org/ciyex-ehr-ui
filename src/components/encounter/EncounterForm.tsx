@@ -108,12 +108,12 @@ export default function EncounterForm({ patientId, editing, onSaved, onCancel }:
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border p-4 shadow-sm bg-white">
+        <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border p-4 shadow-sm bg-white relative z-10">
             <h3 className="text-lg font-semibold">{editing?.id ? "Edit Encounter" : "New Encounter"}</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
-                    <label className="block text-sm font-medium mb-1">Date</label>
+                    <label className="block text-sm font-medium mb-1">Date<span className="text-red-600">*</span></label>
                     <input
                         type="date"
                         value={encounterDate}

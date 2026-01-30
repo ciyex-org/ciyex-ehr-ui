@@ -5455,7 +5455,8 @@ export default function PatientBilling({ patientId, patientName }: Props) {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex justify-end gap-2 mt-6">
+
+                              <div className="flex justify-end gap-2 mt-6">
                                     <button type="button" className="btn-light" onClick={() => setEditCourtesyModal(null)}>Cancel</button>
                                     <button type="submit" className="btn-primary">Update</button>
                                 </div>

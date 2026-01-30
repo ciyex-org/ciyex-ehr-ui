@@ -439,13 +439,29 @@ export default function Providersignatureform({
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">Signature Image <span className="text-red-600">*</span></label>
-                    <input
-                        ref={fileRef}
-                        type="file"
-                        accept="image/*"
-                        disabled={isLocked}
-                        className="block w-full text-sm"
-                    />
+                    <div className="relative">
+                        <input
+                            ref={fileRef}
+                            type="file"
+                            accept="image/*,.pdf"
+                            disabled={isLocked}
+                            className="hidden"
+                            id="signature-upload"
+                        />
+                        <label
+                            htmlFor="signature-upload"
+                            className={`flex items-center justify-center gap-2 w-full rounded-lg border-2 border-dashed px-4 py-3 text-sm cursor-pointer transition-colors ${
+                                isLocked
+                                    ? 'bg-gray-100 cursor-not-allowed opacity-60'
+                                    : 'hover:border-indigo-500 hover:bg-indigo-50'
+                            }`}
+                        >
+                            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-gray-600">Upload Image or PDF</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 

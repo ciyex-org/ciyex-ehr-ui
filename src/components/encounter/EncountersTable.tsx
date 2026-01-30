@@ -463,7 +463,7 @@ useEffect(() => {
       </div>
 
       {error && (
-        <div className="px-4 py-2 text-sm text-red-700 bg-red-50 border-b border-red-200">{error}</div>
+        <div className="px-4 py-2 text-sm text-red-700 bg-red-50 border-b border-red-200 relative z-[9999]">{error}</div>
       )}
 
       <div className="overflow-x-auto">
