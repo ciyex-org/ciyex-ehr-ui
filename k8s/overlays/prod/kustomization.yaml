@@ -12,35 +12,7 @@ patches:
   - target:
       kind: HTTPRoute
       name: ciyex-ehr-ui
-    patch: |
+    patch: |-
       - op: replace
         path: /spec/hostnames/0
         value: ehr.apps-prod.us-east.in.hinisoft.com
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-namespace: default
-
-bases:
-  - ../../base
-
-nameSuffix: -prod
-
-images:
-  - name: ciyex-ehr-ui
-    newName: IMAGE_URL
-    newTag: IMAGE_TAG
-
-replicas:
-  - name: ciyex-ehr-ui
-    count: 2
-
-patches:
-  - path: deployment-patch.yaml
-  - path: ingress-patch.yaml
-
-configMapGenerator:
-  - name: ehr-ui-config
-    literals:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://app.ciyex.com/api
