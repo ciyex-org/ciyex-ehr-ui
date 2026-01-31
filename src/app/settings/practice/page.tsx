@@ -132,6 +132,20 @@ export default function RegionalFormattingSettingsPage() {
         timeZone: "",
         currencyDesignator: "",
     });
+    
+    const [originalPracticeSettings, setOriginalPracticeSettings] = useState<PracticeSettings>({
+        name: "",
+        enablePatientPractice: false,
+    });
+    const [originalSettings, setOriginalSettings] = useState<RegionalSettings>({
+        unitsForVisitForms: "US",
+        displayFormatUSWeights: "Show pounds as decimal value",
+        telephoneCountryCode: "",
+        dateDisplayFormat: "YYYY-MM-DD",
+        timeDisplayFormat: "24 hr",
+        timeZone: "",
+        currencyDesignator: "",
+    });
     const hideNotification = useCallback((id: number) => {
         setNotifications((prev: ToastNotification[]) =>
             prev.map((n: ToastNotification) => n.id === id ? { ...n, visible: false } : n)
@@ -166,13 +180,11 @@ export default function RegionalFormattingSettingsPage() {
         const fetchPracticeSettings = async () => {
             try {
                 const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-                const orgId = localStorage.getItem("orgId");
                 const headers: Record<string, string> = {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`,
                 };
-                if (orgId) headers["orgId"] = orgId;
-                const fetchPracticeId = orgId || "1";
+                const fetchPracticeId = "1063";
                 const res = await fetch(`${API_BASE}/api/practices/${fetchPracticeId}`, {
                     method: "GET",
                     headers,
@@ -181,12 +193,32 @@ export default function RegionalFormattingSettingsPage() {
                     const response = await res.json();
                     if (response.success && response.data) {
                         setPracticeId(response.data.id);
-                        setPracticeSettings({
+                        const fetchedPracticeSettings = {
                             name: response.data.name || "",
                             enablePatientPractice: response.data.practiceSettings?.enablePatientPractice || false,
-                        });
+                        };
+                        setPracticeSettings(fetchedPracticeSettings);
+                        setOriginalPracticeSettings(fetchedPracticeSettings);
+                        
                         if (response.data.regionalSettings) {
-                            setSettings(response.data.regionalSettings);
+                            setSettings({
+                                unitsForVisitForms: response.data.regionalSettings.unitsForVisitForms || "US",
+                                displayFormatUSWeights: response.data.regionalSettings.displayFormatUSWeights || "Show pounds as decimal value",
+                                telephoneCountryCode: response.data.regionalSettings.telephoneCountryCode || "",
+                                dateDisplayFormat: response.data.regionalSettings.dateDisplayFormat || "YYYY-MM-DD",
+                                timeDisplayFormat: response.data.regionalSettings.timeDisplayFormat || "24 hr",
+                                timeZone: response.data.regionalSettings.timeZone || "",
+                                currencyDesignator: response.data.regionalSettings.currencyDesignator || "",
+                            });
+                            setOriginalSettings({
+                                unitsForVisitForms: response.data.regionalSettings.unitsForVisitForms || "US",
+                                displayFormatUSWeights: response.data.regionalSettings.displayFormatUSWeights || "Show pounds as decimal value",
+                                telephoneCountryCode: response.data.regionalSettings.telephoneCountryCode || "",
+                                dateDisplayFormat: response.data.regionalSettings.dateDisplayFormat || "YYYY-MM-DD",
+                                timeDisplayFormat: response.data.regionalSettings.timeDisplayFormat || "24 hr",
+                                timeZone: response.data.regionalSettings.timeZone || "",
+                                currencyDesignator: response.data.regionalSettings.currencyDesignator || "",
+                            });
                         }
                     }
                 } else if (res.status === 404) {
@@ -213,70 +245,81 @@ export default function RegionalFormattingSettingsPage() {
             setSettings((prev: RegionalSettings) => ({ ...prev, [key]: value })),
         []
     );
-    const handleSavePractice = async () => {
+    const handleSaveAll = async () => {
         try {
             const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-            const orgId = localStorage.getItem("orgId");
             const headers: Record<string, string> = {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`,
             };
-            if (orgId) headers["orgId"] = orgId;
-            const currentPracticeId = practiceId || orgId || "1";
-            const url = practiceId ? `${API_BASE}/api/practices/${currentPracticeId}` : `${API_BASE}/api/practices`;
-            const method = practiceId ? "PUT" : "POST";
-            const res = await fetch(url, {
-                method,
-                headers,
-                body: JSON.stringify({
-                    name: practiceSettings.name,
-                    practiceSettings: { enablePatientPractice: practiceSettings.enablePatientPractice },
-                    regionalSettings: settings
-                }),
-            });
-            if (res.ok) {
-                const response = await res.json();
-                if (!practiceId && response.success && response.data) {
-                    setPracticeId(response.data.id);
-                }
-                showNotification("Practice settings saved successfully!", "success");
-            } else {
-                showNotification("Failed to save practice settings.", "error");
+            const currentPracticeId = "1063";
+            
+            const payload: any = {};
+            
+            if (practiceSettings.name !== originalPracticeSettings.name) {
+                payload.name = practiceSettings.name;
             }
-        } catch (error) {
-            showNotification("Error saving practice settings.", "error");
-        }
-    };
-    const handleSaveRegional = async () => {
-        try {
-            const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-            const orgId = localStorage.getItem("orgId");
-            const headers: Record<string, string> = {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`,
-            };
-            if (orgId) headers["orgId"] = orgId;
-            const currentPracticeId = practiceId || orgId || "1";
+            
+            if (practiceSettings.enablePatientPractice !== originalPracticeSettings.enablePatientPractice) {
+                payload.practiceSettings = { enablePatientPractice: practiceSettings.enablePatientPractice };
+            }
+            
+            const hasRegionalChanges = (Object.keys(settings) as Array<keyof RegionalSettings>).some(
+                (key) => settings[key] !== originalSettings[key]
+            );
+            
+            if (hasRegionalChanges) {
+                payload.regionalSettings = settings;
+            }
+            
+            if (Object.keys(payload).length === 0) {
+                showNotification("No changes to save", "info");
+                return;
+            }
+            
             const res = await fetch(`${API_BASE}/api/practices/${currentPracticeId}`, {
                 method: "PUT",
                 headers,
-                body: JSON.stringify({
-                    name: practiceSettings.name,
-                    practiceSettings: { enablePatientPractice: practiceSettings.enablePatientPractice },
-                    regionalSettings: settings
-                }),
+                body: JSON.stringify(payload),
             });
+            
             if (res.ok) {
-                const response = await res.json();
-                if (!practiceId && response.success && response.data) {
-                    setPracticeId(response.data.id);
+                const fetchRes = await fetch(`${API_BASE}/api/practices/${currentPracticeId}`, {
+                    method: "GET",
+                    headers,
+                });
+                
+                if (fetchRes.ok) {
+                    const response = await fetchRes.json();
+                    if (response.success && response.data) {
+                        const fetchedPracticeSettings = {
+                            name: response.data.name || "",
+                            enablePatientPractice: response.data.practiceSettings?.enablePatientPractice || false,
+                        };
+                        setPracticeSettings(fetchedPracticeSettings);
+                        setOriginalPracticeSettings(fetchedPracticeSettings);
+                        
+                        if (response.data.regionalSettings) {
+                            const fetchedRegionalSettings = {
+                                unitsForVisitForms: response.data.regionalSettings.unitsForVisitForms || "US",
+                                displayFormatUSWeights: response.data.regionalSettings.displayFormatUSWeights || "Show pounds as decimal value",
+                                telephoneCountryCode: response.data.regionalSettings.telephoneCountryCode || "",
+                                dateDisplayFormat: response.data.regionalSettings.dateDisplayFormat || "YYYY-MM-DD",
+                                timeDisplayFormat: response.data.regionalSettings.timeDisplayFormat || "24 hr",
+                                timeZone: response.data.regionalSettings.timeZone || "",
+                                currencyDesignator: response.data.regionalSettings.currencyDesignator || "",
+                            };
+                            setSettings(fetchedRegionalSettings);
+                            setOriginalSettings(fetchedRegionalSettings);
+                        }
+                    }
                 }
-                showNotification("Regional settings saved successfully!", "success");
+                showNotification("Settings saved successfully!", "success");
             } else {
-                showNotification("Failed to save regional settings.", "error");
+                showNotification("Failed to save settings.", "error");
             }
         } catch (error) {
-            showNotification("Error saving regional settings.", "error");
+            showNotification("Error saving settings.", "error");
         }
     };
     if (isLoading) {
@@ -436,7 +479,7 @@ export default function RegionalFormattingSettingsPage() {
                 {/* Regional Save Button */}
                 <div className="flex justify-end">
                     <button
-                        onClick={handleSaveRegional}
+                        onClick={handleSaveAll}
                         className="px-6 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700"
                     >
                         Save Configuration
