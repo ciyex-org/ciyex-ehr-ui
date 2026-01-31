@@ -897,7 +897,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
             <div className="grid grid-cols-2 gap-5">
               <div>
                 
-                <label className="block text-sm font-medium text-slate-700 mb-2">Test Code</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Test Code <span className="text-red-600">*</span></label>
                 <input
                   className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   value={draft.testCode ?? ""}
@@ -966,7 +966,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
             <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-5">
               <div className="grid grid-cols-2 gap-5">
                 <div className="relative">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Ordering Provider</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Ordering Provider <span className="text-red-600">*</span></label>
                   <input
                     className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={draft.orderingProvider ?? ""}
@@ -982,7 +982,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Physician Name</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Physician Name <span className="text-red-600">*</span></label>
                   <input
                     className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     value={draft.physicianName ?? ""}
@@ -1025,15 +1025,15 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   {/* Procedure Order Details (refined alignment) */}
       <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-slate-800 mb-4">Procedure Order Details</h2>
+        <h2 className="text-base font-semibold text-slate-800 mb-4">Procedure Order Details <span className="text-red-600">*</span></h2>
         <div className="border border-slate-200 rounded-md p-5">
           {/* Header labels with fixed column width (300px) matching screenshot */}
           <div className="hidden md:flex gap-6 mb-2">
             <div className="flex-1">
-              <div className="text-[13px] font-medium text-slate-700 pl-[70px] leading-5">Procedure code</div>
+              <div className="text-[13px] font-medium text-slate-700 pl-[70px] leading-5">Procedure code <span className="text-red-600">*</span></div>
             </div>
             <div className="flex-1">
-              <div className="text-[13px] font-medium text-slate-700 pl-[36px] leading-5">Diagnosis code</div>
+              <div className="text-[13px] font-medium text-slate-700 pl-[36px] leading-5">Diagnosis code <span className="text-red-600">*</span></div>
             </div>
           </div>
           <div className="space-y-4">

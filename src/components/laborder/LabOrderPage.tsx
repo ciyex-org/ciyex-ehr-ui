@@ -278,9 +278,11 @@ export default function LabOrdersPage() {
   /* ---------- filtering ---------- */
   const filtered = useMemo(() => {
     return orders.filter((o) => {
+      const cachedPatient = patientCache.get(o.patientId);
       const hay = [
         o.orderNumber, o.orderName, o.testCode,
         o.patientFirstName, o.patientLastName, o.mrn, String(o.patientId),
+        cachedPatient?.firstName, cachedPatient?.lastName,
       ].filter(Boolean).join(" ").toLowerCase();
       const q = query.toLowerCase().trim();
       const digitsOnly = /^\d+$/.test(q);
@@ -292,7 +294,7 @@ export default function LabOrdersPage() {
       const matchesP = priorityFilter === "all" || o.priority === priorityFilter;
       return matchesQ && matchesS && matchesP;
     });
-  }, [orders, query, statusFilter, priorityFilter]);
+  }, [orders, query, statusFilter, priorityFilter, patientCache]);
 
   useEffect(() => { setPage(1); }, [query, statusFilter, priorityFilter, searchDraft, orders]);
 
@@ -412,38 +414,17 @@ export default function LabOrdersPage() {
   }
 
   // Called when user explicitly triggers search (button / Enter)
-  async function handleSearch() {
-    const q = searchDraft.trim();
-    setQuery(q);
-
-    if (/^\d+$/.test(q)) {
-      const count = await fetchOrdersForPatient(Number(q));
-      if (count === 0) {
-        // fallback so numeric MRNs (or any numeric query) still work
-        await fetchOrdersByQuery(q);
-      }
-      return;
-    }
-
-    await fetchOrdersByQuery(q);
+  function handleSearch() {
+    setQuery(searchDraft.trim());
   }
 
   // Auto-search debounced when user types (no need to click Search)
   useEffect(() => {
     const raw = searchDraft.trim();
-    // Always show all if empty
     const target = raw;
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(async () => {
-      if (lastQueryRef.current === target) return; // avoid duplicate fetch
-      lastQueryRef.current = target;
+    debounceRef.current = window.setTimeout(() => {
       setQuery(target);
-      if (/^\d+$/.test(target)) {
-        const count = await fetchOrdersForPatient(Number(target));
-        if (count === 0) await fetchOrdersByQuery(target, false); // fallback
-      } else {
-        await fetchOrdersByQuery(target, false);
-      }
     }, 350) as unknown as number;
     return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
   }, [searchDraft]);

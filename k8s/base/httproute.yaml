@@ -17,4 +17,4 @@ spec:
             value: /
       backendRefs:
         - name: ciyex-ehr-ui
-          port: 8080
+          port: 3000

@@ -2235,6 +2235,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [patientId]);
 
+
     /* =========================================================
        Actions → Backend
     ========================================================== */
@@ -3609,7 +3610,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
                                                 <div className="min-w-[100px] text-gray-500">{first.dos}</div>
                                                 <div className="flex-1">
                                                     <span className="text-gray-700">
-                                                        Invoice #{inv.id}: [ {first.treatment} ] <b>{currency(Number(first.charge ?? 0))}</b>
+                                                        Invoice #{inv.id}: [ {first.treatment} ] <b>{currency(inv.lines.reduce((total, line) => total + Number(line.charge ?? 0), 0))}</b>
                                                         {expandedInvoiceId === inv.id && <span className="ml-2 text-blue-600">▼</span>}
                                                         {expandedInvoiceId !== inv.id && <span className="ml-2 text-gray-400">▶</span>}
                                                     </span>
@@ -5454,7 +5455,8 @@ export default function PatientBilling({ patientId, patientName }: Props) {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex justify-end gap-2 mt-6">
+
+                              <div className="flex justify-end gap-2 mt-6">
                                     <button type="button" className="btn-light" onClick={() => setEditCourtesyModal(null)}>Cancel</button>
                                     <button type="submit" className="btn-primary">Update</button>
                                 </div>

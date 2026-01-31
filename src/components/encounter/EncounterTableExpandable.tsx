@@ -480,6 +480,12 @@ export default function EncounterTableExpandable({ patientId }: { patientId: num
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-4">
             <div className="text-lg font-semibold mb-3">New Encounter</div>
 
+            {error && (
+              <div className="mb-3 px-4 py-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+                {error}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className="grid gap-1">
                 <span className="text-sm">Visit Category</span>
@@ -558,7 +564,7 @@ export default function EncounterTableExpandable({ patientId }: { patientId: num
               </label>
 
               <label className="grid gap-1 md:col-span-2">
-                <span className="text-sm">Encounter Date/Time</span>
+                <span className="text-sm">Encounter Date/Time <span className="text-red-600">*</span></span>
                 <input
                   type="datetime-local"
                   className="border rounded-lg px-3 py-2"
@@ -679,7 +685,7 @@ export default function EncounterTableExpandable({ patientId }: { patientId: num
               </label>
 
               <label className="grid gap-1 md:col-span-2">
-                <span className="text-sm">Encounter Date/Time</span>
+                <span className="text-sm">Encounter Date/Time <span className="text-red-600">*</span></span>
                 <input
                   type="datetime-local"
                   className="border rounded-lg px-3 py-2"
