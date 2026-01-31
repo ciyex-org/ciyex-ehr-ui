@@ -874,9 +874,9 @@ export default function FacilitiesPage() {
             if (response.success && Array.isArray(response.data)) {
                 // Map backend data to frontend format with proper null checks
                 const mappedFacilities = response.data
-                    .filter((facility: any) => facility && facility.id != null) // Filter out invalid entries
+                    .filter((facility: any) => facility && (facility.id || facility.fhirId)) // Filter out invalid entries
                     .map((facility: any) => ({
-                        id: String(facility.id || Date.now()), // Ensure ID is always a string
+                        id: String(facility.fhirId || facility.id || Date.now()), // Use fhirId as primary ID
                         name: facility.name || "",
                         physicalAddress: facility.physicalAddress || "",
                         physicalCity: facility.physicalCity || "",
@@ -909,10 +909,11 @@ export default function FacilitiesPage() {
                         primaryBusinessEntity: facility.primaryBusinessEntity || false,
                         facilityInactive: facility.facilityInactive || false,
                         info: facility.info || "",
-                        isActive: facility.isActive !== undefined ? facility.isActive : true,
+                        isActive: facility.isActive !== undefined ? facility.isActive : !facility.facilityInactive,
                     }));
                 setFacilities(mappedFacilities);
                 setError(null);
+                console.log('Loaded facilities:', mappedFacilities.length, mappedFacilities);
             } else {
                 setFacilities([]);
                 setError(response.message || "Failed to load facilities");

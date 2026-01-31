@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+// FHIR ID for the practice - used consistently across GET and POST operations
+const PRACTICE_FHIR_ID = "1063";
+
 // Helper function to get auth headers from the request
 function getAuthHeaders(req?: NextRequest): Record<string, string> {
   const headers: Record<string, string> = {
@@ -40,43 +43,45 @@ function getAuthHeaders(req?: NextRequest): Record<string, string> {
 
 export async function GET(req: NextRequest) {
   try {
-    // Get all practices (which includes nested settings)
-    const practicesResponse = await fetch(`${API_BASE_URL}/api/practices`, {
+    const practiceId = PRACTICE_FHIR_ID;
+    const practiceResponse = await fetch(`${API_BASE_URL}/api/practices/${practiceId}`, {
       method: "GET",
-      headers: getAuthHeaders(req),
+      headers: {
+        ...getAuthHeaders(req),
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      },
+      cache: "no-store"
     });
 
-    if (!practicesResponse.ok) {
+    if (!practiceResponse.ok) {
       return NextResponse.json(
-        { success: false, message: "Failed to fetch practices" },
-        { status: practicesResponse.status }
+        { success: false, message: "Failed to fetch practice" },
+        { status: practiceResponse.status }
       );
     }
 
-    const practicesData = await practicesResponse.json();
+    const practiceData = await practiceResponse.json();
     
-    if (!practicesData.success || !practicesData.data || practicesData.data.length === 0) {
+    if (!practiceData.success || !practiceData.data) {
       return NextResponse.json(
         { success: false, message: "No practice found" },
         { status: 404 }
       );
     }
 
-    // Use first practice as default
-    const defaultPractice = practicesData.data[0];
+    const defaultPractice = practiceData.data;
 
-    // Extract practice settings and add the practice name
-    const practiceSettings = {
-      ...defaultPractice.practiceSettings,
-      name: defaultPractice.name || "",
-      tokenExpiryMinutes: defaultPractice.tokenExpiryMinutes || 5
-    };
-
+    // Return complete practice data including both settings
     return NextResponse.json(
-      { 
-        success: true, 
+      {
+        success: true,
         message: "Practice settings retrieved successfully",
-        data: practiceSettings 
+        data: {
+          name: defaultPractice.name || "",
+          practiceSettings: defaultPractice.practiceSettings || {},
+          regionalSettings: defaultPractice.regionalSettings || {}
+        }
       },
       { status: 200 }
     );
@@ -93,54 +98,59 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const authHeaders = getAuthHeaders(req);
+    const practiceId = PRACTICE_FHIR_ID;
 
-    // Get all practices to find the default one
-    const practicesResponse = await fetch(`${API_BASE_URL}/api/practices`, {
+    const practiceResponse = await fetch(`${API_BASE_URL}/api/practices/${practiceId}`, {
       method: "GET",
-      headers: authHeaders,
+      headers: {
+        ...authHeaders,
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      },
+      cache: "no-store"
     });
 
-    if (!practicesResponse.ok) {
-      const errorText = await practicesResponse.text();
+    if (!practiceResponse.ok) {
       return NextResponse.json(
-        { success: false, message: "Failed to fetch practices", error: errorText },
-        { status: practicesResponse.status }
+        { success: false, message: "Failed to fetch current practice" },
+        { status: practiceResponse.status }
       );
     }
 
-    const practicesData = await practicesResponse.json();
-    
-    if (!practicesData.success || !practicesData.data || practicesData.data.length === 0) {
+    const practiceData = await practiceResponse.json();
+
+    if (!practiceData.success || !practiceData.data) {
       return NextResponse.json(
         { success: false, message: "No practice found" },
         { status: 404 }
       );
     }
 
-    // Use first practice as default
-    const defaultPractice = practicesData.data[0];
-    const defaultPracticeId = defaultPractice.id;
+    const currentPractice = practiceData.data;
 
-    // Extract practice name and settings from body
-    const { name, ...settingsBody } = body;
-
-    // Create a complete practice object preserving all existing fields
-    const updatedPractice = {
-      ...defaultPractice,
-      name: name || defaultPractice.name,
-      tokenExpiryMinutes: settingsBody.tokenExpiryMinutes ?? defaultPractice.tokenExpiryMinutes,
-      practiceSettings: {
-        ...defaultPractice.practiceSettings,
-        enablePatientPractice: settingsBody.enablePatientPractice ?? defaultPractice.practiceSettings?.enablePatientPractice
-      }
+    const updatePayload: any = {
+      ...currentPractice
     };
 
+    if (body.name !== undefined) {
+      updatePayload.name = body.name;
+    }
+
+    if (body.practiceSettings !== undefined) {
+      updatePayload.practiceSettings = body.practiceSettings;
+    }
+
+    if (body.regionalSettings !== undefined) {
+      updatePayload.regionalSettings = body.regionalSettings;
+    }
+
+    // Use the actual practice ID from the backend
     const updateResponse = await fetch(
-      `${API_BASE_URL}/api/practices/${defaultPracticeId}`,
+      `${API_BASE_URL}/api/practices/${practiceId}`,
       {
         method: "PUT",
         headers: authHeaders,
-        body: JSON.stringify(updatedPractice),
+        body: JSON.stringify(updatePayload),
       }
     );
 
@@ -153,7 +163,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await updateResponse.json();
-    return NextResponse.json(data, { status: updateResponse.status });
+    return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error("Practice settings POST error:", error);
     return NextResponse.json(

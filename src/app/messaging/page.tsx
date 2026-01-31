@@ -1131,7 +1131,7 @@ export default function MessagingPage() {
     /* ---- Upload Message Attachment ---- */
     const uploadMessageAttachment = async (messageId: number, file: File): Promise<void> => {
         const formData = new FormData();
-        
+
         // Create the dto object with only the fields that match the backend DTO
         const dto = {
             fileName: file.name,
@@ -1227,9 +1227,32 @@ export default function MessagingPage() {
                 const patientsRes = await fetchWithAuth(
                     `${process.env.NEXT_PUBLIC_API_URL}/api/patients?page=0&size=50`
                 );
-                const patientsJson: ApiResponse<{ content: Patient[] }> = await patientsRes.json();
-                if (patientsJson.success && Array.isArray(patientsJson.data?.content)) {
-                    setPatients(patientsJson.data.content);
+
+                if (!patientsRes.ok) {
+                    console.error('Failed to fetch patients:', patientsRes.status);
+                } else {
+                    const patientsJson = await patientsRes.json();
+                    console.log('Patients API response:', patientsJson);
+
+                    // Handle different response formats
+                    let patientsList = [];
+                    if (patientsJson.content) {
+                        patientsList = patientsJson.content;
+                    } else if (patientsJson.data?.content) {
+                        patientsList = patientsJson.data.content;
+                    } else if (Array.isArray(patientsJson.data)) {
+                        patientsList = patientsJson.data;
+                    } else if (Array.isArray(patientsJson)) {
+                        patientsList = patientsJson;
+                    }
+
+                    if (Array.isArray(patientsList) && patientsList.length > 0) {
+                        const validPatients = patientsList.filter(p => p && (p.fhirId || p.id) && p.firstName && p.lastName);
+                        setPatients(validPatients);
+                        console.log(`Loaded ${validPatients.length} patients:`, validPatients);
+                    } else {
+                        console.warn('No patients found in response');
+                    }
                 }
 
                 // Load templates
@@ -1546,7 +1569,7 @@ export default function MessagingPage() {
             // Use the conversation context from the selected conversation
             // This ensures replies stay in the correct thread
             const conversationData = selectedConversation.messages[0]; // Get conversation context from first message
-            
+
             let provider = providers[0];
             if (!provider) {
                 provider = {
@@ -1574,7 +1597,7 @@ export default function MessagingPage() {
                            selectedConversation.participant.includes(p.firstName) ||
                            selectedConversation.participant.includes(p.lastName);
                 });
-                
+
                 if (patient) {
                     patientId = patient.id;
                     recipientName = `${patient.firstName} ${patient.lastName}`;
@@ -1649,13 +1672,28 @@ export default function MessagingPage() {
                 if (pendingAttachments.length > 0) {
                     try {
                         await uploadMultipleAttachments(json.data.id, pendingAttachments);
-                        showNotification(`Reply sent with ${pendingAttachments.length} attachment(s)! ✨`, 'success');
+                showNotification(`Reply sent with ${pendingAttachments.length} attachment(s)! ✨`, 'success');
+
+                        // Reload to refresh conversation list
+                        await loadCommunications();
                     } catch (error) {
                         console.error('Failed to upload attachments:', error);
                         showNotification(`Reply sent but some attachments failed to upload`, 'error');
                     }
                 } else {
                     showNotification('Reply sent successfully! ✨', 'success');
+
+                    // Reload to refresh conversation list
+                    await loadCommunications();
+
+                    // Update selected conversation after reload
+                    setTimeout(async () => {
+                        await loadCommunications();
+                        const updatedConversation = conversationsByParticipant.find(conv => conv.id === selectedConversation.id);
+                        if (updatedConversation) {
+                            setSelectedConversation(updatedConversation);
+                        }
+                    }, 500);
                 }
 
                 await loadCommunications();
@@ -1667,7 +1705,13 @@ export default function MessagingPage() {
                     replyInputRef.current.style.height = 'auto';
                 }
 
-                setTimeout(() => {
+                // Refresh conversation after sending
+                setTimeout(async () => {
+                    await loadCommunications();
+                    const updatedConversation = conversationsByParticipant.find(conv => conv.id === selectedConversation.id);
+                    if (updatedConversation) {
+                        setSelectedConversation(updatedConversation);
+                    }
                     replyInputRef.current?.focus();
                 }, 100);
             } else {
@@ -1755,11 +1799,10 @@ export default function MessagingPage() {
             const json: ApiResponse<CommunicationDto> = await res.json();
 
             if (json.success && json.data) {
-                // Handle attachments if any (for new messages)
-                // Note: EHR compose modal doesn't have attachment state yet, but this is ready for future implementation
-                
+                showNotification('Message sent successfully! ✨', 'success');
+
+                // Reload communications to refresh the list
                 await loadCommunications();
-                showNotification('Message sent successfully! 📨', 'success');
 
                 setIsCreating(false);
                 setSubject("");
@@ -1767,6 +1810,17 @@ export default function MessagingPage() {
                 setSelectedPatientId("");
                 setSelectedProviderId("");
                 setSelectedTemplateId("");
+
+                // Wait for state to update, then auto-select the conversation
+                setTimeout(async () => {
+                    await loadCommunications(); // Refresh again to ensure latest data
+                    const newConversationId = `conversation_patient_${patient.fhirId || patient.id}`;
+                    const conversation = conversationsByParticipant.find(conv => conv.id === newConversationId);
+                    if (conversation) {
+                        setSelectedConversation(conversation);
+                        setConversationView('thread');
+                    }
+                }, 800);
             } else {
                 throw new Error(json.message || 'Failed to send message');
             }

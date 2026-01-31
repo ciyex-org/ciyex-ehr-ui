@@ -19,7 +19,6 @@ export const facilityAPI = {
       const text = await res.text();
       if (!text) return { success: true, data: [], message: "No facilities found" };
       const parsed = JSON.parse(text);
-      // Handle different response formats
       const data = Array.isArray(parsed) ? parsed : (parsed.data || []);
       return { success: true, data, message: "Success" };
     } catch (error) {
@@ -31,6 +30,7 @@ export const facilityAPI = {
       };
     }
   },
+
   async getStatistics() {
     try {
       const res = await fetchWithAuth(`${API_BASE}/api/facilities/statistics`);
@@ -46,6 +46,7 @@ export const facilityAPI = {
       return { success: false, data: { totalCount: 0, activeCount: 0, inactiveCount: 0 }, message: "Error loading statistics" };
     }
   },
+
   async create(facility: Record<string, any>) {
     try {
       const res = await fetchWithAuth(`${API_BASE}/api/facilities`, {
@@ -61,7 +62,7 @@ export const facilityAPI = {
         return { success: false, data: {}, message };
       }
       const text = await res.text();
-      if (!text) return { success: false, data: {}, message: "Empty response" };
+      if (!text) return { success: true, data: {}, message: "Facility created successfully" };
       const parsed = JSON.parse(text);
       return { success: true, data: parsed.data || parsed, message: "Facility created successfully" };
     } catch (error) {
@@ -69,6 +70,7 @@ export const facilityAPI = {
       return { success: false, data: {}, message: error instanceof Error ? error.message : "Failed to create facility" };
     }
   },
+
   async update(id: string | number, facility: Record<string, any>) {
     try {
       const res = await fetchWithAuth(`${API_BASE}/api/facilities/${id}`, {
@@ -84,7 +86,7 @@ export const facilityAPI = {
         return { success: false, data: {}, message };
       }
       const text = await res.text();
-      if (!text) return { success: false, data: {}, message: "Empty response" };
+      if (!text) return { success: true, data: {}, message: "Facility updated successfully" };
       const parsed = JSON.parse(text);
       return { success: true, data: parsed.data || parsed, message: "Facility updated successfully" };
     } catch (error) {
@@ -92,6 +94,7 @@ export const facilityAPI = {
       return { success: false, data: {}, message: error instanceof Error ? error.message : "Failed to update facility" };
     }
   },
+
   async delete(id: string | number) {
     try {
       const res = await fetchWithAuth(`${API_BASE}/api/facilities/${id}`, {
