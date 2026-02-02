@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: git@github.com:qiaben/ciyex-ehr-ui.git
+    repoURL: https://github.com/qiaben/ciyex-ehr-ui.git
     targetRevision: main
     path: k8s/overlays/stage
   destination:
