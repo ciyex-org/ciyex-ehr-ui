@@ -1337,7 +1337,7 @@ const Calendar: React.FC = () => {
           dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         >
                             <option value="all">All Locations</option>
-                            {locations.filter((l) => l.value !== 'all').map((loc) => (
+                            {locations.filter((l) => l && l.value && l.value !== 'all').map((loc) => (
                                 <option key={loc.value} value={loc.value}>{loc.label}</option>
                             ))}
                         </select>
