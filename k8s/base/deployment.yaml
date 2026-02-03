@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ciyex-ehr-ui
-  namespace: ciyex-ehr-ui
   labels:
     app: ciyex-ehr-ui
     app.kubernetes.io/name: ciyex-ehr-ui

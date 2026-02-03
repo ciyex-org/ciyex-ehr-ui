@@ -2,7 +2,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ciyex-ehr-ui
-  namespace: ciyex-ehr-ui
   labels:
     app: ciyex-ehr-ui
 spec:
