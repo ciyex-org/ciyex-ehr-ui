@@ -375,20 +375,25 @@ export default function PatientEducationPage() {
     }
     async function confirmAssign(patientId: string, patientName: string, notes?: string) {
         if (!assignTarget) return
+        const currentUser = { fullName: 'Current User' }
+        const assignedBy = currentUser?.fullName || 'Unknown'
         try {
             const res = await fetchWithAuth(`${API_URL}/api/patient-education-assignments/${assignTarget.id}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    topic: assignTarget,
+                    topicId: assignTarget.id,
                     patientId,
-                    patientName,   // backend DTO likely only needs patientId + notes
-                    notes: notes ?? ''
+                    patientName,
+                    notes: notes ?? '',
+                    assignedBy
                 }),
             })
-            const json = await res.json()
+            const text = await res.text()
+            if (!text) throw new Error('Empty response')
+            const json = JSON.parse(text)
             if (!res.ok || !json.success) throw new Error(json.message || 'Failed to assign')
-
-            // ✅ Strong typing here
             const dto = json.data as PatientEducationAssignmentDto
 
             const item: AssignedItem = {
@@ -417,7 +422,9 @@ export default function PatientEducationPage() {
     async function markDelivered(id: string) {
         try {
             const res = await fetchWithAuth(`${API_URL}/api/patient-education-assignments/${id}/delivered`, { method: 'PUT' })
-            const json = await res.json()
+            const text = await res.text()
+            if (!text) throw new Error('Empty response')
+            const json = JSON.parse(text)
             if (res.ok && json.success) {
                 setAssigned((prev) => prev.map((a) => (a.id === id ? { ...a, delivered: true } : a)))
                 setAlertData({ variant: 'success', title: 'Delivered', message: 'Marked as delivered.' })
@@ -430,7 +437,9 @@ export default function PatientEducationPage() {
     async function removeAssigned(id: string) {
         try {
             const res = await fetchWithAuth(`${API_URL}/api/patient-education-assignments/${id}`, { method: 'DELETE' })
-            const json = await res.json()
+            const text = await res.text()
+            if (!text) throw new Error('Empty response')
+            const json = JSON.parse(text)
             if (res.ok && json.success) {
                 setAssigned((prev) => prev.filter((a) => a.id !== id))
                 setAlertData({ variant: 'success', title: 'Removed', message: 'Removed from assigned list.' })
@@ -457,13 +466,15 @@ export default function PatientEducationPage() {
                     readingLevel: payload.readingLevel ?? 'Basic',
                 }),
             })
-            const json = await res.json()
+            const text = await res.text()
+            if (!text) throw new Error('Empty response')
+            const json = JSON.parse(text)
             if (!res.ok || !json.success) throw new Error(json.message || 'Failed to create')
             const created: Topic = dtoToTopic(json.data)
-            // Prepend so user sees it immediately
             setTopics(prev => [created, ...prev])
             setShowCreateModal(false)
-            setAlertData({ variant: 'success', title: 'Created', message: `Added “${created.title}”.` })
+            setAlertData({ variant: 'success', title: 'Created', message: `Added "${created.title}".` })
+
         } catch (err) {
             console.error('Create topic failed:', err)
             setAlertData({ variant: 'error', title: 'Error', message: 'Failed to add patient education.' })
@@ -487,13 +498,15 @@ export default function PatientEducationPage() {
                     readingLevel: updates.readingLevel,
                 }),
             })
-            const json = await res.json()
+            const text = await res.text()
+            if (!text) throw new Error('Empty response')
+            const json = JSON.parse(text)
             if (!res.ok || !json.success) throw new Error(json.message || 'Failed to update')
             const updated = dtoToTopic(json.data)
             setTopics(prev => prev.map(t => (t.id === id ? updated : t)))
             setEditing(null)
             setPreview(updated)
-            setAlertData({ variant: 'success', title: 'Updated', message: `“${updated.title}” was updated.` })
+            setAlertData({ variant: 'success', title: 'Updated', message: `"${updated.title}" was updated.` })
         } catch (err) {
             console.error('Update topic failed:', err)
             setAlertData({ variant: 'error', title: 'Error', message: 'Failed to update patient education.' })

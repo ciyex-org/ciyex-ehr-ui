@@ -93,9 +93,11 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
           `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}/relationships`
       );
       const data = await response.json();
-      if (data.success && data.data) {
-        setRelationships(data.data);
-      }
+      console.log("📋 Relationships API response:", data);
+      
+      const items = data.success && data.data ? data.data : (Array.isArray(data) ? data : []);
+      setRelationships(items);
+      console.log("✅ Loaded relationships:", items);
     } catch (err) {
       console.error("Error loading relationships:", err);
       setError("Failed to load relationships");
@@ -107,19 +109,14 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
   const loadRelationTypes = async () => {
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/list-options/list/patient_relationship`
+        `${process.env.NEXT_PUBLIC_API_URL}/api/list-options/list/Patient_relationship`
       );
       const data = await response.json();
       
-      if (Array.isArray(data)) {
-        // Filter only active relationship types
-        const activeTypes = data.filter((item: RelationType) => item.activity === 1);
-        setRelationTypes(activeTypes);
-        console.log("✅ Loaded relationship types:", activeTypes.length);
-      } else {
-        console.warn("⚠️ Unexpected response format:", data);
-        setRelationTypes([]);
-      }
+      const items = Array.isArray(data) ? data : (data.data || []);
+      const activeTypes = items.filter((item: RelationType) => item.activity === 1);
+      setRelationTypes(activeTypes);
+      console.log("✅ Loaded relationship types:", activeTypes);
     } catch (err) {
       console.error("❌ Error loading relation types:", err);
       setRelationTypes([]);
@@ -232,6 +229,8 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
     setError(null);
     setSuccess(null);
 
+    console.log("📤 Submitting relationship:", formData);
+
     try {
       const url = editingId
           ? `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}/relationships/${editingId}`
@@ -246,9 +245,10 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
       });
 
       const data = await response.json();
+      console.log("📥 Save response:", data);
 
       if (data.success) {
-        setSuccess(data.message);
+        setSuccess(data.message || "Relationship saved successfully");
         setShowForm(false);
         setEditingId(null);
         setFormData({
@@ -259,7 +259,7 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
         setSearchQuery("");
         setSearchResults([]);
         setShowSearchResults(false);
-        loadRelationships();
+        await loadRelationships();
         setTimeout(() => setSuccess(null), 3000);
       } else {
         setError(data.message || "Operation failed");
