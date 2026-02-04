@@ -15,4 +15,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/hostnames/0
-        value: ehr.apps-dev.us-east.in.hinisoft.com
+        value: app-dev.ciyex.org
