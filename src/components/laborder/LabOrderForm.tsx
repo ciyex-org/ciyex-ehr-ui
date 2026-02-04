@@ -57,61 +57,13 @@ type Draft = {
   procedureCode?: string;
 };
 
-// (Order number generation handled elsewhere; removed unused helper)
-// ---------------- Order Number Auto Generation (Sequential) ----------------
-// Format required: ORD-YYYY-XXXX (zero padded 4 digits, sequential within calendar year)
-// NOTE: True collision-safe sequential numbers should be generated server-side (atomic transaction).
-// This client implementation: queries existing orders with prefix for the year and picks max+1.
-// Risk: Two users generating simultaneously may produce same number until save; backend should still enforce uniqueness.
-
-async function generateSequentialOrderNumber(year: number): Promise<string> {
-  try {
-    const base = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
-    if (!base) return fallback();
-    const prefix = `ORD-${year}-`;
-    const org = (typeof window !== 'undefined' ? (localStorage.getItem('orgId') || '') : '') || (process.env.NEXT_PUBLIC_ORG_ID || '1');
-    // Try search endpoint limited by prefix
-    const res = await fetchWithAuth(`${base}/api/lab-order/search?q=${encodeURIComponent(prefix)}`, {
-      method: 'GET', headers: { orgId: org, 'X-Org-Id': org }
-    });
-    const text = await res.text();
-    let parsed: unknown = null; try { parsed = text ? JSON.parse(text) : null; } catch { parsed = null; }
-    const candidates: string[] = [];
-    if (Array.isArray(parsed)) candidates.push(...parsed.map(o => (o as { orderNumber?: string })?.orderNumber).filter(Boolean) as string[]);
-    if (parsed && typeof parsed === 'object') {
-      const pools = ['data','content','items','records','result'] as const;
-      const obj = parsed as Record<string, unknown>;
-      for (const k of pools) {
-        const maybe = obj[k];
-        if (Array.isArray(maybe)) {
-          candidates.push(...maybe.map(o => (o as { orderNumber?: string })?.orderNumber).filter(Boolean) as string[]);
-        }
-      }
-    }
-    const re = new RegExp(`^ORD-${year}-(\\d{4})$`);
-    let maxN = 0;
-    for (const c of candidates) {
-      const m = re.exec(String(c));
-      if (m) {
-        const num = parseInt(m[1], 10);
-        if (num > maxN) maxN = num;
-      }
-    }
-    const next = maxN + 1;
-    return format(year, next);
-  } catch (e) {
-    console.warn('Auto order number generation failed, using fallback', e);
-    return fallback();
-  }
-
-  function format(y: number, n: number) { return `ORD-${y}-${String(n).padStart(4,'0')}`; }
-  function fallback() {
-    const y = year || new Date().getFullYear();
-    // Use time-based fallback to reduce collision chance
-    const ms = new Date().getMilliseconds();
-    const rand = (ms % 10000); // 0-9999
-    return `ORD-${y}-${String(rand).padStart(4,'0')}`;
-  }
+// Generate unique order number using timestamp to prevent duplicates
+function generateSequentialOrderNumber(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const timestamp = now.getTime();
+  const uniqueNum = timestamp % 100000; // Last 5 digits of timestamp for uniqueness
+  return `ORD-${year}-${String(uniqueNum).padStart(4,'0')}`;
 }
 
 // ---------------- Date display helpers (UI shows DD-MM-YYYY, we store YYYY-MM-DD) ----------------
@@ -376,6 +328,12 @@ export const handleLabOrderPrint = (draft: Draft, procModalRows: ProcRow[], incl
 
 export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> }) {
   const router = useRouter();
+  const patientInputRef = useRef<HTMLInputElement>(null);
+  const orderNumberInputRef = useRef<HTMLInputElement>(null);
+  const testCodeInputRef = useRef<HTMLInputElement>(null);
+  const orderingProviderInputRef = useRef<HTMLInputElement>(null);
+  const physicianNameInputRef = useRef<HTMLInputElement>(null);
+  const procRowsRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState<Draft>({
     patientSearch: "",
     patientId: "",
@@ -414,19 +372,10 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
       });
     } else {
       // Generate order number for new order (only if none provided yet)
-      (async () => {
-        try {
-          const year = new Date().getFullYear();
-            setDraft(prev => {
-              if (prev.orderNumber && prev.orderNumber.trim() !== '') return prev; // user pre-filled
-              return { ...prev, orderNumber: '…' }; // temporary placeholder while loading
-            });
-          const num = await generateSequentialOrderNumber(year);
-          setDraft(prev => ({ ...prev, orderNumber: num }));
-        } catch {
-          setDraft(prev => ({ ...prev, orderNumber: prev.orderNumber || '' }));
-        }
-      })();
+      setDraft(prev => {
+        if (prev.orderNumber && prev.orderNumber.trim() !== '') return prev;
+        return { ...prev, orderNumber: generateSequentialOrderNumber() };
+      });
     }
   }, [initial]);
 
@@ -493,7 +442,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     }
   }
 
-  const [errors, setErrors] = useState<{ patientId?: string; orderNumber?: string }>({});
+  const [errors, setErrors] = useState<{ patientId?: string; orderNumber?: string; testCode?: string; orderingProvider?: string; physicianName?: string; procedureRows?: string }>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
@@ -513,7 +462,13 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     setDraft((d) => ({ ...d, diagnosisCode: diagCodes.join(";") }));
   }, [procModalRows]);
 
-  const upd = (k: keyof Draft | string, v: unknown) => setDraft((d) => ({ ...d, [k]: v } as Draft));
+  const upd = (k: keyof Draft | string, v: unknown) => {
+    setDraft((d) => ({ ...d, [k]: v } as Draft));
+    if (k === 'orderNumber' && errors.orderNumber) setErrors(prev => ({ ...prev, orderNumber: undefined }));
+    if (k === 'testCode' && errors.testCode) setErrors(prev => ({ ...prev, testCode: undefined }));
+    if (k === 'orderingProvider' && errors.orderingProvider) setErrors(prev => ({ ...prev, orderingProvider: undefined }));
+    if (k === 'physicianName' && errors.physicianName) setErrors(prev => ({ ...prev, physicianName: undefined }));
+  };
 
   function makePickerHeaders() {
     const h: Record<string, string> = { Accept: "application/json", "Content-Type": "application/json" };
@@ -612,6 +567,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   function onPatientSearchChange(q: string) {
     upd("patientSearch", q);
+    if (errors.patientId) setErrors(prev => ({ ...prev, patientId: undefined }));
     if (!q || q.trim().length < 1) {
       setPatientMatches([]);
       setShowPatientDropdown(false);
@@ -622,7 +578,6 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
       upd("patientId", q.trim());
       setPatientMatches([]);
       setShowPatientDropdown(false);
-      setErrors({});
       return;
     }
 
@@ -645,7 +600,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     upd("mrn", p.mrn ?? "");
     upd("patientSearch", `${p.patientFirstName} ${p.patientLastName}`);
     setShowPatientDropdown(false);
-    setErrors({});
+    if (errors.patientId) setErrors(prev => ({ ...prev, patientId: undefined }));
   }
 
   function onProviderSearchChange(q: string) {
@@ -697,53 +652,97 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   async function saveDraft() {
     setMessage(null);
+    const newErrors: typeof errors = {};
+    
     const pid = Number(draft.patientId);
-    if (!pid || pid <= 0) {
-      setErrors({ patientId: "Please select or enter a valid Patient ID." });
+    if (!pid || pid <= 0) newErrors.patientId = "Please fill in this field.";
+    if (!draft.orderNumber || String(draft.orderNumber).trim() === "") newErrors.orderNumber = "Please fill in this field.";
+    if (!draft.testCode || String(draft.testCode).trim() === "") newErrors.testCode = "Please fill in this field.";
+    if (!draft.orderingProvider || String(draft.orderingProvider).trim() === "") newErrors.orderingProvider = "Please fill in this field.";
+    if (!draft.physicianName || String(draft.physicianName).trim() === "") newErrors.physicianName = "Please fill in this field.";
+    const hasValidProcRow = procModalRows.some(r => (r.test?.trim() || r.testCode?.trim()) && Array.isArray(r.diagnosisCodes) && r.diagnosisCodes.length > 0);
+    if (!hasValidProcRow) newErrors.procedureRows = "Please fill in this field.";
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.patientId) {
+        patientInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        patientInputRef.current?.focus();
+      } else if (newErrors.orderNumber) {
+        orderNumberInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        orderNumberInputRef.current?.focus();
+      } else if (newErrors.testCode) {
+        testCodeInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        testCodeInputRef.current?.focus();
+      } else if (newErrors.orderingProvider) {
+        orderingProviderInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        orderingProviderInputRef.current?.focus();
+      } else if (newErrors.physicianName) {
+        physicianNameInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        physicianNameInputRef.current?.focus();
+      } else if (newErrors.procedureRows) {
+        procRowsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
-    if (!draft.orderNumber || String(draft.orderNumber).trim() === "") {
-      setErrors({ orderNumber: "Order number required." });
-      return;
-    }
+    
+    setErrors({});
     setBusy(true);
     try {
-  const payload: Record<string, unknown> = {
+      const payload: Record<string, unknown> = {
         patientId: pid,
-        patientFirstName: draft.patientFirstName,
-        patientLastName: draft.patientLastName,
-        mrn: draft.mrn,
-        testCode: draft.testCode,
-        orderName: draft.orderName,
-        orderNumber: draft.orderNumber,
-        status: draft.status,
-        priority: draft.priority,
-        orderDate: draft.orderDate,
-        orderDateTime: draft.orderDateTime || `${draft.orderDate}T00:00:00`,
-        labName: draft.labName,
-        orderingProvider: draft.orderingProvider,
-        physicianName: draft.physicianName,
-        specimenId: draft.specimenId,
-        notes: draft.notes,
-        diagnosisCode: draft.diagnosisCode,
-        procedureCode: (procedureCodes || []).join(','),
+        patientFirstName: draft.patientFirstName || '',
+        patientLastName: draft.patientLastName || '',
+        patientHomePhone: draft.patientHomePhone || '',
+        mrn: draft.mrn || '',
+        testCode: draft.testCode || '',
+        orderName: draft.orderName || '',
+        testDisplay: draft.testDisplay || '',
+        orderNumber: draft.orderNumber || '',
+        status: draft.status || 'active',
+        priority: draft.priority || 'routine',
+        orderDate: draft.orderDate || new Date().toISOString().slice(0, 10),
+        orderDateTime: draft.orderDateTime || `${draft.orderDate || new Date().toISOString().slice(0, 10)}T00:00:00`,
+        labName: draft.labName || '',
+        orderingProvider: draft.orderingProvider || '',
+        physicianName: draft.physicianName || '',
+        specimenId: draft.specimenId || '',
+        notes: draft.notes || '',
+        diagnosisCode: draft.diagnosisCode || '',
+        procedureCode: (procedureCodes || []).join(',') || '',
         result: draft.result || 'Pending',
       };
+
+      console.log('Saving lab order with payload:', payload);
 
       const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
       const orgHeader = (typeof window !== 'undefined' ? (localStorage.getItem('orgId') || '') : '')
         || (process.env.NEXT_PUBLIC_ORG_ID || '1');
-      // Backend create endpoint: POST /api/lab-order/{patientId} with X-Org-Id header
-      const res = await fetchWithAuth(`${base}/api/lab-order/${pid}`, {
+      
+      const url = `${base}/api/lab-order/${pid}`;
+      console.log('POST request to:', url);
+      
+      const res = await fetchWithAuth(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', orgId: orgHeader, 'X-Org-Id': orgHeader },
         body: JSON.stringify(payload),
       });
-      // Attempt to parse JSON (may fail for 401/empty body)
+      
       const text = await res.text();
-  type SaveResponse = { success?: boolean; id?: number | string; message?: string; error?: string } | null;
-  let json: SaveResponse = null;
+      console.log('Response status:', res.status);
+      console.log('Response body:', text);
+      
+      type SaveResponse = { success?: boolean; id?: number | string; message?: string; error?: string } | null;
+      let json: SaveResponse = null;
       try { json = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+
+      if (res.status === 400) {
+        const serverMsg = (json?.message || json?.error || '').toString().trim();
+        const errorDetails = serverMsg || text || 'Invalid request data';
+        console.error('400 Bad Request details:', errorDetails);
+        setMessage({ type: 'error', text: `Bad Request (400): ${errorDetails}` });
+        return;
+      }
 
       if (res.status === 401) {
         const tokenPresent = !!(typeof window !== 'undefined' && (localStorage.getItem('token') || localStorage.getItem('authToken') || sessionStorage.getItem('token')));
@@ -752,7 +751,8 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
         if (!tokenPresent) hints.push('missing login token'); else hints.push('token invalid or expired');
         if (!orgPresent) hints.push('orgId missing');
         setMessage({ type: 'error', text: `Unauthorized (401): ${hints.join('; ')}. Re-login required.` });
-        return; }
+        return;
+      }
 
       if (res.status === 403) {
         setMessage({ type: 'error', text: 'Forbidden (403): your user lacks permission for this action.' });
@@ -760,7 +760,6 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
       }
 
       if (res.ok && (json?.success || json?.id)) {
-        // Persist a flag so listing page can show a toast after redirect
         if (typeof window !== 'undefined') {
           try { sessionStorage.setItem('labOrderToast', 'saved'); } catch { /* ignore */ }
         }
@@ -781,8 +780,8 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   return (
   <div className="p-8 max-w-[1180px] mx-auto bg-[#f7f8fa] min-h-screen">
-      {message && (
-        <div className={`mb-6 px-4 py-3 rounded-lg shadow-sm border text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' : message.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-blue-50 text-blue-900 border-blue-200'}`}>
+      {message && message.type === 'success' && (
+        <div className="mb-6 px-4 py-3 rounded-lg shadow-sm border text-sm font-medium bg-green-50 text-green-800 border-green-200">
           {message.text}
         </div>
       )}
@@ -797,7 +796,8 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
             <label className={`block text-sm font-medium mb-2 ${errors.patientId ? 'text-red-600' : 'text-slate-700'}`}>Patient <span className="text-red-600">*</span></label>
             <div className="relative">
               <input
-                className={`w-full border rounded-md px-3 py-2 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${errors.patientId ? 'border-red-500' : 'border-slate-300'}`}
+                ref={patientInputRef}
+                className={`w-full border rounded-md px-3 py-2 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${errors.patientId ? 'border-orange-500' : 'border-slate-300'}`}
                 value={draft.patientSearch ?? ""}
                 onChange={(e) => onPatientSearchChange(e.target.value)}
                 placeholder="Search patient by name, MRN or ID"
@@ -822,13 +822,18 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                 </div>
               )}
             </div>
-            <div className="mt-2 text-[11px] text-slate-500 tracking-wide">Choose a patient to auto-fill MRN and ID.</div>
+            {errors.patientId && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">
+                <span className="flex items-center justify-center w-4 h-4 bg-orange-500 text-white rounded-sm font-bold text-[10px]">!</span>
+                <span>{errors.patientId}</span>
+              </div>
+            )}
+            {!errors.patientId && <div className="mt-2 text-[11px] text-slate-500 tracking-wide">Choose a patient to auto-fill MRN and ID.</div>}
             {draft.patientId && (
               <div className="mt-4 p-3 rounded-md bg-slate-50 border border-slate-200 text-xs text-slate-600">
                 Selected: <span className="font-medium text-slate-800">{draft.patientFirstName} {draft.patientLastName}</span> • MRN: {draft.mrn} • ID: {draft.patientId}
               </div>
             )}
-            {errors.patientId && <div className="mt-2 text-xs text-red-600 font-medium">{errors.patientId}</div>}
           </div>
 
           {/* Order Meta Card */}
@@ -846,27 +851,28 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
               <label className={`block text-sm font-medium mb-2 ${errors.orderNumber ? 'text-red-600' : 'text-slate-700'}`}>Order Number <span className="text-red-600">*</span></label>
               <div className="flex gap-2">
                 <input
-                  className={`flex-1 border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-80 ${errors.orderNumber ? 'border-red-500' : 'border-slate-300'}`}
+                  ref={orderNumberInputRef}
+                  className={`flex-1 border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-80 ${errors.orderNumber ? 'border-orange-500' : 'border-slate-300'}`}
                   value={draft.orderNumber ?? ''}
                   onChange={(e) => upd('orderNumber', e.target.value)}
                   placeholder="ORD-YYYY-0001"
-                  readOnly={!initial} // new order: generated, prevent manual edits unless editing existing
+                  readOnly={!initial}
                 />
                 {!initial && (
                   <button
                     type="button"
-                    onClick={async () => {
-                      const year = new Date().getFullYear();
-                      upd('orderNumber', '…');
-                      const num = await generateSequentialOrderNumber(year);
-                      upd('orderNumber', num);
-                    }}
+                    onClick={() => upd('orderNumber', generateSequentialOrderNumber())}
                     className="px-3 py-2 text-xs rounded-md border border-slate-300 bg-white hover:bg-slate-50"
                     title="Regenerate order number"
                   >↻</button>
                 )}
               </div>
-              {/* {!initial && <div className="mt-1 text-[11px] text-slate-500">Auto-generated sequentially (client-side). ↻ to regenerate.</div>} */}
+              {errors.orderNumber && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">
+                  <span className="flex items-center justify-center w-4 h-4 bg-orange-500 text-white rounded-sm font-bold text-[10px]">!</span>
+                  <span>{errors.orderNumber}</span>
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Order Name</label>
@@ -899,11 +905,18 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                 
                 <label className="block text-sm font-medium text-slate-700 mb-2">Test Code <span className="text-red-600">*</span></label>
                 <input
-                  className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  ref={testCodeInputRef}
+                  className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.testCode ? 'border-orange-500' : 'border-slate-300'}`}
                   value={draft.testCode ?? ""}
                   onChange={(e) => upd('testCode', e.target.value)}
                   placeholder="CBC"
                 />
+                {errors.testCode && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">
+                    <span className="flex items-center justify-center w-4 h-4 bg-orange-500 text-white rounded-sm font-bold text-[10px]">!</span>
+                    <span>{errors.testCode}</span>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Test Display</label>
@@ -968,11 +981,18 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                 <div className="relative">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Ordering Provider <span className="text-red-600">*</span></label>
                   <input
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    ref={orderingProviderInputRef}
+                    className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.orderingProvider ? 'border-orange-500' : 'border-slate-300'}`}
                     value={draft.orderingProvider ?? ""}
                     onChange={(e) => onProviderSearchChange(e.target.value)}
                     placeholder="Dr. House"
                   />
+                  {errors.orderingProvider && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">
+                      <span className="flex items-center justify-center w-4 h-4 bg-orange-500 text-white rounded-sm font-bold text-[10px]">!</span>
+                      <span>{errors.orderingProvider}</span>
+                    </div>
+                  )}
                   {showProviderDropdown && providerMatches.length > 0 && (
                     <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-44 overflow-y-auto z-40">
                       {providerMatches.map((p,i) => (
@@ -984,11 +1004,18 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Physician Name <span className="text-red-600">*</span></label>
                   <input
-                    className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    ref={physicianNameInputRef}
+                    className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.physicianName ? 'border-orange-500' : 'border-slate-300'}`}
                     value={draft.physicianName ?? ""}
                     onChange={(e) => onPhysicianSearchChange(e.target.value)}
                     placeholder="Dr. House"
                   />
+                  {errors.physicianName && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">
+                      <span className="flex items-center justify-center w-4 h-4 bg-orange-500 text-white rounded-sm font-bold text-[10px]">!</span>
+                      <span>{errors.physicianName}</span>
+                    </div>
+                  )}
                   {showPhysicianDropdown && physicianMatches.length > 0 && (
                     <div className="absolute mt-1 bg-white border border-slate-200 rounded shadow max-h-44 overflow-y-auto z-40 w-full">
                       {physicianMatches.map((p,i) => (
@@ -1024,8 +1051,14 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
       </div>
 
   {/* Procedure Order Details (refined alignment) */}
-      <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+      <div ref={procRowsRef} className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
         <h2 className="text-base font-semibold text-slate-800 mb-4">Procedure Order Details <span className="text-red-600">*</span></h2>
+        {errors.procedureRows && (
+          <div className="mb-4 flex items-center gap-2 text-xs text-orange-600">
+            <span className="flex items-center justify-center w-4 h-4 bg-orange-500 text-white rounded-sm font-bold text-[10px]">!</span>
+            <span>{errors.procedureRows}</span>
+          </div>
+        )}
         <div className="border border-slate-200 rounded-md p-5">
           {/* Header labels with fixed column width (300px) matching screenshot */}
           <div className="hidden md:flex gap-6 mb-2">
