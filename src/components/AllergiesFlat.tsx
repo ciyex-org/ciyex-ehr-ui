@@ -230,18 +230,22 @@ export default function AllergiesFlat({ patientId, orgId }: Props) {
                 setInfo("Allergy added");
             } else {
                 // UPDATE
-                const patch = {
-                    allergyName: (form.allergyName || "").trim(),
-                    reaction: (form.reaction || "").trim() || null,
-                    severity: form.severity || null,
-                    status: form.status || null,
-                    startDate: form.startDate || null,
-                    endDate: form.endDate || null,
-                    comments: (form.comments || "").trim() || null,
+                const payload = {
+                    allergiesList: [
+                        {
+                            allergyName: (form.allergyName || "").trim(),
+                            reaction: (form.reaction || "").trim() || null,
+                            severity: form.severity || null,
+                            status: form.status || null,
+                            startDate: form.startDate || null,
+                            endDate: form.endDate || null,
+                            comments: (form.comments || "").trim() || null,
+                        },
+                    ],
                 };
                 const res = await fetchWithAuth(
                     `${apiBase}/api/allergy-intolerances/${patientId}/${editingId}`,
-                    { method: "PUT", headers: commonHeaders, body: JSON.stringify(patch) }
+                    { method: "PUT", headers: commonHeaders, body: JSON.stringify(payload) }
                 );
                 const body: ApiResponse<AllergyItem> = await res.json();
                 if (!res.ok || !body.success) throw new Error(body.message || "Update failed");
