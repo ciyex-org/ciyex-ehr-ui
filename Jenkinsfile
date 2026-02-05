@@ -24,13 +24,11 @@ pipeline {
 
     stage('Push to Registry') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'REGISTRY_CREDENTIALS', usernameVariable: 'REG_USER', passwordVariable: 'REG_PASS')]) {
-          sh '''
-            echo "$REG_PASS" | docker login ${REGISTRY} -u "$REG_USER" --password-stdin
-            docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
-            docker push ${REGISTRY}/${IMAGE_NAME}:latest
-          '''
-        }
+        sh '''
+          echo "eAYAx1jdocf#WeZuy3i@LJjiz*3FqzVU" | docker login ${REGISTRY} -u admin --password-stdin
+          docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
+          docker push ${REGISTRY}/${IMAGE_NAME}:latest
+        '''
       }
     }
 
