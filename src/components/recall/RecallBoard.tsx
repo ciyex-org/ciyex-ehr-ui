@@ -205,8 +205,9 @@ export default function RecallPage() {
 
     // Modal state
     const [isOpen, setIsOpen] = useState(false);
-    const [modalMode, setModalMode] = useState<"add" | "edit">("add");   // 👈 add this
+    const [modalMode, setModalMode] = useState<"add" | "edit">("add");
     const [newRecall, setNewRecall] = useState<EditableRecallForm>(initialNewRecall);
+    const [modalError, setModalError] = useState<string | null>(null);
 
     // 🔎 Patient search state (matches Calendar behavior)
     const [patientQuery, setPatientQuery] = useState<string>("");
@@ -244,21 +245,10 @@ export default function RecallPage() {
         fetchProviders();
     }, []);
 
-    // Default date range: last 6 months
+    // Default date range: no filter (show all)
     useEffect(() => {
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-
-        const formatDate = (date: Date): string => {
-            const year = date.getFullYear();
-            const month = pad(date.getMonth() + 1);
-            const day = pad(date.getDate());
-            return `${month}/${day}/${year}`;
-        };
-
-        setFrom(formatDate(yesterday));
-        setTo(formatDate(today));
+        setFrom("");
+        setTo("");
     }, []);
 
 
@@ -273,20 +263,14 @@ export default function RecallPage() {
             if (!res.ok) throw new Error("Failed to fetch recalls");
             const data = await res.json();
             if (data.success && data.data?.content) {
-                const enriched = await Promise.all(
-                    data.data.content.map(async (recall: RecallDTO) => {
-                        const name = await fetchPatientName(recall.patientId);
-                        return { ...recall, patientName: name };
-                    })
-                );
-                setRows(enriched);
+                setRows(data.data.content);
                 setTotalPages(data.data.totalPages);
                 setTotalItems(data.data.totalElements ?? data.data.content.length);
             } else {
                 setRows([]);
             }
         } catch (err) {
-            console.error(err);
+            console.error("Error loading recalls:", err);
             setRows([]);
         } finally {
             setLoading(false);
@@ -295,7 +279,7 @@ export default function RecallPage() {
 
     useEffect(() => {
         loadRecalls();
-    }, [loadRecalls]);
+    }, [currentPage, pageSize]);
 
     const handlePrevious = () => currentPage > 1 && setCurrentPage(currentPage - 1);
     const handleNext = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
@@ -431,31 +415,29 @@ export default function RecallPage() {
     };
 
     const handleSaveRecall = async () => {
-        if (!newRecall.patientId || !newRecall.recallDate) {
-            setAlertData({
-                variant: "warning",
-                title: "Missing Information",
-                message: "Please select a patient and recall date.",
-            });
-
-            setAlertData({
-                variant: "success",
-                title: modalMode === "add" ? "Success" : "Updated",
-                message: modalMode === "add"
-                    ? "Recall created successfully!"
-                    : "Recall updated successfully!",
-            });
-
-
-            return;
-        }
-
+        setModalError(null);
         try {
-            const payload = {
-                ...newRecall,
-                recallReason: newRecall.reason,
-                smsConsent: newRecall.smsOk,
-                emailConsent: newRecall.emailOk,
+            if (!newRecall.patientId || newRecall.patientId.trim() === "") {
+                setModalError("Please select a patient from the dropdown.");
+                return;
+            }
+
+            const payload: any = {
+                patientId: Number(newRecall.patientId),
+                patientName: newRecall.patientName || "",
+                dob: newRecall.dob || "",
+                lastVisit: newRecall.lastVisit || "",
+                recallDate: newRecall.recallDate || "",
+                recallReason: newRecall.reason && newRecall.reason.trim() ? newRecall.reason : "Routine recall",
+                smsConsent: newRecall.smsOk ?? false,
+                emailConsent: newRecall.emailOk ?? false,
+                phone: newRecall.phone || "",
+                email: newRecall.email || "",
+                address: newRecall.address || "",
+                city: newRecall.city || "",
+                state: newRecall.state || "",
+                zip: newRecall.zip || "",
+                providerId: newRecall.providerId ? Number(newRecall.providerId) : 0,
             };
 
             let res;
@@ -470,7 +452,6 @@ export default function RecallPage() {
                 );
             }
             else {
-                // ✅ Create new recall
                 res = await fetchWithAuth(
                     `${process.env.NEXT_PUBLIC_API_URL}/api/recalls`,
                     {
@@ -483,7 +464,7 @@ export default function RecallPage() {
 
             const result = await res.json();
             if (!res.ok || !result?.success) {
-                alert(result?.error || result?.message || "Failed to save recall");
+                setModalError(result?.error || result?.message || "Failed to save recall");
                 return;
             }
 
@@ -498,10 +479,11 @@ export default function RecallPage() {
 
             setIsOpen(false);
             setNewRecall(initialNewRecall);
-            loadRecalls();
+            setCurrentPage(1);
+            await loadRecalls();
         } catch (err) {
-            console.error(err);
-            alert("Unexpected error saving recall");
+            console.error("Error saving recall:", err);
+            setModalError("Failed to save recall. Please try again.");
         }
     };
 
@@ -682,19 +664,19 @@ export default function RecallPage() {
                                                     setNewRecall({
                                                         ...initialNewRecall,
                                                         ...r,
+                                                        patientId: String(r.patientId),
                                                         recallDate: r.recallDate
                                                             ? formatMMDDYYYY(new Date(r.recallDate))
                                                             : "",
                                                         reason: r.recallReason || "",
                                                         providerId: String(r.providerId || ""),
-                                                        patientId: String(r.patientId || ""),
                                                         patientName: String(r.patientName || ""),
-                                                        smsOk: r.smsConsent ?? null,      // ✅ map SMS
-                                                        emailOk: r.emailConsent ?? null,  // ✅ map Email
-                                                        recallWhen,                       // ✅ map plus 1/2/3 yrs
+                                                        smsOk: r.smsConsent,
+                                                        emailOk: r.emailConsent,
+                                                        recallWhen,
                                                     });
 
-                                                    setSelectedPatientId(String(r.patientId || ""));
+                                                    setSelectedPatientId(String(r.patientId));
                                                     setSelectedPatientName(String(r.patientName || ""));
                                                     setModalMode("edit");
                                                     setIsOpen(true);
@@ -799,26 +781,33 @@ export default function RecallPage() {
 
                         {/* Body */}
                         <div className="custom-scrollbar max-h-[70vh] overflow-y-auto px-6 pb-6 lg:px-10">
+                            {modalError && (
+                                <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
+                                    <p className="text-sm text-red-700 dark:text-red-300">{modalError}</p>
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                                 {/* Left Column */}
                                 <div className="space-y-4">
                                     {/* Patient search */}
                                     <div className="relative">
-                                        <Label>Name</Label>
+                                        <Label>Name <span className="text-red-600">*</span></Label>
                                         <input
                                             type="text"
                                             className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
                                             value={selectedPatientName || patientQuery}
                                             onChange={(e) => {
-                                                setSelectedPatientId("");
-                                                setSelectedPatientName("");
                                                 setPatientQuery(e.target.value);
                                                 setShowPatientDropdown(true);
-                                                setNewRecall((prev) => ({
-                                                    ...prev,
-                                                    patientId: "",
-                                                    patientName: e.target.value,
-                                                }));
+                                                if (e.target.value !== selectedPatientName) {
+                                                    setSelectedPatientId("");
+                                                    setSelectedPatientName("");
+                                                    setNewRecall((prev) => ({
+                                                        ...prev,
+                                                        patientId: "",
+                                                        patientName: e.target.value,
+                                                    }));
+                                                }
                                             }}
                                             onKeyDown={(e) => {
                                                 if (e.key === "Enter" && patientResults.length > 0) {
@@ -883,143 +872,73 @@ export default function RecallPage() {
 
                                     {/* Last Visit */}
                                     <div>
-                                        <Label>Last Visit</Label>
+                                        <Label>Last Visit <span className="text-red-600">*</span></Label>
                                         <input
-                                            type="text"
-                                            placeholder="MM/DD/YYYY"
-                                            pattern="\d{2}/\d{2}/\d{4}"
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                            value={newRecall.lastVisit ? new Date(newRecall.lastVisit).toLocaleDateString("en-US") : ""}
+                                            type="date"
+                                            className="order-date-input flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                                            value={newRecall.lastVisit || ""}
                                             onChange={(e) => {
-                                                const val = e.target.value;
-                                                const parts = val.split("/");
-                                                if (parts.length === 3) {
-                                                    const [mm, dd, yyyy] = parts;
-                                                    const iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-                                                    setNewRecall((prev) => ({ ...prev, lastVisit: iso }));
-                                                }
+                                                setNewRecall((prev) => ({ ...prev, lastVisit: e.target.value }));
                                             }}
                                         />
                                         <div className="flex gap-4 mt-2 text-sm">
-                                            <label>
-                                                <input
-                                                    type="radio"
-                                                    checked={newRecall.recallWhen === "1y"}
-                                                    onClick={() => {
-                                                        if (!newRecall.lastVisit) return;
-                                                        if (newRecall.recallWhen === "1y") {
-                                                            // unselect if clicked again
-                                                            setNewRecall((prev) => ({ ...prev, recallWhen: "", recallDate: "" }));
-                                                        } else {
-                                                            const d = new Date(newRecall.lastVisit);
-                                                            d.setFullYear(d.getFullYear() + 1);
-                                                            setNewRecall((prev) => ({
-                                                                ...prev,
-                                                                recallWhen: "1y",
-                                                                recallDate: formatMMDDYYYY(d),
-                                                            }));
-                                                        }
-                                                    }}
-                                                    readOnly
-                                                />{" "}
+                                            <button type="button" onClick={() => {
+                                                if (!newRecall.lastVisit) return;
+                                                const d = new Date(newRecall.lastVisit + "T00:00:00");
+                                                d.setFullYear(d.getFullYear() + 1);
+                                                setNewRecall((prev) => ({
+                                                    ...prev,
+                                                    recallWhen: "1y",
+                                                    recallDate: d.toISOString().split('T')[0],
+                                                }));
+                                            }} className="flex items-center gap-1">
+                                                <input type="radio" checked={newRecall.recallWhen === "1y"} readOnly />
                                                 plus 1 year
-                                            </label>
+                                            </button>
 
-                                            <label>
-                                                <input
-                                                    type="radio"
-                                                    checked={newRecall.recallWhen === "2y"}
-                                                    onClick={() => {
-                                                        if (!newRecall.lastVisit) return;
-                                                        if (newRecall.recallWhen === "2y") {
-                                                            setNewRecall((prev) => ({ ...prev, recallWhen: "", recallDate: "" }));
-                                                        } else {
-                                                            const d = new Date(newRecall.lastVisit);
-                                                            d.setFullYear(d.getFullYear() + 2);
-                                                            setNewRecall((prev) => ({
-                                                                ...prev,
-                                                                recallWhen: "2y",
-                                                                recallDate: formatMMDDYYYY(d),
-                                                            }));
-                                                        }
-                                                    }}
-                                                    readOnly
-                                                />{" "}
+                                            <button type="button" onClick={() => {
+                                                if (!newRecall.lastVisit) return;
+                                                const d = new Date(newRecall.lastVisit + "T00:00:00");
+                                                d.setFullYear(d.getFullYear() + 2);
+                                                setNewRecall((prev) => ({
+                                                    ...prev,
+                                                    recallWhen: "2y",
+                                                    recallDate: d.toISOString().split('T')[0],
+                                                }));
+                                            }} className="flex items-center gap-1">
+                                                <input type="radio" checked={newRecall.recallWhen === "2y"} readOnly />
                                                 plus 2 years
-                                            </label>
+                                            </button>
 
-                                            <label>
-                                                <input
-                                                    type="radio"
-                                                    checked={newRecall.recallWhen === "3y"}
-                                                    onClick={() => {
-                                                        if (!newRecall.lastVisit) return;
-                                                        if (newRecall.recallWhen === "3y") {
-                                                            setNewRecall((prev) => ({ ...prev, recallWhen: "", recallDate: "" }));
-                                                        } else {
-                                                            const d = new Date(newRecall.lastVisit);
-                                                            d.setFullYear(d.getFullYear() + 3);
-                                                            setNewRecall((prev) => ({
-                                                                ...prev,
-                                                                recallWhen: "3y",
-                                                                recallDate: formatMMDDYYYY(d),
-                                                            }));
-                                                        }
-                                                    }}
-                                                    readOnly
-                                                />{" "}
+                                            <button type="button" onClick={() => {
+                                                if (!newRecall.lastVisit) return;
+                                                const d = new Date(newRecall.lastVisit + "T00:00:00");
+                                                d.setFullYear(d.getFullYear() + 3);
+                                                setNewRecall((prev) => ({
+                                                    ...prev,
+                                                    recallWhen: "3y",
+                                                    recallDate: d.toISOString().split('T')[0],
+                                                }));
+                                            }} className="flex items-center gap-1">
+                                                <input type="radio" checked={newRecall.recallWhen === "3y"} readOnly />
                                                 plus 3 years
-                                            </label>
+                                            </button>
                                         </div>
                                     </div>
 
                                     {/* Recall Date */}
                                     <div>
-                                        <Label>Recall Date</Label>
+                                        <Label>Recall Date <span className="text-red-600">*</span></Label>
                                         <input
-                                            type="text"
-                                            placeholder="MM/DD/YYYY"
-                                            value={newRecall.recallDate || ""}   // ✅ show raw value (like From/To dates)
+                                            type="date"
+                                            className="order-date-input flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                                            value={newRecall.recallDate || ""}
                                             onChange={(e) => {
-                                                setNewRecall((prev) => ({
-                                                    ...prev,
-                                                    recallDate: e.target.value,   // store exactly what user typed
-                                                }));
+                                                setNewRecall((prev) => ({ ...prev, recallDate: e.target.value }));
                                             }}
-                                            onBlur={(e) => {
-                                                const val = e.target.value.trim();
-                                                if (!val) {
-                                                    // allow empty
-                                                    setNewRecall((prev) => ({ ...prev, recallDate: "" }));
-                                                    return;
-                                                }
-
-                                                // validate/normalize only on blur
-                                                const parts = val.split("/");
-                                                if (parts.length === 3) {
-                                                    const [mm, dd, yyyy] = parts;
-                                                    const iso = `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
-                                                    const d = new Date(iso);
-                                                    if (!isNaN(d.getTime())) {
-                                                        setNewRecall((prev) => ({ ...prev, recallDate: iso }));
-                                                    }
-                                                }
-                                            }}
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300
-               bg-white dark:bg-gray-800 dark:border-gray-600"
                                         />
                                     </div>
 
-
-                                    <div>
-                                        <Label>Recall Reason</Label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                            value={newRecall.reason || ""}
-                                            onChange={(e) => setNewRecall((prev) => ({ ...prev, reason: e.target.value }))}
-                                        />
-                                    </div>
 
                                     <div>
                                         <Label>Provider</Label>
@@ -1208,3 +1127,8 @@ export default function RecallPage() {
         </AdminLayout>
     );
 }
+
+
+
+
+
