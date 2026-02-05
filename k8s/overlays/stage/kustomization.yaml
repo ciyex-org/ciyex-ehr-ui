@@ -6,7 +6,7 @@ resources:
 
 replicas:
   - name: ciyex-ehr-ui
-    count: 0
+    count: 1
 
 images:
   - name: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui
