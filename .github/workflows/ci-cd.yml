@@ -597,7 +597,7 @@ jobs:
 
       - name: Login to Private Registry
         run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | docker login hinikubestageacr.azurecr.io -u ${{ secrets.ACR_USERNAME }} --password-stdin
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login hinikubestageacr.azurecr.io -u "${{ secrets.ACR_USERNAME }}" --password-stdin
 
       - name: Build and Push Docker Image
         run: |
