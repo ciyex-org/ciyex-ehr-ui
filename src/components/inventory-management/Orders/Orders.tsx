@@ -113,7 +113,13 @@ function Info({ label, value }: { label: string; value: React.ReactNode }) {
 
 /** Component */
 export default function Orders() {
-    const [orders, setOrders] = useState<Order[]>([]);
+    const [orders, setOrders] = useState<Order[]>(() => {
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem('orders');
+            return cached ? JSON.parse(cached) : [];
+        }
+        return [];
+    });
     const [status, setStatus] = useState<string>("All");
     const [selected, setSelected] = useState<Order | null>(null);
     const [editMode, setEditMode] = useState(false);
@@ -154,7 +160,7 @@ export default function Orders() {
                 );
                 const json = await res.json();
 
-                if (json.success) {
+                if (json.success && json.data) {
                     let items: Order[] = [];
 
                     if (json.data?.content && Array.isArray(json.data.content)) {
@@ -167,8 +173,8 @@ export default function Orders() {
                         setTotalItems(items.length);
                     }
 
-                    setOrders(
-                        items.map((o) => ({
+                    if (items.length > 0) {
+                        const mappedOrders = items.map((o) => ({
                             id: o.id,
                             orderNumber: o.orderNumber,
                             supplier: o.supplier,
@@ -178,8 +184,10 @@ export default function Orders() {
                             status: o.status,
                             stock: o.stock ?? 0,
                             amount: o.amount ?? 0,
-                        }))
-                    );
+                        }));
+                        setOrders(mappedOrders);
+                        localStorage.setItem('orders', JSON.stringify(mappedOrders));
+                    }
                 }
             } catch (err) {
                 console.error("Failed to load orders", err);
@@ -239,7 +247,9 @@ export default function Orders() {
             }
 
             const newOrder = json.data ?? { ...orderWithPO, id: Date.now() };
-            setOrders(prev => [...prev, newOrder]);
+            const updatedOrders = [...orders, newOrder];
+            setOrders(updatedOrders);
+            localStorage.setItem('orders', JSON.stringify(updatedOrders));
             setShowCreateModal(false);
             setCreateModalError(null);
 
@@ -258,9 +268,6 @@ export default function Orders() {
     async function updateOrder(id: number, updates: Partial<Order>) {
         setModalError(null);
         try {
-            console.log('Updating order:', id, updates);
-            
-            // Use the regular update endpoint for all status changes
             const res = await fetchWithAuth(
                 `${process.env.NEXT_PUBLIC_API_URL}/api/orders/${id}`,
                 {
@@ -270,15 +277,11 @@ export default function Orders() {
                 }
             );
 
-            console.log('Update response status:', res.status);
-
             let json: ApiResponse<Order> = {};
             try {
                 const text = await res.text();
-                console.log('Update response text:', text);
                 json = text ? JSON.parse(text) : {};
             } catch (parseErr) {
-                console.error('Parse error:', parseErr);
                 json = {};
             }
 
@@ -287,7 +290,9 @@ export default function Orders() {
             }
 
             const updated = json.data ?? { ...selected, ...updates };
-            setOrders(prev => prev.map(o => (o.id === id ? { ...o, ...updated } : o)));
+            const updatedOrders = orders.map(o => (o.id === id ? { ...o, ...updated } : o));
+            setOrders(updatedOrders);
+            localStorage.setItem('orders', JSON.stringify(updatedOrders));
             setSelected(null);
             setEditMode(false);
             setModalError(null);

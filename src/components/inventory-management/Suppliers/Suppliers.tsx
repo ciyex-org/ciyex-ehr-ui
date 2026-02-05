@@ -31,7 +31,13 @@ function TableShell({ children }: { children: React.ReactNode }) {
 }
 
 export default function Suppliers() {
-    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>(() => {
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem('suppliers');
+            return cached ? JSON.parse(cached) : [];
+        }
+        return [];
+    });
     const [addOpen, setAddOpen] = useState(false);
     const [selected, setSelected] = useState<Supplier | null>(null);
     const [editMode, setEditMode] = useState(false);
@@ -75,15 +81,16 @@ export default function Suppliers() {
                 );
                 const json = await res.json();
                 if (json.success && json.data) {
-                    setSuppliers(json.data.content || []);
+                    const data = json.data.content || [];
+                    if (data.length > 0) {
+                        setSuppliers(data);
+                        localStorage.setItem('suppliers', JSON.stringify(data));
+                    }
                     setTotalPages(json.data.totalPages);
                     setTotalItems(json.data.totalElements);
-                } else {
-                    setSuppliers([]);
                 }
             } catch (err) {
                 console.error("Failed to load suppliers", err);
-                setSuppliers([]);
             } finally {
                 setLoading(false);
             }
@@ -130,7 +137,9 @@ export default function Suppliers() {
             );
             const json = await res.json();
             if (json.success && json.data) {
-                setSuppliers((prev) => [json.data, ...prev]);
+                const updated = [json.data, ...suppliers];
+                setSuppliers(updated);
+                localStorage.setItem('suppliers', JSON.stringify(updated));
                 setAddOpen(false);
                 setAlertData({
                     variant: "success",
@@ -166,9 +175,9 @@ export default function Suppliers() {
             );
             const json = await res.json();
             if (json.success && json.data) {
-                setSuppliers((prev) =>
-                    prev.map((s) => (s.id === id ? { ...s, ...json.data } : s))
-                );
+                const updated = suppliers.map((s) => (s.id === id ? { ...s, ...json.data } : s));
+                setSuppliers(updated);
+                localStorage.setItem('suppliers', JSON.stringify(updated));
                 setSelected(null);
                 setEditMode(false);
                 setAlertData({
@@ -195,7 +204,9 @@ export default function Suppliers() {
             );
             const json = await res.json();
             if (json.success) {
-                setSuppliers((prev) => prev.filter((s) => s.id !== id));
+                const updated = suppliers.filter((s) => s.id !== id);
+                setSuppliers(updated);
+                localStorage.setItem('suppliers', JSON.stringify(updated));
                 setSelected(null);
                 setDeleteTarget(null);
                 setAlertData({
