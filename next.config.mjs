@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /* config options here */
+  output: 'standalone',
   typescript: {
     // skip type errors during production build
     // REMOVE this once the codebase is free of blocking TS errors.
