@@ -15,11 +15,9 @@ spec:
       labels:
         app: ciyex-ehr-ui
     spec:
-      imagePullSecrets:
-        - name: registry-creds
       containers:
         - name: ciyex-ehr-ui
-          image: hinikubestageacr.azurecr.io/ciyex-ehr-ui:latest
+          image: nginx:alpine
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
