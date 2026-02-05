@@ -9,8 +9,8 @@ replicas:
     count: 1
 
 images:
-  - name: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui
-    newTag: "0.0.1-rc"
+  - name: hinikubestageacr.azurecr.io/ciyex-ehr-ui
+    newTag: "1"
 
 patches:
   - target:
