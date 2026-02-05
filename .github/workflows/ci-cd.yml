@@ -29,7 +29,7 @@ concurrency:
 
 env:
   IMAGE_NAME: ciyex-ehr-ui
-  REGISTRY: hinikubestageacr.azurecr.io
+  REGISTRY: registry.apps-prod.us-east.in.hinisoft.com
 
 jobs:
   # Promote to RC - only from main
@@ -596,8 +596,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Private Registry
+        env:
+          REGISTRY_USER: dev
+          REGISTRY_PASS: ceffDD0qWy2gMHycsolsQBPi
         run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | docker login hinikubestageacr.azurecr.io -u "${{ secrets.ACR_USERNAME }}" --password-stdin
+          echo "$REGISTRY_PASS" | docker login registry.apps-prod.us-east.in.hinisoft.com -u "$REGISTRY_USER" --password-stdin
 
       - name: Build and Push Docker Image
         run: |
