@@ -597,8 +597,8 @@ jobs:
 
       - name: Login to Private Registry
         env:
-          REGISTRY_USER: dev
-          REGISTRY_PASS: ceffDD0qWy2gMHycsolsQBPi
+          REGISTRY_USER: admin
+          REGISTRY_PASS: eAYAx1jdocf#WeZuy3i@LJjiz*3FqzVU
         run: |
           echo "$REGISTRY_PASS" | docker login registry.apps-prod.us-east.in.hinisoft.com -u "$REGISTRY_USER" --password-stdin
 
