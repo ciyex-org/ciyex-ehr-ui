@@ -168,11 +168,9 @@ export default function Dashboard() {
                         const minStock = item.minStock || 0;
                         const percent = minStock > 0 ? (stock / minStock) * 100 : 100;
 
-                        if (stock === 0) {
+                        if (stock === 0 || (alertsEnabled && minStock > 0 && percent <= threshold)) {
                             criticalItems.push(item.name);
-                        } else if (alertsEnabled && percent <= threshold) {
-                            criticalItems.push(item.name);
-                        } else if (alertsEnabled && stock <= minStock) {
+                        } else if (alertsEnabled && minStock > 0 && stock <= minStock) {
                             lowItems.push(item.name);
                         }
                     });

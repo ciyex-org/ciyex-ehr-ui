@@ -176,16 +176,28 @@ export default function Inventory() {
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetchWithAuth(`${API_URL}/api/list-options/list/inventorytype`);
-                const json = await res.json();
-                if (res.ok && Array.isArray(json)) {
-                    setTypeOptions(
-                        (json as ListOption[]).map(opt => ({
-                            id: String(opt.id),
-                            label: opt.title   // use title instead of value/name
-                        }))
-                    );
+                const [categoriesRes, inventoryRes] = await Promise.all([
+                    fetchWithAuth(`${API_URL}/api/list-options/list/inventorytype`),
+                    fetchWithAuth(`${API_URL}/api/inventory/list`)
+                ]);
+                
+                const categoriesJson = await categoriesRes.json();
+                const inventoryJson = await inventoryRes.json();
+                
+                let cats: string[] = [];
+                
+                // Try to get categories from API
+                if (categoriesRes.ok && Array.isArray(categoriesJson)) {
+                    cats = categoriesJson.map((c: any) => c.title || c.name || c.value).filter(Boolean);
                 }
+                
+                // Fallback: extract unique categories from inventory
+                if (cats.length === 0 && inventoryJson?.success && Array.isArray(inventoryJson.data)) {
+                    const uniqueCats = [...new Set(inventoryJson.data.map((item: any) => item.category).filter(Boolean))];
+                    cats = uniqueCats as string[];
+                }
+                
+                setTypeOptions(cats.map((cat, idx) => ({ id: String(idx), label: cat })));
             } catch (err) {
                 console.error("Failed to load type options:", err);
             }
@@ -798,7 +810,7 @@ export default function Inventory() {
                                             <Label>Category</Label>
                                             <select
                                                 name="category"
-                                                defaultValue={typeOptions.length > 0 ? typeOptions[0].label : ""}
+                                                defaultValue={selected.category}
                                                 className="h-10 w-full rounded-md border px-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                                                 required
                                             >
@@ -1075,7 +1087,7 @@ export default function Inventory() {
                                     <Label>Category <span className="text-red-500">*</span></Label>
                                     <select
                                         name="category"
-                                        defaultValue={typeOptions.length > 0 ? typeOptions[0].label : ""}
+                                        defaultValue=""
                                         className={`h-10 w-full rounded-md border px-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 ${
                                             validationErrors.category ? 'border-red-500' : ''
                                         }`}
@@ -1085,6 +1097,7 @@ export default function Inventory() {
                                             }
                                         }}
                                     >
+                                        <option value="" disabled>Select category</option>
                                         {typeOptions.map(opt => (
                                             <option key={opt.id} value={opt.label}>
                                                 {opt.label}
