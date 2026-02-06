@@ -16,7 +16,7 @@ spec:
             - name: NEXT_PUBLIC_ENV
               value: "staging"
             - name: NEXT_PUBLIC_API_URL
-              value: "https://ciyex-api.apps-stage.us-east.in.hinisoft.com"
+              value: "https://api-stage.ciyex.org"
             - name: NEXT_PUBLIC_KEYCLOAK_URL
               value: "https://stage.aran.me"
             - name: NEXT_PUBLIC_KEYCLOAK_REALM

@@ -153,6 +153,10 @@ mock-data/
 *.xlsx
 *.xls
 
+# Environment files
+.env
+.env.*
+
 # Backup files
 *.bak
 *.backup

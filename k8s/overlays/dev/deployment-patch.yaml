@@ -16,9 +16,9 @@ spec:
             - name: NEXT_PUBLIC_ENV
               value: "dev"
             - name: NEXT_PUBLIC_API_URL
-              value: "https://ciyex-api.apps-dev.in.hinisoft.com"
+              value: "https://api-dev.ciyex.org"
             - name: NEXT_PUBLIC_KEYCLOAK_URL
-              value: "https://aran.apps-dev.in.hinisoft.com"
+              value: "https://dev.aran.me"
             - name: NEXT_PUBLIC_KEYCLOAK_REALM
               value: "master"
             - name: NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
