@@ -7,18 +7,3 @@ spec:
     spec:
       imagePullSecrets:
         - name: regcred
-      containers:
-        - name: ciyex-ehr-ui
-          env:
-            - name: NODE_ENV
-              value: "staging"
-            - name: NEXT_PUBLIC_ENV
-              value: "staging"
-            - name: NEXT_PUBLIC_API_URL
-              value: "https://api-stage.ciyex.org"
-            - name: NEXT_PUBLIC_KEYCLOAK_URL
-              value: "https://stage.aran.me"
-            - name: NEXT_PUBLIC_KEYCLOAK_REALM
-              value: "master"
-            - name: NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
-              value: "ciyex-app"

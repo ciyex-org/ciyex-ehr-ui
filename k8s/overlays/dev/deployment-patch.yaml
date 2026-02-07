@@ -7,18 +7,3 @@ spec:
     spec:
       imagePullSecrets:
         - name: regcred
-      containers:
-        - name: ciyex-ehr-ui
-          env:
-            - name: NODE_ENV
-              value: "development"
-            - name: NEXT_PUBLIC_ENV
-              value: "dev"
-            - name: NEXT_PUBLIC_API_URL
-              value: "https://api-dev.ciyex.org"
-            - name: NEXT_PUBLIC_KEYCLOAK_URL
-              value: "https://dev.aran.me"
-            - name: NEXT_PUBLIC_KEYCLOAK_REALM
-              value: "master"
-            - name: NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
-              value: "ciyex-app"

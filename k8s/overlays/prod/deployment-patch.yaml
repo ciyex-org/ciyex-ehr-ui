@@ -9,19 +9,6 @@ spec:
         - name: regcred
       containers:
         - name: ciyex-ehr-ui
-          env:
-            - name: NODE_ENV
-              value: "production"
-            - name: NEXT_PUBLIC_ENV
-              value: "production"
-            - name: NEXT_PUBLIC_API_URL
-              value: "https://api.ciyex.org"
-            - name: NEXT_PUBLIC_KEYCLOAK_URL
-              value: "https://aran.me"
-            - name: NEXT_PUBLIC_KEYCLOAK_REALM
-              value: "master"
-            - name: NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
-              value: "ciyex-app"
           resources:
             requests:
               memory: "512Mi"
