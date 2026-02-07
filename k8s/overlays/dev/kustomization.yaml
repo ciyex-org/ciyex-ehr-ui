@@ -6,7 +6,7 @@ resources:
 
 images:
   - name: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui
-    newTag: "0.0.2-alpha.15"
+    newTag: "0.0.2-alpha.16"
 
 patchesStrategicMerge:
   - deployment-patch.yaml
