@@ -8,6 +8,9 @@ images:
   - name: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui
     newTag: "0.0.2-alpha.14"
 
+patchesStrategicMerge:
+  - deployment-patch.yaml
+
 patches:
   - target:
       kind: HTTPRoute

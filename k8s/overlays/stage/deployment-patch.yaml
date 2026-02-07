@@ -9,7 +9,6 @@ spec:
         - name: regcred
       containers:
         - name: ciyex-ehr-ui
-          image: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui:0.0.1-rc.1
           env:
             - name: NODE_ENV
               value: "staging"
