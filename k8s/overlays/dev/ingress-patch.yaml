@@ -9,10 +9,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - ciyex.apps-dev.in.hinisoft.com
+        - app-dev.ciyex.org
       secretName: ciyex-ehr-ui-dev-tls
   rules:
-    - host: ciyex.apps-dev.in.hinisoft.com
+    - host: app-dev.ciyex.org
       http:
         paths:
           - pathType: Prefix

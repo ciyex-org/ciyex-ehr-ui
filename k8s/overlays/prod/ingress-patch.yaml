@@ -5,10 +5,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - app.ciyex.com
+        - app.ciyex.org
       secretName: ciyex-ehr-ui-prod-tls
   rules:
-    - host: app.ciyex.com
+    - host: app.ciyex.org
       http:
         paths:
           - pathType: Prefix

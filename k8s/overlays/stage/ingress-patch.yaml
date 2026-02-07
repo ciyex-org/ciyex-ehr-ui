@@ -5,10 +5,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - stg.ciyex.com
+        - app-stage.ciyex.org
       secretName: ciyex-ehr-ui-stage-tls
   rules:
-    - host: stg.ciyex.com
+    - host: app-stage.ciyex.org
       http:
         paths:
           - pathType: Prefix
