@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -37,7 +38,7 @@ export default function TelehealthPage() {
         const roomName = `apt${appointmentId}`;
         const identity = `provider-${Date.now()}`;
 
-        const joinResponse = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/telehealth/jitsi/join`, {
+        const joinResponse = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/telehealth/jitsi/join`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

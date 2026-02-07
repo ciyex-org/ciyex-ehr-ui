@@ -3,6 +3,7 @@ import './globals.css';
 
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { EnvProvider } from '@/context/EnvContext';
 import {Metadata} from "next";
 import SessionManager from '@/layout/SessionManager';
 
@@ -36,12 +37,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${outfit.className} dark:bg-gray-900`}>
-        <ThemeProvider>
-          <SidebarProvider>
-            <SessionManager />
-            {children}
-          </SidebarProvider>
-        </ThemeProvider>
+        <EnvProvider>
+          <ThemeProvider>
+            <SidebarProvider>
+              <SessionManager />
+              {children}
+            </SidebarProvider>
+          </ThemeProvider>
+        </EnvProvider>
       </body>
     </html>
   );

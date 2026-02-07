@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, {useState} from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import Button from "@/components/ui/button/Button";
@@ -31,7 +32,7 @@ export default function CreateOrderForm() {
     });
 
     const [alert, setAlert] = useState<{variant: "success"|"error"|"warning"|"info", title:string, message:string} | null>(null);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
 
     const onChange = (k: keyof CreateOrderPayload, v: any) => setForm(s => ({...s, [k]: v}));
 

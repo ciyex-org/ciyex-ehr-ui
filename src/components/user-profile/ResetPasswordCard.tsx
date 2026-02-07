@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
@@ -45,7 +46,7 @@ export default function ResetPasswordCard() {
 
         try {
             const response = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/users/change-password`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/users/change-password`,
                 {
                     method: "POST",
                     headers: {

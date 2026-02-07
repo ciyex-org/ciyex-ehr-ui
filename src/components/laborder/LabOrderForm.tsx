@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useRef } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { useRouter } from "next/navigation";
@@ -404,11 +405,11 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   async function searchOrders(q: string): Promise<LabOrder[]> {
     try {
-      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
       if (!base) return [];
       const url = `${base}/api/lab-order/search?q=${encodeURIComponent(q)}`;
       const org = (typeof window !== 'undefined' ? (localStorage.getItem('orgId') || '') : '')
-        || (process.env.NEXT_PUBLIC_ORG_ID || '1');
+        || (getEnv("NEXT_PUBLIC_ORG_ID") || '1');
       const res = await fetchWithAuth(url, { method: "GET", headers: { orgId: org, 'X-Org-Id': org } });
       const json = await res.json().catch(() => null);
       if (json?.success && Array.isArray(json.data)) return json.data as LabOrder[];
@@ -421,7 +422,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   async function fetchAllPatients(): Promise<LabOrder[]> {
     try {
-      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
       if (!base) return [];
       const url = `${base}/api/patients?page=0&size=1000&sort=id,asc`;
       const res = await fetchWithAuth(url, { method: "GET" });
@@ -472,7 +473,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   function makePickerHeaders() {
     const h: Record<string, string> = { Accept: "application/json", "Content-Type": "application/json" };
-    const org = (typeof window !== "undefined" ? (localStorage.getItem("orgId") || "") : "").trim() || (process.env.NEXT_PUBLIC_ORG_ID || "").trim() || "1";
+    const org = (typeof window !== "undefined" ? (localStorage.getItem("orgId") || "") : "").trim() || (getEnv("NEXT_PUBLIC_ORG_ID") || "").trim() || "1";
     if (org) h["orgId"] = org;
     const facilityId = (typeof window !== "undefined" ? (localStorage.getItem("facilityId") || "") : "").trim();
     const role = (typeof window !== "undefined" ? (localStorage.getItem("role") || "") : "").trim();
@@ -484,7 +485,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
   async function loadCodesForPicker(q = "", codeType = "ICD10") {
     try {
       setCodesLoading(true);
-      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
       if (!base) { setCodesList([]); return; }
 
       const primaryBase = `${base}/api/global_codes`;
@@ -715,9 +716,9 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
       console.log('Saving lab order with payload:', payload);
 
-      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
       const orgHeader = (typeof window !== 'undefined' ? (localStorage.getItem('orgId') || '') : '')
-        || (process.env.NEXT_PUBLIC_ORG_ID || '1');
+        || (getEnv("NEXT_PUBLIC_ORG_ID") || '1');
       
       const url = `${base}/api/lab-order/${pid}`;
       console.log('POST request to:', url);

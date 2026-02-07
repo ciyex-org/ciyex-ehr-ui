@@ -5,6 +5,7 @@
 
 
 "use client";
+import { getEnv } from "@/utils/env";
 import { useEffect, useMemo, useRef, useState,useCallback } from "react";
 import Image from "next/image";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
@@ -469,7 +470,7 @@ useEffect(() => {
    
 const downloadPdf = useCallback(async () => {
     try {
-        const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+        const base = getEnv("NEXT_PUBLIC_API_URL") ?? "http://localhost:8080";
         const url = `${base}/api/encounters/${patientId}/${encounterId}/summary/print`;
         
         const headers = new Headers();

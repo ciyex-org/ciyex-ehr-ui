@@ -13,11 +13,12 @@
  * Last Updated: October 22, 2025
  */
 
+import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from './fetchWithAuth';
 
 // Zuub API Configuration
 const ZUUB_API_BASE_URL = "https://api.zuub.com/v1"; // Default API URL
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
 
 /**
  * Get Zuub credentials from org-configs

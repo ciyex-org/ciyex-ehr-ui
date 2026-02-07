@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import VideoCallButton from "@/components/telehealth/VideoCallButton";
@@ -65,7 +66,7 @@ export const AppointmentsFlat: React.FC<{
             setLoading(true);
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/patient/${patientId}?page=0&size=10`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/patient/${patientId}?page=0&size=10`
                 );
                 const json = await res.json();
                 setAppointments(json.data?.content || []);
@@ -79,7 +80,7 @@ export const AppointmentsFlat: React.FC<{
         const fetchProviders = async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/providers?active=true`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?active=true`
                 );
                 const json = await res.json();
                 setProviders(json.data || []);
@@ -108,7 +109,7 @@ export const AppointmentsFlat: React.FC<{
                 status: "Scheduled",
             };
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/appointments`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -399,7 +400,7 @@ export const VitalsFlat: React.FC<{ patientId: number }> = ({ patientId }) => {
             
             try {
                 setLoading(true);
-                const encountersRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/${patientId}/encounters`);
+                const encountersRes = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/${patientId}/encounters`);
                 
                 if (!encountersRes.ok) {
                     console.error('Failed to fetch encounters:', encountersRes.status);
@@ -422,7 +423,7 @@ export const VitalsFlat: React.FC<{ patientId: number }> = ({ patientId }) => {
                 
                 const latestEncounterId = latestEncounter.id;
                 
-                const vitalsRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/vitals/${patientId}/${latestEncounterId}`);
+                const vitalsRes = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/vitals/${patientId}/${latestEncounterId}`);
                 
                 if (!vitalsRes.ok) {
                     console.error('Failed to fetch vitals:', vitalsRes.status);
@@ -441,7 +442,7 @@ export const VitalsFlat: React.FC<{ patientId: number }> = ({ patientId }) => {
                     
                     setVitals(latestVital);
                 } else {
-                    const allVitalsRes = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/vitals/patient/${patientId}`);
+                    const allVitalsRes = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/vitals/patient/${patientId}`);
                     
                     if (allVitalsRes.ok) {
                         const allVitalsJson = await allVitalsRes.json();

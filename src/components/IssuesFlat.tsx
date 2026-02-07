@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -64,15 +65,15 @@ export default function IssuesFlat({ patientId, orgId }: Props) {
     const pathname = usePathname();
     const search = useSearchParams();
 
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "");
+    const apiBase = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
     const resolvedOrgId = useMemo(() => {
         if (orgId != null) return orgId;
         if (typeof window !== "undefined") {
             const s = window.localStorage.getItem("orgId");
             if (s && !Number.isNaN(Number(s))) return Number(s);
         }
-        if (process.env.NEXT_PUBLIC_ORG_ID && !Number.isNaN(Number(process.env.NEXT_PUBLIC_ORG_ID))) {
-            return Number(process.env.NEXT_PUBLIC_ORG_ID);
+        if (getEnv("NEXT_PUBLIC_ORG_ID") && !Number.isNaN(Number(getEnv("NEXT_PUBLIC_ORG_ID")))) {
+            return Number(getEnv("NEXT_PUBLIC_ORG_ID"));
         }
         return 1;
     }, [orgId]);

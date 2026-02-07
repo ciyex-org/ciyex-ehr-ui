@@ -1,6 +1,7 @@
 // Remove static UI shell export. The backend-connected FacilitiesPage below is now the main export.
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useState, useCallback, useEffect } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { PlusIcon, PencilIcon, TrashBinIcon } from "@/icons";
@@ -1137,7 +1138,7 @@ export default function FacilitiesPage() {
                             <div className="space-y-2 text-sm text-gray-600 mb-4">
                                 <p>Please check:</p>
                                 <ul className="list-disc list-inside">
-                                    <li>Backend server is running at {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}</li>
+                                    <li>Backend server is running at {getEnv("NEXT_PUBLIC_API_URL") || 'http://localhost:8080'}</li>
                                     <li>You are logged in with valid credentials</li>
                                     <li>Your network connection is stable</li>
                                 </ul>

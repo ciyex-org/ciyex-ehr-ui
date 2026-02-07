@@ -1,3 +1,4 @@
+import { getEnv } from "@/utils/env";
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -33,7 +34,7 @@ export function getOrgId(): number {
     const n = Number(stored);
     if (Number.isFinite(n) && n > 0) return n;
   }
-  const envId = process.env.NEXT_PUBLIC_ORG_ID;
+  const envId = getEnv("NEXT_PUBLIC_ORG_ID");
   if (envId) {
     const n = Number(envId);
     if (Number.isFinite(n) && n > 0) return n;

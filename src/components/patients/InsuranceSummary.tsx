@@ -1,6 +1,7 @@
 // InsuranceSummary.tsx - Updated
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -45,7 +46,7 @@ export default function InsuranceSummary({
                 }
 
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/coverages`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/coverages`,
                     { headers }
                 );
 

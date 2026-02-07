@@ -1,12 +1,13 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { createPortal } from "react-dom";
 
 /* ---------- Config ---------- */
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const API_BASE = getEnv("NEXT_PUBLIC_API_URL") ?? "http://localhost:8080";
 
 /* ---------- Types ---------- */
 type Row = {

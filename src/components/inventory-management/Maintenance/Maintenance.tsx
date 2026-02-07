@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import Button from "@/components/ui/button/Button";
@@ -115,7 +116,7 @@ export default function Maintenance() {
             setLoading(true);
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/maintenances?page=${
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/maintenances?page=${
                         currentPage - 1
                     }&size=${pageSize}`
                 );
@@ -190,7 +191,7 @@ export default function Maintenance() {
             if (form.id) {
                 // UPDATE
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/maintenances/${form.id}`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/maintenances/${form.id}`,
                     {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -215,7 +216,7 @@ export default function Maintenance() {
                 // CREATE
                 const payload = { ...form, status: "Open" };
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/maintenances`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/maintenances`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -267,7 +268,7 @@ export default function Maintenance() {
 
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/maintenances/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/maintenances/${id}`,
                 { method: "DELETE" }
             );
             const data = await res.json();
@@ -303,7 +304,7 @@ export default function Maintenance() {
             const updatedTask: MaintenanceTask = { ...task, status: next as MaintenanceTask["status"] };
 
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/maintenances/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/maintenances/${id}`,
                 {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },

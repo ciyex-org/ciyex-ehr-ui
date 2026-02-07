@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useMemo, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { verifyInsuranceEligibility } from "@/utils/sikkaApi";
@@ -84,7 +85,7 @@ export default function InsuranceFlat({
                                           setViewMode,
                                           setHighlightedTab,
                                       }: Props) {
-    const API = process.env.NEXT_PUBLIC_API_URL!;
+    const API = getEnv("NEXT_PUBLIC_API_URL")!;
     const patientId = Number(patient.id);
 
     // ✅ Resolve orgId same way across app
@@ -94,7 +95,7 @@ export default function InsuranceFlat({
             const fromLS = Number(localStorage.getItem("orgId"));
             if (Number.isFinite(fromLS) && fromLS > 0) return fromLS;
         }
-        return Number(process.env.NEXT_PUBLIC_ORG_ID) || 1;
+        return Number(getEnv("NEXT_PUBLIC_ORG_ID")) || 1;
     }, [orgId]);
 
     const commonHeaders = useMemo(

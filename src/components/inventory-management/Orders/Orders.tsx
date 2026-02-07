@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 
 // Add CSS to hide number input spinners
@@ -154,7 +155,7 @@ export default function Orders() {
             setLoading(true);
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/orders?page=${
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/orders?page=${
                         currentPage - 1
                     }&size=${pageSize}`
                 );
@@ -226,7 +227,7 @@ export default function Orders() {
             };
 
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/orders`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/orders`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -269,7 +270,7 @@ export default function Orders() {
         setModalError(null);
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/orders/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/orders/${id}`,
                 {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },

@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -30,7 +31,7 @@ export default function PatientDeletionFlow({
     
     setIsDeleting(true);
     try {
-      await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}`, {
+      await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patientId}`, {
         method: "DELETE",
       });
       onSuccess();

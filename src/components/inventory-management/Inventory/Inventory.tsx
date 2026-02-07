@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, {useEffect, useMemo, useState} from "react";
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/form/Label";
@@ -11,7 +12,7 @@ import Alert from "@/components/ui/alert/Alert";
 
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_URL = getEnv("NEXT_PUBLIC_API_URL")!;
 
 
 /** Types */
@@ -135,7 +136,7 @@ export default function Inventory() {
         (async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/inventory-settings/${orgId}`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/inventory-settings/${orgId}`
                 );
                 const text = await res.text();
                 if (!text) return; // backend returned no body

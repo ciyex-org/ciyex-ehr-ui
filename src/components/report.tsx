@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useState, useEffect } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -9,7 +10,7 @@ export interface ReportConfig {
   filters?: string[];
 }
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080").replace(/\/$/, "");
+const API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
 
 export const generateReport = async (
   type: string,

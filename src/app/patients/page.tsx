@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -103,7 +104,7 @@ export default function PatientListPage() {
             setLoading(true);
             setError(null);
             try {
-                const base = `${process.env.NEXT_PUBLIC_API_URL}/api/patients`;
+                const base = `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients`;
                 const params = new URLSearchParams();
                 params.set("page", String(Math.max(0, page - 1)));
                 params.set("size", String(size));
@@ -153,7 +154,7 @@ export default function PatientListPage() {
     const handleSaveEdit = async (updatedPatient: Patient) => {
         if (!updatedPatient) return;
         await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${updatedPatient.id}`,
+            `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${updatedPatient.id}`,
             {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },

@@ -1,6 +1,7 @@
 
 'use client';
 
+import { getEnv } from "@/utils/env";
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -477,7 +478,7 @@ const Calendar: React.FC = () => {
     // Loading state for save button
     const [isSaving, setIsSaving] = useState<boolean>(false);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL as string;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
 
     // Header filters (existing)
     const [providers, setProviders] = useState<{ value: string; label: string }[]>([]);

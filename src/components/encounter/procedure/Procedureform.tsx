@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -69,7 +70,7 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
         setLoadingCodes(true);
         try {
             const orgId = localStorage.getItem("orgId") || "";
-            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+            const apiUrl = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
             const url = `${apiUrl}/api/global_codes?codeType=${type}`;
             
             const headers: Record<string, string> = {
@@ -111,7 +112,7 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
         setLoadingProviders(true);
         try {
             const orgIds = JSON.parse(localStorage.getItem("orgIds") || "[]");
-            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+            const apiUrl = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
             const res = await fetchWithAuth(
                 `${apiUrl}/api/providers?orgIds=${orgIds.join(",")}`,
                 {

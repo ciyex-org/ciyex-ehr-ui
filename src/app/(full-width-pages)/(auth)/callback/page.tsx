@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getAccessibleTenants, setSelectedTenant } from "@/utils/tenantService";
@@ -7,7 +8,7 @@ function AuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
 
     useEffect(() => {
         const handleCallback = async () => {

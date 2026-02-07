@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -52,7 +53,7 @@ function SubscriptionForm({
         async function loadServices() {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/services`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/services`
                 );
                 const json = await res.json();
                 if (json.success && Array.isArray(json.data)) {
@@ -70,8 +71,8 @@ function SubscriptionForm({
         try {
             const url =
                 mode === "add"
-                    ? `${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions`
-                    : `${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions/${subscription?.id}`;
+                    ? `${getEnv("NEXT_PUBLIC_API_URL")}/api/subscriptions`
+                    : `${getEnv("NEXT_PUBLIC_API_URL")}/api/subscriptions/${subscription?.id}`;
 
             // normalize date to ISO datetime
             function normalizeStartDateForApi(s: string) {
@@ -245,7 +246,7 @@ export default function SubscriptionsPage() {
     const loadSubscriptions = async () => {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/subscriptions`
             );
             const json = await res.json();
             if (json.success) setSubscriptions(json.data);
@@ -312,7 +313,7 @@ export default function SubscriptionsPage() {
                                         className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
                                         onClick={async () => {
                                             await fetchWithAuth(
-                                                `${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions/${sub.id}`,
+                                                `${getEnv("NEXT_PUBLIC_API_URL")}/api/subscriptions/${sub.id}`,
                                                 { method: "DELETE" }
                                             );
                                             loadSubscriptions();

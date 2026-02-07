@@ -5,6 +5,7 @@
 
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
@@ -88,7 +89,7 @@ const fmt = (d?: string) => (d ? new Date(d).toLocaleDateString() : "");
 
   // base URL memoized
   const base = useMemo(
-    () => `${process.env.NEXT_PUBLIC_API_URL}/api/${patientId}/encounters`,
+    () => `${getEnv("NEXT_PUBLIC_API_URL")}/api/${patientId}/encounters`,
     [patientId]
   );
 
@@ -170,7 +171,7 @@ const fmt = (d?: string) => (d ? new Date(d).toLocaleDateString() : "");
 //     try {
 //       // 👉 fetch the patient for name & DOB
 //       const pres = await fetchWithAuth(
-//         `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}`,
+//         `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patientId}`,
 //         { headers: withOrgId() }
 //       );
 //       const pbody = (await safeJson(pres)) as UnknownJson | ApiResponse<UnknownJson>;
@@ -203,7 +204,7 @@ useEffect(() => {
     try {
       // 👉 fetch the patient for name & DOB
       const pres = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}`,
+        `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patientId}`,
         { headers: withOrgId() }
       );
       const pbody = (await safeJson(pres)) as UnknownJson | ApiResponse<UnknownJson>;
@@ -417,7 +418,7 @@ useEffect(() => {
   // ---- Download Summary as PDF from Backend ----
   const downloadSummaryPdf = useCallback(async () => {
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+      const base = getEnv("NEXT_PUBLIC_API_URL") ?? "http://localhost:8080";
       const url = `${base}/api/encounters/${patientId}/${encounterId}/summary/print`;
       
       const headers = new Headers();

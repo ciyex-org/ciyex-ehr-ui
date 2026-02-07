@@ -1,4 +1,5 @@
 import { jwtDecode } from "jwt-decode";
+import { getEnv } from "@/utils/env";
 
 interface JWTPayload {
   organization?: string;
@@ -73,7 +74,7 @@ export async function fetchWithAuth(
     headers.set("Content-Type", "application/json");
   }
 
-  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  const base = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
   const url = typeof input === 'string' && input.startsWith('/') ? `${base}${input}` : input;
 
   const res = await fetch(url, {

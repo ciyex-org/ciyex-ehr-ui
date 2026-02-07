@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useState, useEffect } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import PatientDeletionFlow from "@/components/patients/PatientDeletionFlow";
@@ -65,7 +66,7 @@ export default function DemographicsFlat({
         const fetchProviders = async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/providers`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`
                 );
                 const json = await res.json();
                 const active: Provider[] = (json.data || [])
@@ -84,7 +85,7 @@ export default function DemographicsFlat({
         const fetchPatients = async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients`
                 );
                 const json = await res.json();
                 setPatients(json.data?.content || []);
@@ -104,7 +105,7 @@ export default function DemographicsFlat({
                 console.log('Fetching relationships for patient:', patient.id);
                 
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patient.id}/relationships`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patient.id}/relationships`
                 );
                 console.log('Response status:', res.status);
                 

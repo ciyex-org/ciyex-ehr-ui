@@ -1,5 +1,6 @@
 'use client';
 
+import { getEnv } from "@/utils/env";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import AdminLayout from '@/app/(admin)/layout';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
@@ -24,7 +25,7 @@ interface Encounter {
 
 const fetchPatientName = async (id: number): Promise<string> => {
   try {
-    const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${id}`);
+    const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
     if (!res.ok) return `Patient ${id}`;
     const data = await res.json();
     return `${data.data.firstName} ${data.data.lastName}`;
@@ -58,7 +59,7 @@ export default function EncounterReportPage() {
   useEffect(() => {
     const fetchProviders = async () => {
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/providers`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
         if (!res.ok) throw new Error('Failed to fetch providers');
         const data = await res.json();
         const list: Provider[] = data.data.map((p: { id: number; identification: { firstName: string; lastName: string } }) => ({
@@ -111,7 +112,7 @@ export default function EncounterReportPage() {
       });
       // Load all data for client-side filtering
 
-      const response = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/encounters/report/encounterAll?${params}`);
+      const response = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/encounters/report/encounterAll?${params}`);
       if (!response.ok) throw new Error('Failed to fetch encounters');
       const result = await response.json();
       

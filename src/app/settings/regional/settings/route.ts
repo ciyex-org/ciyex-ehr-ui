@@ -1,6 +1,7 @@
+import { getEnv } from "@/utils/env";
 import { NextRequest, NextResponse } from "next/server";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE_URL = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
 
 // Helper function to get auth headers from the request
 function getAuthHeaders(req?: NextRequest): Record<string, string> {

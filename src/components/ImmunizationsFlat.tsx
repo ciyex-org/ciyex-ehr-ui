@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -71,10 +72,10 @@ function resolveOrgId(explicit?: number): number {
         if (ls && !Number.isNaN(Number(ls))) return Number(ls);
     }
     if (
-        process.env.NEXT_PUBLIC_ORG_ID &&
-        !Number.isNaN(Number(process.env.NEXT_PUBLIC_ORG_ID))
+        getEnv("NEXT_PUBLIC_ORG_ID") &&
+        !Number.isNaN(Number(getEnv("NEXT_PUBLIC_ORG_ID")))
     ) {
-        return Number(process.env.NEXT_PUBLIC_ORG_ID);
+        return Number(getEnv("NEXT_PUBLIC_ORG_ID"));
     }
     return 1;
 }
@@ -119,7 +120,7 @@ export default function ImmunizationsFlat({ patientId, orgId }: Props) {
     const [showErrorPopup, setShowErrorPopup] = useState(false);
 
     // Helpers
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    const apiBase = getEnv("NEXT_PUBLIC_API_URL") || "";
     const formatDT = (s?: string) => (s ? new Date(s).toLocaleString() : "—");
 
     // Fetch list

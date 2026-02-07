@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -61,7 +62,7 @@ export default function PaymentsFlat({ patientId }: PaymentsFlatProps) {
         setLoading(true);
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/credit-cards/patient/${patientId}`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/credit-cards/patient/${patientId}`
             );
             const json = await res.json();
             // Handle response format: { success: true, data: [...], message: "" }
@@ -106,8 +107,8 @@ export default function PaymentsFlat({ patientId }: PaymentsFlatProps) {
             };
 
             const url = editingCard
-                ? `${process.env.NEXT_PUBLIC_API_URL}/api/credit-cards/${editingCard.id}`
-                : `${process.env.NEXT_PUBLIC_API_URL}/api/credit-cards`;
+                ? `${getEnv("NEXT_PUBLIC_API_URL")}/api/credit-cards/${editingCard.id}`
+                : `${getEnv("NEXT_PUBLIC_API_URL")}/api/credit-cards`;
 
             const method = editingCard ? "PUT" : "POST";
 
@@ -136,7 +137,7 @@ export default function PaymentsFlat({ patientId }: PaymentsFlatProps) {
 
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/credit-cards/${cardId}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/credit-cards/${cardId}`,
                 { method: "DELETE" }
             );
 
@@ -156,7 +157,7 @@ export default function PaymentsFlat({ patientId }: PaymentsFlatProps) {
     const handleSetDefault = async (cardId: number) => {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/credit-cards/${cardId}/patient/${patientId}/set-default`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/credit-cards/${cardId}/patient/${patientId}/set-default`,
                 { method: "PUT" }
             );
 
@@ -178,7 +179,7 @@ export default function PaymentsFlat({ patientId }: PaymentsFlatProps) {
 
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/credit-cards/${cardId}/deactivate`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/credit-cards/${cardId}/deactivate`,
                 { method: "PUT" }
             );
 

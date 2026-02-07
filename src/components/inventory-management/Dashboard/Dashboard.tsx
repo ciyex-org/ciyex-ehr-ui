@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -94,7 +95,7 @@ function MetricCard({
     );
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_URL = getEnv("NEXT_PUBLIC_API_URL")!;
 
 /** Component */
 export default function Dashboard() {

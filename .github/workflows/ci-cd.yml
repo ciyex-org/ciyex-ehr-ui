@@ -603,14 +603,7 @@ jobs:
         run: |
           VERSION="${{ needs.version.outputs.version }}"
           ENV="${{ needs.version.outputs.environment }}"
-          docker build \
-            --build-arg NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }} \
-            --build-arg NEXT_PUBLIC_ENV=${{ vars.NEXT_PUBLIC_ENV }} \
-            --build-arg NEXT_PUBLIC_KEYCLOAK_ENABLED=${{ vars.NEXT_PUBLIC_KEYCLOAK_ENABLED }} \
-            --build-arg NEXT_PUBLIC_KEYCLOAK_URL=${{ vars.NEXT_PUBLIC_KEYCLOAK_URL }} \
-            --build-arg NEXT_PUBLIC_KEYCLOAK_REALM=${{ vars.NEXT_PUBLIC_KEYCLOAK_REALM }} \
-            --build-arg NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=${{ vars.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID }} \
-            -t $REGISTRY/$IMAGE_NAME:$VERSION -t $REGISTRY/$IMAGE_NAME:$ENV .
+          docker build -t $REGISTRY/$IMAGE_NAME:$VERSION -t $REGISTRY/$IMAGE_NAME:$ENV .
           docker push $REGISTRY/$IMAGE_NAME:$VERSION
           docker push $REGISTRY/$IMAGE_NAME:$ENV
           echo "✅ Pushed: $REGISTRY/$IMAGE_NAME:$VERSION"

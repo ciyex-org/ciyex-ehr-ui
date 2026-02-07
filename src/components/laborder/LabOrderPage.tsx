@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -113,7 +114,7 @@ function resolveOrgId(): string {
     const fromLS = window.localStorage.getItem("orgId");
     if (fromLS && fromLS.trim()) return fromLS.trim();
   }
-  if (process.env.NEXT_PUBLIC_ORG_ID) return String(process.env.NEXT_PUBLIC_ORG_ID);
+  if (getEnv("NEXT_PUBLIC_ORG_ID")) return String(getEnv("NEXT_PUBLIC_ORG_ID"));
   return "1";
 }
 
@@ -255,7 +256,7 @@ export default function LabOrdersPage() {
     
     Promise.all(missingPatients.map(async (o) => {
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${o.patientId}`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${o.patientId}`);
         const json = await res.json();
         if (json?.success && json?.data) {
           return { id: o.patientId, firstName: json.data.firstName, lastName: json.data.lastName };
@@ -312,7 +313,7 @@ export default function LabOrdersPage() {
   async function fetchOrdersForPatient(patientId: number): Promise<number> {
     try {
       const org = resolveOrgId();
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/lab-order/${patientId}`, {
+      const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/lab-order/${patientId}`, {
         method: "GET",
         headers: { orgId: org, 'X-Org-Id': org },
       });
@@ -341,7 +342,7 @@ export default function LabOrdersPage() {
   // fetch by free-text query. If showToastOnEmpty is false, don't show an error toast when no results
   async function fetchOrdersByQuery(q: string, showToastOnEmpty = true, triedRelative = false) {
     try {
-      const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+      const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
       if (!base) {
         if (showToastOnEmpty) setToast({ type: "error", text: "API base URL not configured (NEXT_PUBLIC_API_URL)." });
         setOrders([]);
@@ -438,7 +439,7 @@ export default function LabOrdersPage() {
     try {
       const org = resolveOrgId();
       const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/lab-order/${o.patientId}/${o.id}`,
+        `${getEnv("NEXT_PUBLIC_API_URL")}/api/lab-order/${o.patientId}/${o.id}`,
         { method: "DELETE", headers: { orgId: org, 'X-Org-Id': org } }
       );
       

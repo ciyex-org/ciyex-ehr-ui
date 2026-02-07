@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 
 // Inline type (summary row)
@@ -34,7 +35,7 @@ type ToastState = { type: "success" | "error" | "info"; text: string } | null;
 //     const v = (localStorage.getItem('orgId') || '').trim();
 //     if (v) return v;
 //   }
-//   return (process.env.NEXT_PUBLIC_ORG_ID || '1').toString();
+//   return (getEnv("NEXT_PUBLIC_ORG_ID") || '1').toString();
 // }
 
 // Status badge color helper

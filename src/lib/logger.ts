@@ -1,3 +1,4 @@
+import { getEnv } from "@/utils/env";
 /**
  * Logger utility for consistent logging across the application
  * In production, logs can be disabled or sent to a logging service
@@ -35,7 +36,7 @@ export const logger = {
    * Log debug messages (only in development with DEBUG flag)
    */
   debug: (...args: unknown[]) => {
-    if (isDevelopment && process.env.NEXT_PUBLIC_DEBUG === 'true') {
+    if (isDevelopment && getEnv("NEXT_PUBLIC_DEBUG") === 'true') {
       console.debug('[DEBUG]', ...args);
     }
   },

@@ -1,10 +1,11 @@
 'use client';
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState, KeyboardEvent } from 'react';
 import AdminLayout from '@/app/(admin)/layout';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+const API_BASE = getEnv("NEXT_PUBLIC_API_URL") ?? 'http://localhost:8080';
 
 const ALL_FILE_TYPES = ['JPG', 'PNG', 'PDF', 'DOCX', 'XLS', 'XLSX', 'TXT', 'CSV', 'ZIP', 'RAR'];
 const FILE_TYPES = Array.from(new Set(ALL_FILE_TYPES));

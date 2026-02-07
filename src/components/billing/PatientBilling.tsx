@@ -4,6 +4,7 @@
 
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -599,7 +600,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
     async function handleLockClaim(claim: Claim) {
         setLockLoading(true);
         try {
-            const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patient-billing/${patientId}/claims/${claim.id}/lock`, {
+            const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patient-billing/${patientId}/claims/${claim.id}/lock`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
             });
@@ -652,7 +653,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
         const [paymentAmount, setPaymentAmount] = React.useState("");
         async function handleSave() {
             try {
-                const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patient-billing/${patientId}/claims/${claim.id}/status`, {
+                const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patient-billing/${patientId}/claims/${claim.id}/status`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ status: selectedStatus, remitDate, paymentAmount }),
@@ -706,7 +707,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
             const formData = new FormData();
             formData.append("file", file);
             try {
-                const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patient-billing/${patientId}/claims/${claim.id}/attachment`, {
+                const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patient-billing/${patientId}/claims/${claim.id}/attachment`, {
                     method: "POST",
                     body: formData,
                 });
@@ -1195,7 +1196,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
     async function fetchPrintEhrClaim(claimId: number) {
         setPrintEhrClaimLoading(true);
         try {
-            const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patient-billing/${patientId}/claims/${claimId}/ehr-form-data`);
+            const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patient-billing/${patientId}/claims/${claimId}/ehr-form-data`);
             const body = await res.json();
             if (body?.success && body.data) {
                 setPrintEhrClaimData(body.data);
@@ -1558,7 +1559,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
     }
 
     async function transferPatientCreditToPatient(fromPatientId: number, toPatientId: number, amount: number, note: string) {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patient-billing/${patientId}/patients/${fromPatientId}/${toPatientId}/transfer-credit`, {
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patient-billing/${patientId}/patients/${fromPatientId}/${toPatientId}/transfer-credit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ amount }),
@@ -1925,7 +1926,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
         );
     }
 
-    const API = `${process.env.NEXT_PUBLIC_API_URL}/api/patient-billing/${patientId}`;
+    const API = `${getEnv("NEXT_PUBLIC_API_URL")}/api/patient-billing/${patientId}`;
 
     const [tab, setTab] = useState<"INVOICE" | "CLAIM" | "INS" | "PATIENT" | "DEPOSIT">("INVOICE");
 
@@ -2172,7 +2173,7 @@ export default function PatientBilling({ patientId, patientName }: Props) {
 
     async function loadDropdowns() {
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+            const API_URL = getEnv("NEXT_PUBLIC_API_URL") || '';
             const [provRes, patRes, insRes, polRes] = await Promise.all([
                 fetchWithAuth(`${API_URL}/api/providers`),
                 fetchWithAuth(`${API_URL}/api/patients`),

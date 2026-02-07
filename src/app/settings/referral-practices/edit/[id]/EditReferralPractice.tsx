@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -21,7 +22,7 @@ interface FormData {
 
 const EditReferralPractice = ({ id }: { id: string }) => {
     const router = useRouter();
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
 
     const [formData, setFormData] = useState<FormData>({
         name: "",

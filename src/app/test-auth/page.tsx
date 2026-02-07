@@ -1,5 +1,6 @@
 'use client';
 
+import { getEnv } from "@/utils/env";
 import {
     useEffect,
     useLayoutEffect,
@@ -15,7 +16,7 @@ import AdminLayout from '@/app/(admin)/layout';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
 /* ---------------------------------- API ---------------------------------- */
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
+const API_BASE = getEnv("NEXT_PUBLIC_API_URL") ?? 'http://localhost:8080';
 
 /* -------- Inline Icons -------- */
 function Icon({ path, className = 'w-5 h-5' }: { path: string; className?: string }) {

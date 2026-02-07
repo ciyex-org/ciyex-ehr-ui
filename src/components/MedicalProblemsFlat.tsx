@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -63,11 +64,11 @@ export default function MedicalProblemsFlat({ patientId }: Props) {
     const [verificationOptions, setVerificationOptions] = useState<any[]>([]);
     const [occurrenceOptions, setOccurrenceOptions] = useState<any[]>([]);
 
-    const api = process.env.NEXT_PUBLIC_API_URL;
+    const api = getEnv("NEXT_PUBLIC_API_URL");
     const orgId =
         typeof window !== "undefined"
             ? localStorage.getItem("orgId") ||
-            process.env.NEXT_PUBLIC_ORG_ID ||
+            getEnv("NEXT_PUBLIC_ORG_ID") ||
             "1"
             : "1";
     const baseHeaders = {

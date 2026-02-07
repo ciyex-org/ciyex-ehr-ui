@@ -3,6 +3,7 @@
 
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -43,7 +44,7 @@ export default function Assessmentform({ patientId, encounterId, editing, onSave
         setLoadingCodes(true);
         try {
             const orgId = localStorage.getItem("orgId") || "";
-            const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+            const apiUrl = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
             const url = `${apiUrl}/api/global_codes?codeType=${type}`;
             
             const headers: Record<string, string> = {

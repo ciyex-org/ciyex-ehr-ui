@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -37,7 +38,7 @@ const GpsCardForm: React.FC<GpsCardFormProps> = ({ onSaved, onCancel, showToast 
         try {
             // Get GPS configuration
             const configRes = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/gps/config`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/gps/config`,
                 {
                     headers: { "x-org-id": "1" },
                 }
@@ -70,7 +71,7 @@ const GpsCardForm: React.FC<GpsCardFormProps> = ({ onSaved, onCancel, showToast 
             };
 
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/gps/billing/tokenize`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/gps/billing/tokenize`,
                 {
                     method: "POST",
                     headers: { 

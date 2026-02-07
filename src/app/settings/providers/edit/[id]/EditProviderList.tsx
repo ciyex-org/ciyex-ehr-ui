@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -37,7 +38,7 @@ interface Provider {
 }
 
 const EditProvider = () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
     //const { id } = useParams();
     const { id } = useParams() as { id: string };
 

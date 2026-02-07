@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -54,7 +55,7 @@ const getInitials = (name: string) => {
 };
 
 const ReferralProviderList = () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
     const router = useRouter();
 
     const [providers, setProviders] = useState<ReferralProvider[]>([]);

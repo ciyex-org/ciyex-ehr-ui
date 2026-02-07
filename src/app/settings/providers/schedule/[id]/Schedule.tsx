@@ -1,6 +1,7 @@
 "use client";
 
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminLayout from "@/app/(admin)/layout";
@@ -141,7 +142,7 @@ type ScheduleDto = {
 
 async function createSchedule(dto: ScheduleDto) {
     const res = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/schedules`,
+        `${getEnv("NEXT_PUBLIC_API_URL")}/api/schedules`,
         {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -167,7 +168,7 @@ const Page = () => {
   //  const { id } = useParams();
    const { id } = useParams() as { id: string };
     const router = useRouter();
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
 
     const [provider, setProvider] = useState<Provider | null>(null);
     const [loading, setLoading] = useState(true);

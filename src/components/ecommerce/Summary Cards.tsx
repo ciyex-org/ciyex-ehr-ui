@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Badge from "../ui/badge/Badge";
@@ -13,7 +14,7 @@ export const SummaryCards = () => {
         const getPatientCount = async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients/count`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/count`
                 );
 
                 if (!res.ok) {
@@ -41,7 +42,7 @@ export const SummaryCards = () => {
         const getAppointmentCount = async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/count`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/count`
                 );
                 if (!res.ok) throw new Error("Failed to fetch appointment count");
 

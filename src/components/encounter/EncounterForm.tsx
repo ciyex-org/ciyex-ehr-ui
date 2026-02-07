@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -27,7 +28,7 @@ export default function EncounterForm({ patientId, editing, onSaved, onCancel }:
     useEffect(() => {
         const fetchProviders = async () => {
             try {
-                const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/providers`);
+                const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
                 if (!res.ok) return;
                 const data = await res.json();
                 const list: Provider[] = data.data.map((p: {id:number;identification:{firstName:string;lastName:string}})=>({
@@ -57,7 +58,7 @@ export default function EncounterForm({ patientId, editing, onSaved, onCancel }:
             // Fetch latest appointment for this patient
             const fetchLatestAppointment = async () => {
                 try {
-                    const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/appointments?page=0&size=100`);
+                    const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments?page=0&size=100`);
                     if (!res.ok) return;
                     const data = await res.json();
                     const appointments = data?.data?.content ?? [];

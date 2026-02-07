@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useRef } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -90,7 +91,7 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
     try {
       setLoading(true);
       const response = await fetchWithAuth(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}/relationships`
+          `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patientId}/relationships`
       );
       const data = await response.json();
       console.log("📋 Relationships API response:", data);
@@ -109,7 +110,7 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
   const loadRelationTypes = async () => {
     try {
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/list-options/list/Patient_relationship`
+        `${getEnv("NEXT_PUBLIC_API_URL")}/api/list-options/list/Patient_relationship`
       );
       const data = await response.json();
       
@@ -126,7 +127,7 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
   const loadCurrentPatient = async () => {
     try {
       const response = await fetchWithAuth(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}`
+          `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patientId}`
       );
       const data = await response.json();
       if (data.success && data.data) {
@@ -155,7 +156,7 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
       params.set("sort", "id,asc");
 
       const response = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/patients?${params.toString()}`
+        `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients?${params.toString()}`
       );
 
       const data = await response.json();
@@ -233,8 +234,8 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
 
     try {
       const url = editingId
-          ? `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}/relationships/${editingId}`
-          : `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}/relationships`;
+          ? `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patientId}/relationships/${editingId}`
+          : `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patientId}/relationships`;
 
       const method = editingId ? "PUT" : "POST";
 
@@ -282,7 +283,7 @@ export default function PatientRelationshipsTab({ patientId }: Props) {
 
     try {
       const response = await fetchWithAuth(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${patientId}/relationships/${id}`,
+          `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patientId}/relationships/${id}`,
           { method: "DELETE" }
       );
       const data = await response.json();

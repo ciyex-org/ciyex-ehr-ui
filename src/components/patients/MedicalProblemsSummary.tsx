@@ -1,6 +1,7 @@
 // MedicalProblemsSummary.tsx - Updated
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -43,7 +44,7 @@ export default function MedicalProblemsSummary({
                 }
 
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/medical-problems/${patientId}`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/medical-problems/${patientId}`,
                     { headers }
                 );
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -56,7 +57,7 @@ const getAvatarTone = (seed: string) => {
 };
 
 const ProviderList = () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
     const router = useRouter();
 
     const [providers, setProviders] = useState<Provider[]>([]);

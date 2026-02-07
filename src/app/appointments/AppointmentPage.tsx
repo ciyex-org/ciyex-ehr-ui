@@ -73,7 +73,7 @@
 
 // const fetchPatientName = async (id: number): Promise<string> => {
 //   try {
-//     const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${id}`);
+//     const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
 //     if (!res.ok) return String(id);
 //     const data = await res.json();
 //     return `${data.data.firstName} ${data.data.lastName}`;
@@ -145,7 +145,7 @@
 //   useEffect(() => {
 //     const fetchCategories = async () => {
 //       try {
-//         const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/list-options/list/Visit Type`);
+//         const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/list-options/list/Visit Type`);
 //         if (!res.ok) throw new Error("Failed to fetch categories");
 //         const data = await res.json();
 //         const active = (data as Category[]).filter((c) => c.activity === 1).map((c) => c.title || c.optionName);
@@ -160,7 +160,7 @@
 //   useEffect(() => {
 //     const fetchProviders = async () => {
 //       try {
-//         const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/providers`);
+//         const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
 //         if (!res.ok) throw new Error("Failed to fetch providers");
 //         const data = await res.json();
 //         const list: Provider[] = data.data.map((p: { id: number; identification: { firstName: string; lastName: string } }) => ({
@@ -178,7 +178,7 @@
 //   useEffect(() => {
 //     const fetchLocations = async () => {
 //       try {
-//         const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/locations`);
+//         const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/locations`);
 //         if (!res.ok) throw new Error("Failed to fetch locations");
 //         const data = await res.json();
 //         const list: Location[] = data.data.map((l: { id: number; name: string }) => ({ id: l.id, name: l.name }));
@@ -211,7 +211,7 @@
 //       if (statusFilter && statusFilter !== "All") params.set("status", statusFilter);
 
 //       const res = await fetchWithAuth(
-//         `${process.env.NEXT_PUBLIC_API_URL}/api/appointments?${params.toString()}`
+//         `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments?${params.toString()}`
 //       );
 //       if (!res.ok) throw new Error("Failed to fetch appointments");
 //       const data = await res.json();
@@ -264,7 +264,7 @@
 //     async (row: AppointmentDTO, newStatus: "Checked" | "Unchecked") => {
 //       try {
 //         const res = await fetchWithAuth(
-//           `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/${row.id}/status`,
+//           `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/${row.id}/status`,
 //           {
 //             method: "PUT",
 //             headers: { "Content-Type": "application/json" },
@@ -629,6 +629,7 @@
 //   );
 // }
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -710,7 +711,7 @@ function timeFromMMDDYYYY(s: string, fallback: number): number {
 
 const fetchPatientName = async (id: number): Promise<string> => {
   try {
-    const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${id}`);
+    const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
     if (!res.ok) return String(id);
     const data = await res.json();
     return `${data.data.firstName} ${data.data.lastName}`;
@@ -821,7 +822,7 @@ export default function AppointmentPage() {
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/appointments/status-options`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/status-options`);
         if (res.ok) {
           const data = await res.json();
           setAvailableStatuses(data.data || []);
@@ -837,7 +838,7 @@ export default function AppointmentPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/list-options/list/Visit Type`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/list-options/list/Visit Type`);
         if (!res.ok) throw new Error("Failed to fetch categories");
         const data = await res.json();
         const active = (data as Category[]).filter((c) => c.activity === 1).map((c) => c.title || c.optionName);
@@ -852,7 +853,7 @@ export default function AppointmentPage() {
   useEffect(() => {
     const fetchProviders = async () => {
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/providers`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
         if (!res.ok) throw new Error("Failed to fetch providers");
         const data = await res.json();
         const list: Provider[] = data.data.map((p: { id: number; identification: { firstName: string; lastName: string } }) => ({
@@ -870,7 +871,7 @@ export default function AppointmentPage() {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/locations`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/locations`);
         if (!res.ok) throw new Error("Failed to fetch locations");
         const data = await res.json();
         if (data?.success && data?.data) {
@@ -909,7 +910,7 @@ export default function AppointmentPage() {
       if (statusFilter && statusFilter !== "All") params.set("status", statusFilter);
 
       const res = await fetchWithAuth(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/appointments?${params.toString()}`
+          `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments?${params.toString()}`
       );
       if (!res.ok) throw new Error("Failed to fetch appointments");
       const data = await res.json();
@@ -960,7 +961,7 @@ export default function AppointmentPage() {
       async (row: AppointmentDTO, newStatus: string) => {
         try {
           const res = await fetchWithAuth(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/${row.id}/status`,
+              `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/${row.id}/status`,
               {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -1063,8 +1064,8 @@ export default function AppointmentPage() {
       console.log("📋 Fetching patient insurances for appointment:", appointment);
 
       // Fetch all coverages for this patient from backend
-      const API = process.env.NEXT_PUBLIC_API_URL;
-      const orgId = typeof window !== "undefined" ? localStorage.getItem("orgId") || process.env.NEXT_PUBLIC_ORG_ID : process.env.NEXT_PUBLIC_ORG_ID;
+      const API = getEnv("NEXT_PUBLIC_API_URL");
+      const orgId = typeof window !== "undefined" ? localStorage.getItem("orgId") || getEnv("NEXT_PUBLIC_ORG_ID") : getEnv("NEXT_PUBLIC_ORG_ID");
 
       const res = await fetchWithAuth(`${API}/api/coverages`, {
         headers: { "Content-Type": "application/json", "orgId": String(orgId) }

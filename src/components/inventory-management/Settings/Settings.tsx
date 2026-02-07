@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import Label from "@/components/form/Label";
@@ -75,7 +76,7 @@ export default function Settings() {
             setLoading(true);
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/inventory-settings`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/inventory-settings`
                 );
                 const text = await res.text();
                 if (!text) {
@@ -121,7 +122,7 @@ export default function Settings() {
             };
 
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/inventory-settings`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/inventory-settings`,
                 {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },

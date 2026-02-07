@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import AllergiesSummary from "@/components/patients/AllergiesSummary";
 import MedicalProblemsSummary from "@/components/patients/MedicalProblemsSummary";
 import InsuranceSummary from "@/components/patients/InsuranceSummary";
@@ -34,7 +35,7 @@ import PatientBilling from "@/components/billing/PatientBilling";
 
 // Normalize API base - if NEXT_PUBLIC_API_URL is unset, fall back to localhost backend
 // (other utils use http://localhost:8080 as a default when not set)
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080").replace(/\/$/, "");
+const API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
 interface Patient {
     id: string;
     firstName: string;

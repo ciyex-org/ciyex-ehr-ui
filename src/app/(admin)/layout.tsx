@@ -1,6 +1,7 @@
 "use client";
 
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
@@ -29,7 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         (async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/inventory-settings/${orgId}`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/inventory-settings/${orgId}`
                 );
                 const text = await res.text();
                 if (!text) return;

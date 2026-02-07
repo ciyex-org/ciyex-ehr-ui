@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useMemo } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -65,8 +66,8 @@ function ServiceForm({
             };
 
             const url = mode === "add"
-                ? `${process.env.NEXT_PUBLIC_API_URL}/api/services`
-                : `${process.env.NEXT_PUBLIC_API_URL}/api/services/${service?.id}`;
+                ? `${getEnv("NEXT_PUBLIC_API_URL")}/api/services`
+                : `${getEnv("NEXT_PUBLIC_API_URL")}/api/services/${service?.id}`;
 
             const res = await fetchWithAuth(url, {
                 method: mode === "add" ? "POST" : "PUT",
@@ -170,7 +171,7 @@ export default function ServicesPage() {
     async function loadServices() {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/services`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/services`
             );
             const json = await safeJson<Service[]>(res);
             if (json && json.success && Array.isArray(json.data)) {
@@ -200,7 +201,7 @@ export default function ServicesPage() {
         if (!confirm("Are you sure you want to delete this service?")) return;
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/services/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/services/${id}`,
                 { method: "DELETE" }
             );
             const json = await safeJson<null>(res);

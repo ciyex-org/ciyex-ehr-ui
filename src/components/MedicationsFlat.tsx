@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -52,7 +53,7 @@ export default function MedicationsFlat({ patientId, encounterId }: Props) {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const api = process.env.NEXT_PUBLIC_API_URL;
+    const api = getEnv("NEXT_PUBLIC_API_URL");
 
     async function load() {
         setLoading(true);

@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
@@ -63,7 +64,7 @@ export default function UserAddressCard() {
 
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/users/user/address`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/users/user/address`,
                 {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },

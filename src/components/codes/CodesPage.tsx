@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import { useState, useCallback, useEffect } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -33,7 +34,7 @@ const isCodeType = (v: string): v is CodeType =>
   (codeTypes as readonly { value: CodeType }[]).some((t) => t.value === v);
 
 // --- Safe base URL builder (avoid double slashes) ---
-const BASE_API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+const BASE_API = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 // Backend global codes endpoint
 const PRIMARY_CODES_URL = `${BASE_API}/api/global_codes`;
 const LEGACY_CODES_URL = `${BASE_API}/api/global_codes`;
@@ -77,7 +78,7 @@ export default function CodesPage() {
   const resolveOrgId = (): string | null => {
     if (typeof window === "undefined") return null;
     const fromLS = (localStorage.getItem("orgId") || "").trim();
-    const fromEnv = (process.env.NEXT_PUBLIC_ORG_ID || "").trim();
+    const fromEnv = (getEnv("NEXT_PUBLIC_ORG_ID") || "").trim();
     const candidate = fromLS || fromEnv || "1";
     return /^\d+$/.test(candidate) ? candidate : null;
   };

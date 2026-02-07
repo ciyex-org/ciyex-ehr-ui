@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useState, useEffect } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -84,7 +85,7 @@ function SubscriptionForm({
                 const userId = localStorage.getItem("userId") || "1";
 
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/services`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/services`,
                     {
                         headers: {
                             "X-Org-Id": orgId,
@@ -108,7 +109,7 @@ function SubscriptionForm({
                 const userId = localStorage.getItem("userId") || "1";
 
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/providers/count`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/providers/count`,
                     {
                         headers: {
                             "X-Org-Id": orgId,
@@ -141,8 +142,8 @@ function SubscriptionForm({
 
             const url =
                 mode === "add"
-                    ? `${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions`
-                    : `${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions/${subscription?.id}`;
+                    ? `${getEnv("NEXT_PUBLIC_API_URL")}/api/subscriptions`
+                    : `${getEnv("NEXT_PUBLIC_API_URL")}/api/subscriptions/${subscription?.id}`;
 
             const normalizedStartDate = normalizeStartDateForApi(startDate);
             const res = await fetchWithAuth(url, {
@@ -281,7 +282,7 @@ export default function SubscriptionsPage() {
             const userId = localStorage.getItem("userId") || "1";
 
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/subscriptions`,
                 {
                     headers: {
                         "X-Org-Id": orgId,
@@ -313,7 +314,7 @@ export default function SubscriptionsPage() {
                 const userId = localStorage.getItem("userId") || "1";
 
                 const res1 = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/providers/count`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/providers/count`,
                     {
                         headers: {
                             "X-Org-Id": orgId,
@@ -325,7 +326,7 @@ export default function SubscriptionsPage() {
                 if (json1?.success) setProviderCount(json1.data);
 
                 const res2 = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/services`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/services`,
                     {
                         headers: {
                             "X-Org-Id": orgId,
@@ -357,7 +358,7 @@ export default function SubscriptionsPage() {
             const userId = localStorage.getItem("userId") || "1";
 
             await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/subscriptions/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/subscriptions/${id}`,
                 {
                     method: "DELETE",
                     headers: {

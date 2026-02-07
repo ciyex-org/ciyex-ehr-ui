@@ -1,6 +1,7 @@
 // AllergiesSummary.tsx - Updated
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -48,7 +49,7 @@ export default function AllergiesSummary({
                 }
 
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/allergy-intolerances/${patientId}`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/allergy-intolerances/${patientId}`,
                     { headers }
                 );
 

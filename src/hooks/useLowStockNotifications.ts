@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -21,7 +22,7 @@ export function useLowStockNotifications(
         const checkLowStock = async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/inventory/list`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/inventory/list`
                 );
                 const json = await res.json();
                 if (res.ok && json.success) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, Suspense } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import LabOrderForm from "@/components/laborder/LabOrderForm";
@@ -21,7 +22,7 @@ function NewLabOrderContent() {
       if (!editId) return;
       setLoading(true);
       try {
-        const base = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
+        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
         const pid = patientId || "0";
         // Main (current) backend pattern used elsewhere (see delete + list pages): /api/lab-order/{patientId}/{orderId}
         const primaryUrl = `${base}/api/lab-order/${pid}/${editId}`;
@@ -30,7 +31,7 @@ function NewLabOrderContent() {
 
         interface AttemptResult { res: Response; json: Record<string, unknown> | null }
         async function tryFetch(url: string): Promise<AttemptResult> {
-          const res = await fetchWithAuth(url, { method: "GET", headers: { orgId: process.env.NEXT_PUBLIC_ORG_ID || "1" } });
+          const res = await fetchWithAuth(url, { method: "GET", headers: { orgId: getEnv("NEXT_PUBLIC_ORG_ID") || "1" } });
           let json: Record<string, unknown> | null = null; try { json = await res.clone().json(); } catch { /* ignore */ }
           return { res, json };
         }

@@ -1,11 +1,12 @@
 'use client'
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '@/app/(admin)/layout'
 import Alert from '@/components/ui/alert/Alert'
 import { fetchWithAuth } from '@/utils/fetchWithAuth'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!
+const API_URL = getEnv("NEXT_PUBLIC_API_URL")!
 
 /** --- Minimal inline icons (no extra deps) ------------------------------- */
 

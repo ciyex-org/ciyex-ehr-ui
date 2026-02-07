@@ -1,3 +1,4 @@
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from 'react';
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Edit, Eye, Paperclip, EyeOff } from "lucide-react";
@@ -98,7 +99,7 @@ const UnsentClaims: React.FC = () => {
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const API_URL = getEnv("NEXT_PUBLIC_API_URL");
       const res = await fetchWithAuth(
         `${API_URL}/api/all-claims/patient-search?query=${encodeURIComponent(query)}&page=0&size=20`
       );
@@ -131,7 +132,7 @@ const UnsentClaims: React.FC = () => {
   // ✅ Load claims by patient ID
   const loadClaimsByPatient = async (patientId: number) => {
     setLoading(true);
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
     try {
       const res = await fetchWithAuth(`${API_URL}/api/all-claims/patient/${patientId}/claims`);
@@ -156,7 +157,7 @@ const UnsentClaims: React.FC = () => {
       loadClaimsByPatient(selectedPatientId);
     } else {
       setLoading(true);
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
       fetchWithAuth(`${API_URL}/api/all-claims`)
         .then(res => {
@@ -224,7 +225,7 @@ const handleChangeStatus = async () => {
   setActionError(null);
 
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
     // ✅ UPDATE EACH CLAIM
     for (const claimId of selectedClaims) {
@@ -265,7 +266,7 @@ const handleChangeStatus = async () => {
     setActionError(null);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
       // ✅ UPDATE EACH CLAIM TYPE
       for (const claimId of selectedClaims) {
@@ -304,7 +305,7 @@ const handleChangeStatus = async () => {
   // ✅ Fetch claim line details
   const fetchLineDetails = async (claimId: number) => {
     setLineDetailsLoading(true);
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
     try {
       const res = await fetchWithAuth(`${API_URL}/api/all-claims/${claimId}/line-details`);
@@ -323,7 +324,7 @@ const handleChangeStatus = async () => {
 
   // ✅ Validate claims before submission (only called when submitting to Dental Exchange)
   const validateClaims = async (claimIds: number[]) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
     const errors = new Map<number, string[]>();
 
     try {
@@ -363,7 +364,7 @@ const handleChangeStatus = async () => {
     }
 
     // Check if Dental Exchange is configured
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
     try {
       // Test if the endpoint exists
       const testRes = await fetch(`${API_URL}/api/dental-exchange/validate-claim/0`, { method: 'HEAD' });
@@ -460,7 +461,7 @@ const handleChangeStatus = async () => {
 
   // ✅ Check claim status from Dental Exchange (only called manually by user)
   const checkClaimStatus = async (claimId: number) => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
     try {
       const res = await fetchWithAuth(`${API_URL}/api/dental-exchange/claim-status/${claimId}`);

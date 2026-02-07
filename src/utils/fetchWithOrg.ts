@@ -1,5 +1,6 @@
+import { getEnv } from "@/utils/env";
 // export function apiBase() {
-//     return process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8080";
+//     return getEnv("NEXT_PUBLIC_API_BASE") || "http://localhost:8080";
 // }
 //
 // export async function fetchWithOrg(input: string, init: RequestInit = {}) {
@@ -24,7 +25,7 @@
 
 // utils/fetchWithOrg.ts
 export async function fetchWithOrg(input: RequestInfo, init: RequestInit = {}) {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+    const base = getEnv("NEXT_PUBLIC_API_URL") ?? "http://localhost:8080";
 
     // Build the final URL only if input is relative
     const url =

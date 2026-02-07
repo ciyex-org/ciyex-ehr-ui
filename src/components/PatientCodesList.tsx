@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -44,7 +45,7 @@ async function safeJson<T = any>(res: Response): Promise<T | null> {
  * Component
  * ================================ */
 export default function PatientCodesList() {
-    const API = `${process.env.NEXT_PUBLIC_API_URL}/api/patient-codes`;
+    const API = `${getEnv("NEXT_PUBLIC_API_URL")}/api/patient-codes`;
     const orgId = getOrgId();
 
     const [rows, setRows] = useState<CodeRow[]>([]);

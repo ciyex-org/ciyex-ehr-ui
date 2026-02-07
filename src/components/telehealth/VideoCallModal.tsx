@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useState } from "react";
 import {
     Dialog,
@@ -59,7 +60,7 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
     providerName,
     roomName: providedRoomName,
 }) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL as string;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
     
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string>("");

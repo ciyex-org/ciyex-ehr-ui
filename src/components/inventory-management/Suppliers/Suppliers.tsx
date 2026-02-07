@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useState, useEffect } from "react";
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/form/Label";
@@ -77,7 +78,7 @@ export default function Suppliers() {
             setLoading(true);
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/suppliers?page=${currentPage - 1}&size=${pageSize}`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/suppliers?page=${currentPage - 1}&size=${pageSize}`
                 );
                 const json = await res.json();
                 if (json.success && json.data) {
@@ -128,7 +129,7 @@ export default function Suppliers() {
         
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/suppliers`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/suppliers`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -166,7 +167,7 @@ export default function Suppliers() {
     async function editSupplier(id: number, updates: Partial<Supplier>) {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/suppliers/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/suppliers/${id}`,
                 {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
@@ -199,7 +200,7 @@ export default function Suppliers() {
     async function deleteSupplier(id: number) {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/suppliers/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/suppliers/${id}`,
                 { method: "DELETE" }
             );
             const json = await res.json();

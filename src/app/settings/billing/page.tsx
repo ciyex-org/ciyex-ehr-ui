@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -10,7 +11,7 @@ import { Elements } from "@stripe/react-stripe-js";
 
 /* ------------ Stripe ------------ */
 const stripePromise = loadStripe(
-    process.env.NEXT_PUBLIC_STRIPE_PK ||
+    getEnv("NEXT_PUBLIC_STRIPE_PK") ||
     "pk_test_51S5UPvJSxIy1fnkK6dpKKhcedyuGTeD6IyZE4UtJ02MCHGyR28wFoCO9397j2JF31WGYLMLCH7cokGRkRDcugN2500tQtAXCJV"
 );
 
@@ -208,7 +209,7 @@ const BillingPage = () => {
         try {
             const orgId = localStorage.getItem("orgId") || "1";
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/invoice-bills/history`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/invoice-bills/history`,
                 { headers: { "X-Org-Id": orgId } }
             );
             // Read raw response text for debugging so we can see exactly what the API returns
@@ -266,7 +267,7 @@ const BillingPage = () => {
         try {
             const orgId = localStorage.getItem("orgId") || "1";
             await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/invoice-bills/${id}/archive`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/invoice-bills/${id}/archive`,
                 { method: "PUT", headers: { "X-Org-Id": orgId } }
             );
             await loadHistory();
@@ -280,7 +281,7 @@ const BillingPage = () => {
         try {
             const orgId = localStorage.getItem("orgId") || "1";
             await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/invoice-bills/${id}/unarchive`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/invoice-bills/${id}/unarchive`,
                 { method: "PUT", headers: { "X-Org-Id": orgId } }
             );
             await loadHistory();
@@ -294,7 +295,7 @@ const BillingPage = () => {
         try {
             const orgId = localStorage.getItem("orgId") || "1";
             await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/invoice-bills/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/invoice-bills/${id}`,
                 { method: "DELETE", headers: { "X-Org-Id": orgId } }
             );
             await loadHistory();
@@ -401,7 +402,7 @@ const BillingPage = () => {
                                                     onClick={async () => {
                                                         try {
                                                             const res = await fetchWithAuth(
-                                                                `${process.env.NEXT_PUBLIC_API_URL}/api/invoice-bills/${h.id}/receipt`,
+                                                                `${getEnv("NEXT_PUBLIC_API_URL")}/api/invoice-bills/${h.id}/receipt`,
                                                                 { method: "GET" }
                                                             );
                                                             if (!res.ok) throw new Error(`Failed to download receipt: ${res.status}`);

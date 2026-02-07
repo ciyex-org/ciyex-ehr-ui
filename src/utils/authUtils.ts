@@ -1,3 +1,4 @@
+import { getEnv } from "@/utils/env";
 /**
  * Authentication Utilities
  * Helper functions for handling both Keycloak and local authentication
@@ -251,7 +252,7 @@ export const refreshAccessToken = async (): Promise<boolean> => {
     if (!refreshToken) return false;
     
     try {
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+        const API_BASE = getEnv("NEXT_PUBLIC_API_URL") || "";
         const refreshUrl = (API_BASE ? `${API_BASE.replace(/\/$/, "")}` : "") + "/api/auth/refresh";
         
         const response = await fetch(refreshUrl, {

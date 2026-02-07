@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
@@ -66,7 +67,7 @@ export default function InsurancePage() {
         setLoading(true);
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/insurance-companies`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/insurance-companies`
             );
             const data = await res.json();
             
@@ -127,8 +128,8 @@ export default function InsurancePage() {
         try {
             const method = editCompany ? "PUT" : "POST";
             const url = editCompany
-                ? `${process.env.NEXT_PUBLIC_API_URL}/api/insurance-companies/${editCompany.fhirId || editCompany.id}`
-                : `${process.env.NEXT_PUBLIC_API_URL}/api/insurance-companies`;
+                ? `${getEnv("NEXT_PUBLIC_API_URL")}/api/insurance-companies/${editCompany.fhirId || editCompany.id}`
+                : `${getEnv("NEXT_PUBLIC_API_URL")}/api/insurance-companies`;
             
             const response = await fetchWithAuth(url, {
                 method,
@@ -165,7 +166,7 @@ export default function InsurancePage() {
         const action = company.status === "ACTIVE" ? "archive" : "activate";
         try {
             const response = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/insurance-companies/${company.fhirId || company.id}/${action}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/insurance-companies/${company.fhirId || company.id}/${action}`,
                 { method: "POST" }
             );
             const result = await response.json();

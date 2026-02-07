@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import Button from "@/components/ui/button/Button";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -8,10 +9,10 @@ export default function SignInForm() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
-    const keycloakEnabled = process.env.NEXT_PUBLIC_KEYCLOAK_ENABLED === 'true';
-    const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL;
-    const keycloakRealm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM;
-    const keycloakClientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
+    const keycloakEnabled = getEnv("NEXT_PUBLIC_KEYCLOAK_ENABLED") === 'true';
+    const keycloakUrl = getEnv("NEXT_PUBLIC_KEYCLOAK_URL");
+    const keycloakRealm = getEnv("NEXT_PUBLIC_KEYCLOAK_REALM");
+    const keycloakClientId = getEnv("NEXT_PUBLIC_KEYCLOAK_CLIENT_ID");
 
     useEffect(() => {
         const token = localStorage.getItem("token");

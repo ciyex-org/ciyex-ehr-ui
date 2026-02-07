@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useMemo } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -68,7 +69,7 @@ const TemplateManagement = () => {
         async function load() {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/templates`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/templates`
                 );
                 const json = await safeJson<Template[]>(res);
 
@@ -107,7 +108,7 @@ const TemplateManagement = () => {
         try {
             if (isEditMode && editId !== null) {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/templates/${editId}`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/templates/${editId}`,
                     {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -127,7 +128,7 @@ const TemplateManagement = () => {
                 }
             } else {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/templates`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/templates`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -155,7 +156,7 @@ const TemplateManagement = () => {
     async function deleteTemplate(id: number) {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/templates/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/templates/${id}`,
                 { method: "DELETE" }
             );
             const json = await safeJson<Record<string, unknown>>(res);

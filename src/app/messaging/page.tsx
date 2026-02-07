@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import AdminLayout from "@/app/(admin)/layout";
 import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -1103,7 +1104,7 @@ export default function MessagingPage() {
     const loadMessageAttachments = useCallback(async (messageId: number): Promise<Attachment[]> => {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/messages/${messageId}/attachments`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/messages/${messageId}/attachments`
             );
 
             if (!res.ok) {
@@ -1116,7 +1117,7 @@ export default function MessagingPage() {
                 return json.data.map(attachment => ({
                     id: String(attachment.id),
                     name: attachment.fileName,
-                    url: `${process.env.NEXT_PUBLIC_API_URL}/api/messages/${messageId}/attachments/${attachment.id}/download`,
+                    url: `${getEnv("NEXT_PUBLIC_API_URL")}/api/messages/${messageId}/attachments/${attachment.id}/download`,
                     type: getFileType(attachment.contentType, attachment.fileName),
                     size: attachment.fileSize || '0 KB'
                 }));
@@ -1147,7 +1148,7 @@ export default function MessagingPage() {
         formData.append('file', file);
 
         const res = await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/messages/${messageId}/attachments`,
+            `${getEnv("NEXT_PUBLIC_API_URL")}/api/messages/${messageId}/attachments`,
             {
                 method: 'POST',
                 body: formData,
@@ -1178,7 +1179,7 @@ export default function MessagingPage() {
     const downloadAttachment = async (messageId: number, attachmentId: string, fileName: string) => {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/messages/${messageId}/attachments/${attachmentId}/download`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/messages/${messageId}/attachments/${attachmentId}/download`
             );
 
             if (!res.ok) {
@@ -1206,7 +1207,7 @@ export default function MessagingPage() {
             try {
                 // Load providers on component mount
                 const providersRes = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/providers?status=ACTIVE`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?status=ACTIVE`
                 );
                 const providersJson: ApiResponse<Provider[]> = await providersRes.json();
                 if (providersJson.success && Array.isArray(providersJson.data)) {
@@ -1225,7 +1226,7 @@ export default function MessagingPage() {
 
                 // Load patients
                 const patientsRes = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients?page=0&size=50`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients?page=0&size=50`
                 );
 
                 if (!patientsRes.ok) {
@@ -1257,7 +1258,7 @@ export default function MessagingPage() {
 
                 // Load templates
                 const templatesRes = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/templates`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/templates`
                 );
                 const templatesJson: ApiResponse<Template[]> = await templatesRes.json();
                 if (templatesJson.success && Array.isArray(templatesJson.data)) {
@@ -1288,7 +1289,7 @@ export default function MessagingPage() {
     const loadCommunications = async () => {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/communications`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/communications`
             );
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1500,7 +1501,7 @@ export default function MessagingPage() {
 
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/communications/${message.id}/archive`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/communications/${message.id}/archive`,
                 { method: 'PUT' }
             );
 
@@ -1653,7 +1654,7 @@ export default function MessagingPage() {
             });
 
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/communications`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/communications`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -1783,7 +1784,7 @@ export default function MessagingPage() {
             };
 
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/communications`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/communications`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

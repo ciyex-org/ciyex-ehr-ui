@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { motion } from "framer-motion";
@@ -12,7 +13,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 /* =========================================================
    Server API helpers (all via fetchWithAuth)
    ========================================================= */
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const API_BASE = getEnv("NEXT_PUBLIC_API_URL") ?? "http://localhost:8080";
 const API = `${API_BASE}/api/template-documents`;
 
 // map UI context <-> backend enum

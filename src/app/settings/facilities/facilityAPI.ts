@@ -1,7 +1,8 @@
 // src/app/settings/facilities/facilityAPI.ts
 
+import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_BASE = getEnv("NEXT_PUBLIC_API_URL") ?? "";
 
 export const facilityAPI = {
   async getAll() {

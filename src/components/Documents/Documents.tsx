@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -695,7 +696,7 @@ export default function Page({ patientId: propPatientId }: DocumentsProps = {}) 
     const load = async () => {
       if (!tenantName) return;
       try {
-        const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+        const base = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
         const res = await fetchWithAuth(`${base}/api/document-settings`);
         const json: { success?: boolean; data?: DocSettings } = await res.json();
         if (json?.success && json?.data) {
@@ -721,7 +722,7 @@ export default function Page({ patientId: propPatientId }: DocumentsProps = {}) 
   const loadDocuments = useCallback(async () => {
     if (!tenantName || !patientId) return;
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+      const base = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
       const res = await fetchWithAuth(`${base}/api/documents/upload/patient/${patientId}`, {
         headers: {
           'X-Tenant-Name': tenantName,
@@ -828,7 +829,7 @@ export default function Page({ patientId: propPatientId }: DocumentsProps = {}) 
       setUploadProgress((p) => (p >= 100 ? (clearInterval(interval), 100) : p + 10));
     }, 150);
 
-    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+    const base = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
     try {
       for (const f of pending) {
         const dto = { category, type: extFromNameOrType(f), description: "" };
@@ -891,7 +892,7 @@ export default function Page({ patientId: propPatientId }: DocumentsProps = {}) 
   const onPreviewFromList = useCallback(async (i: number) => {
     const row = uploaded[i]; if (!row?._api) return;
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+      const base = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
       const url = `${base}/api/documents/upload/${row._api.id}/download`;
       const res = await fetchWithAuth(url);
       const blob = await res.blob();
@@ -906,7 +907,7 @@ export default function Page({ patientId: propPatientId }: DocumentsProps = {}) 
   const onDownloadFromList = useCallback(async (i: number) => {
     const row = uploaded[i]; if (!row?._api) return;
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+      const base = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
       const url = `${base}/api/documents/upload/${row._api.id}/download`;
       const res = await fetchWithAuth(url);
       const blob = await res.blob();

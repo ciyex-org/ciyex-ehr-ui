@@ -13,11 +13,12 @@
  * Last Updated: October 23, 2025
  */
 
+import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from './fetchWithAuth';
 
 // Sikka API Configuration
 const SIKKA_API_BASE_URL = "https://api.sikkasoft.com/v4";
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_BASE = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
 
 // ✅ CORRECT: Use "sandbox/patient_eligibility" with SLASH (as per Sikka support)
 const PATIENT_ELIGIBILITY_ENDPOINT = "sandbox/patient_eligibility";
@@ -237,7 +238,7 @@ export async function verifyInsuranceEligibility(
       
       // fetchWithAuth handles authentication and orgId automatically
       const patientResponse = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${request.patientId}`
+        `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${request.patientId}`
       );
       
       if (!patientResponse.ok) {
@@ -313,7 +314,7 @@ export async function verifyInsuranceEligibility(
       console.log(`🔍 Fetching REAL provider data for provider ID ${request.providerId}...`);
       
       const providerResponse = await fetchWithAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/providers/${request.providerId}`
+        `${getEnv("NEXT_PUBLIC_API_URL")}/api/providers/${request.providerId}`
       );
       
       if (!providerResponse.ok) {

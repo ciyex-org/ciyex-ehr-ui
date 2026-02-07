@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -42,10 +43,10 @@ export default function HealthcareServicesFlat({ patientId }: Props) {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const api = process.env.NEXT_PUBLIC_API_URL;
+    const api = getEnv("NEXT_PUBLIC_API_URL");
     const orgId =
         typeof window !== "undefined"
-            ? localStorage.getItem("orgId") || process.env.NEXT_PUBLIC_ORG_ID || "1"
+            ? localStorage.getItem("orgId") || getEnv("NEXT_PUBLIC_ORG_ID") || "1"
             : "1";
     const baseHeaders = { "Content-Type": "application/json", orgId: String(orgId) };
 

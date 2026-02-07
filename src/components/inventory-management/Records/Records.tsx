@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -7,7 +8,7 @@ import Button from "@/components/ui/button/Button";
 import Label from "@/components/form/Label";
 import { Input } from "@/components/ui/input";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_URL = getEnv("NEXT_PUBLIC_API_URL")!;
 
 type WeeklyRecord = {
     day?: string;

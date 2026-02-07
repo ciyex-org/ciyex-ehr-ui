@@ -1,3 +1,4 @@
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from 'react';
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Edit, Eye, Paperclip, EyeOff } from "lucide-react";
@@ -62,7 +63,7 @@ const HistoryClaims: React.FC = () => {
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const API_URL = getEnv("NEXT_PUBLIC_API_URL");
       const res = await fetchWithAuth(
         `${API_URL}/api/all-claims/patient-search?query=${encodeURIComponent(query)}&page=0&size=20`
       );
@@ -95,7 +96,7 @@ const HistoryClaims: React.FC = () => {
   // ✅ Load claims by patient ID
   const loadClaimsByPatient = async (patientId: number) => {
     setLoading(true);
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
     try {
       const res = await fetchWithAuth(`${API_URL}/api/all-claims/patient/${patientId}/claims`);
@@ -151,7 +152,7 @@ const HistoryClaims: React.FC = () => {
   // ✅ Fetch claim line details
   const fetchLineDetails = async (claimId: number) => {
     setLineDetailsLoading(true);
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
     try {
       const res = await fetchWithAuth(`${API_URL}/api/all-claims/${claimId}/line-details`);
@@ -175,7 +176,7 @@ const HistoryClaims: React.FC = () => {
     setActionError(null);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
       for (const claimId of selectedClaims) {
         await fetchWithAuth(
@@ -213,7 +214,7 @@ const HistoryClaims: React.FC = () => {
     setActionError(null);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const API_URL = getEnv("NEXT_PUBLIC_API_URL");
 
       for (const claimId of selectedClaims) {
         const res = await fetchWithAuth(
@@ -236,7 +237,7 @@ const HistoryClaims: React.FC = () => {
   // ✅ Reload data
   const reloadClaims = async () => {
     setLoading(true);
-    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const API_URL = getEnv("NEXT_PUBLIC_API_URL");
     const res = await fetchWithAuth(`${API_URL}/api/all-claims`);
     const data = await res.json();
     setClaims(data);

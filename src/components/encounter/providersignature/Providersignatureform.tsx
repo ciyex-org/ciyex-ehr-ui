@@ -192,6 +192,7 @@
 
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useEffect, useRef, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -265,7 +266,7 @@ export default function Providersignatureform({
             setLoadingProviders(true);
             try {
                 const orgIds = JSON.parse(localStorage.getItem("orgIds") || "[]");
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+                const apiUrl = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
                 const res = await fetchWithAuth(
                     `${apiUrl}/api/providers?orgIds=${orgIds.join(",")}`,
                     { method: "GET", headers: { Accept: "application/json" } }

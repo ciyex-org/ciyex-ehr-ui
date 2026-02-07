@@ -1,3 +1,4 @@
+import { getEnv } from "@/utils/env";
 export interface AccessibleTenantsResponse {
   hasFullAccess: boolean;
   tenants: string[];
@@ -5,7 +6,7 @@ export interface AccessibleTenantsResponse {
 }
 
 export const getAccessibleTenants = async (token: string): Promise<AccessibleTenantsResponse> => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const apiUrl = getEnv("NEXT_PUBLIC_API_URL") || 'http://localhost:8080';
   
   try {
     const response = await fetch(`${apiUrl}/api/tenants/accessible`, {

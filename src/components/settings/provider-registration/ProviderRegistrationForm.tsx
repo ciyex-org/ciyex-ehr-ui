@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import { useState } from "react";
 import Button from "@/components/ui/button/Button";
 import PersonalInfo from "@/components/settings/provider-registration/PersonalInfo";
@@ -70,7 +71,7 @@ const ProviderRegistrationForm = () => {
         }
     };
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL as string; //  ADD THIS LINE
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string; //  ADD THIS LINE
 
     const validateFields = () => {
         const newErrors: Record<string, string> = {};

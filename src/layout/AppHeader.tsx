@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
@@ -76,7 +77,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
 
             if (editingPatientId) {
                 response = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${editingPatientId}`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${editingPatientId}`,
                     {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -85,7 +86,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                 );
             } else {
                 response = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -113,7 +114,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
 
         try {
             const response = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${editingPatientId}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${editingPatientId}`,
                 { method: "DELETE" }
             );
             const res = await response.json();

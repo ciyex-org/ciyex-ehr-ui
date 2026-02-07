@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -155,7 +156,7 @@ const getPatientFullName = (p: Patient | null | undefined): string => {
 const fetchPatientName = async (id: number): Promise<string> => {
     try {
         const res = await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/patients/${id}`
+            `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`
         );
         if (!res.ok) return String(id);
         const data = await res.json();
@@ -222,7 +223,7 @@ export default function RecallPage() {
         const fetchProviders = async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/providers`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`
                 );
                 if (!res.ok) throw new Error("Failed to fetch providers");
                 const data = await res.json();
@@ -258,7 +259,7 @@ export default function RecallPage() {
         setLoading(true);
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/recalls?page=${currentPage - 1}&size=${pageSize}`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/recalls?page=${currentPage - 1}&size=${pageSize}`
             );
             if (!res.ok) throw new Error("Failed to fetch recalls");
             const data = await res.json();
@@ -287,7 +288,7 @@ export default function RecallPage() {
     async function deleteRecall(id: number) {
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/recalls/${id}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/recalls/${id}`,
                 { method: "DELETE" }
             );
             const json = await res.json();
@@ -324,7 +325,7 @@ export default function RecallPage() {
         const t = setTimeout(async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/patients?search=${encodeURIComponent(q)}`
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients?search=${encodeURIComponent(q)}`
                 );
                 const json = await res.json();
                 if (cancelled) return;
@@ -386,7 +387,7 @@ export default function RecallPage() {
         // 🔎 Fetch latest appointment for Last Visit
         try {
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/appointments/patient/${p.id}?size=1&sort=appointmentStartDate,desc`
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/patient/${p.id}?size=1&sort=appointmentStartDate,desc`
             );
             if (res.ok) {
                 const json = await res.json();
@@ -443,7 +444,7 @@ export default function RecallPage() {
             let res;
             if (modalMode === "edit" && newRecall.id) {
                 res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/recalls/${newRecall.id}`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/recalls/${newRecall.id}`,
                     {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
@@ -453,7 +454,7 @@ export default function RecallPage() {
             }
             else {
                 res = await fetchWithAuth(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/recalls`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/recalls`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },

@@ -1,9 +1,10 @@
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useRef } from "react";
 import { clearAuth, refreshAccessToken } from "@/utils/authUtils";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+const API_BASE = getEnv("NEXT_PUBLIC_API_URL") || "";
 
 function decodeJwt(token: string | null) {
   if (!token) return null;

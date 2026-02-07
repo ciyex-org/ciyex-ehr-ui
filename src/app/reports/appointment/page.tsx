@@ -1,5 +1,6 @@
 'use client';
 
+import { getEnv } from "@/utils/env";
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import AdminLayout from '@/app/(admin)/layout';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
@@ -52,7 +53,7 @@ function timeFromMMDDYYYY(s: string, fallback: number): number {
 
 const fetchPatientName = async (id: number): Promise<string> => {
   try {
-    const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${id}`);
+    const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
     if (!res.ok) return String(id);
     const data = await res.json();
     return `${data.data.firstName} ${data.data.lastName}`;
@@ -89,7 +90,7 @@ export default function AppointmentReportPage() {
   useEffect(() => {
     const fetchProviders = async () => {
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/providers`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
         if (!res.ok) throw new Error('Failed to fetch providers');
         const data = await res.json();
         const list: Provider[] = data.data.map((p: { id: number; identification: { firstName: string; lastName: string } }) => ({
@@ -106,7 +107,7 @@ export default function AppointmentReportPage() {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/locations`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/locations`);
         if (!res.ok) throw new Error('Failed to fetch locations');
         const data = await res.json();
         if (data?.success && data?.data) {
@@ -161,7 +162,7 @@ export default function AppointmentReportPage() {
       });
       // Only send basic pagination to API
       
-      const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/appointments?${params.toString()}`);
+      const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch appointments');
       const data = await res.json();
 

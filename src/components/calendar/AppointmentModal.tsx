@@ -1,6 +1,7 @@
 
 "use client";
 
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import {
     Dialog,
@@ -197,7 +198,7 @@ const getLocationIdFromSchedule = (sched: Schedule): string | null => {
  * Component
  * ======================= */
 const AppointmentModal: React.FC = () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL as string;
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
 
     const [open, setOpen] = useState(false);
 

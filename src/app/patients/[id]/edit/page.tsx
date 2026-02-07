@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -33,7 +34,7 @@ export default function EditPatientPage() {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${id}`);
+                const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
                 const result = await res.json();
                 if (result.success) {
                     setFormData(result.data);
@@ -67,7 +68,7 @@ export default function EditPatientPage() {
 
         setLoading(true);
         try {
-            const res = await fetchWithAuth(`${process.env.NEXT_PUBLIC_API_URL}/api/patients/${id}`, {
+            const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",

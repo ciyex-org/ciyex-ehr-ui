@@ -1,4 +1,5 @@
 "use client";
+import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { loadStripe } from "@stripe/stripe-js";
@@ -9,14 +10,14 @@ async function ensureStripePromise(orgId?: string) {
     if (stripePromise) return stripePromise;
     try {
         const id = orgId || (localStorage.getItem("orgId") || "1");
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stripe/config/${id}`);
+        const res = await fetch(`${getEnv("NEXT_PUBLIC_API_URL")}/api/stripe/config/${id}`);
         const json = await res.json();
-    const pk = json?.publishableKey || process.env.NEXT_PUBLIC_STRIPE_PK;
+    const pk = json?.publishableKey || getEnv("NEXT_PUBLIC_STRIPE_PK");
     stripePromise = loadStripe(pk as string);
         return stripePromise;
     } catch (e) {
         console.warn("Could not load publishable key, falling back to env", e);
-        stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PK as string);
+        stripePromise = loadStripe(getEnv("NEXT_PUBLIC_STRIPE_PK") as string);
         return stripePromise;
     }
 
@@ -75,7 +76,7 @@ const InvoicesPage = () => {
         const userId = localStorage.getItem("userId") || "1";
 
         const res = await fetchWithAuth(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/invoice-bills`,
+            `${getEnv("NEXT_PUBLIC_API_URL")}/api/invoice-bills`,
             { headers: { "X-User-Id": userId } }
         );
 
@@ -97,8 +98,8 @@ const InvoicesPage = () => {
 
         const url =
             method === "STRIPE"
-                ? `${process.env.NEXT_PUBLIC_API_URL}/api/stripe/cards`
-                : `${process.env.NEXT_PUBLIC_API_URL}/api/gps/cards`;
+                ? `${getEnv("NEXT_PUBLIC_API_URL")}/api/stripe/cards`
+                : `${getEnv("NEXT_PUBLIC_API_URL")}/api/gps/cards`;
 
         const res = await fetchWithAuth(url, { headers: { "X-User-Id": userId } });
         const text = await res.text();
@@ -136,7 +137,7 @@ const InvoicesPage = () => {
             };
 
             const res = await fetchWithAuth(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/payments/create`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/payments/create`,
                 {
                     method: "POST",
                     headers: { "X-User-Id": userId },
