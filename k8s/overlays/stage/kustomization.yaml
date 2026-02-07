@@ -10,7 +10,7 @@ replicas:
 
 images:
   - name: registry.apps-prod.us-east.in.hinisoft.com/ciyex-ehr-ui
-    newTag: "1"
+    newTag: "0.0.1-rc"
 
 patches:
   - target:
