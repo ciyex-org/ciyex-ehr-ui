@@ -1,32 +1,32 @@
 
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
+import { useMenu, type MenuItemNode } from "../context/MenuContext";
 import {
-  BoxCubeIcon,
-  CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
-  SettingsIcon, // ensure this exists in ../icons/index
-  RecallIcon,
-  AppointmentIcon, InventoryIcon,
 } from "../icons/index";
+import {
+  Calendar, CalendarCheck, Users, Package, Bell, BarChart3,
+  Settings, FlaskConical, List, ClipboardList, MessageSquare,
+  GraduationCap, FileCode, Receipt, LayoutDashboard, ShoppingCart,
+  FileText, Truck, Wrench, UserCog, UserPlus, Building, Shield,
+  FilePlus, Plug, Briefcase, CreditCard, FileInput, Building2,
+  Stethoscope, LayoutGrid, Menu, TestTube, FileBarChart, DollarSign,
+  type LucideIcon,
+} from "lucide-react";
 
 // Prevent hydration mismatch
 const useHasMounted = () => {
   const [hasMounted, setHasMounted] = useState(false);
-  
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  
+  useEffect(() => { setHasMounted(true); }, []);
   return hasMounted;
 };
-
 
 // ===== Types (nested) =====
 type SubItem = {
@@ -35,8 +35,8 @@ type SubItem = {
   pro?: boolean;
   new?: boolean;
   subItems?: SubItem[];
-  requiresPatient?: boolean;  // allow nesting
-  customComponent?: boolean;  // allow custom sidebar component
+  requiresPatient?: boolean;
+  customComponent?: boolean;
 };
 
 type NavItem = {
@@ -46,56 +46,60 @@ type NavItem = {
   subItems?: SubItem[];
 };
 
-// ===== Data =====
-const navItems: NavItem[] = [
-  {
-    icon: <CalenderIcon />,
-    name: "Calendar",
-    path: "/calendar",
-  },
+// Map Lucide icon name strings from the database to React components
+const SIDEBAR_ICON_MAP: Record<string, LucideIcon> = {
+  Calendar, CalendarCheck, Users, Package, Bell, BarChart3,
+  Settings, FlaskConical, List, ClipboardList, MessageSquare,
+  GraduationCap, FileCode, Receipt, LayoutDashboard, ShoppingCart,
+  FileText, Truck, Wrench, UserCog, UserPlus, Building, Shield,
+  FilePlus, Plug, Briefcase, CreditCard, FileInput, Building2,
+  Stethoscope, LayoutGrid, Menu, TestTube, FileBarChart, DollarSign,
+};
 
-{
-    icon: <AppointmentIcon />,
-    name: "Appointments",
-    path: "/appointments", //  top-level now
-  },
+// Transform API menu tree nodes into SubItem[] (recursive)
+function transformChildren(nodes: MenuItemNode[]): SubItem[] {
+  return nodes.map((node) => ({
+    name: node.item.label,
+    path: node.item.screenSlug || undefined,
+    subItems: node.children?.length ? transformChildren(node.children) : undefined,
+  }));
+}
 
+// Transform API menu tree into NavItem[] for the sidebar renderer
+function transformMenuToNavItems(items: MenuItemNode[]): NavItem[] {
+  return items.map((node) => {
+    const IconComponent = node.item.icon ? SIDEBAR_ICON_MAP[node.item.icon] : null;
+    const icon = IconComponent
+      ? <IconComponent className="h-6 w-6" />
+      : <GridIcon />;
+
+    const hasChildren = !!node.children?.length;
+    return {
+      name: node.item.label,
+      icon,
+      path: hasChildren ? undefined : (node.item.screenSlug || undefined),
+      subItems: hasChildren ? transformChildren(node.children!) : undefined,
+    };
+  });
+}
+
+// ===== Hardcoded fallback (used when API is unavailable) =====
+const FALLBACK_NAV_ITEMS: NavItem[] = [
+  { icon: <Calendar className="h-6 w-6" />, name: "Calendar", path: "/calendar" },
+  { icon: <CalendarCheck className="h-6 w-6" />, name: "Appointments", path: "/appointments" },
   {
-    // Updated Patients icon with SVG path
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        strokeWidth="2"
-        className="h-6 w-6"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 2C10.343 2 9 3.343 9 5C9 6.657 10.343 8 12 8C13.657 8 15 6.657 15 5C15 3.343 13.657 2 12 2zM12 4C12.553 4 13 4.447 13 5C13 5.553 12.553 6 12 6C11.447 6 11 5.553 11 5C11 4.447 11.447 4 12 4zM6 14C6 13.447 6.447 13 7 13H17C17.553 13 18 13.447 18 14V19C18 19.553 17.553 20 17 20H7C6.447 20 6 19.553 6 19V14zM8 14V18H16V14H8z"
-        />
-      </svg>
-    ),
-    name: "Patients", // New menu item for Patients
+    icon: <Users className="h-6 w-6" />, name: "Patients",
     subItems: [
       { name: "Patient List", path: "/patients" },
       { name: "Encounters", path: "/all-encounters" },
-      {name:"Messaging",path: "/messaging"},
+      { name: "Messaging", path: "/messaging" },
       { name: "Education", path: "/patient_education" },
-        { name: "Codes list", path: "/patients/codes" },
-        { name: "Claim Management", path: "/patients/claim-management" },
-
+      { name: "Codes List", path: "/patients/codes" },
+      { name: "Claim Management", path: "/patients/claim-management" },
     ],
   },
-
-
   {
-    icon: <InventoryIcon />, // swap MessagingIcon → better inventory icon
-    name: "Inventory",
+    icon: <Package className="h-6 w-6" />, name: "Inventory",
     subItems: [
       { name: "Dashboard", path: "/inventory-management" },
       { name: "Inventory", path: "/inventory-management/inventory" },
@@ -106,35 +110,9 @@ const navItems: NavItem[] = [
       { name: "Settings", path: "/inventory-management/settings" },
     ],
   },
-
-
-
+  { icon: <Bell className="h-6 w-6" />, name: "Recall", path: "/recall" },
   {
-    icon: <RecallIcon />,
-    name: "Recall",
-    path: "/recall",
-  },
-
-  {
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        strokeWidth="2"
-        className="h-6 w-6"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-        />
-      </svg>
-    ),
-    name: "Reports",
+    icon: <BarChart3 className="h-6 w-6" />, name: "Reports",
     subItems: [
       { name: "Patient Report", path: "/reports/patient" },
       { name: "Appointment Report", path: "/reports/appointment" },
@@ -142,61 +120,55 @@ const navItems: NavItem[] = [
       { name: "Payment Reports", path: "/reports/payment" },
     ],
   },
-
   {
-    icon: <SettingsIcon />,
-    name: "Settings",
+    icon: <Settings className="h-6 w-6" />, name: "Settings",
     subItems: [
-     
       { name: "Providers", path: "/settings/providers" },
       { name: "Referral Providers", path: "/settings/referral-providers" },
       { name: "Referral Practices", path: "/settings/referral-practices" },
-      { name: "Insurance companies", path: "/settings/insurance" },
+      { name: "Insurance Companies", path: "/settings/insurance" },
       { name: "Documents", path: "/settings/Documents" },
-      { name: "TemplateDocuments", path: "/settings/templateDocument" },
-      {
-        name: "Codes", path: "/settings/codes",
-      },
+      { name: "Template Documents", path: "/settings/templateDocument" },
+      { name: "Codes", path: "/settings/codes" },
       { name: "Integration", path: "/settings/config" },
-        { name: "Services", path: "/settings/services" },
-        { name: "Billing", path: "/settings/billing" },
-
+      { name: "Services", path: "/settings/services" },
+      { name: "Billing", path: "/settings/billing" },
       {
         name: "Forms",
         subItems: [
           { name: "Lists", path: "/settings/forms/lists" },
-          { name: "Encounters Section", path: "/settings/forms/admin" },
+          { name: "Encounter Sections", path: "/settings/forms/admin" },
         ],
       },
-       { name: "Facilities", path: "/settings/facilities" },
+      { name: "Facilities", path: "/settings/facilities" },
       { name: "Practice", path: "/settings/practice" },
+      { name: "Tab Configuration", path: "/settings/tab-configuration" },
+      { name: "Menu Configuration", path: "/settings/menu-configuration" },
     ],
   },
-
   {
-    name: "Labs",
-    icon: <BoxCubeIcon />,
+    icon: <FlaskConical className="h-6 w-6" />, name: "Labs",
     subItems: [
-      {
-        name: "Lab Orders",
-        path: "/labs/orders",
-        pro: false,
-      },
-      {
-        name: "Lab Results",
-        path: "/labs/results",
-        pro: false,
-      },
+      { name: "Lab Orders", path: "/labs/orders" },
+      { name: "Lab Results", path: "/labs/results" },
     ],
   },
 ];
 
-
 // ===== Component =====
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { menuItems, isLoading } = useMenu();
   const pathname = usePathname();
   const hasMounted = useHasMounted();
+
+  // Build navItems from API data or fallback
+  const navItems = useMemo(() => {
+    if (menuItems.length > 0) {
+      return transformMenuToNavItems(menuItems);
+    }
+    return FALLBACK_NAV_ITEMS;
+  }, [menuItems]);
 
   // Safe isActive (handles undefined, ignores query)
   const isActive = useCallback(
@@ -216,7 +188,7 @@ const AppSidebar: React.FC = () => {
   // - top: which top-level group is open (main/others + index)
   // - l2: which level-2 (within a top group) is open
   const [openTop, setOpenTop] = useState<{ type: "main" | "others"; index: number } | null>(null);
-  const [openL2, setOpenL2] = useState<Record<string, boolean>>({}); // key = "type-index-subIndex"
+  const [openL2, setOpenL2] = useState<Record<string, boolean>>({});
 
   const toggleTop = (type: "main" | "others", index: number) => {
     setOpenTop((prev) => (prev && prev.type === type && prev.index === index ? null : { type, index }));
@@ -242,14 +214,12 @@ const AppSidebar: React.FC = () => {
     for (let i = 0; i < navItems.length; i++) {
       const nav = navItems[i];
 
-      // direct match on top-level path
       if (nav.path && isActive(nav.path)) {
         setOpenTop({ type: "main", index: i });
         found = true;
         break;
       }
 
-      // match inside sub-items
       if (nav.subItems && checkDescActive(nav.subItems)) {
         setOpenTop({ type: "main", index: i });
         found = true;
@@ -258,7 +228,7 @@ const AppSidebar: React.FC = () => {
     }
 
     if (!found) setOpenTop(null);
-  }, [pathname, isActive]);
+  }, [pathname, isActive, navItems]);
 
   // Renderer
   const renderMenuItems = (items: NavItem[], type: "main" | "others") => (
@@ -422,7 +392,6 @@ const AppSidebar: React.FC = () => {
                             </div>
                           </>
                         ) : sub.path ? (
-                          // Level-2 link with path
                           <Link
                             href={sub.path}
                             className={`menu-dropdown-item ${
@@ -434,7 +403,6 @@ const AppSidebar: React.FC = () => {
                             {sub.name}
                           </Link>
                         ) : (
-                          // Level-2 plain label
                           <div className="menu-dropdown-item menu-dropdown-item-inactive cursor-default">
                             {sub.name}
                           </div>
@@ -489,11 +457,11 @@ const AppSidebar: React.FC = () => {
               />
             </>
           ) : (
-            <Image 
-              src="/images/ciyex-logo-no-text.png" 
-              alt="Ciyex" 
-              width={40} 
-              height={40} 
+            <Image
+              src="/images/ciyex-logo-no-text.png"
+              alt="Ciyex"
+              width={40}
+              height={40}
               className="rounded-lg"
             />
           )}
@@ -511,7 +479,15 @@ const AppSidebar: React.FC = () => {
               >
                 {isExpanded || isHovered || isMobileOpen ? "Menu" : <HorizontaLDots />}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {isLoading ? (
+                <div className="space-y-3 px-2">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="h-8 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                renderMenuItems(navItems, "main")
+              )}
             </div>
 
             <div>
@@ -524,7 +500,6 @@ const AppSidebar: React.FC = () => {
             </div>
           </div>
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );

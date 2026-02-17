@@ -4,6 +4,7 @@ import './globals.css';
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { EnvProvider } from '@/context/EnvContext';
+import { MenuProvider } from '@/context/MenuContext';
 import {Metadata} from "next";
 import SessionManager from '@/layout/SessionManager';
 
@@ -40,8 +41,10 @@ export default function RootLayout({
         <EnvProvider>
           <ThemeProvider>
             <SidebarProvider>
-              <SessionManager />
-              {children}
+              <MenuProvider>
+                <SessionManager />
+                {children}
+              </MenuProvider>
             </SidebarProvider>
           </ThemeProvider>
         </EnvProvider>

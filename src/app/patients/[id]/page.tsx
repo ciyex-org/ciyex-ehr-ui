@@ -4,7 +4,7 @@ import { getEnv } from "@/utils/env";
 import AllergiesSummary from "@/components/patients/AllergiesSummary";
 import MedicalProblemsSummary from "@/components/patients/MedicalProblemsSummary";
 import InsuranceSummary from "@/components/patients/InsuranceSummary";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
@@ -30,12 +30,41 @@ import {
 } from "@/components/PatientComponents";
 import DocumentsFlat from "@/components/Documents/Documents";
 import EncounterTableExpandable from "@/components/encounter/EncounterTableExpandable";
-
 import PatientBilling from "@/components/billing/PatientBilling";
+import {
+    LayoutDashboard, Stethoscope, HeartPulse, ShieldAlert, Pill,
+    Activity, FlaskConical, Syringe, Clock, UserRound, CalendarDays,
+    FileText, MessageSquare, Users, Building2, Receipt, ShieldCheck,
+    ArrowLeftRight, CreditCard, FileBarChart, CircleAlert,
+    // Extended icons for specialty tabs
+    Eye, Ear, Bone, Brain, Smile, Scissors, Scan, Gauge, Microscope,
+    Baby, Heart, Home, Droplets, Droplet, Wind, Dna, Radiation,
+    Layers, Fingerprint, Bug, Zap, Moon, Leaf, Sparkles, Footprints,
+    Hand, Apple, GitBranch, Siren, ClipboardList, ClipboardCheck,
+    TrendingUp, Target, Dumbbell, Forward, FileCheck, RotateCcw,
+    BarChart3, AlertTriangle, Shield, Cpu, Glasses, Bandage,
+    type LucideIcon, MessageCircle, Search, Plane
+} from "lucide-react";
 
 // Normalize API base - if NEXT_PUBLIC_API_URL is unset, fall back to localhost backend
 // (other utils use http://localhost:8080 as a default when not set)
 const API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
+const METADATA_API_BASE = (getEnv("NEXT_PUBLIC_METADATA_URL") || "http://localhost:8081").replace(/\/$/, "");
+
+// Map icon name strings from API to actual lucide-react components
+const ICON_MAP: Record<string, LucideIcon> = {
+    LayoutDashboard, Stethoscope, HeartPulse, ShieldAlert, Pill,
+    Activity, FlaskConical, Syringe, Clock, UserRound, CalendarDays,
+    FileText, MessageSquare, Users, Building2, Receipt, ShieldCheck,
+    ArrowLeftRight, CreditCard, FileBarChart, CircleAlert,
+    Eye, Ear, Bone, Brain, Smile, Scissors, Scan, Gauge, Microscope,
+    Baby, Heart, Home, Droplets, Droplet, Wind, Dna, Radiation,
+    Layers, Fingerprint, Bug, Zap, Moon, Leaf, Sparkles, Footprints,
+    Hand, Apple, GitBranch, Siren, ClipboardList, ClipboardCheck,
+    TrendingUp, Target, Dumbbell, Forward, FileCheck, RotateCcw,
+    BarChart3, AlertTriangle, Shield, Cpu, Glasses, Bandage,
+    MessageCircle, Search, Plane,
+};
 interface Patient {
     id: string;
     firstName: string;
@@ -425,6 +454,11 @@ export default function PatientDashboardPage() {
     const [allergies, setAllergies] = useState<any[]>([]);
     const [viewMode, setViewMode] = useState<string>("dashboard");
     const [highlightedTab, setHighlightedTab] = useState<string>("dashboard");
+    const [activeCategory, setActiveCategory] = useState<string>("Overview");
+    const [dynamicTabCategories, setDynamicTabCategories] = useState<Array<{
+        label: string;
+        tabs: Array<{ key: string; label: string; icon: LucideIcon; visible?: boolean }>;
+    }> | null>(null);
     const [showEncounterForm, setShowEncounterForm] = useState(false);
     const [encounterForm, setEncounterForm] = useState<EncounterFormData>({
         visitCategory: "",
@@ -611,6 +645,35 @@ export default function PatientDashboardPage() {
         sections.forEach(({ el }) => observer.observe(el));
         return () => observer.disconnect();
     }, [headerH, viewMode, patient, showEncounterForm]);
+
+    // Fetch tab configuration from metadata service
+    useEffect(() => {
+        const fetchTabConfig = async () => {
+            try {
+                const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-config/effective`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.tabConfig && Array.isArray(data.tabConfig)) {
+                        const mapped = data.tabConfig.map((category: any) => ({
+                            label: category.label,
+                            tabs: (category.tabs || [])
+                                .filter((tab: any) => tab.visible !== false)
+                                .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+                                .map((tab: any) => ({
+                                    key: tab.key,
+                                    label: tab.label,
+                                    icon: ICON_MAP[tab.icon] || FileText,
+                                })),
+                        })).filter((cat: any) => cat.tabs.length > 0);
+                        setDynamicTabCategories(mapped);
+                    }
+                }
+            } catch (err) {
+                console.warn("Failed to fetch tab config, using defaults:", err);
+            }
+        };
+        fetchTabConfig();
+    }, []);
 
     useEffect(() => {
         const fetchPatientData = async () => {
@@ -890,6 +953,9 @@ export default function PatientDashboardPage() {
         }
         setViewMode(key);
         setHighlightedTab(key);
+        // Auto-set active category based on which tab was clicked
+        const cat = tabCategories.find(c => c.tabs.some(t => t.key === key));
+        if (cat) setActiveCategory(cat.label);
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -940,31 +1006,60 @@ export default function PatientDashboardPage() {
         );
     }
 
-    const patientTabs = [
-        { key: "dashboard", label: "Dashboard" },
-        { key: "demographics", label: "Demographics" },
-        { key: "appointments", label: "Appointments" },
-        { key: "encounters", label: "Encounters" },
-        { key: "billing", label: "Billing" },
-        { key: "insurance", label: "Insurance" },
-        { key: "history", label: "History" },
-        { key: "documents", label: "Documents" },
-        { key: "report", label: "Report" },
-        { key: "allergies", label: "Allergies" },
-        { key: "medicalproblems", label: "Medical Problems" },
-        { key: "medications", label: "Medications" },
-        { key: "labs", label: "Labs" },
-        { key: "transactions", label: "Transactions" },
-        { key: "issues", label: "Issues" },
-        { key: "vitals", label: "Vitals" },
-        { key: "messages", label: "Messages" },
-
-        // 👇 New buttons
-        { key: "immunizations", label: "Immunizations" },
-        { key: "healthcareservices", label: "Healthcare Services" },
-        { key: "relationships", label: "Relationships" },
-        { key: "payment", label: "Payment" },
+    // Hardcoded fallback tabs (used when API is unavailable)
+    const defaultTabCategories = [
+        {
+            label: "Overview",
+            tabs: [
+                { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+            ],
+        },
+        {
+            label: "Clinical",
+            tabs: [
+                { key: "encounters", label: "Encounters", icon: Stethoscope },
+                { key: "medicalproblems", label: "Problems", icon: HeartPulse },
+                { key: "allergies", label: "Allergies", icon: ShieldAlert },
+                { key: "medications", label: "Meds", icon: Pill },
+                { key: "vitals", label: "Vitals", icon: Activity },
+                { key: "labs", label: "Labs", icon: FlaskConical },
+                { key: "immunizations", label: "Immunizations", icon: Syringe },
+                { key: "history", label: "History", icon: Clock },
+            ],
+        },
+        {
+            label: "General",
+            tabs: [
+                { key: "demographics", label: "Demographics", icon: UserRound },
+                { key: "appointments", label: "Appointments", icon: CalendarDays },
+                { key: "documents", label: "Documents", icon: FileText },
+                { key: "messages", label: "Messages", icon: MessageSquare },
+                { key: "relationships", label: "Relationships", icon: Users },
+                { key: "healthcareservices", label: "Services", icon: Building2 },
+            ],
+        },
+        {
+            label: "Financial",
+            tabs: [
+                { key: "billing", label: "Billing", icon: Receipt },
+                { key: "insurance", label: "Insurance", icon: ShieldCheck },
+                { key: "transactions", label: "Transactions", icon: ArrowLeftRight },
+                { key: "payment", label: "Payment", icon: CreditCard },
+            ],
+        },
+        {
+            label: "Other",
+            tabs: [
+                { key: "report", label: "Report", icon: FileBarChart },
+                { key: "issues", label: "Issues", icon: CircleAlert },
+            ],
+        },
     ];
+
+    // Use API-driven tabs if available, otherwise fallback to hardcoded defaults
+    const tabCategories = dynamicTabCategories || defaultTabCategories;
+
+    const patientTabs = tabCategories.flatMap((cat) => cat.tabs);
 
     const renderTabContent = (tabKey: string) => {
         switch (tabKey) {
@@ -1361,22 +1456,57 @@ export default function PatientDashboardPage() {
 
                     </div>
 
-                    <div className="mt-1.5">
-                        <div className="flex flex-wrap gap-2">
-                            {patientTabs.map((tab) => (
+                    {/* Main category tabs */}
+                    <div className="mt-1.5 flex items-center gap-1">
+                        {tabCategories.map((category) => {
+                            const isActiveCat = activeCategory === category.label;
+                            const catHasActiveTab = category.tabs.some(t => t.key === highlightedTab);
+                            return (
                                 <button
-                                    key={tab.key}
-                                    className={`h-8 inline-flex items-center px-3 rounded-md text-xs font-medium whitespace-nowrap leading-none transition-colors ${
-                                        highlightedTab === tab.key
-                                            ? "bg-blue-600 text-white shadow"
-                                            : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                                    key={category.label}
+                                    className={`h-8 inline-flex items-center px-3 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+                                        isActiveCat
+                                            ? "bg-blue-600 text-white shadow-sm"
+                                            : catHasActiveTab
+                                                ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                     }`}
-                                    onClick={() => onTabClick(tab.key)}
+                                    onClick={() => {
+                                        setActiveCategory(category.label);
+                                        // Auto-select first tab in category if switching categories
+                                        if (!category.tabs.some(t => t.key === highlightedTab)) {
+                                            onTabClick(category.tabs[0].key);
+                                        }
+                                    }}
                                 >
-                                    {tab.label}
+                                    {category.label}
                                 </button>
-                            ))}
-                        </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Sub-tabs for active category */}
+                    <div className="mt-1 flex items-center gap-1">
+                        {tabCategories
+                            .find(c => c.label === activeCategory)
+                            ?.tabs.map((tab) => {
+                                const Icon = tab.icon;
+                                const isActive = highlightedTab === tab.key;
+                                return (
+                                    <button
+                                        key={tab.key}
+                                        className={`h-7 inline-flex items-center gap-1.5 px-2.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors ${
+                                            isActive
+                                                ? "bg-gray-800 text-white shadow-sm"
+                                                : "text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                                        }`}
+                                        onClick={() => onTabClick(tab.key)}
+                                    >
+                                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
                     </div>
                 </div>
 

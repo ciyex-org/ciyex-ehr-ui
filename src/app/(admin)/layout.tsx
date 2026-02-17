@@ -2,8 +2,9 @@
 
 
 import { getEnv } from "@/utils/env";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSidebar } from "@/context/SidebarContext";
+import { useMenu } from "@/context/MenuContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
@@ -15,6 +16,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { isExpanded, isHovered, isMobileOpen } = useSidebar();
+    const { pageTitleMap } = useMenu();
     const pathname = usePathname() || "";
 
     // ✅ OrgId from localStorage
@@ -49,8 +51,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // ✅ Run notifications only if toggle is ON
     useLowStockNotifications(orgId, threshold, lowStockAlerts);
 
-    // -------- rest of your layout code --------
-    const mapping: Record<string, string> = {
+    // Hardcoded fallback mapping (used when API data is unavailable)
+    const fallbackMapping: Record<string, string> = {
         "/dashboard": "Dashboard",
         "/patients": "Patients",
         "/calendar": "Calendar",
@@ -70,7 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         "/reports/patient": "Patient Reports",
         "/reports/appointment": "Appointment Reports",
         "/reports/encounter": "Encounters Reports",
-        "/reports/payment": "payment Reports",
+        "/reports/payment": "Payment Reports",
         "/inventory-management": "Inventory Dashboard",
         "/inventory-management/inventory": "Inventory Management",
         "/inventory-management/orders": "Inventory Orders",
@@ -82,9 +84,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         "/all-encounters": "All Encounters",
         "/labs/orders": "Lab Orders",
         "/labs/results": "Lab Results",
-      
-        
+        "/settings/menu-configuration": "Menu Configuration",
+        "/settings/tab-configuration": "Layout Configuration",
     };
+
+    // Merge: API-driven mapping takes priority, fallback fills gaps
+    const mapping = useMemo(() => ({
+        ...fallbackMapping,
+        ...pageTitleMap,
+    }), [pageTitleMap]);
 
     const pageTitle =
         Object.entries(mapping)

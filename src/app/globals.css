@@ -279,6 +279,19 @@
   background-color: #344054;
 }
 
+@utility scrollbar-thin {
+  &::-webkit-scrollbar {
+    height: 2px;
+  }
+  &::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  scrollbar-width: thin;
+}
+
 
 
 @layer utilities {
