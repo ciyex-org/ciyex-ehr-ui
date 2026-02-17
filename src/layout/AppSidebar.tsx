@@ -142,7 +142,7 @@ const FALLBACK_NAV_ITEMS: NavItem[] = [
       },
       { name: "Facilities", path: "/settings/facilities" },
       { name: "Practice", path: "/settings/practice" },
-      { name: "Tab Configuration", path: "/settings/tab-configuration" },
+      { name: "Chart", path: "/settings/layout-settings" },
       { name: "Menu Configuration", path: "/settings/menu-configuration" },
     ],
   },

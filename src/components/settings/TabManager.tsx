@@ -15,6 +15,7 @@ export interface TabItem {
     icon: string;
     visible: boolean;
     position: number;
+    fhirResources?: Array<{ type: string; patientSearchParam?: string } | string>;
 }
 
 export interface TabCategory {
@@ -327,8 +328,23 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
 
                                                 <Icon className="w-4 h-4 text-gray-500 shrink-0" />
 
-                                                <span className="text-sm text-gray-700 flex-1 font-medium">{tab.label}</span>
-                                                <span className="text-xs text-gray-400 font-mono mr-2">{tab.key}</span>
+                                                <span className="text-sm text-gray-700 font-medium">{tab.label}</span>
+                                                {tab.fhirResources && tab.fhirResources.length > 0 && (
+                                                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                                                        {tab.fhirResources.map((r, i) => {
+                                                            const typeName = typeof r === "string" ? r : r.type;
+                                                            return (
+                                                                <span key={i} className="px-1.5 py-0.5 text-[10px] font-mono bg-indigo-50 text-indigo-600 rounded border border-indigo-100">
+                                                                    {typeName}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                                {(!tab.fhirResources || tab.fhirResources.length === 0) && (
+                                                    <span className="flex-1" />
+                                                )}
+                                                <span className="text-xs text-gray-400 font-mono mr-2 shrink-0">{tab.key}</span>
 
                                                 <div className="flex items-center gap-0.5">
                                                     <button

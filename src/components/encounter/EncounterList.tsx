@@ -3,24 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import type { ApiResponse, EncounterDto } from "@/utils/types";
-import EncounterForm from "./EncounterForm";
 import Link from "next/link";
 
 type Props = {
     patientId: number;
 };
 
-// Normalize a FHIR-style date array [yyyy, mm, dd, hh?, mm?] or a string to a sortable string
 function toDateKey(d?: string | number[]): string {
     if (!d) return "";
     if (Array.isArray(d)) {
         const [y, m, day, h = 0, min = 0] = d;
         const dt = new Date(Date.UTC(Number(y), Number(m) - 1, Number(day), Number(h), Number(min)));
-        // Use full ISO to keep ordering by date+time
         return dt.toISOString();
     }
-    // If it's already a string, keep only date/time part that sorts lexicographically
-    // Most of your dates appear as ISO strings; slicing to 19 chars keeps "YYYY-MM-DDTHH:MM:SS"
     return d.length >= 19 ? d.slice(0, 19) : d.slice(0, 10);
 }
 
@@ -28,14 +23,11 @@ export default function EncounterList({ patientId }: Props) {
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState<EncounterDto[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [showForm, setShowForm] = useState(false);
-    const [editing, setEditing] = useState<EncounterDto | null>(null);
 
     async function load() {
         setLoading(true);
         setError(null);
         try {
-            // assumes GET /api/encounters?patientId=...
             const res = await fetchWithOrg(`/api/encounters?patientId=${patientId}`, { method: "GET" });
             const json = (await res.json()) as ApiResponse<EncounterDto[]>;
             if (!res.ok || !json.success) throw new Error(json.message || "Load failed");
@@ -63,20 +55,6 @@ export default function EncounterList({ patientId }: Props) {
         setItems((p) => p.filter((x) => x.id !== id));
     }
 
-    function onSaved(e: EncounterDto) {
-        setShowForm(false);
-        setEditing(null);
-        setItems((prev) => {
-            const i = prev.findIndex((x) => x.id === e.id);
-            if (i >= 0) {
-                const copy = [...prev];
-                copy[i] = e;
-                return copy;
-            }
-            return [e, ...prev];
-        });
-    }
-
     const sorted = useMemo(
         () =>
             [...items].sort((a, b) => {
@@ -97,28 +75,7 @@ export default function EncounterList({ patientId }: Props) {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Encounters</h2>
-                <button
-                    onClick={() => {
-                        setEditing(null);
-                        setShowForm((s) => !s);
-                    }}
-                    className="rounded-xl bg-indigo-600 text-white px-4 py-2 hover:bg-indigo-700"
-                >
-                    {showForm ? "Close" : "Add Encounter"}
-                </button>
             </div>
-
-            {showForm && (
-                <EncounterForm
-                    patientId={patientId}
-                    editing={editing}
-                    onSaved={onSaved}
-                    onCancel={() => {
-                        setShowForm(false);
-                        setEditing(null);
-                    }}
-                />
-            )}
 
             {loading && <div className="text-gray-600">Loading...</div>}
             {error && <div className="text-red-600">{error}</div>}
@@ -137,28 +94,18 @@ export default function EncounterList({ patientId }: Props) {
                                 <p className="text-gray-700">{e.reason || "-"}</p>
                             </div>
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => {
-                                        setEditing(e);
-                                        setShowForm(true);
-                                    }}
-                                    className="rounded-lg border px-3 py-1.5 hover:bg-gray-50"
+                                <Link
+                                    className="rounded-lg bg-blue-600 text-white px-3 py-1.5 hover:bg-blue-700 text-sm"
+                                    href={`/patients/${e.patientId}/encounters/${e.id}`}
                                 >
-                                    Edit
-                                </button>
+                                    Open
+                                </Link>
                                 <button
                                     onClick={() => remove(e.id!)}
-                                    className="rounded-lg border px-3 py-1.5 hover:bg-gray-50"
+                                    className="rounded-lg border px-3 py-1.5 hover:bg-gray-50 text-sm"
                                 >
                                     Delete
                                 </button>
-                                {/* Link to PMH for this encounter */}
-                                <Link
-                                    className="rounded-lg bg-gray-900 text-white px-3 py-1.5 hover:bg-black"
-                                    href={`/patients/${e.patientId}/encounters/${e.id}/medical-history`}
-                                >
-                                    Medical History
-                                </Link>
                             </div>
                         </div>
                     </li>

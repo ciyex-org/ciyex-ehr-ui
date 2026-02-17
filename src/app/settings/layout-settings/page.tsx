@@ -9,7 +9,7 @@ import FormBuilder from "@/components/settings/FormBuilder";
 import IconPicker from "@/components/settings/IconPicker";
 import {
     Settings, Loader2, Save, RotateCcw, Plus, Trash2, Edit2, X, Check,
-    LayoutGrid, FileText, Eye, Stethoscope, ChevronDown, ChevronUp, Columns,
+    FileText, Eye, Stethoscope, ChevronDown, ChevronUp, Columns,
     GripVertical, ArrowUp, ArrowDown, Search,
 } from "lucide-react";
 import { FHIR_RESOURCES, FHIR_PATH_SUGGESTIONS, FIELD_TYPES } from "@/utils/FhirPathHelper";
@@ -68,7 +68,7 @@ const CATEGORY_OPTIONS = ["Overview", "Encounters", "Clinical", "Claims", "Gener
 const PRACTICE_CATEGORIES = ["MEDICAL", "SURGICAL", "BEHAVIORAL", "DENTAL", "ALLIED_HEALTH", "HOME_HEALTH", "INPATIENT"];
 
 export default function TabConfigurationPage() {
-    const [activeSection, setActiveSection] = useState<"practice-type" | "tab-manager" | "custom-tabs" | "manage-specialties" | "field-config">("practice-type");
+    const [activeSection, setActiveSection] = useState<"tab-manager" | "custom-tabs" | "manage-specialties" | "field-config">("tab-manager");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [practiceTypes, setPracticeTypes] = useState<PracticeType[]>([]);
@@ -127,7 +127,7 @@ export default function TabConfigurationPage() {
         try {
             const [ptRes, effectiveRes, customRes, specRes] = await Promise.allSettled([
                 fetchWithAuth(`${METADATA_API_BASE}/api/tab-config/practice-types`),
-                fetchWithAuth(`${METADATA_API_BASE}/api/tab-config/effective`),
+                fetchWithAuth(`${METADATA_API_BASE}/api/tab-field-config/layout`),
                 fetchWithAuth(`${METADATA_API_BASE}/api/tab-config/custom-tabs`),
                 fetchWithAuth(`${METADATA_API_BASE}/api/specialties`),
             ]);
@@ -170,48 +170,12 @@ export default function TabConfigurationPage() {
         }
     };
 
-    // ---- Practice Type Selection ----
-
-    const handleApplyDefaults = async () => {
-        if (!selectedPracticeType) return;
-        setSaving(true);
-        try {
-            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-config/org/clone-from-default`, {
-                method: "POST",
-                body: JSON.stringify({ practiceTypeCode: selectedPracticeType }),
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setTabCategories(data.tabConfig);
-                setConfigSource("CLONED_FROM_DEFAULT");
-                showNotif("success", "Defaults applied successfully");
-            }
-        } catch (err) {
-            showNotif("error", "Failed to apply defaults");
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handlePreviewDefaults = async (code: string) => {
-        try {
-            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-config/practice-types/${code}/defaults`);
-            if (res.ok) {
-                const data = await res.json();
-                setTabCategories(data.tabConfig);
-                setSelectedPracticeType(code);
-            }
-        } catch (err) {
-            console.error("Failed to preview defaults:", err);
-        }
-    };
-
     // ---- Tab Config Save ----
 
     const handleSaveTabConfig = async () => {
         setSaving(true);
         try {
-            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-config/org`, {
+            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-field-config/layout`, {
                 method: "PUT",
                 body: JSON.stringify({ tabConfig: tabCategories }),
             });
@@ -230,7 +194,7 @@ export default function TabConfigurationPage() {
         if (!confirm("Reset to practice type defaults? Your custom tab layout will be removed.")) return;
         setSaving(true);
         try {
-            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-config/org`, { method: "DELETE" });
+            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-field-config/layout`, { method: "DELETE" });
             if (res.ok) {
                 await loadData();
                 showNotif("success", "Reset to defaults");
@@ -482,7 +446,7 @@ export default function TabConfigurationPage() {
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            <Settings className="w-6 h-6" /> Layout Configuration
+                            <Settings className="w-6 h-6" /> Chart
                         </h1>
                         <p className="text-sm text-gray-500 mt-1">
                             Configure patient chart layout, tabs, and field mappings
@@ -505,7 +469,6 @@ export default function TabConfigurationPage() {
                 {/* Section Tabs */}
                 <div className="flex items-center gap-1 mb-6 border-b border-gray-200">
                     {[
-                        { key: "practice-type" as const, label: "Practice Type", icon: LayoutGrid },
                         { key: "tab-manager" as const, label: "Tab Manager", icon: Eye },
                         { key: "field-config" as const, label: "Field Configuration", icon: Columns },
                         { key: "custom-tabs" as const, label: "Custom Form Tabs", icon: FileText },
@@ -524,85 +487,6 @@ export default function TabConfigurationPage() {
                         </button>
                     ))}
                 </div>
-
-                {/* Section A: Practice Type Selection */}
-                {activeSection === "practice-type" && (
-                    <div className="space-y-6">
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Practice Type</h3>
-                            <p className="text-sm text-gray-500 mb-4">
-                                Choose your practice type to load default tab configurations.
-                                You can customize the tabs further in the Tab Manager section.
-                            </p>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {practiceTypes.map((pt) => (
-                                    <button
-                                        key={pt.code}
-                                        onClick={() => handlePreviewDefaults(pt.code)}
-                                        className={`text-left p-4 rounded-lg border-2 transition-colors ${
-                                            selectedPracticeType === pt.code
-                                                ? "border-blue-500 bg-blue-50"
-                                                : "border-gray-200 hover:border-gray-300 bg-white"
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-sm font-medium text-gray-900">{pt.name}</span>
-                                            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
-                                                {pt.category}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-gray-500 line-clamp-2">{pt.description}</p>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {selectedPracticeType && (
-                                <div className="mt-6 flex items-center gap-3 pt-4 border-t border-gray-200">
-                                    <button
-                                        onClick={handleApplyDefaults}
-                                        disabled={saving}
-                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
-                                    >
-                                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                                        Apply &quot;{practiceTypes.find(p => p.code === selectedPracticeType)?.name}&quot; Defaults
-                                    </button>
-                                    <span className="text-xs text-gray-400">
-                                        This will clone the default tabs so you can customize them.
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Preview */}
-                        {tabCategories.length > 0 && (
-                            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                                <h4 className="text-sm font-semibold text-gray-700 mb-3">Preview: Tab Layout</h4>
-                                <div className="space-y-2">
-                                    {tabCategories.map((cat: any, idx: number) => (
-                                        <div key={idx}>
-                                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                {cat.label}
-                                            </span>
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                                {(cat.tabs || [])
-                                                    .filter((t: any) => t.visible !== false)
-                                                    .map((tab: any) => (
-                                                        <span
-                                                            key={tab.key}
-                                                            className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-700"
-                                                        >
-                                                            {tab.label}
-                                                        </span>
-                                                    ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
 
                 {/* Section B: Tab Manager */}
                 {activeSection === "tab-manager" && (

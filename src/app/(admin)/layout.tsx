@@ -85,7 +85,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         "/labs/orders": "Lab Orders",
         "/labs/results": "Lab Results",
         "/settings/menu-configuration": "Menu Configuration",
-        "/settings/tab-configuration": "Layout Configuration",
+        "/settings/layout-settings": "Chart",
+        "/settings/encounter-settings": "Encounter",
     };
 
     // Merge: API-driven mapping takes priority, fallback fills gaps
