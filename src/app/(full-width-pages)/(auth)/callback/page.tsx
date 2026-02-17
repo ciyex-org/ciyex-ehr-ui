@@ -1,6 +1,6 @@
 "use client";
 import { getEnv } from "@/utils/env";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getAccessibleTenants, setSelectedTenant } from "@/utils/tenantService";
 
@@ -9,21 +9,42 @@ function AuthCallbackContent() {
     const searchParams = useSearchParams();
     const [error, setError] = useState<string | null>(null);
     const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
+    const processingRef = useRef(false);
 
     useEffect(() => {
         const handleCallback = async () => {
+            // Prevent duplicate processing
+            if (processingRef.current) {
+                console.log("⏭️ Already processing callback, skipping...");
+                return;
+            }
+            processingRef.current = true;
+
             // Get authorization code from URL
             const code = searchParams.get("code");
             const errorParam = searchParams.get("error");
 
             if (errorParam) {
                 setError(`Authentication failed: ${errorParam}`);
+                processingRef.current = false;
                 return;
             }
 
             if (!code) {
                 setError("No authorization code received");
+                processingRef.current = false;
                 return;
+            }
+
+            // Check if this code was already processed
+            const processedCode = sessionStorage.getItem('processed_auth_code');
+            if (processedCode === code) {
+                console.log("✅ Code already processed, redirecting...");
+                const existingToken = localStorage.getItem('token');
+                if (existingToken) {
+                    router.replace("/calendar");
+                    return;
+                }
             }
 
             try {
@@ -86,6 +107,9 @@ function AuthCallbackContent() {
                         localStorage.setItem("primaryGroup", groups[0]);
                     }
 
+                    // Mark this code as processed
+                    sessionStorage.setItem('processed_auth_code', code);
+                    
                     // Clean up PKCE code verifier
                     sessionStorage.removeItem('pkce_code_verifier');
 
@@ -104,38 +128,40 @@ function AuthCallbackContent() {
                         if (existingTenant) {
                             console.log("User already has selected practice:", existingTenant);
                             console.log("Skipping practice selection, going to calendar");
-                            router.push("/calendar");
+                            router.replace("/calendar");
                         } else if (tenantsData.requiresSelection && tenantsData.tenants?.length > 1) {
                             // Multi-tenant user without selected practice, redirect to practice selection
                             console.log("User has multiple tenants, redirecting to practice selection");
-                            router.push("/select-practice");
+                            router.replace("/select-practice");
                         } else if (tenantsData.tenants?.length === 1) {
                             // Single tenant, auto-select and redirect to calendar
                             console.log("User has single tenant, auto-selecting:", tenantsData.tenants[0]);
                             setSelectedTenant(tenantsData.tenants[0]);
-                            router.push("/calendar");
+                            router.replace("/calendar");
                         } else {
                             // No tenants or full access, redirect to calendar
                             console.log("User has full access or no tenants, redirecting to calendar");
-                            router.push("/calendar");
+                            router.replace("/calendar");
                         }
                     } catch (tenantErr) {
                         console.error("Failed to check tenants:", tenantErr);
                         // Fallback to calendar - don't block login
                         console.log("Continuing to calendar despite tenant check failure");
-                        router.push("/calendar");
+                        router.replace("/calendar");
                     }
                 } else {
                     setError(data.message || "Authentication failed");
+                    processingRef.current = false;
                 }
             } catch (err) {
                 console.error("Callback error:", err);
                 setError("An error occurred during authentication");
+                processingRef.current = false;
             }
         };
 
         handleCallback();
-    }, [searchParams, router, apiUrl]);
+    }, []);
 
     if (error) {
         return (
