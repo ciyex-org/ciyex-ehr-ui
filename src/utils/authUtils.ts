@@ -232,6 +232,11 @@ export const clearAuth = (): void => {
     // Clear tenant data
     localStorage.removeItem('selectedTenant');
     localStorage.removeItem('tenantName');
+    
+    // Clear session storage
+    sessionStorage.removeItem('pkce_code_verifier');
+    sessionStorage.removeItem('processed_auth_code');
+    sessionStorage.removeItem('lastActivity');
 };
 
 /**
