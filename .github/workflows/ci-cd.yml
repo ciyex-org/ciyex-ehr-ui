@@ -617,18 +617,12 @@ jobs:
           git tag -a "$VERSION" -m "Release $VERSION"
           git push origin "$VERSION" || echo "Tag already exists"
 
-      - name: Update Kustomize overlay with new image tag
+      - name: Summary
         run: |
           VERSION="${{ needs.version.outputs.version }}"
-          OVERLAY="${{ needs.version.outputs.overlay }}"
-          
-          sed -i "s/newTag: .*/newTag: \"$VERSION\"/" k8s/overlays/$OVERLAY/kustomization.yaml
-          
-          git add k8s/overlays/$OVERLAY/kustomization.yaml
-          git commit -m "chore: update $OVERLAY image to $VERSION [skip ci]" || echo "No changes"
-          git push origin main || echo "Push failed"
-          
-          echo "✅ Updated k8s/overlays/$OVERLAY with image tag: $VERSION"
+          echo "✅ Image pushed: $REGISTRY/$IMAGE_NAME:$VERSION"
+          echo "Kustomize overlays are managed in qiaben-kube-deployment repo."
+          echo "ArgoCD Image Updater will auto-update the deployment."
 
   # Notify team
   notify:
