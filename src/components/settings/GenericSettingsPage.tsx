@@ -284,17 +284,30 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
             });
 
             if (res.ok) {
+                const saved = await res.json().catch(() => null);
                 if (isSingleton) {
-                    // Stay in edit mode — refresh the record data
-                    const refreshed = await fetchWithAuth(fhirUrl(`?page=0&size=1`));
-                    if (refreshed.ok) {
-                        const json = await refreshed.json();
-                        const payload = json.data || json;
-                        const items = payload.content || (Array.isArray(payload) ? payload : []);
-                        if (items.length > 0) {
-                            const rec = items[0];
+                    // Stay in edit mode — refresh with the saved record
+                    const savedId = saved?.data?.id || saved?.data?.fhirId || resourceId;
+                    if (savedId) {
+                        const refreshed = await fetchWithAuth(fhirUrl(`/${savedId}`));
+                        if (refreshed.ok) {
+                            const json = await refreshed.json();
+                            const rec = json.data || json;
                             setFormData({ ...rec, ...flattenObject(rec) });
                             setSelectedRecord(rec);
+                        }
+                    } else {
+                        // Fallback: re-fetch list
+                        const refreshed = await fetchWithAuth(fhirUrl(`?page=0&size=1`));
+                        if (refreshed.ok) {
+                            const json = await refreshed.json();
+                            const payload = json.data || json;
+                            const items = payload.content || (Array.isArray(payload) ? payload : []);
+                            if (items.length > 0) {
+                                const rec = items[0];
+                                setFormData({ ...rec, ...flattenObject(rec) });
+                                setSelectedRecord(rec);
+                            }
                         }
                     }
                 } else {

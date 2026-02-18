@@ -79,7 +79,7 @@ export default function PatientCodesList() {
             const payload = Array.isArray(j?.data) ? j!.data! : [];
             setRows(payload.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
         } catch (e: unknown) {
-            setError(e?.message || "Failed to load patient code lists");
+            setError((e as Error).message ||"Failed to load patient code lists");
         } finally {
             setLoading(false);
         }
@@ -140,7 +140,7 @@ export default function PatientCodesList() {
             setRows(payload.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
             alert("Saved successfully");
         } catch (e: unknown) {
-            alert(e?.message || "Failed to save");
+            alert((e as Error).message ||"Failed to save");
         } finally {
             setSaving(false);
         }
@@ -170,7 +170,7 @@ export default function PatientCodesList() {
             }
             setRows((prev) => prev.filter((_, i) => i !== idx));
         } catch (e: unknown) {
-            alert(e?.message || "Failed to delete");
+            alert((e as Error).message ||"Failed to delete");
         } finally {
             setSaving(false);
         }
@@ -201,7 +201,7 @@ export default function PatientCodesList() {
             // Either returns a single row or refreshed list — reload to be safe
             await reload();
         } catch (e: unknown) {
-            alert(e?.message || "Failed to set default");
+            alert((e as Error).message ||"Failed to set default");
         } finally {
             setSaving(false);
         }

@@ -7,6 +7,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import DatePicker from "@/components/DatePicker";
+import PluginSlot from "@/components/plugins/PluginSlot";
 import {
     Dialog,
     DialogContent,
@@ -252,6 +253,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                             <line x1="16" y1="2" x2="16" y2="6" />
                         </svg>
                     </button>
+
+                    {/* Plugin-injected header actions */}
+                    <PluginSlot name="global:header-action" as="fragment" />
 
                     <NotificationDropdown />
                     <UserDropdown />

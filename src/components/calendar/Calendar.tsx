@@ -1216,7 +1216,7 @@ const Calendar: React.FC = () => {
 
             const count = events.filter((e) => {
                 if (!e.start) return false;
-                const eventStart = new Date(e.start);
+                const eventStart = new Date(e.start as string | number | Date);
                 const eventDateStr = eventStart.getFullYear() + '-' +
                     String(eventStart.getMonth() + 1).padStart(2, '0') + '-' +
                     String(eventStart.getDate()).padStart(2, '0');

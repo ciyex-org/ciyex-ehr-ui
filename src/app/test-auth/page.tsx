@@ -916,7 +916,7 @@ export default function Page() {
             pushToast('All settings saved successfully.', 'success', 'Saved');
         } catch (err: unknown) {
             console.error('Save error', err);
-            pushToast(err?.message ?? 'Unexpected error during save.', 'error', 'Error');
+            pushToast((err as Error)?.message ?? 'Unexpected error during save.', 'error', 'Error');
         }
     }
 

@@ -21,8 +21,8 @@ function AuthCallbackContent() {
             processingRef.current = true;
 
             // Get authorization code from URL
-            const code = searchParams.get("code");
-            const errorParam = searchParams.get("error");
+            const code = searchParams?.get("code") ?? null;
+            const errorParam = searchParams?.get("error") ?? null;
 
             if (errorParam) {
                 setError(`Authentication failed: ${errorParam}`);

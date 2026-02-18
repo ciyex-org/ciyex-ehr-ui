@@ -2,7 +2,7 @@ import { jwtDecode } from "jwt-decode";
 import { getEnv } from "@/utils/env";
 
 interface JWTPayload {
-  organization?: string;
+  organization?: any;
   [key: string]: any;
 }
 

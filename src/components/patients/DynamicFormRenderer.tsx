@@ -119,6 +119,7 @@ export interface SectionDef {
   columns?: number;
   collapsible?: boolean;
   collapsed?: boolean;
+  visible?: boolean;
   fields: FieldDef[];
   sectionComponent?: string;
   showWhen?: ShowWhenCondition;
@@ -142,6 +143,7 @@ export interface FieldConfigFeatures {
 export interface FieldConfig {
   sections: SectionDef[];
   features?: FieldConfigFeatures;
+  singleton?: boolean;
 }
 
 export interface DynamicFormRendererProps {

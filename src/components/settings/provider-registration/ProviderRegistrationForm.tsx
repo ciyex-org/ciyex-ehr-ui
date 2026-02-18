@@ -182,7 +182,7 @@ const ProviderRegistrationForm = () => {
                 console.error("Create provider failed", { status: response.status, body: result });
                 setModalError({
                     title: "Error",
-                    message: (result && (result.message || result.error)) || `Save failed (status ${response.status})`,
+                    message: (result && ((result as any).message || (result as any).error)) || `Save failed (status ${response.status})`,
                 });
                 setShowErrorModal(true);
             }

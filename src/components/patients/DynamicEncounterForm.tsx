@@ -8,6 +8,9 @@ import { getEnv } from "@/utils/env";
 import DynamicFormRenderer, { FieldConfig } from "./DynamicFormRenderer";
 import { useAutoSave, AutoSaveStatus } from "@/hooks/useAutoSave";
 import { Loader2, ArrowLeft, Printer, CheckCircle, XCircle, ChevronDown, ChevronRight } from "lucide-react";
+import PluginSlot from "@/components/plugins/PluginSlot";
+import { PluginContextProvider } from "@/context/PluginContextProvider";
+import { usePluginEventBus } from "@/context/PluginEventBus";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -21,7 +24,8 @@ interface DynamicEncounterFormProps {
 export default function DynamicEncounterForm({ patientId, encounterId }: DynamicEncounterFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const backUrl = searchParams.get("from") === "encounters" ? "/all-encounters" : `/patients/${patientId}`;
+  const pluginEvents = usePluginEventBus();
+  const backUrl = searchParams?.get("from") === "encounters" ? "/all-encounters" : `/patients/${patientId}`;
 
   // Encounter metadata
   const [encounter, setEncounter] = useState<Record<string, any> | null>(null);
@@ -189,12 +193,26 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
       try {
         if (autoSave.isDirty) await autoSave.saveNow();
 
+        // Run encounter:close-hook — plugins can return { block: true, reason: "..." } to prevent signing
+        if (action === "sign") {
+          const hookResults = await pluginEvents.emitAsync("encounter:close-hook", {
+            patientId, encounterId, formData: autoSave.formData,
+          });
+          const blocker = hookResults.find((r: any) => r?.block);
+          if (blocker) {
+            alert(blocker.reason || "A plugin has blocked signing this encounter.");
+            setStatusLoading(false);
+            return;
+          }
+        }
+
         const res = await fetchWithAuth(
           `${API_BASE()}/api/${patientId}/encounters/${encounterId}/${action}`,
           { method: "POST" }
         );
         if (res.ok) {
           setStatus(next);
+          pluginEvents.emit("encounter:saved", { encounterId, status: next });
         } else {
           const json = await res.json().catch(() => null);
           alert(json?.message || `Failed to ${action} encounter`);
@@ -205,7 +223,7 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
         setStatusLoading(false);
       }
     },
-    [patientId, encounterId, autoSave]
+    [patientId, encounterId, autoSave, pluginEvents]
   );
 
   // PDF download
@@ -288,6 +306,10 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
   };
 
   return (
+    <PluginContextProvider
+      patient={{ id: String(patientId), name: patient ? `${patient.firstName} ${patient.lastName}` : undefined, birthDate: patient?.dateOfBirth }}
+      encounter={{ id: String(encounterId), status }}
+    >
     <div className="-m-4 md:-m-6 flex flex-col h-[calc(100vh-64px)]">
       {/* Top Bar */}
       <div className="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
@@ -355,6 +377,7 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
             >
               <Printer className="w-4 h-4" />
             </button>
+            <PluginSlot name="encounter:toolbar" context={{ patientId, encounterId, status }} as="fragment" />
           </div>
         </div>
       </div>
@@ -387,6 +410,7 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
               );
             })}
           </ul>
+          <PluginSlot name="encounter:sidebar" context={{ patientId, encounterId }} className="px-3 py-2 border-t border-gray-200 dark:border-gray-700" />
         </nav>
 
         {/* Right: Form Content */}
@@ -405,11 +429,20 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
                 />
               </section>
             ))}
+            {/* Plugin note sections (e.g., AI Summary, Voice Transcription) */}
+            <PluginSlot name="encounter:note-section" context={{ patientId, encounterId, status, formData: autoSave.formData }} className="space-y-4" />
+            {/* Plugin assessment cards (e.g., clinical decision support) */}
+            <PluginSlot name="encounter:assessment-card" context={{ patientId, encounterId, status }} className="space-y-4" />
+            {/* Plugin order panels (e.g., Lab Panel Finder) */}
+            <PluginSlot name="encounter:order-panel" context={{ patientId, encounterId, status }} className="space-y-4" />
+            {/* Plugin form footer (e.g., coding suggestions, compliance checks) */}
+            <PluginSlot name="encounter:form-footer" context={{ patientId, encounterId, status }} className="space-y-4" />
             {/* Bottom spacer for scrolling last section to top */}
             <div className="h-[50vh]" />
           </div>
         </div>
       </div>
     </div>
+    </PluginContextProvider>
   );
 }

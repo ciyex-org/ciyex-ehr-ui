@@ -12,6 +12,9 @@ import AdminLayout from "@/app/(admin)/layout";
 
 import Link from "next/link";
 import GenericFhirTab from "@/components/patients/GenericFhirTab";
+import PluginSlot from "@/components/plugins/PluginSlot";
+import { usePluginRegistry } from "@/context/PluginRegistryContext";
+import { PluginContextProvider } from "@/context/PluginContextProvider";
 import {
     LayoutDashboard, Stethoscope, HeartPulse, ShieldAlert, Pill,
     Activity, FlaskConical, Syringe, Clock, UserRound, CalendarDays,
@@ -460,7 +463,24 @@ export default function PatientDashboardPage() {
         },
     ];
 
-    const tabCategories = dynamicTabCategories || defaultTabCategories;
+    // Merge plugin-contributed tabs into the tab navigation
+    const { getSlotContributions } = usePluginRegistry();
+    const pluginTabs = getSlotContributions("patient-chart:tab");
+
+    const baseCategories = dynamicTabCategories || defaultTabCategories;
+    const tabCategories = pluginTabs.length > 0
+        ? [
+            ...baseCategories,
+            {
+                label: "Apps",
+                tabs: pluginTabs.map((pt) => ({
+                    key: `plugin:${pt.pluginSlug}`,
+                    label: pt.label || pt.pluginName,
+                    icon: ICON_MAP[pt.icon || "Layers"] || Layers,
+                })),
+            },
+        ]
+        : baseCategories;
 
     const renderTabContent = (tabKey: string) => {
         if (tabKey === "dashboard") {
@@ -498,15 +518,35 @@ export default function PatientDashboardPage() {
                         <MedicalProblemsSummary patientId={Number(patient.id)} />
                         <InsuranceSummary patientId={Number(patient.id)} />
                     </div>
+
+                    {/* Plugin summary cards (e.g., RPM Summary, Risk Score) */}
+                    <PluginSlot name="patient-chart:summary-card" context={{ patientId: patient.id }} className="grid grid-cols-1 md:grid-cols-3 gap-4" />
                 </div>
             );
         }
 
+        // Plugin-contributed tabs render via their registered component
+        if (tabKey.startsWith("plugin:")) {
+            const pluginSlug = tabKey.replace("plugin:", "");
+            const contribution = pluginTabs.find((pt) => pt.pluginSlug === pluginSlug);
+            if (contribution) {
+                return <contribution.component patientId={patient.id} />;
+            }
+            return <div className="p-4 text-gray-500">Plugin tab not found</div>;
+        }
+
         // All FHIR-resource-backed tabs render dynamically via GenericFhirTab
-        return <GenericFhirTab tabKey={tabKey} patientId={Number(patient.id)} />;
+        return (
+            <>
+                <PluginSlot name={`patient-chart:tab:${tabKey}:header`} context={{ patientId: patient.id, tabKey }} />
+                <GenericFhirTab tabKey={tabKey} patientId={Number(patient.id)} />
+                <PluginSlot name={`patient-chart:tab:${tabKey}:footer`} context={{ patientId: patient.id, tabKey }} />
+            </>
+        );
     };
 
     return (
+        <PluginContextProvider patient={{ id: patient.id, name: `${patient.firstName} ${patient.lastName}`, birthDate: patient.dateOfBirth, gender: patient.gender }}>
         <AdminLayout>
             {/* Negate AdminLayout padding so chart goes full-bleed */}
             <div className="pageScroll bg-gray-50 min-h-screen -m-4 md:-m-6">
@@ -570,9 +610,13 @@ export default function PatientDashboardPage() {
                                 <CalendarDays className="w-3.5 h-3.5" />
                                 Schedule Appointment
                             </button>
+                            <PluginSlot name="patient-chart:action-bar" context={{ patientId: patient.id }} as="fragment" />
                         </div>
                     </div>
                 </div>
+
+                {/* Plugin banner alerts (e.g., drug interaction warnings, care gap alerts) */}
+                <PluginSlot name="patient-chart:banner-alert" context={{ patientId: patient.id }} className="px-4 pt-2 space-y-2" />
 
                 {/* Content area: sidebar + main */}
                 <div className="flex">
@@ -587,8 +631,11 @@ export default function PatientDashboardPage() {
                     <main className="flex-1 min-w-0 p-4">
                         {renderTabContent(viewMode)}
                     </main>
+                    {/* Plugin sidebar widgets (e.g., Chat, AI Assistant, RPM panel) */}
+                    <PluginSlot name="patient-chart:sidebar-widget" context={{ patientId: patient.id }} className="w-72 shrink-0 border-l border-gray-200 p-3 space-y-3 bg-white hidden xl:block" />
                 </div>
             </div>
         </AdminLayout>
+        </PluginContextProvider>
     );
 }

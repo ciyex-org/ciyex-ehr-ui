@@ -4,10 +4,10 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const response = await fetch(`${BACKEND_URL}/api/portal/approvals/approve/${id}`, {
       method: 'PUT',

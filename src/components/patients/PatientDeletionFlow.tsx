@@ -44,7 +44,7 @@ export default function PatientDeletionFlow({
 
   return (
     <Dialog open={true} onOpenChange={onCancel}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" onClose={onCancel}>
         {step === 1 && (
           <>
             <DialogHeader>

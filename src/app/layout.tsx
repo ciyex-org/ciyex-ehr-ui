@@ -5,6 +5,10 @@ import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { EnvProvider } from '@/context/EnvContext';
 import { MenuProvider } from '@/context/MenuContext';
+import { PluginRegistryProvider } from '@/context/PluginRegistryContext';
+import { PluginEventBusProvider } from '@/context/PluginEventBus';
+import { PluginContextProvider } from '@/context/PluginContextProvider';
+import NativePluginLoader from '@/components/plugins/NativePluginLoader';
 import {Metadata} from "next";
 import SessionManager from '@/layout/SessionManager';
 
@@ -42,8 +46,15 @@ export default function RootLayout({
           <ThemeProvider>
             <SidebarProvider>
               <MenuProvider>
-                <SessionManager />
-                {children}
+                <PluginEventBusProvider>
+                  <PluginRegistryProvider>
+                    <PluginContextProvider>
+                      <NativePluginLoader />
+                      <SessionManager />
+                      {children}
+                    </PluginContextProvider>
+                  </PluginRegistryProvider>
+                </PluginEventBusProvider>
               </MenuProvider>
             </SidebarProvider>
           </ThemeProvider>

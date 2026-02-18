@@ -7,6 +7,7 @@ import AdminLayout from "@/app/(admin)/layout";
 import GenericSettingsPage from "@/components/settings/GenericSettingsPage";
 import { ICONS } from "@/components/settings/IconPicker";
 import { Settings, Loader2, FileText } from "lucide-react";
+import PluginSlot from "@/components/plugins/PluginSlot";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -95,6 +96,7 @@ export default function SettingsPage() {
                                 No settings pages configured
                             </p>
                         )}
+                        <PluginSlot name="settings:nav-item" className="mt-1 space-y-0.5" />
                     </nav>
                 </div>
 

@@ -124,7 +124,7 @@ export default function CreateOrderForm() {
                 </div>
 
                 <div className="mt-6 flex gap-3 justify-end">
-                    <Button variant="secondary" onClick={() => router.back()}>Cancel</Button>
+                    <Button variant="outline" onClick={() => router.back()}>Cancel</Button>
                     <Button variant="primary" onClick={handleSubmit}>Create Order</Button>
                 </div>
             </div>

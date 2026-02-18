@@ -109,7 +109,7 @@ const UnclaimedClaims: React.FC = () => {
       setUniqueCarriers(Array.from(new Set((response.data || []).map((c: any) => String(c.provider)).filter(Boolean))));
       setError(null);
     } catch (err: unknown) {
-      setError(err.message || "Error fetching patient claims");
+      setError((err as Error).message ||"Error fetching patient claims");
     } finally {
       setLoading(false);
     }
@@ -130,7 +130,7 @@ const UnclaimedClaims: React.FC = () => {
       setUniqueCarriers(Array.from(new Set(data.map((c: any) => String(c.provider)).filter(Boolean))));
       setError(null);
     } catch (err: unknown) {
-      setError(err.message || "Error fetching claims");
+      setError((err as Error).message ||"Error fetching claims");
     } finally {
       setLoading(false);
     }
@@ -177,7 +177,7 @@ const UnclaimedClaims: React.FC = () => {
 
       await reloadClaims();
     } catch (err: unknown) {
-      setActionError(err.message || "Error changing status");
+      setActionError((err as Error).message ||"Error changing status");
     } finally {
       setActionLoading(false);
     }
@@ -208,7 +208,7 @@ const UnclaimedClaims: React.FC = () => {
       setSelectedClaims(new Set());
       await reloadClaims();
     } catch (err: unknown) {
-      setActionError(err.message || "Error voiding & recreating claims");
+      setActionError((err as Error).message ||"Error voiding & recreating claims");
     } finally {
       setActionLoading(false);
     }

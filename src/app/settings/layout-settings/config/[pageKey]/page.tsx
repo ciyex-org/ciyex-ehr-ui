@@ -15,7 +15,7 @@ import {
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
 export default function PageConfigPage() {
-    const params = useParams();
+    const params = useParams()!;
     const pageKey = params.pageKey as string;
 
     const [activeSection, setActiveSection] = useState<"tab-manager" | "field-config">("tab-manager");

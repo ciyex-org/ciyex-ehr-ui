@@ -49,6 +49,7 @@ type MessageThread = {
 
 type Patient = {
     id: number;
+    fhirId?: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -607,7 +608,7 @@ const ReplySection: React.FC<{
     setReplyBody: (body: string) => void;
     onSendReply: () => void;
     isTyping: boolean;
-    replyInputRef: React.RefObject<HTMLTextAreaElement>;
+    replyInputRef: React.RefObject<HTMLTextAreaElement | null>;
     replyTo?: MessageThread | null;
     onCancelReply?: () => void;
     currentUserName?: string;

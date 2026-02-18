@@ -8,6 +8,9 @@ type EnvConfig = {
   NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: string;
   NEXT_PUBLIC_ORG_ID: string;
   NEXT_PUBLIC_STRIPE_PK: string;
+  NEXT_PUBLIC_MARKETPLACE_URL: string;
+  NEXT_PUBLIC_METADATA_URL: string;
+  NEXT_PUBLIC_CODES_SERVICE_URL: string;
   NEXT_PUBLIC_DEBUG: string;
 };
 
@@ -31,6 +34,9 @@ async function fetchConfig(): Promise<EnvConfig> {
       NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: "ciyex-app",
       NEXT_PUBLIC_ORG_ID: "",
       NEXT_PUBLIC_STRIPE_PK: "",
+      NEXT_PUBLIC_MARKETPLACE_URL: "",
+      NEXT_PUBLIC_METADATA_URL: "",
+      NEXT_PUBLIC_CODES_SERVICE_URL: "",
       NEXT_PUBLIC_DEBUG: "",
     };
   }

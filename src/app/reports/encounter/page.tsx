@@ -236,7 +236,7 @@ export default function EncounterReportPage() {
     if (visibleColumns.includes('secondaryInsurance')) headers.push('Secondary Insurance');
     
     const rows = dataToExport.map(e => {
-      const row = [e.id];
+      const row: (string | number)[] = [e.id];
       if (visibleColumns.includes('patientName')) row.push(patientNames.get(e.patientId) || e.patientId);
       if (visibleColumns.includes('date')) row.push(e.encounterDate);
       if (visibleColumns.includes('provider')) row.push(e.encounterProvider);
