@@ -333,18 +333,6 @@ function normalizeIntegrations(obj: any) {
             },
         },
 
-        sikka: {
-            vendor: S(root.sikka?.vendor),
-            appId: S(root.sikka?.appId),
-            appKey: S(root.sikka?.appKey),
-            refreshKey: S(root.sikka?.refreshKey),
-        },
-
-        zuub: {
-            vendor: S(root.zuub?.vendor),
-            apiKey: S(root.zuub?.apiKey),
-            apiUrl: S(root.zuub?.apiUrl),
-        },
     };
 }
 
@@ -715,7 +703,6 @@ type SectionId =
     | 'google'      // NEW combined card (Google Auth / reCAPTCHA)
     | 'telehealth'
     | 'ai'
-    | 'insurance'   // Insurance Verification (Sikka & Zuub)
     | 'documents';
 
 export default function Page() {
@@ -730,7 +717,6 @@ export default function Page() {
         google: false,
         telehealth: false,
         ai: false,
-        insurance: false,
         documents: false,
     });
     const [flashBtn, setFlashBtn] = useState<Record<SectionId, boolean>>({
@@ -743,13 +729,11 @@ export default function Page() {
         google: false,
         telehealth: false,
         ai: false,
-        insurance: false,
         documents: false,
     });
 
     // Provider selections
     const [paymentProvider, setPaymentProvider] = useState<'stripe' | 'sphere'>('stripe');
-    const [insuranceProvider, setInsuranceProvider] = useState<'sikka' | 'zuub'>('sikka');
     const [googleMode, setGoogleMode] = useState<'auth' | 'recaptcha'>('auth'); // NEW
 
     // Single config state powering all fields (empty by default)
@@ -781,7 +765,6 @@ export default function Page() {
         google: 'Google Settings',
         telehealth: 'Telehealth',
         ai: 'AI & LLM Settings',
-        insurance: 'Insurance Verification (Sikka & Zuub)',
         documents: 'Document Storage',
     };
 
@@ -877,19 +860,6 @@ export default function Page() {
                         clientSecret: cfg.google?.oauth?.clientSecret,
                     },
                 },
-                // Sikka Insurance Verification
-                sikka: {
-                    vendor: cfg.sikka?.vendor,
-                    appId: cfg.sikka?.appId,
-                    appKey: cfg.sikka?.appKey,
-                    refreshKey: cfg.sikka?.refreshKey,
-                },
-                // Zuub AI Insurance Verification
-                zuub: {
-                    vendor: cfg.zuub?.vendor,
-                    apiKey: cfg.zuub?.apiKey,
-                    apiUrl: cfg.zuub?.apiUrl,
-                },
             };
 
             // OrgConfig wrapper body expected by controller
@@ -924,7 +894,6 @@ export default function Page() {
                 google: true,
                 telehealth: true,
                 ai: true,
-                insurance: true,
                 documents: true,
             });
             setTimeout(
@@ -939,7 +908,6 @@ export default function Page() {
                         google: false,
                         telehealth: false,
                         ai: false,
-                        insurance: false,
                         documents: false,
                     }),
                 1200
@@ -1566,98 +1534,6 @@ export default function Page() {
                                 </div>
                             </SettingsCard>
 
-                            {/* 10) Insurance Verification (Sikka & Zuub) with provider switch */}
-                            <SettingsCard
-                                title="Insurance Verification (Sikka & Zuub)"
-                                iconPath={paths.badge}
-                                isOpen={open === 'insurance'}
-                                isEditing={editing.insurance}
-                                savedFlash={flashBtn.insurance}
-                                onToggle={() => toggleOpen('insurance')}
-                                onEdit={() => startEdit('insurance')}
-                                onDone={() => endEdit('insurance')}
-                                headerRight={
-                                    <Segmented
-                                        options={[
-                                            { value: 'sikka', label: 'Sikka' },
-                                            { value: 'zuub', label: 'Zuub' },
-                                        ]}
-                                        value={insuranceProvider}
-                                        onChange={(v) => setInsuranceProvider(v as 'sikka' | 'zuub')}
-                                    />
-                                }
-                            >
-                                {insuranceProvider === 'sikka' && (
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <div>
-                                            <label htmlFor="sikka.appId" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                                                Sikka App ID
-                                            </label>
-                                            <TextInput 
-                                                id="sikka.appId" 
-                                                name="sikka[appId]" 
-                                                placeholder="c9f4c33bc08ad4baa86e9b375a5d1c1a"
-                                                icon={paths.badge}
-                                                editable={editing.insurance} 
-                                                {...bind(['sikka', 'appId'])} 
-                                            />
-                                        </div>
-                                        <div>
-                                            <label htmlFor="sikka.appKey" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                                                Sikka App Key
-                                            </label>
-                                            <PasswordField 
-                                                id="sikka.appKey" 
-                                                name="sikka[appKey]" 
-                                                editable={editing.insurance} 
-                                                {...bind(['sikka', 'appKey'])} 
-                                            />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label htmlFor="sikka.refreshKey" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                                                Sikka Refresh Key
-                                            </label>
-                                            <PasswordField 
-                                                id="sikka.refreshKey" 
-                                                name="sikka[refreshKey]" 
-                                                editable={editing.insurance} 
-                                                {...bind(['sikka', 'refreshKey'])} 
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {insuranceProvider === 'zuub' && (
-                                    <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="md:col-span-2">
-                                            <label htmlFor="zuub.apiKey" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                                                Zuub API Key
-                                            </label>
-                                            <PasswordField 
-                                                id="zuub.apiKey" 
-                                                name="zuub[apiKey]" 
-                                                editable={editing.insurance} 
-                                                {...bind(['zuub', 'apiKey'])} 
-                                                placeholder="Enter your Zuub API key" 
-                                            />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label htmlFor="zuub.apiUrl" className="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">
-                                                Zuub API URL
-                                            </label>
-                                            <TextInput 
-                                                id="zuub.apiUrl" 
-                                                name="zuub[apiUrl]" 
-                                                editable={editing.insurance} 
-                                                {...bind(['zuub', 'apiUrl'])} 
-                                                placeholder="https://api.zuub.com/v1"
-                                                type="url"
-                                                icon={paths.link}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </SettingsCard>
 
                             {/* 12) Document Storage */}
                             <SettingsCard
