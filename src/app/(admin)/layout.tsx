@@ -51,43 +51,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // ✅ Run notifications only if toggle is ON
     useLowStockNotifications(orgId, threshold, lowStockAlerts);
 
-    // Hardcoded fallback mapping (used when API data is unavailable)
-    const fallbackMapping: Record<string, string> = {
-        "/dashboard": "Dashboard",
-        "/patients": "Patients",
-        "/calendar": "Calendar",
-        "/profile": "User Profile",
-        "/appointments": "Appointments",
-        "/settings/providers": "Providers",
-        "/settings/forms/lists": "Lists",
-        "/settings/forms/admin": "Encounter Sections",
-        "/settings/config": "Integration",
-        "/settings/Documents": "Documents Settings",
-        "/settings/templateDocument": "Template Documents",
-        "/settings/insurance": "Insurance Companies",
-        "/settings/codes": "Codes",
-        "/settings": "Settings",
-        "/recall": "Recall",
-        "/reports": "Reports",
-        "/reports/patient": "Patient Reports",
-        "/reports/appointment": "Appointment Reports",
-        "/reports/encounter": "Encounters Reports",
-        "/reports/payment": "Payment Reports",
-        "/inventory-management": "Inventory Dashboard",
-        "/inventory-management/inventory": "Inventory Management",
-        "/inventory-management/orders": "Inventory Orders",
-        "/inventory-management/records": "Inventory Records",
-        "/inventory-management/suppliers": "Inventory Suppliers",
-        "/inventory-management/maintenance": "Inventory Maintenance",
-        "/inventory-management/settings": "Inventory Settings",
-        "/patient_education": "Patient Education",
-        "/all-encounters": "All Encounters",
-        "/labs/orders": "Lab Orders",
-        "/labs/results": "Lab Results",
-        "/settings/menu-configuration": "Menu Configuration",
-        "/settings/layout-settings": "Chart",
-        "/settings/encounter-settings": "Encounter",
-    };
+    // Page title mapping comes from Menu API; empty fallback
+    const fallbackMapping: Record<string, string> = {};
 
     // Merge: API-driven mapping takes priority, fallback fills gaps
     const mapping = useMemo(() => ({
@@ -114,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
                 <div className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}>
                     <AppHeader pageTitle={pageTitle} />
-                    <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+                    <div className="p-4 md:p-6">
                         <div key={pathname} className="transition-colors duration-300">
                             {children}
                         </div>

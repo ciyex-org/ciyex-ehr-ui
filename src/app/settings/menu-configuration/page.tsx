@@ -46,10 +46,10 @@ export default function MenuConfigurationPage() {
   const [saving, setSaving] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ label: "", icon: "", screenSlug: "" });
+  const [editForm, setEditForm] = useState({ label: "", icon: "", screenSlug: "", fhirResources: "" });
   const [showAddForm, setShowAddForm] = useState(false);
   const [addParentId, setAddParentId] = useState<string | null>(null);
-  const [newItem, setNewItem] = useState({ label: "", icon: "FileText", screenSlug: "", itemKey: "" });
+  const [newItem, setNewItem] = useState({ label: "", icon: "FileText", screenSlug: "", itemKey: "", fhirResources: "" });
   const [showHidden, setShowHidden] = useState(false);
 
   const loadMenu = useCallback(async () => {
@@ -224,6 +224,27 @@ export default function MenuConfigurationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(changes),
       });
+
+      // Save FHIR resources to tab_field_config if provided
+      if (editForm.fhirResources) {
+        const slug = editForm.screenSlug || "";
+        const pageKeyMatch = slug.match(/\/settings\/p\/(.+)/);
+        const configKeyMatch = slug.match(/\/settings\/layout-settings\/config\/(.+)/);
+        const tabKey = pageKeyMatch?.[1] || configKeyMatch?.[1];
+        if (tabKey) {
+          const fhirArray = editForm.fhirResources
+            .split(",").map(s => s.trim()).filter(Boolean).map(type => ({ type }));
+          await fetchWithAuth(`${base}/api/tab-field-config/${tabKey}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fhirResources: fhirArray,
+              fieldConfig: { sections: [] },
+            }),
+          });
+        }
+      }
+
       setEditingItem(null);
       await loadMenu();
       await refreshMenu();
@@ -299,8 +320,24 @@ export default function MenuConfigurationPage() {
           position: siblings.length,
         }),
       });
+
+      // Save FHIR resources to tab_field_config if provided
+      if (newItem.fhirResources) {
+        const fhirArray = newItem.fhirResources
+          .split(",").map(s => s.trim()).filter(Boolean).map(type => ({ type }));
+        await fetchWithAuth(`${base}/api/tab-field-config/${key}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fhirResources: fhirArray,
+            fieldConfig: { sections: [] },
+            category: "Settings",
+          }),
+        });
+      }
+
       setShowAddForm(false);
-      setNewItem({ label: "", icon: "FileText", screenSlug: "", itemKey: "" });
+      setNewItem({ label: "", icon: "FileText", screenSlug: "", itemKey: "", fhirResources: "" });
       setAddParentId(null);
       await loadMenu();
       await refreshMenu();
@@ -375,9 +412,28 @@ export default function MenuConfigurationPage() {
     });
   };
 
-  const startEdit = (item: MenuItemFlat) => {
+  const startEdit = async (item: MenuItemFlat) => {
     setEditingItem(item.id);
-    setEditForm({ label: item.label, icon: item.icon || "", screenSlug: item.screenSlug || "" });
+    setEditForm({ label: item.label, icon: item.icon || "", screenSlug: item.screenSlug || "", fhirResources: "" });
+
+    // Load FHIR resources from tab_field_config if applicable
+    const slug = item.screenSlug || "";
+    const pageKeyMatch = slug.match(/\/settings\/p\/(.+)/);
+    const configKeyMatch = slug.match(/\/settings\/layout-settings\/config\/(.+)/);
+    const tabKey = pageKeyMatch?.[1] || configKeyMatch?.[1];
+    if (tabKey) {
+      try {
+        const base = API_URL();
+        const res = await fetchWithAuth(`${base}/api/tab-field-config/${tabKey}`);
+        if (res.ok) {
+          const data = await res.json();
+          const fhir = Array.isArray(data.fhirResources)
+            ? data.fhirResources.map((r: any) => typeof r === "string" ? r : r.type || "").filter(Boolean).join(", ")
+            : "";
+          setEditForm(prev => ({ ...prev, fhirResources: fhir }));
+        }
+      } catch {}
+    }
   };
 
   // Render a menu item row
@@ -409,8 +465,8 @@ export default function MenuConfigurationPage() {
           </button>
 
           {isEditing ? (
-            <>
-              <div className="flex-1 flex items-center gap-2">
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
                 <IconPicker value={editForm.icon} onChange={(v) => setEditForm({ ...editForm, icon: v })} />
                 <input
                   className="flex-1 px-2 py-1 text-sm border rounded dark:bg-gray-700 dark:border-gray-600"
@@ -422,16 +478,24 @@ export default function MenuConfigurationPage() {
                   className="w-48 px-2 py-1 text-sm border rounded dark:bg-gray-700 dark:border-gray-600"
                   value={editForm.screenSlug}
                   onChange={(e) => setEditForm({ ...editForm, screenSlug: e.target.value })}
-                  placeholder="Route path (e.g. /calendar)"
+                  placeholder="Route path"
+                />
+                <button onClick={() => saveEdit(item.id)} disabled={saving} className="p-1 text-green-600 hover:bg-green-50 rounded">
+                  <Check className="w-4 h-4" />
+                </button>
+                <button onClick={() => setEditingItem(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 pl-8">
+                <input
+                  className="flex-1 px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600"
+                  value={editForm.fhirResources}
+                  onChange={(e) => setEditForm({ ...editForm, fhirResources: e.target.value })}
+                  placeholder="FHIR Resources (comma-separated, e.g. Practitioner, Organization)"
                 />
               </div>
-              <button onClick={() => saveEdit(item.id)} disabled={saving} className="p-1 text-green-600 hover:bg-green-50 rounded">
-                <Check className="w-4 h-4" />
-              </button>
-              <button onClick={() => setEditingItem(null)} className="p-1 text-gray-400 hover:bg-gray-100 rounded">
-                <X className="w-4 h-4" />
-              </button>
-            </>
+            </div>
           ) : (
             <>
               <GripVertical className="w-4 h-4 text-gray-300" />
@@ -617,51 +681,64 @@ export default function MenuConfigurationPage() {
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
             Add {addParentId ? "Sub-Item" : "Top-Level Item"}
           </h3>
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Label</label>
-              <input
-                className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                value={newItem.label}
-                onChange={(e) => setNewItem({ ...newItem, label: e.target.value })}
-                placeholder="Menu item label"
-              />
+          <div className="space-y-3">
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Label</label>
+                <input
+                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                  value={newItem.label}
+                  onChange={(e) => setNewItem({ ...newItem, label: e.target.value })}
+                  placeholder="Menu item label"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Icon</label>
+                <IconPicker value={newItem.icon} onChange={(v) => setNewItem({ ...newItem, icon: v })} />
+              </div>
+              <div className="w-56">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Route Path</label>
+                <input
+                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                  value={newItem.screenSlug}
+                  onChange={(e) => setNewItem({ ...newItem, screenSlug: e.target.value })}
+                  placeholder="/settings/p/my-page"
+                />
+              </div>
+              <div className="w-40">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Key</label>
+                <input
+                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                  value={newItem.itemKey}
+                  onChange={(e) => setNewItem({ ...newItem, itemKey: e.target.value })}
+                  placeholder="auto-generated"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Icon</label>
-              <IconPicker value={newItem.icon} onChange={(v) => setNewItem({ ...newItem, icon: v })} />
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">FHIR Resources</label>
+                <input
+                  className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                  value={newItem.fhirResources}
+                  onChange={(e) => setNewItem({ ...newItem, fhirResources: e.target.value })}
+                  placeholder="Practitioner, Organization (comma-separated)"
+                />
+              </div>
+              <button
+                onClick={addItem}
+                disabled={saving || !newItem.label.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => { setShowAddForm(false); setAddParentId(null); }}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
+              >
+                Cancel
+              </button>
             </div>
-            <div className="w-56">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Route Path</label>
-              <input
-                className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                value={newItem.screenSlug}
-                onChange={(e) => setNewItem({ ...newItem, screenSlug: e.target.value })}
-                placeholder="/path (optional for parents)"
-              />
-            </div>
-            <div className="w-40">
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Key</label>
-              <input
-                className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                value={newItem.itemKey}
-                onChange={(e) => setNewItem({ ...newItem, itemKey: e.target.value })}
-                placeholder="auto-generated"
-              />
-            </div>
-            <button
-              onClick={addItem}
-              disabled={saving || !newItem.label.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium disabled:opacity-50"
-            >
-              Add
-            </button>
-            <button
-              onClick={() => { setShowAddForm(false); setAddParentId(null); }}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-sm"
-            >
-              Cancel
-            </button>
           </div>
         </div>
       )}

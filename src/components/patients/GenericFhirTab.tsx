@@ -35,9 +35,20 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const [totalElements, setTotalElements] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
 
-    // Derive list columns from field config (first section's first few non-group, non-textarea fields)
+    // Derive list columns from field config: use showInTable fields first, then fallback to first non-group fields
     const listColumns = useCallback((): { key: string; label: string }[] => {
         if (!fieldConfig?.sections?.length) return [];
+        // First: collect fields marked with showInTable
+        const marked: { key: string; label: string }[] = [];
+        for (const section of fieldConfig.sections) {
+            for (const field of section.fields) {
+                if ((field as any).showInTable) {
+                    marked.push({ key: field.key, label: field.label });
+                }
+            }
+        }
+        if (marked.length > 0) return marked.slice(0, 8);
+        // Fallback: first 6 non-group fields
         const cols: { key: string; label: string }[] = [];
         for (const section of fieldConfig.sections) {
             for (const field of section.fields) {
@@ -426,7 +437,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 <div className="p-6 text-center text-red-500 text-sm">{error}</div>
             ) : filteredRecords.length === 0 ? (
                 <div className="p-6 text-center">
-                    <p className="text-gray-400 text-sm">No records found</p>
+                    {tabKey === "insurance-coverage" ? (
+                        <>
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg mb-3">
+                                <span className="text-lg font-semibold">Self Pay</span>
+                            </div>
+                            <p className="text-gray-400 text-sm">No insurance on file. Patient is currently self-pay.</p>
+                        </>
+                    ) : (
+                        <p className="text-gray-400 text-sm">No records found</p>
+                    )}
                     <button
                         onClick={handleCreate}
                         className="mt-3 text-blue-600 text-sm hover:underline"

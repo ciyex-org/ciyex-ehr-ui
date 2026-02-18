@@ -8,6 +8,8 @@ import {
     Pencil, X, Check, FolderPlus, ArrowRight,
     type LucideIcon,
 } from "lucide-react";
+import { FHIR_PATIENT_SEARCH_PARAMS } from "@/utils/FhirPathHelper";
+import FhirResourcePicker from "./FhirResourcePicker";
 
 export interface TabItem {
     key: string;
@@ -34,11 +36,11 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
         new Set(categories.map(c => c.label))
     );
     const [editingTab, setEditingTab] = useState<{ catIdx: number; tabIdx: number } | null>(null);
-    const [editForm, setEditForm] = useState({ label: "", icon: "", key: "" });
+    const [editForm, setEditForm] = useState<{ label: string; icon: string; key: string; fhirResources: Array<{ type: string; patientSearchParam: string }> }>({ label: "", icon: "", key: "", fhirResources: [] });
     const [editingCategoryIdx, setEditingCategoryIdx] = useState<number | null>(null);
     const [editCategoryLabel, setEditCategoryLabel] = useState("");
     const [showAddTab, setShowAddTab] = useState<number | null>(null); // catIdx or -1 for ungrouped
-    const [newTab, setNewTab] = useState({ key: "", label: "", icon: "FileText" });
+    const [newTab, setNewTab] = useState<{ key: string; label: string; icon: string; fhirResources: Array<{ type: string; patientSearchParam: string }> }>({ key: "", label: "", icon: "FileText", fhirResources: [] });
     const [showAddGroup, setShowAddGroup] = useState(false);
     const [newGroupLabel, setNewGroupLabel] = useState("");
     const [movingTab, setMovingTab] = useState<{ catIdx: number; tabIdx: number } | null>(null);
@@ -92,7 +94,8 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
     const startEditTab = (catIdx: number, tabIdx: number) => {
         const tab = categories[catIdx].tabs[tabIdx];
         setEditingTab({ catIdx, tabIdx });
-        setEditForm({ label: tab.label, icon: tab.icon, key: tab.key });
+        const fhirRes = (tab.fhirResources || []).map((r: any) => typeof r === "string" ? { type: r, patientSearchParam: FHIR_PATIENT_SEARCH_PARAMS[r] || "" } : { type: r.type || "", patientSearchParam: r.patientSearchParam || "" });
+        setEditForm({ label: tab.label, icon: tab.icon, key: tab.key, fhirResources: fhirRes });
     };
 
     // Save tab edits
@@ -103,6 +106,7 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
         tab.label = editForm.label;
         tab.icon = editForm.icon;
         tab.key = editForm.key || tab.key;
+        tab.fhirResources = editForm.fhirResources;
         updated[editingTab.catIdx].tabs[editingTab.tabIdx] = tab;
         onChange(updated);
         setEditingTab(null);
@@ -197,11 +201,12 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
                 icon: newTab.icon || "FileText",
                 visible: true,
                 position: updated[catIdx].tabs.length,
+                fhirResources: newTab.fhirResources,
             }],
         };
         onChange(updated);
         setShowAddTab(null);
-        setNewTab({ key: "", label: "", icon: "FileText" });
+        setNewTab({ key: "", label: "", icon: "FileText", fhirResources: [] });
     };
 
     // Remove a tab
@@ -461,6 +466,14 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
                                                             <X className="w-4 h-4" />
                                                         </button>
                                                     </div>
+                                                    {/* FHIR Resources */}
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-600 mb-1">FHIR Resources</label>
+                                                        <FhirResourcePicker
+                                                            value={editForm.fhirResources}
+                                                            onChange={(resources) => setEditForm({ ...editForm, fhirResources: resources })}
+                                                        />
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -469,7 +482,7 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
 
                                 {/* Add tab form inline */}
                                 {showAddTab === catIdx && (
-                                    <div className="px-4 py-3 bg-green-50 border-t border-green-100">
+                                    <div className="px-4 py-3 bg-green-50 border-t border-green-100 space-y-2">
                                         <div className="flex items-end gap-3">
                                             <div className="flex-1">
                                                 <label className="block text-xs font-medium text-gray-600 mb-1">Tab Label</label>
@@ -516,6 +529,15 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
                                             >
                                                 Cancel
                                             </button>
+                                        </div>
+                                        {/* FHIR Resources */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">FHIR Resources</label>
+                                            <FhirResourcePicker
+                                                value={newTab.fhirResources}
+                                                onChange={(resources) => setNewTab({ ...newTab, fhirResources: resources })}
+                                            />
+                                            <p className="text-[10px] text-gray-400 mt-0.5">Leave empty for static/page tabs. Type any FHIR resource name for data-driven tabs.</p>
                                         </div>
                                     </div>
                                 )}

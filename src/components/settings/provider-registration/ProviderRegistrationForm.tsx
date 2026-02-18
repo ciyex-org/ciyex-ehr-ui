@@ -169,7 +169,7 @@ const ProviderRegistrationForm = () => {
 
             if (response.ok) {
                 // Redirect to provider list immediately on success
-                router.push("/settings/providers");
+                router.push("/settings/p/providers");
             } else if (response.status === 401) {
                 // Unauthorized — surface clear message
                 console.error("Create provider unauthorized", { status: response.status, body: result });

@@ -1,579 +1,248 @@
-// "use client";
-
-
-
-// import { useEffect, useMemo, useState, MouseEvent } from "react";
-// import { useRouter } from "next/navigation";
-// import { fetchWithOrg } from "@/utils/fetchWithOrg";
-
-// type EncounterStatus = "SIGNED" | "INCOMPLETE" | "UNSIGNED";
-
-// type Encounter = {
-//   id: number;
-//   patientId: number;
-//   encounterDate?: string | number[] | number | null;
-//   visitCategory?: string | null;
-//   status?: EncounterStatus | null;
-// };
-
-// type ApiResponse<T> = { success: boolean; message?: string; data?: T };
-
-// // ---- helpers ----
-// function toDate(value: Encounter["encounterDate"]): Date | null {
-//   if (value == null) return null;
-//   if (Array.isArray(value)) {
-//     const [y, m, d, hh = 0, mm = 0, ss = 0] = value;
-//     return new Date(y, (m || 1) - 1, d || 1, hh, mm, ss);
-//   }
-//   if (typeof value === "number") {
-//     const ms = value < 1e12 ? value * 1000 : value;
-//     return new Date(ms);
-//   }
-//   if (typeof value === "string") {
-//     const norm = value.includes("T") ? value : value.replace(" ", "T");
-//     const d = new Date(norm);
-//     return isNaN(d.getTime()) ? null : d;
-//   }
-//   return null;
-// }
-
-// const asRecord = (v: unknown): Record<string, unknown> =>
-//   typeof v === "object" && v !== null ? (v as Record<string, unknown>) : {};
-
-// function normalizeData(data: unknown): Encounter[] {
-//   if (!data) return [];
-//   if (Array.isArray(data)) return data as Encounter[];
-//   const rec = asRecord(data);
-//   if (Array.isArray(rec.content)) return rec.content as Encounter[];
-//   return [rec as unknown as Encounter];
-// }
-
-// export default function EncountersTable() { 
-//   const router = useRouter();
-
-//   const [rows, setRows] = useState<Encounter[]>([]);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState<string | null>(null);
-
-//   type Tab = "ALL" | EncounterStatus;
-//   const [tab, setTab] = useState<Tab>("ALL");
-//   const [recentOnly, setRecentOnly] = useState(false);
-
-//   const base = "/api/encounters";
-
-//   // orgId header (your controllers expect "orgId")
-//   const orgId =
-//     (typeof window !== "undefined" &&
-//       (localStorage.getItem("orgId") || sessionStorage.getItem("orgId"))) ||
-//     undefined;
-
-//   const withOrg = (h?: HeadersInit): HeadersInit => {
-//     const baseHeaders: Record<string, string> = {};
-//     if (orgId) baseHeaders["orgId"] = String(orgId);
-//     return { ...baseHeaders, ...(h as Record<string, string>) };
-//     // (If fetchWithOrg already injects orgId, you can drop this and just call fetchWithOrg)
-//   };
-
-//   async function load() {
-//     setLoading(true);
-//     setError(null);
-//     try {
-//       // We’ll fetch ALL then filter client-side (tabs + recent 10), to match your screenshot UX
-//       const res = await fetchWithOrg(`${base}?page=0&size=1000&sort=id,desc`, {
-//         method: "GET",
-//         headers: withOrg(),
-//       });
-//       const body: ApiResponse<unknown> = await res.json();
-//       if (!res.ok || body?.success === false) {
-//         throw new Error((asRecord(body).message as string) || `HTTP ${res.status}`);
-//       }
-//       const list = normalizeData(body.data)
-//         .map((e) => ({ ...e, status: (e.status ?? "UNSIGNED") as EncounterStatus }))
-//         .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
-//       setRows(list);
-//     } catch (err: unknown) {
-//       setRows([]);
-//       setError(err instanceof Error ? err.message : "Failed to load encounters.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   }
-
-//   useEffect(() => {
-//     load();
-//     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, []);
-
-//   // Filters
-//   const byTab = useMemo(() => {
-//     if (tab === "ALL") return rows;
-//     return rows.filter((r) => (r.status ?? "UNSIGNED") === tab);
-//   }, [rows, tab]);
-
-//   const filtered = useMemo(() => {
-//     if (!recentOnly) return byTab;
-//     return byTab.slice(0, 10);
-//   }, [byTab, recentOnly]);
-
-//   function StatusPill({ value }: { value?: EncounterStatus | null }) {
-//     const v = (value ?? "UNSIGNED") as EncounterStatus;
-//     const styles =
-//       v === "SIGNED"
-//         ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-//         : v === "INCOMPLETE"
-//         ? "bg-amber-50 text-amber-700 border-amber-200"
-//         : "bg-rose-50 text-rose-700 border-rose-200";
-//     return (
-//       <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs border ${styles}`}>{v}</span>
-//     );
-//   }
-
-//   function stop(e: MouseEvent) {
-//     e.stopPropagation();
-//   }
-
-//   return (
-//     <div className="bg-white border rounded-xl shadow-sm">
-//       <div className="flex items-center justify-between px-4 py-3 border-b">
-//         <h3 className="text-sm font-semibold text-neutral-800">All Encounters</h3>
-//       </div>
-
-//       {/* Tabs + recent toggle exactly like patient page */}
-//       <div className="px-3 pt-3 flex items-center gap-2 flex-wrap">
-//         {(["ALL", "SIGNED", "INCOMPLETE", "UNSIGNED"] as Tab[]).map((t) => (
-//           <button
-//             key={t}
-//             onClick={() => setTab(t)}
-//             className={`px-3 py-1.5 rounded-md border text-xs transition-colors ${
-//               tab === t
-//                 ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-//                 : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50"
-//             }`}
-//           >
-//             {t === "ALL" ? "All" : t}
-//           </button>
-//         ))}
-
-//         <div className="ml-auto flex items-center gap-3 text-xs">
-//           <label className="inline-flex items-center gap-2">
-//             <input
-//               type="checkbox"
-//               className="accent-blue-600"
-//               checked={recentOnly}
-//               onChange={(e) => setRecentOnly(e.target.checked)}
-//             />
-//             Show only recent (10)
-//           </label>
-//           <span className="text-neutral-500">
-//             Showing <strong>{filtered.length}</strong> of <strong>{byTab.length}</strong>
-//           </span>
-//         </div>
-//       </div>
-
-//       {error && (
-//         <div className="px-4 py-2 text-sm text-red-700 bg-red-50 border-b border-red-200">{error}</div>
-//       )}
-
-//       <div className="overflow-x-auto">
-//         <table className="w-full text-sm">
-//           <thead className="bg-neutral-50 text-xs uppercase text-neutral-500">
-//             <tr>
-//               <th className="px-3 py-2 text-left">S.NO</th>
-//               <th className="px-3 py-2 text-left">ID</th>
-//               <th className="px-3 py-2 text-left">Date</th>
-//               <th className="px-3 py-2 text-left">Visit Category</th>
-//               <th className="px-3 py-2 text-left">Status</th>
-//               <th className="px-3 py-2 text-left w-44">Action</th>
-//             </tr>
-//           </thead>
-
-//           <tbody className="divide-y">
-//             {loading && (
-//               <tr>
-//                 <td colSpan={6} className="px-3 py-6 text-center text-neutral-500">
-//                   Loading…
-//                 </td>
-//               </tr>
-//             )}
-
-//             {!loading &&
-//               filtered.map((row, idx) => {
-//                 const d = toDate(row.encounterDate);
-//                 return (
-//                   <tr key={row.id} className="hover:bg-neutral-50">
-//                     <td className="px-3 py-2">{idx + 1}</td>
-//                     <td className="px-3 py-2">{row.id}</td>
-//                     <td className="px-3 py-2">{d ? d.toLocaleDateString() : "-"}</td>
-//                     <td className="px-3 py-2">{row.visitCategory || "-"}</td>
-//                     <td className="px-3 py-2">
-//                       <StatusPill value={row.status} />
-//                     </td>
-//                     <td className="px-3 py-2" onClick={stop}>
-//                       <div className="flex items-center gap-2">
-//                         {/* (+) takes user to the encounter detail page (needs patientId) */}
-//                         <button
-//                           onClick={() =>
-//                             router.push(`/patients/${row.patientId}/encounters/${row.id}`)
-//                           }
-//                           title="Open encounter"
-//                           className="h-7 w-7 grid place-items-center rounded-full border hover:bg-neutral-100"
-//                         >
-//                           +
-//                         </button>
-//                       </div>
-//                     </td>
-//                   </tr>
-//                 );
-//               })}
-
-//             {!loading && filtered.length === 0 && (
-//               <tr>
-//                 <td colSpan={6} className="px-3 py-6 text-center text-neutral-500">
-//                   No encounters.
-//                 </td>
-//               </tr>
-//             )}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-// components/encounter/EncountersTable.tsx
-
 "use client";
 
-import { useEffect, useMemo, useState, MouseEvent } from "react";
-import AdminLayout from '@/app/(admin)/layout'
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
+import { Loader2, ExternalLink } from "lucide-react";
 
 type EncounterStatus = "SIGNED" | "INCOMPLETE" | "UNSIGNED";
+type Tab = "ALL" | EncounterStatus;
 
 type Encounter = {
-  id: number;
-  patientId: number;
-  encounterDate?: string | number[] | number | null;
-  visitCategory?: string | null;
-  status?: EncounterStatus | null;
+    id: number;
+    patientId: number;
+    encounterDate?: string | number[] | number | null;
+    visitCategory?: string | null;
+    status?: EncounterStatus | null;
+    patientName?: string | null;
 };
 
-type ApiResponse<T> = { success: boolean; message?: string; data?: T };
-
 function toDate(value: Encounter["encounterDate"]): Date | null {
-  if (value == null) return null;
-  if (Array.isArray(value)) {
-    const [y, m, d, hh = 0, mm = 0, ss = 0] = value;
-    return new Date(y, (m || 1) - 1, d || 1, hh, mm, ss);
-  }
-  if (typeof value === "number") {
-    const ms = value < 1e12 ? value * 1000 : value;
-    return new Date(ms);
-  }
-  if (typeof value === "string") {
-    const norm = value.includes("T") ? value : value.replace(" ", "T");
-    const d = new Date(norm);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  return null;
+    if (value == null) return null;
+    if (Array.isArray(value)) {
+        const [y, m, d, hh = 0, mm = 0, ss = 0] = value;
+        return new Date(y, (m || 1) - 1, d || 1, hh, mm, ss);
+    }
+    if (typeof value === "number") {
+        return new Date(value < 1e12 ? value * 1000 : value);
+    }
+    if (typeof value === "string") {
+        const d = new Date(value.includes("T") ? value : value.replace(" ", "T"));
+        return isNaN(d.getTime()) ? null : d;
+    }
+    return null;
 }
 
-const asRecord = (v: unknown): Record<string, unknown> =>
-  typeof v === "object" && v !== null ? (v as Record<string, unknown>) : {};
-
 function normalizeData(data: unknown): Encounter[] {
-  if (!data) return [];
-  if (Array.isArray(data)) return data as Encounter[];
-  const rec = asRecord(data);
-  if (Array.isArray(rec.content)) return rec.content as Encounter[];
-  return [rec as unknown as Encounter];
+    if (!data) return [];
+    if (Array.isArray(data)) return data as Encounter[];
+    const rec = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
+    if (Array.isArray(rec.content)) return rec.content as Encounter[];
+    return [];
+}
+
+function StatusBadge({ value }: { value?: EncounterStatus | null }) {
+    const v = (value ?? "UNSIGNED") as EncounterStatus;
+    const cls =
+        v === "SIGNED"
+            ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+            : v === "INCOMPLETE"
+            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+            : "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800";
+    return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${cls}`}>
+            {v}
+        </span>
+    );
 }
 
 export default function EncountersTable() {
-  const router = useRouter();
+    const router = useRouter();
 
-  const [rows, setRows] = useState<Encounter[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+    const [rows, setRows] = useState<Encounter[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [tab, setTab] = useState<Tab>("ALL");
+    const [recentOnly, setRecentOnly] = useState(false);
+    const [page, setPage] = useState(0);
+    const [pageSize, setPageSize] = useState(10);
 
-  type Tab = "ALL" | EncounterStatus;
-  const [tab, setTab] = useState<Tab>("ALL");
-  const [recentOnly, setRecentOnly] = useState(false);
+    useEffect(() => {
+        (async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const res = await fetchWithOrg("/api/encounters?page=0&size=1000&sort=id,desc");
+                const body = await res.json();
+                if (!res.ok || body?.success === false) {
+                    throw new Error(body?.message || `HTTP ${res.status}`);
+                }
+                const list = normalizeData(body.data)
+                    .map((e) => ({ ...e, status: (e.status ?? "UNSIGNED") as EncounterStatus }))
+                    .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+                setRows(list);
+            } catch (err: unknown) {
+                setRows([]);
+                setError(err instanceof Error ? err.message : "Failed to load encounters.");
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, []);
 
-  const [page, setPage] = useState(0); // 0-based
-  const [pageSize, setPageSize] = useState(10);
-
-  const base = "/api/encounters";
-
-  const orgId =
-    (typeof window !== "undefined" &&
-      (localStorage.getItem("orgId") || sessionStorage.getItem("orgId"))) ||
-    undefined;
-
-  const withOrg = (h?: HeadersInit): HeadersInit => {
-    const baseHeaders: Record<string, string> = {};
-    if (orgId) baseHeaders["orgId"] = String(orgId);
-    return { ...baseHeaders, ...(h as Record<string, string>) };
-  };
-
-  // async function load() {
-  //   setLoading(true);
-  //   setError(null);
-  //   try {
-  //     const res = await fetchWithOrg(`${base}?page=0&size=1000&sort=id,desc`, {
-  //       method: "GET",
-  //       headers: withOrg(),
-  //     });
-  //     const body: ApiResponse<unknown> = await res.json();
-  //     if (!res.ok || body?.success === false) {
-  //       throw new Error((asRecord(body).message as string) || `HTTP ${res.status}`);
-  //     }
-  //     const list = normalizeData(body.data)
-  //       .map((e) => ({ ...e, status: (e.status ?? "UNSIGNED") as EncounterStatus }))
-  //       .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
-  //     setRows(list);
-  //     setPage(0);
-  //   } catch (err: unknown) {
-  //     setRows([]);
-  //     setError(err instanceof Error ? err.message : "Failed to load encounters.");
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }
-
-
-  
-
-  // useEffect(() => {
-  //   load();
-  // }, []);
-
-
-  async function load() {
-  setLoading(true);
-  setError(null);
-  try {
-    const res = await fetchWithOrg(`${base}?page=0&size=1000&sort=id,desc`, {
-      method: "GET",
-      headers: withOrg(),
-    });
-    const body: ApiResponse<unknown> = await res.json();
-    if (!res.ok || body?.success === false) {
-      throw new Error((asRecord(body).message as string) || `HTTP ${res.status}`);
-    }
-    const list = normalizeData(body.data)
-      .map((e) => ({ ...e, status: (e.status ?? "UNSIGNED") as EncounterStatus }))
-      .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
-    setRows(list);
-    setPage(0);
-  } catch (err: unknown) {
-    setRows([]);
-    setError(err instanceof Error ? err.message : "Failed to load encounters.");
-  } finally {
-    setLoading(false);
-  }
-}
-
-// ⬇ disable only this warning for this effect
-useEffect(() => {
-  load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-
-  const byTab = useMemo(() => {
-    if (tab === "ALL") return rows;
-    return rows.filter((r) => (r.status ?? "UNSIGNED") === tab);
-  }, [rows, tab]);
-
-  const filtered = useMemo(() => {
-    if (!recentOnly) return byTab;
-    return byTab.slice(0, 10);
-  }, [byTab, recentOnly]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const clampedPage = Math.min(page, pageCount - 1);
-  const start = clampedPage * pageSize;
-  const end = start + pageSize;
-  const paged = filtered.slice(start, end);
-
-  function StatusPill({ value }: { value?: EncounterStatus | null }) {
-    const v = (value ?? "UNSIGNED") as EncounterStatus;
-    const styles =
-      v === "SIGNED"
-        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-        : v === "INCOMPLETE"
-        ? "bg-amber-50 text-amber-700 border-amber-200"
-        : "bg-rose-50 text-rose-700 border-rose-200";
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs border ${styles}`}>{v}</span>
+    const byTab = useMemo(
+        () => (tab === "ALL" ? rows : rows.filter((r) => (r.status ?? "UNSIGNED") === tab)),
+        [rows, tab]
     );
-  }
 
-  function stop(e: MouseEvent) {
-    e.stopPropagation();
-  }
+    const filtered = useMemo(
+        () => (recentOnly ? byTab.slice(0, 10) : byTab),
+        [byTab, recentOnly]
+    );
 
-  return (
-      <AdminLayout> 
-    <div className="bg-white border rounded-2xl shadow-sm">
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <h3 className="text-sm font-semibold text-neutral-800">Encounters</h3>
-      </div>
+    const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+    const clampedPage = Math.min(page, pageCount - 1);
+    const paged = filtered.slice(clampedPage * pageSize, clampedPage * pageSize + pageSize);
 
-      <div className="px-3 pt-3 flex items-center gap-2 flex-wrap">
-         {/* {(["ALL", "SIGNED", "INCOMPLETE", "UNSIGNED"] as Tab[]).map((t) => ( */}
-        {(["ALL", "SIGNED", "UNSIGNED"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => {
-              setTab(t);
-              setPage(0);
-            }}
-            className={`px-3 py-1.5 rounded-md border text-xs transition-colors ${
-              tab === t
-                ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                : "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50"
-            }`}
-          >
-            {t === "ALL" ? "All" : t}
-          </button>
-        ))}
-
-        <div className="ml-auto flex items-center gap-3 text-xs">
-          <label className="inline-flex items-center gap-2">
-            <input
-              type="checkbox"
-              className="accent-blue-600"
-              checked={recentOnly}
-              onChange={(e) => {
-                setRecentOnly(e.target.checked);
-                setPage(0);
-              }}
-            />
-            Show only recent (10)
-          </label>
-          <span className="text-neutral-500">
-            Showing <strong>{paged.length}</strong> of <strong>{filtered.length}</strong>
-          </span>
-        </div>
-      </div>
-
-      {error && (
-        <div className="px-4 py-2 text-sm text-red-700 bg-red-50 border-b border-red-200 relative z-[9999]">{error}</div>
-      )}
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-xs uppercase text-neutral-500">
-            <tr>
-              <th className="px-3 py-2 text-left">S.NO</th>
-              <th className="px-3 py-2 text-left">ID</th>
-              <th className="px-3 py-2 text-left">Date</th>
-              <th className="px-3 py-2 text-left">Visit Category</th>
-              <th className="px-3 py-2 text-left">Status</th>
-              <th className="px-3 py-2 text-left w-44">Action</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y">
-            {loading && (
-              <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-neutral-500">
-                  Loading…
-                </td>
-              </tr>
-            )}
-
-            {!loading &&
-              paged.map((row, idx) => {
-                const d = toDate(row.encounterDate);
-                const serial = start + idx + 1;
-                return (
-                  <tr key={row.id} className="hover:bg-neutral-50">
-                    <td className="px-3 py-2">{serial}</td>
-                    <td className="px-3 py-2">{row.id}</td>
-                    <td className="px-3 py-2">{d ? d.toLocaleDateString() : "-"}</td>
-                    <td className="px-3 py-2">{row.visitCategory || "-"}</td>
-                    <td className="px-3 py-2">
-                      <StatusPill value={row.status} />
-                    </td>
-                    <td className="px-3 py-2" onClick={stop}>
-                      <div className="flex items-center gap-2">
+    return (
+        <div className="space-y-4">
+            {/* Filters */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-2">
+                    {(["ALL", "SIGNED", "UNSIGNED"] as Tab[]).map((t) => (
                         <button
-  onClick={() => router.push(`/patients/${row.patientId}/encounters/${row.id}`)}
-  title="Open encounter"
-  className="inline-flex items-center h-7 px-3 rounded-full border border-blue-600 text-blue-600 text-xs font-medium hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
->
-  Preview
-</button>
+                            key={t}
+                            onClick={() => { setTab(t); setPage(0); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                tab === t
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            }`}
+                        >
+                            {t === "ALL" ? "All" : t.charAt(0) + t.slice(1).toLowerCase()}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            className="accent-blue-600 rounded"
+                            checked={recentOnly}
+                            onChange={(e) => { setRecentOnly(e.target.checked); setPage(0); }}
+                        />
+                        Show only recent (10)
+                    </label>
+                    <span>
+                        Showing <strong>{paged.length}</strong> of <strong>{filtered.length}</strong>
+                    </span>
+                </div>
+            </div>
 
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-            {!loading && paged.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-neutral-500">
-                  No encounters.
-                </td>
-              </tr>
+            {error && (
+                <div className="px-4 py-2 text-sm text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-lg border border-red-200 dark:border-red-800">
+                    {error}
+                </div>
             )}
-          </tbody>
-        </table>
-      </div>
 
-      <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={clampedPage === 0}
-            className={`px-3 py-1.5 rounded-md border ${
-              clampedPage === 0
-                ? "text-neutral-400 border-neutral-200 bg-neutral-50 cursor-not-allowed"
-                : "text-neutral-700 border-neutral-300 hover:bg-neutral-50"
-            }`}
-          >
-            Prev
-          </button>
-          <span className="px-2">Page {clampedPage + 1} of {pageCount}</span>
-          <button
-            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-            disabled={clampedPage >= pageCount - 1}
-            className={`px-3 py-1.5 rounded-md border ${
-              clampedPage >= pageCount - 1
-                ? "text-neutral-400 border-neutral-200 bg-neutral-50 cursor-not-allowed"
-                : "text-neutral-700 border-neutral-300 hover:bg-neutral-50"
-            }`}
-          >
-            Next
-          </button>
-        </div>
+            {/* Table */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">#</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Visit Category</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {loading && (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-12 text-center">
+                                        <Loader2 className="w-6 h-6 animate-spin text-gray-400 mx-auto" />
+                                    </td>
+                                </tr>
+                            )}
+                            {!loading && paged.map((row, idx) => {
+                                const d = toDate(row.encounterDate);
+                                return (
+                                    <tr
+                                        key={row.id}
+                                        className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                                        onClick={() => router.push(`/patients/${row.patientId}/encounters/${row.id}?from=encounters`)}
+                                    >
+                                        <td className="px-4 py-3 text-gray-400 dark:text-gray-500">{clampedPage * pageSize + idx + 1}</td>
+                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{row.id}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{d ? d.toLocaleDateString() : "—"}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{row.visitCategory || "—"}</td>
+                                        <td className="px-4 py-3"><StatusBadge value={row.status} /></td>
+                                        <td className="px-4 py-3 text-right">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push(`/patients/${row.patientId}/encounters/${row.id}?from=encounters`);
+                                                }}
+                                                className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 transition-colors"
+                                            >
+                                                <ExternalLink className="w-3 h-3" />
+                                                Open
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {!loading && paged.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
+                                        No encounters found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
 
-        <div className="flex items-center gap-3 text-neutral-600">
-          <span>
-            Showing <strong>{paged.length}</strong> of <strong>{filtered.length}</strong>
-          </span>
-          <select
-            className="border rounded-md px-2 py-1 text-sm"
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setPage(0);
-            }}
-          >
-            {[10, 20, 50].map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
+                {/* Pagination */}
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setPage((p) => Math.max(0, p - 1))}
+                            disabled={clampedPage === 0}
+                            className="px-3 py-1.5 rounded-md border text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                            Prev
+                        </button>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 px-2">
+                            Page {clampedPage + 1} of {pageCount}
+                        </span>
+                        <button
+                            onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                            disabled={clampedPage >= pageCount - 1}
+                            className="px-3 py-1.5 rounded-md border text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                            Next
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span>
+                            Showing <strong>{paged.length}</strong> of <strong>{filtered.length}</strong>
+                        </span>
+                        <select
+                            className="border border-gray-200 dark:border-gray-700 rounded-md px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={pageSize}
+                            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
+                        >
+                            {[10, 20, 50].map((n) => (
+                                <option key={n} value={n}>{n}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    </AdminLayout>
-  );
+    );
 }

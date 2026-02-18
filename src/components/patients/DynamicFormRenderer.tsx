@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
+import ReactDOM from "react-dom";
 import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import MultiSelect from "@/components/form/MultiSelect";
 import TextArea from "@/components/form/input/TextArea";
 import Checkbox from "@/components/form/input/Checkbox";
 import Radio from "@/components/form/input/Radio";
+import Switch from "@/components/form/switch/Switch";
 import FileInput from "@/components/form/input/FileInput";
 import { ChevronDown, ChevronRight, Upload, FileText, X as XIcon } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import ProviderAvailabilityEditor from "@/components/settings/ProviderAvailabilityEditor";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 const CODES_BASE = () => (getEnv("NEXT_PUBLIC_CODES_SERVICE_URL") || "").replace(/\/$/, "");
@@ -75,15 +78,28 @@ export interface CodeLookupConfig {
   placeholder?: string;
 }
 
+export interface OptionsSource {
+  endpoint: string;
+  labelField: string;
+  valueField: string;
+}
+
+export interface ShowWhenCondition {
+  field: string;
+  equals?: string | string[];
+  notEquals?: string | string[];
+}
+
 export interface FieldDef {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "select" | "multiselect" | "radio" | "checkbox" | "boolean" | "date" | "datetime" | "phone" | "email" | "lookup" | "coded" | "quantity" | "file" | "group" | "computed" | "address" | "ros-grid" | "exam-grid" | "diagnosis-list" | "plan-items" | "code-lookup";
+  type: "text" | "textarea" | "number" | "select" | "multiselect" | "radio" | "checkbox" | "boolean" | "toggle" | "date" | "datetime" | "phone" | "email" | "lookup" | "coded" | "quantity" | "file" | "group" | "computed" | "address" | "ros-grid" | "exam-grid" | "diagnosis-list" | "plan-items" | "code-lookup" | "combobox";
   required?: boolean;
   colSpan?: number;
   placeholder?: string;
   helpText?: string;
   options?: { value: string; label: string }[];
+  optionsSource?: OptionsSource;
   lookupConfig?: LookupConfig;
   fhirMapping?: FhirMapping;
   validation?: FieldValidation;
@@ -94,6 +110,7 @@ export interface FieldDef {
   examConfig?: { systems: ExamSystemConfig[] };
   diagnosisConfig?: DiagnosisConfig;
   codeLookupConfig?: CodeLookupConfig;
+  showWhen?: ShowWhenCondition;
 }
 
 export interface SectionDef {
@@ -103,6 +120,8 @@ export interface SectionDef {
   collapsible?: boolean;
   collapsed?: boolean;
   fields: FieldDef[];
+  sectionComponent?: string;
+  showWhen?: ShowWhenCondition;
 }
 
 export interface FieldConfigFeatures {
@@ -131,6 +150,134 @@ export interface DynamicFormRendererProps {
   onChange: (key: string, value: any) => void;
   readOnly?: boolean;
   errors?: Record<string, string>;
+}
+
+// ---- Combobox Field Component (select + free text, fixed positioning) ----
+
+function ComboboxField({
+  options,
+  value,
+  placeholder,
+  onChange,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  placeholder: string;
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+
+  const displayLabel = options.find((o) => o.value === value)?.label || value || "";
+
+  const filtered = search
+    ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+    : options;
+
+  // Position dropdown using fixed coordinates from input bounding rect
+  const updatePosition = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+  };
+
+  // Close on outside click
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-combobox-dropdown]") || target === inputRef.current) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        className="h-11 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-11 text-sm shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+        placeholder={placeholder}
+        value={open ? search : displayLabel}
+        onFocus={() => {
+          updatePosition();
+          setOpen(true);
+          setSearch("");
+        }}
+        onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && search) {
+            const match = filtered.find((o) => o.label.toLowerCase() === search.toLowerCase());
+            onChange(match ? match.value : search);
+            setOpen(false);
+            inputRef.current?.blur();
+          }
+          if (e.key === "Escape") {
+            setOpen(false);
+            setSearch("");
+          }
+        }}
+      />
+      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+      {open &&
+        ReactDOM.createPortal(
+          <div
+            data-combobox-dropdown
+            style={dropdownStyle}
+            className="max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900"
+          >
+            {filtered.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                  opt.value === value
+                    ? "bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/30 dark:text-blue-300"
+                    : "text-gray-700 dark:text-gray-300"
+                }`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                  setSearch("");
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+            {search && !filtered.some((o) => o.label.toLowerCase() === search.toLowerCase()) && (
+              <button
+                type="button"
+                className="w-full px-4 py-2.5 text-left text-sm text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 border-t border-gray-100 dark:border-gray-700"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(search);
+                  setOpen(false);
+                  setSearch("");
+                }}
+              >
+                + Add &ldquo;{search}&rdquo;
+              </button>
+            )}
+            {filtered.length === 0 && !search && (
+              <div className="px-4 py-2.5 text-sm text-gray-400">No options</div>
+            )}
+          </div>,
+          document.body
+        )}
+    </div>
+  );
 }
 
 // ---- Lookup Field Component ----
@@ -1020,6 +1167,72 @@ function PlanItems({
   );
 }
 
+// ---- Dynamic Options Select (fetches options from API) ----
+
+function DynamicOptionsSelect({
+  field,
+  value,
+  onChange,
+  readOnly,
+}: {
+  field: FieldDef;
+  value: any;
+  onChange: (val: any) => void;
+  readOnly?: boolean;
+}) {
+  const [options, setOptions] = useState<{ value: string; label: string }[]>(field.options || []);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!field.optionsSource) return;
+    const src = field.optionsSource;
+    setLoading(true);
+    const base = API_BASE();
+    fetchWithAuth(`${base}${src.endpoint}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const items = Array.isArray(data) ? data : data.data || data.content || [];
+        const mapped = items
+          .filter((item: any) => item.activity !== 0)
+          .map((item: any) => ({
+            value: String(item[src.valueField] || item.id || ""),
+            label: String(item[src.labelField] || item.title || ""),
+          }));
+        // Merge: API options first, then any static options not already present
+        const apiValues = new Set(mapped.map((o: any) => o.value));
+        const staticExtras = (field.options || []).filter((o) => !apiValues.has(o.value));
+        setOptions([...mapped, ...staticExtras]);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [field.optionsSource?.endpoint]);
+
+  if (readOnly) {
+    const display = options.find((o) => o.value === value)?.label || value || "-";
+    return <span className="text-sm text-gray-700 dark:text-gray-300">{display}</span>;
+  }
+
+  if (field.type === "combobox") {
+    return (
+      <ComboboxField
+        options={options}
+        value={value || ""}
+        placeholder={loading ? "Loading..." : field.placeholder || "Select or type..."}
+        onChange={onChange}
+      />
+    );
+  }
+
+  return (
+    <Select
+      options={options}
+      defaultValue={value || ""}
+      onChange={onChange}
+    />
+  );
+}
+
 // ---- Main DynamicFormRenderer ----
 
 export default function DynamicFormRenderer({
@@ -1047,6 +1260,7 @@ export default function DynamicFormRenderer({
   };
 
   const renderField = (field: FieldDef) => {
+    if (!evaluateShowWhen(field.showWhen)) return null;
     const value = formData[field.key];
     const error = errors[field.key];
 
@@ -1152,11 +1366,13 @@ export default function DynamicFormRenderer({
                 {typeof value === "string" ? value.split("/").pop() : "File attached"}
               </span>
             </div>
+          ) : (field.type === "select" || field.type === "coded" || field.type === "combobox") && field.optionsSource ? (
+            <DynamicOptionsSelect field={field} value={value} onChange={() => {}} readOnly />
           ) : (
             <span className="text-sm text-gray-700 dark:text-gray-300">
-              {field.type === "select" || field.type === "coded"
+              {field.type === "select" || field.type === "coded" || field.type === "combobox"
                 ? field.options?.find((o) => o.value === value)?.label || value || "-"
-                : field.type === "checkbox" || field.type === "boolean"
+                : field.type === "checkbox" || field.type === "boolean" || field.type === "toggle"
                 ? value ? "Yes" : "No"
                 : value || "-"}
             </span>
@@ -1215,6 +1431,15 @@ export default function DynamicFormRenderer({
 
       case "select":
       case "coded":
+        if (field.optionsSource) {
+          return (
+            <DynamicOptionsSelect
+              field={field}
+              value={value}
+              onChange={(val) => onChange(field.key, val)}
+            />
+          );
+        }
         return (
           <Select
             options={field.options || []}
@@ -1256,6 +1481,34 @@ export default function DynamicFormRenderer({
             checked={!!value}
             onChange={(checked) => onChange(field.key, checked)}
             label=""
+          />
+        );
+
+      case "toggle":
+        return (
+          <Switch
+            label=""
+            defaultChecked={!!value}
+            onChange={(checked) => onChange(field.key, checked)}
+          />
+        );
+
+      case "combobox":
+        if (field.optionsSource) {
+          return (
+            <DynamicOptionsSelect
+              field={field}
+              value={value}
+              onChange={(val) => onChange(field.key, val)}
+            />
+          );
+        }
+        return (
+          <ComboboxField
+            options={field.options || []}
+            value={value || ""}
+            placeholder={field.placeholder || "Select or type..."}
+            onChange={(val) => onChange(field.key, val)}
           />
         );
 
@@ -1302,6 +1555,21 @@ export default function DynamicFormRenderer({
     }
   };
 
+  // Evaluate showWhen condition against current form data
+  const evaluateShowWhen = (condition?: ShowWhenCondition): boolean => {
+    if (!condition) return true;
+    const val = formData[condition.field];
+    if (condition.equals != null) {
+      const targets = Array.isArray(condition.equals) ? condition.equals : [condition.equals];
+      return targets.includes(val);
+    }
+    if (condition.notEquals != null) {
+      const targets = Array.isArray(condition.notEquals) ? condition.notEquals : [condition.notEquals];
+      return !targets.includes(val);
+    }
+    return true;
+  };
+
   if (!fieldConfig?.sections?.length) {
     return <div className="text-gray-400 text-sm p-4">No field configuration available.</div>;
   }
@@ -1309,6 +1577,7 @@ export default function DynamicFormRenderer({
   return (
     <div className="space-y-6">
       {fieldConfig.sections.map((section) => {
+        if (!evaluateShowWhen(section.showWhen)) return null;
         const isCollapsed = collapsedSections.has(section.key);
         const cols = section.columns || 3;
 
@@ -1334,8 +1603,15 @@ export default function DynamicFormRenderer({
               )}
             </div>
 
-            {/* Section Fields */}
-            {!isCollapsed && (
+            {/* Section Content */}
+            {!isCollapsed && section.sectionComponent === "provider-availability-editor" ? (
+              <div className="p-4">
+                <ProviderAvailabilityEditor
+                  providerId={formData?.fhirId || formData?.id}
+                  readOnly={readOnly}
+                />
+              </div>
+            ) : !isCollapsed && (
               <div
                 className="p-4"
                 style={{

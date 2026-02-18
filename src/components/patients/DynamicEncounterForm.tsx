@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import DynamicFormRenderer, { FieldConfig } from "./DynamicFormRenderer";
 import { useAutoSave, AutoSaveStatus } from "@/hooks/useAutoSave";
-import { Loader2, ArrowLeft, Printer, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Loader2, ArrowLeft, Printer, CheckCircle, XCircle, ChevronDown, ChevronRight } from "lucide-react";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -20,6 +20,8 @@ interface DynamicEncounterFormProps {
 
 export default function DynamicEncounterForm({ patientId, encounterId }: DynamicEncounterFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const backUrl = searchParams.get("from") === "encounters" ? "/all-encounters" : `/patients/${patientId}`;
 
   // Encounter metadata
   const [encounter, setEncounter] = useState<Record<string, any> | null>(null);
@@ -37,6 +39,7 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
   // Section navigation
   const [activeSection, setActiveSection] = useState("");
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-save features from config
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
@@ -49,7 +52,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
     onSave: useCallback(async (data: Record<string, any>) => {
       const base = API_BASE();
       if (compositionId) {
-        // Update existing composition
         await fetchWithAuth(
           `${base}/api/fhir-resource/encounter-form/patient/${patientId}/${compositionId}`,
           {
@@ -59,7 +61,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
           }
         );
       } else {
-        // Create new composition linked to this encounter
         const res = await fetchWithAuth(
           `${base}/api/fhir-resource/encounter-form/patient/${patientId}?encounterRef=${encounterId}`,
           {
@@ -84,7 +85,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
     if (!patientId || !encounterId) return;
     const base = API_BASE();
 
-    // Fetch encounter
     fetchWithAuth(`${base}/api/${patientId}/encounters/${encounterId}`)
       .then(async (res) => {
         if (res.ok) {
@@ -96,7 +96,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
       })
       .catch(() => {});
 
-    // Fetch patient
     fetchWithAuth(`${base}/api/patients/${patientId}`)
       .then(async (res) => {
         if (res.ok) {
@@ -120,7 +119,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
     const loadData = async () => {
       setLoading(true);
       try {
-        // 1. Fetch field config for encounter-form
         const configRes = await fetchWithAuth(`${base}/api/tab-field-config/encounter-form`);
         if (configRes.ok) {
           const configJson = await configRes.json();
@@ -130,7 +128,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
             : config.fieldConfig;
           setFieldConfig(fc);
 
-          // Extract auto-save config from features
           const features = (fc as any)?.features?.encounterForm;
           if (features?.autoSave) {
             setAutoSaveEnabled(features.autoSave.enabled !== false);
@@ -138,7 +135,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
           }
         }
 
-        // 2. Fetch existing composition for this encounter
         const dataRes = await fetchWithAuth(
           `${base}/api/fhir-resource/encounter-form/patient/${patientId}?encounterRef=${encounterId}`
         );
@@ -162,9 +158,10 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
     loadData();
   }, [patientId, encounterId]);
 
-  // Intersection observer for section navigation
+  // Intersection observer for section navigation (scoped to scroll container)
   useEffect(() => {
     if (!fieldConfig?.sections?.length) return;
+    const root = contentRef.current;
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
@@ -174,7 +171,7 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
           }
         });
       },
-      { rootMargin: "-20% 0px -40% 0px", threshold: [0, 0.25] }
+      { root, rootMargin: "-20px 0px -40% 0px", threshold: [0, 0.25] }
     );
 
     fieldConfig.sections.forEach((s) => {
@@ -190,7 +187,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
     async (action: "sign" | "unsign", next: EncounterStatus) => {
       setStatusLoading(true);
       try {
-        // Save any pending changes first
         if (autoSave.isDirty) await autoSave.saveNow();
 
         const res = await fetchWithAuth(
@@ -283,17 +279,23 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
   }
 
   const isReadOnly = status === "SIGNED";
-  const sections = fieldConfig.sections || [];
+  const sections = (fieldConfig.sections || []).filter((s) => s.visible !== false);
+
+  const handleNavClick = (e: React.MouseEvent, sectionKey: string) => {
+    e.preventDefault();
+    const el = document.getElementById(`section-${sectionKey}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-screen-2xl mx-auto px-4 py-2 flex items-center justify-between">
+    <div className="-m-4 md:-m-6 flex flex-col h-[calc(100vh-64px)]">
+      {/* Top Bar */}
+      <div className="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-4 py-2 flex items-center justify-between">
           {/* Left: Back + Encounter info */}
           <div className="flex items-center gap-3">
             <Link
-              href={`/patients/${patientId}`}
+              href={backUrl}
               className="flex items-center gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-700 dark:text-gray-300"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -323,7 +325,6 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
 
           {/* Right: Auto-save status + actions */}
           <div className="flex items-center gap-3">
-            {/* Auto-save indicator */}
             <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
               {statusIcon(autoSave.status)}
               <span>{statusText(autoSave.status, autoSave.lastSaved)}</span>
@@ -356,44 +357,57 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
             </button>
           </div>
         </div>
-
-        {/* Section navigation tabs */}
-        <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-          <div className="max-w-screen-2xl mx-auto px-4 py-1.5 flex flex-wrap gap-1 overflow-x-auto">
-            {sections.map((s) => (
-              <a
-                key={s.key}
-                href={`#section-${s.key}`}
-                className={`px-3 py-1 rounded-md text-xs font-medium border whitespace-nowrap transition ${
-                  activeSection === `section-${s.key}`
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600"
-                }`}
-              >
-                {s.title}
-              </a>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* Form Content */}
-      <div className="max-w-screen-xl mx-auto px-4 py-6 pb-[50vh]">
-        <div className="space-y-6">
-          {sections.map((section, idx) => (
-            <section
-              key={section.key}
-              id={`section-${section.key}`}
-              className="scroll-mt-[120px]"
-            >
-              <DynamicFormRenderer
-                fieldConfig={{ sections: [section], features: fieldConfig.features }}
-                formData={autoSave.formData}
-                onChange={autoSave.onChange}
-                readOnly={isReadOnly}
-              />
-            </section>
-          ))}
+      {/* Body: Side Menu + Form Content */}
+      <div className="flex flex-1 min-h-0">
+        {/* Left Side Menu */}
+        <nav className="w-56 shrink-0 overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+          <ul className="py-2">
+            {sections.map((s) => {
+              const isActive = activeSection === `section-${s.key}`;
+              return (
+                <li key={s.key}>
+                  <a
+                    href={`#section-${s.key}`}
+                    onClick={(e) => handleNavClick(e, s.key)}
+                    className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors border-l-2 ${
+                      isActive
+                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-medium"
+                        : "border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    {isActive
+                      ? <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+                      : <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+                    }
+                    <span className="truncate">{s.title}</span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* Right: Form Content */}
+        <div ref={contentRef} className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
+          <div className="max-w-screen-lg mx-auto px-6 py-6 space-y-6">
+            {sections.map((section) => (
+              <section
+                key={section.key}
+                id={`section-${section.key}`}
+              >
+                <DynamicFormRenderer
+                  fieldConfig={{ sections: [section], features: fieldConfig.features }}
+                  formData={autoSave.formData}
+                  onChange={autoSave.onChange}
+                  readOnly={isReadOnly}
+                />
+              </section>
+            ))}
+            {/* Bottom spacer for scrolling last section to top */}
+            <div className="h-[50vh]" />
+          </div>
         </div>
       </div>
     </div>

@@ -1,91 +1,114 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import AdminLayout from "@/app/(admin)/layout";
-import TabManager from "@/components/settings/TabManager";
-import {
-    Settings, Loader2, Save, RotateCcw, X,
-    Eye, Columns,
-} from "lucide-react";
-import type { FieldConfig } from "@/components/patients/DynamicFormRenderer";
+import TabManager, { type TabCategory } from "@/components/settings/TabManager";
 import FieldConfigEditor from "@/components/settings/FieldConfigEditor";
+import type { FieldConfig } from "@/components/patients/DynamicFormRenderer";
+import {
+    Settings, Loader2, Save, RotateCcw, X, Eye, Columns,
+} from "lucide-react";
 
-const METADATA_API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
-interface TabItem {
-    key: string;
-    label: string;
-    icon: string;
-    visible: boolean;
-    position: number;
-}
+export default function PageConfigPage() {
+    const params = useParams();
+    const pageKey = params.pageKey as string;
 
-interface TabCategory {
-    label: string;
-    position: number;
-    tabs: TabItem[];
-}
-
-export default function TabConfigurationPage() {
     const [activeSection, setActiveSection] = useState<"tab-manager" | "field-config">("tab-manager");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [tabCategories, setTabCategories] = useState<TabCategory[]>([]);
-    const [configSource, setConfigSource] = useState<string>("UNIVERSAL_DEFAULT");
+    const [configSource, setConfigSource] = useState("UNIVERSAL_DEFAULT");
     const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-    // Field config state
+    // Tab Manager state
+    const [tabCategories, setTabCategories] = useState<TabCategory[]>([]);
+
+    // Field Config state
     const [availableTabs, setAvailableTabs] = useState<{ tabKey: string; fhirResources: any[] }[]>([]);
-    const [selectedTab, setSelectedTab] = useState<string>("");
+    const [selectedTab, setSelectedTab] = useState("");
     const [fieldConfig, setFieldConfig] = useState<FieldConfig | null>(null);
-    const [fieldConfigFhirResources, setFieldConfigFhirResources] = useState<string[]>([]);
-    const [editingField, setEditingField] = useState<string | null>(null);
+    const [fhirResources, setFhirResources] = useState<string[]>([]);
     const [fieldConfigPreview, setFieldConfigPreview] = useState(false);
     const [previewFormData, setPreviewFormData] = useState<Record<string, any>>({});
-
-    useEffect(() => {
-        loadData();
-    }, []);
 
     const showNotif = (type: "success" | "error", message: string) => {
         setNotification({ type, message });
         setTimeout(() => setNotification(null), 3000);
     };
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-field-config/layout`);
-            if (res.ok) {
-                const data = await res.json();
-                setTabCategories(data.tabConfig || []);
-                setConfigSource(data.source || "UNIVERSAL_DEFAULT");
+            // Fetch all tab-field-configs and the specific page config
+            const [allRes, configRes] = await Promise.all([
+                fetchWithAuth(`${API_BASE()}/api/tab-field-config/all`),
+                fetchWithAuth(`${API_BASE()}/api/tab-field-config/${pageKey}`),
+            ]);
+
+            if (allRes.ok) {
+                const allConfigs: any[] = await allRes.json();
+
+                // Build available tabs for Field Configuration (entries with fhirResources)
+                const settingsTabs = allConfigs
+                    .filter((c: any) => {
+                        const fhir = Array.isArray(c.fhirResources) ? c.fhirResources : [];
+                        return fhir.length > 0;
+                    })
+                    .map((c: any) => ({
+                        tabKey: c.tabKey,
+                        fhirResources: c.fhirResources || [],
+                    }));
+                setAvailableTabs(settingsTabs);
+
+                // Build Tab Manager categories — match tabs by category for this pageKey
+                const categoryLabel = pageKey.replace(/-/g, " ").replace(/\b\w/g, (ch: string) => ch.toUpperCase());
+                const categoryTabs = allConfigs
+                    .filter((c: any) => {
+                        const fhir = Array.isArray(c.fhirResources) ? c.fhirResources : [];
+                        return fhir.length > 0 && c.category === categoryLabel;
+                    })
+                    .map((c: any, idx: number) => ({
+                        key: c.tabKey,
+                        label: c.label || c.tabKey.replace(/-/g, " ").replace(/\b\w/g, (ch: string) => ch.toUpperCase()),
+                        icon: c.icon || "FileText",
+                        visible: true,
+                        position: idx,
+                        fhirResources: c.fhirResources || [],
+                    }));
+
+                setTabCategories([{
+                    label: categoryLabel,
+                    position: 0,
+                    tabs: categoryTabs,
+                }]);
             }
 
-            // Load available tab field configs
-            try {
-                const tabsRes = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-field-config/tabs`);
-                if (tabsRes.ok) {
-                    const data = await tabsRes.json();
-                    setAvailableTabs(data);
-                }
-            } catch {}
-        } catch (err) {
-            console.error("Failed to load tab configuration:", err);
-            showNotif("error", "Failed to load configuration");
-        } finally {
-            setLoading(false);
+            if (configRes.ok) {
+                const data = await configRes.json();
+                const fc = typeof data.fieldConfig === "string" ? JSON.parse(data.fieldConfig) : data.fieldConfig;
+                setFieldConfig(fc?.sections ? fc : { sections: [] });
+                setFhirResources(data.fhirResources || []);
+                setConfigSource(data.orgId && data.orgId !== "*" ? "ORG_CUSTOM" : "UNIVERSAL_DEFAULT");
+            } else {
+                setFieldConfig({ sections: [] });
+            }
+        } catch {
+            setFieldConfig({ sections: [] });
         }
-    };
+        setLoading(false);
+    }, [pageKey]);
 
-    // ---- Tab Config Save ----
+    useEffect(() => { loadData(); }, [loadData]);
 
+    // Save tab layout
     const handleSaveTabConfig = async () => {
         setSaving(true);
         try {
-            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-field-config/layout`, {
+            const res = await fetchWithAuth(`${API_BASE()}/api/tab-field-config/layout`, {
                 method: "PUT",
                 body: JSON.stringify({ tabConfig: tabCategories }),
             });
@@ -93,7 +116,7 @@ export default function TabConfigurationPage() {
                 setConfigSource("ORG_CUSTOM");
                 showNotif("success", "Tab configuration saved");
             }
-        } catch (err) {
+        } catch {
             showNotif("error", "Failed to save configuration");
         } finally {
             setSaving(false);
@@ -104,17 +127,19 @@ export default function TabConfigurationPage() {
         if (!confirm("Reset to practice type defaults? Your custom tab layout will be removed.")) return;
         setSaving(true);
         try {
-            const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-field-config/layout`, { method: "DELETE" });
+            const res = await fetchWithAuth(`${API_BASE()}/api/tab-field-config/layout`, { method: "DELETE" });
             if (res.ok) {
                 await loadData();
                 showNotif("success", "Reset to defaults");
             }
-        } catch (err) {
+        } catch {
             showNotif("error", "Failed to reset");
         } finally {
             setSaving(false);
         }
     };
+
+    const displayLabel = pageKey.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
 
     if (loading) {
         return (
@@ -133,24 +158,21 @@ export default function TabConfigurationPage() {
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                            <Settings className="w-6 h-6" /> Chart
+                            <Settings className="w-6 h-6" /> {displayLabel}
                         </h1>
                         <p className="text-sm text-gray-500 mt-1">
-                            Configure patient chart layout, tabs, and field mappings
+                            Configure tabs, fields, and FHIR mappings for the {displayLabel} page
                         </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                            configSource === "ORG_CUSTOM" ? "bg-blue-100 text-blue-800" :
-                            configSource === "PRACTICE_TYPE_DEFAULT" ? "bg-green-100 text-green-800" :
-                            "bg-gray-100 text-gray-600"
-                        }`}>
-                            {configSource === "ORG_CUSTOM" ? "Custom Config" :
-                             configSource === "PRACTICE_TYPE_DEFAULT" ? "Practice Default" :
-                             configSource === "CLONED_FROM_DEFAULT" ? "Cloned from Default" :
-                             "Universal Default"}
-                        </span>
-                    </div>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                        configSource === "ORG_CUSTOM" ? "bg-blue-100 text-blue-800" :
+                        configSource === "PRACTICE_TYPE_DEFAULT" ? "bg-green-100 text-green-800" :
+                        "bg-gray-100 text-gray-600"
+                    }`}>
+                        {configSource === "ORG_CUSTOM" ? "Custom Config" :
+                         configSource === "PRACTICE_TYPE_DEFAULT" ? "Practice Default" :
+                         "Universal Default"}
+                    </span>
                 </div>
 
                 {/* Section Tabs */}
@@ -173,7 +195,7 @@ export default function TabConfigurationPage() {
                     ))}
                 </div>
 
-                {/* Section B: Tab Manager */}
+                {/* Tab Manager */}
                 {activeSection === "tab-manager" && (
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -204,7 +226,7 @@ export default function TabConfigurationPage() {
                     </div>
                 )}
 
-                {/* Section: Field Configuration */}
+                {/* Field Configuration */}
                 {activeSection === "field-config" && (
                     <FieldConfigEditor
                         availableTabs={availableTabs}
@@ -212,8 +234,8 @@ export default function TabConfigurationPage() {
                         setSelectedTab={setSelectedTab}
                         fieldConfig={fieldConfig}
                         setFieldConfig={setFieldConfig}
-                        fhirResources={fieldConfigFhirResources}
-                        setFhirResources={setFieldConfigFhirResources}
+                        fhirResources={fhirResources}
+                        setFhirResources={setFhirResources}
                         fieldConfigPreview={fieldConfigPreview}
                         setFieldConfigPreview={setFieldConfigPreview}
                         previewFormData={previewFormData}
@@ -223,7 +245,6 @@ export default function TabConfigurationPage() {
                         showNotif={showNotif}
                     />
                 )}
-
             </div>
 
             {/* Toast Notification */}

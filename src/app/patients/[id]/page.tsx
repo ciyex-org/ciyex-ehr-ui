@@ -462,31 +462,10 @@ export default function PatientDashboardPage() {
 
     const tabCategories = dynamicTabCategories || defaultTabCategories;
 
-    // Flatten all categories into a single tab list for the flat tab strip
-    const allTabs = tabCategories.flatMap((cat) => cat.tabs);
-
     const renderTabContent = (tabKey: string) => {
         if (tabKey === "dashboard") {
             return (
                 <div className="space-y-6">
-                    {/* Quick Actions */}
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href={`/patients/${patient.id}/encounters/new`}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm"
-                        >
-                            <Plus className="w-4 h-4" />
-                            New Encounter
-                        </Link>
-                        <button
-                            onClick={() => onTabClick("appointments")}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 shadow-sm"
-                        >
-                            <CalendarDays className="w-4 h-4" />
-                            Schedule Appointment
-                        </button>
-                    </div>
-
                     {/* Recent & Upcoming */}
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
                         <h4 className="text-lg font-semibold text-gray-800 mb-4">Recent & Upcoming</h4>
@@ -529,87 +508,83 @@ export default function PatientDashboardPage() {
 
     return (
         <AdminLayout>
-            <div className="pageScroll bg-gray-50 min-h-screen">
-                {/* Sticky header with patient info + flat tab strip */}
-                <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/95 backdrop-blur">
-                    {/* Patient header bar */}
-                    <div className="flex items-center gap-3 px-3 py-1.5 min-w-0">
-                        <Link
-                            href="/patients"
-                            className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-300 text-xs font-medium text-gray-700 flex items-center shrink-0"
-                        >
-                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                            </svg>
-                            Patients
-                        </Link>
-
-                        <div className="flex items-center flex-wrap gap-2 min-w-0">
-                            <div className="px-2 py-0.5 rounded bg-blue-50 text-xs font-medium text-blue-800 truncate">
-                                {patient.firstName} {patient.lastName}
+            {/* Negate AdminLayout padding so chart goes full-bleed */}
+            <div className="pageScroll bg-gray-50 min-h-screen -m-4 md:-m-6">
+                {/* Patient header bar */}
+                <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between px-4 py-2">
+                        {/* Left: back + patient info */}
+                        <div className="flex items-center gap-3 min-w-0">
+                            <Link
+                                href="/patients"
+                                className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                                title="Back to Patient List"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                            </Link>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <h1 className="text-base font-semibold text-gray-900 truncate">
+                                    {patient.firstName} {patient.lastName}
+                                </h1>
+                                {patient.mrn && (
+                                    <span className="text-xs text-gray-400 shrink-0">MRN: {patient.mrn}</span>
+                                )}
+                                <span className="text-gray-300 shrink-0">|</span>
+                                <span className="text-xs text-gray-500 shrink-0">
+                                    {formatDateLocal(patient.dateOfBirth)} ({calculateAgeLocal(patient.dateOfBirth)}y)
+                                </span>
+                                {patient.gender && (
+                                    <>
+                                        <span className="text-gray-300 shrink-0">|</span>
+                                        <span className="text-xs text-gray-500 shrink-0">{patient.gender}</span>
+                                    </>
+                                )}
+                                <span className="text-gray-300 shrink-0">|</span>
+                                <span className="text-xs text-gray-500 shrink-0">{patient.phoneNumber || "\u2014"}</span>
+                                {patient.status && (
+                                    <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${
+                                        patient.status === "Active" ? "bg-green-50 text-green-700" :
+                                        patient.status === "Inactive" ? "bg-red-50 text-red-700" :
+                                        "bg-yellow-50 text-yellow-700"
+                                    }`}>
+                                        {patient.status}
+                                    </span>
+                                )}
                             </div>
-                            {patient.mrn && (
-                                <div className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] text-gray-600 shrink-0">
-                                    MRN: {patient.mrn}
-                                </div>
-                            )}
-                            <div className="h-7 px-3 inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 text-xs">
-                                {formatDateLocal(patient.dateOfBirth)} &middot; Age {calculateAgeLocal(patient.dateOfBirth)}
-                            </div>
-                            {patient.gender && (
-                                <div className="h-7 px-3 inline-flex items-center rounded-full bg-gray-100 text-gray-700 text-xs">
-                                    {patient.gender}
-                                </div>
-                            )}
-                            <div className="h-7 px-3 inline-flex items-center rounded-full bg-gray-100 text-gray-700 text-xs">
-                                {patient.phoneNumber || "\u2014"}
-                            </div>
-                            {patient.status && (
-                                <div className={`h-7 px-3 inline-flex items-center rounded-full text-xs font-medium ${
-                                    patient.status === "Active" ? "bg-green-50 text-green-700" :
-                                    patient.status === "Inactive" ? "bg-red-50 text-red-700" :
-                                    "bg-yellow-50 text-yellow-700"
-                                }`}>
-                                    {patient.status}
-                                </div>
-                            )}
                         </div>
-                    </div>
-
-                    {/* Flat tab strip — single row, all tabs */}
-                    <div className="px-3 pb-1.5">
-                        <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
-                            {allTabs.map((tab) => {
-                                const Icon = tab.icon;
-                                const isActive = highlightedTab === tab.key;
-                                return (
-                                    <button
-                                        key={tab.key}
-                                        className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-md text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
-                                            isActive
-                                                ? "bg-blue-600 text-white shadow-sm"
-                                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-                                        }`}
-                                        onClick={() => onTabClick(tab.key)}
-                                    >
-                                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                                        {tab.label}
-                                    </button>
-                                );
-                            })}
+                        {/* Right: action buttons */}
+                        <div className="flex items-center gap-2 shrink-0 ml-4">
+                            <Link
+                                href={`/patients/${patient.id}/encounters/new`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                New Encounter
+                            </Link>
+                            <button
+                                onClick={() => onTabClick("appointments")}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-xs font-medium rounded-md border border-gray-300 hover:bg-gray-50"
+                            >
+                                <CalendarDays className="w-3.5 h-3.5" />
+                                Schedule Appointment
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Content area with clinical sidebar */}
-                <div className="flex w-full max-w-screen-2xl mx-auto p-4 gap-4">
+                {/* Content area: sidebar + main */}
+                <div className="flex">
                     <ClinicalSidebar
                         patientId={Number(patient.id)}
                         collapsed={sidebarCollapsed}
                         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+                        activeTab={highlightedTab}
                         onNavigate={onTabClick}
+                        tabCategories={tabCategories}
                     />
-                    <main className="flex-1 min-w-0">
+                    <main className="flex-1 min-w-0 p-4">
                         {renderTabContent(viewMode)}
                     </main>
                 </div>

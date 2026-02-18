@@ -145,6 +145,43 @@ export const MenuProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchMenu();
   }, [fetchMenu]);
 
+  // Retry menu fetch when auth token becomes available after initial mount
+  // This handles the race condition where MenuProvider mounts before the
+  // auth callback stores the token in localStorage.
+  useEffect(() => {
+    // If we already have menu items, no need to retry
+    if (menuItems.length > 0) return;
+
+    // Listen for localStorage changes (works across tabs, and custom event for same tab)
+    const handleStorageChange = (e: StorageEvent | CustomEvent) => {
+      const key = e instanceof StorageEvent ? e.key : (e as CustomEvent).detail?.key;
+      if (key === "token" || key === "authToken") {
+        fetchMenu();
+      }
+    };
+
+    // Poll briefly for token availability (handles same-tab navigation from callback)
+    let retryCount = 0;
+    const maxRetries = 20; // 20 * 500ms = 10 seconds
+    const interval = setInterval(() => {
+      retryCount++;
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      if (token && menuItems.length === 0) {
+        fetchMenu();
+        clearInterval(interval);
+      } else if (retryCount >= maxRetries) {
+        clearInterval(interval);
+      }
+    }, 500);
+
+    window.addEventListener("storage", handleStorageChange as EventListener);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange as EventListener);
+    };
+  }, [fetchMenu, menuItems.length]);
+
   return (
     <MenuContext.Provider
       value={{

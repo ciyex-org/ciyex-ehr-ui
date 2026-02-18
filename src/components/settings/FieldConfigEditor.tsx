@@ -14,7 +14,7 @@ import DynamicFormRenderer from "@/components/patients/DynamicFormRenderer";
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
 interface FieldConfigEditorProps {
-  availableTabs: { tabKey: string; fhirResources: string[] }[];
+  availableTabs: { tabKey: string; fhirResources: any[] }[];
   selectedTab: string;
   setSelectedTab: (tab: string) => void;
   fieldConfig: FieldConfig | null;
@@ -28,6 +28,8 @@ interface FieldConfigEditorProps {
   saving: boolean;
   setSaving: (v: boolean) => void;
   showNotif: (type: "success" | "error", message: string) => void;
+  /** Hide the tab selector header — used when editing a single page config */
+  hideTabSelector?: boolean;
 }
 
 export default function FieldConfigEditor({
@@ -37,6 +39,7 @@ export default function FieldConfigEditor({
   fieldConfigPreview, setFieldConfigPreview,
   previewFormData, setPreviewFormData,
   saving, setSaving, showNotif,
+  hideTabSelector = false,
 }: FieldConfigEditorProps) {
 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -49,7 +52,8 @@ export default function FieldConfigEditor({
       const res = await fetchWithAuth(`${API_BASE()}/api/tab-field-config/${tabKey}`);
       if (res.ok) {
         const data = await res.json();
-        setFieldConfig(data.fieldConfig || { sections: [] });
+        const fc = typeof data.fieldConfig === "string" ? JSON.parse(data.fieldConfig) : data.fieldConfig;
+        setFieldConfig(fc?.sections ? fc : { sections: [] });
         setFhirResources(data.fhirResources || []);
       } else {
         setFieldConfig({ sections: [] });
@@ -436,31 +440,33 @@ export default function FieldConfigEditor({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Field Configuration</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Configure the fields, FHIR mappings, and layout for each tab. Changes are saved per organization.
-        </p>
+      {/* Header + Tab Selector (hidden in single-page mode) */}
+      {!hideTabSelector && (
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Field Configuration</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Configure the fields, FHIR mappings, and layout for each tab. Changes are saved per organization.
+          </p>
 
-        {/* Tab Selector */}
-        <div className="flex flex-wrap gap-2">
-          {availableTabs.map((tab) => (
-            <button
-              key={tab.tabKey}
-              onClick={() => handleTabSelect(tab.tabKey)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                selectedTab === tab.tabKey
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-              }`}
-            >
-              {tab.tabKey.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-              <span className="ml-1 text-xs opacity-60">({tab.fhirResources.join(", ")})</span>
-            </button>
-          ))}
+          {/* Tab Selector */}
+          <div className="flex flex-wrap gap-2">
+            {availableTabs.map((tab) => (
+              <button
+                key={tab.tabKey}
+                onClick={() => handleTabSelect(tab.tabKey)}
+                className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                  selectedTab === tab.tabKey
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }`}
+              >
+                {tab.tabKey.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                <span className="ml-1 text-xs opacity-60">({tab.fhirResources.map((r: any) => typeof r === "string" ? r : r.type || r.resourceType || "?").join(", ")})</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Field Config Editor */}
       {selectedTab && fieldConfig && (
@@ -469,11 +475,14 @@ export default function FieldConfigEditor({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">FHIR Resources:</span>
-              {fhirResources.map((r) => (
-                <span key={r} className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
-                  {r}
-                </span>
-              ))}
+              {fhirResources.map((r: any, i: number) => {
+                const label = typeof r === "string" ? r : r.type || r.resourceType || "?";
+                return (
+                  <span key={label + i} className="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
+                    {label}
+                  </span>
+                );
+              })}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -619,7 +628,7 @@ export default function FieldConfigEditor({
       )}
 
       {/* No tab selected */}
-      {!selectedTab && (
+      {!selectedTab && !hideTabSelector && (
         <div className="text-center text-gray-400 py-12">
           Select a tab above to configure its fields.
         </div>

@@ -83,77 +83,8 @@ function transformMenuToNavItems(items: MenuItemNode[]): NavItem[] {
   });
 }
 
-// ===== Hardcoded fallback (used when API is unavailable) =====
-const FALLBACK_NAV_ITEMS: NavItem[] = [
-  { icon: <Calendar className="h-6 w-6" />, name: "Calendar", path: "/calendar" },
-  { icon: <CalendarCheck className="h-6 w-6" />, name: "Appointments", path: "/appointments" },
-  {
-    icon: <Users className="h-6 w-6" />, name: "Patients",
-    subItems: [
-      { name: "Patient List", path: "/patients" },
-      { name: "Encounters", path: "/all-encounters" },
-      { name: "Messaging", path: "/messaging" },
-      { name: "Education", path: "/patient_education" },
-      { name: "Codes List", path: "/patients/codes" },
-      { name: "Claim Management", path: "/patients/claim-management" },
-    ],
-  },
-  {
-    icon: <Package className="h-6 w-6" />, name: "Inventory",
-    subItems: [
-      { name: "Dashboard", path: "/inventory-management" },
-      { name: "Inventory", path: "/inventory-management/inventory" },
-      { name: "Orders", path: "/inventory-management/orders" },
-      { name: "Records", path: "/inventory-management/records" },
-      { name: "Suppliers", path: "/inventory-management/suppliers" },
-      { name: "Maintenance", path: "/inventory-management/maintenance" },
-      { name: "Settings", path: "/inventory-management/settings" },
-    ],
-  },
-  { icon: <Bell className="h-6 w-6" />, name: "Recall", path: "/recall" },
-  {
-    icon: <BarChart3 className="h-6 w-6" />, name: "Reports",
-    subItems: [
-      { name: "Patient Report", path: "/reports/patient" },
-      { name: "Appointment Report", path: "/reports/appointment" },
-      { name: "Encounter Report", path: "/reports/encounter" },
-      { name: "Payment Reports", path: "/reports/payment" },
-    ],
-  },
-  {
-    icon: <Settings className="h-6 w-6" />, name: "Settings",
-    subItems: [
-      { name: "Providers", path: "/settings/providers" },
-      { name: "Referral Providers", path: "/settings/referral-providers" },
-      { name: "Referral Practices", path: "/settings/referral-practices" },
-      { name: "Insurance Companies", path: "/settings/insurance" },
-      { name: "Documents", path: "/settings/Documents" },
-      { name: "Template Documents", path: "/settings/templateDocument" },
-      { name: "Codes", path: "/settings/codes" },
-      { name: "Integration", path: "/settings/config" },
-      { name: "Services", path: "/settings/services" },
-      { name: "Billing", path: "/settings/billing" },
-      {
-        name: "Forms",
-        subItems: [
-          { name: "Lists", path: "/settings/forms/lists" },
-          { name: "Encounter Sections", path: "/settings/forms/admin" },
-        ],
-      },
-      { name: "Facilities", path: "/settings/facilities" },
-      { name: "Practice", path: "/settings/practice" },
-      { name: "Chart", path: "/settings/layout-settings" },
-      { name: "Menu Configuration", path: "/settings/menu-configuration" },
-    ],
-  },
-  {
-    icon: <FlaskConical className="h-6 w-6" />, name: "Labs",
-    subItems: [
-      { name: "Lab Orders", path: "/labs/orders" },
-      { name: "Lab Results", path: "/labs/results" },
-    ],
-  },
-];
+// Empty fallback — all navigation comes from the Menu API (database)
+const FALLBACK_NAV_ITEMS: NavItem[] = [];
 
 // ===== Component =====
 const AppSidebar: React.FC = () => {
