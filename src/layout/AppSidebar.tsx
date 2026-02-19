@@ -18,7 +18,7 @@ import {
   FileText, Truck, Wrench, UserCog, UserPlus, Building, Shield,
   FilePlus, Plug, Briefcase, CreditCard, FileInput, Building2,
   Stethoscope, LayoutGrid, Menu, TestTube, FileBarChart, DollarSign,
-  Store, Code2,
+  Store, Code2, Palette,
   type LucideIcon,
 } from "lucide-react";
 import PluginSlot from "@/components/plugins/PluginSlot";
@@ -56,7 +56,7 @@ const SIDEBAR_ICON_MAP: Record<string, LucideIcon> = {
   FileText, Truck, Wrench, UserCog, UserPlus, Building, Shield,
   FilePlus, Plug, Briefcase, CreditCard, FileInput, Building2,
   Stethoscope, LayoutGrid, Menu, TestTube, FileBarChart, DollarSign,
-  Store, Code2,
+  Store, Code2, Palette,
 };
 
 // Transform API menu tree nodes into SubItem[] (recursive)

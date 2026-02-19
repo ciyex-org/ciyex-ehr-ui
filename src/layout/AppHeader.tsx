@@ -36,9 +36,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
         dateOfBirth: "",
         phoneNumber: "",
         email: "",
-        smsConsent: true,  // SMS consent is checked by default
-        emailConsent: true, // Email consent is checked by default
-        voicemailConsent: true, // Voicemail consent is checked by default
+        allowSms: true,
+        allowEmail: true,
+        allowVoicemail: true,
     });
 
     const [errorMessage, setErrorMessage] = useState("");
@@ -53,9 +53,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
             dateOfBirth: "",
             phoneNumber: "",
             email: "",
-            smsConsent: true,
-            emailConsent: true,
-            voicemailConsent: true,
+            allowSms: true,
+            allowEmail: true,
+            allowVoicemail: true,
         });
         setEditingPatientId(null);
         setErrorMessage("");
@@ -73,34 +73,42 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
 
     const handleSave = async () => {
         try {
+            const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
             let response: Response;
-            const payload = { ...formData };
 
             if (editingPatientId) {
+                // Update existing patient via generic FHIR handler
                 response = await fetchWithAuth(
-                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${editingPatientId}`,
+                    `${apiUrl}/api/fhir-resource/demographics/patient/${editingPatientId}/${editingPatientId}`,
                     {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ ...payload, id: editingPatientId }),
+                        body: JSON.stringify(formData),
                     }
                 );
             } else {
+                // Create new patient via generic FHIR handler
                 response = await fetchWithAuth(
-                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients`,
+                    `${apiUrl}/api/fhir-resource/demographics`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
+                        body: JSON.stringify(formData),
                     }
                 );
             }
 
             const res = await response.json();
             if (res.success) {
+                const patientId = res.data?.fhirId || res.data?.id;
                 setModalOpen(false);
                 resetForm();
-                router.refresh();
+                if (patientId) {
+                    // Redirect to patient demographics to add more details
+                    router.push(`/patients/${patientId}`);
+                } else {
+                    router.refresh();
+                }
             } else {
                 setErrorMessage(res.message || "Failed to save patient");
             }
@@ -115,7 +123,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
 
         try {
             const response = await fetchWithAuth(
-                `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${editingPatientId}`,
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/fhir-resource/demographics/${editingPatientId}`,
                 { method: "DELETE" }
             );
             const res = await response.json();
@@ -296,11 +304,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">
-                                    <span className="text-red-500">*</span> Middle Name
+                                    Middle Name
                                 </label>
                                 <input
                                     name="middleName"
-                                    required
                                     placeholder="Middle name"
                                     value={formData.middleName}
                                     onChange={handleInputChange}
@@ -382,37 +389,37 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium mb-1">Consent to receive notifications</label>
+                            <label className="block text-sm font-medium mb-1">Communication Consent</label>
                             <div className="flex items-center gap-4">
                                 <div>
                                     <input
                                         type="checkbox"
-                                        id="emailConsent"
-                                        name="emailConsent"
-                                        checked={formData.emailConsent}
+                                        id="allowEmail"
+                                        name="allowEmail"
+                                        checked={formData.allowEmail}
                                         onChange={handleInputChange}
                                     />
-                                    <label htmlFor="emailConsent" className="ml-2">Email</label>
+                                    <label htmlFor="allowEmail" className="ml-2">Email</label>
                                 </div>
                                 <div>
                                     <input
                                         type="checkbox"
-                                        id="smsConsent"
-                                        name="smsConsent"
-                                        checked={formData.smsConsent}
+                                        id="allowSms"
+                                        name="allowSms"
+                                        checked={formData.allowSms}
                                         onChange={handleInputChange}
                                     />
-                                    <label htmlFor="smsConsent" className="ml-2">SMS/Text</label>
+                                    <label htmlFor="allowSms" className="ml-2">SMS/Text</label>
                                 </div>
                                 <div>
                                     <input
                                         type="checkbox"
-                                        id="voicemailConsent"
-                                        name="voicemailConsent"
-                                        checked={formData.voicemailConsent}
+                                        id="allowVoicemail"
+                                        name="allowVoicemail"
+                                        checked={formData.allowVoicemail}
                                         onChange={handleInputChange}
                                     />
-                                    <label htmlFor="voicemailConsent" className="ml-2">Voicemail</label>
+                                    <label htmlFor="allowVoicemail" className="ml-2">Voicemail</label>
                                 </div>
                             </div>
                         </div>

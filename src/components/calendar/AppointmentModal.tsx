@@ -175,22 +175,16 @@ const hasOccurrenceCoveringSlot = (sched: Schedule, startYmdTHM: string, endYmdT
 const getLocationIdFromSchedule = (sched: Schedule): string | null => {
     // Check recurrence locationId first
     const rid = sched?.recurrence?.locationId;
-    if (rid) {
-        console.log('Found locationId in recurrence:', rid);
-        return String(rid);
-    }
-    
+    if (rid) return String(rid);
+
     // Check actorReferences for Location/ID format
     const refs = Array.isArray(sched?.actorReferences) ? sched.actorReferences : [];
     const locRef = refs.find((r) => String(r).startsWith("Location/"));
     if (locRef) {
         const parts = String(locRef).split("/");
-        const locationId = parts[1];
-        console.log('Found locationId in actorReferences:', locationId);
-        return locationId || null;
+        return parts[1] || null;
     }
-    
-    console.log('No location found in schedule:', sched);
+
     return null;
 };
 
@@ -204,7 +198,7 @@ const AppointmentModal: React.FC = () => {
 
     // Form fields
     const [visitType, setVisitType] = useState("Consultation");
-    const [visitTypeOptions, setVisitTypeOptions] = useState<Option[]>([]);
+    const [visitTypeOptions, setVisitTypeOptions] = useState<string[]>([]);
 
     const [patientQuery, setPatientQuery] = useState("");
     const [patientResults, setPatientResults] = useState<Patient[]>([]);
@@ -267,23 +261,38 @@ const AppointmentModal: React.FC = () => {
     /* =========================
      * Initial data
      * ======================= */
-    // Visit Types
+    // Visit Types — load from appointments field config (tab_field_config)
     useEffect(() => {
+        if (!apiUrl) return;
+        let cancelled = false;
         (async () => {
             try {
-                const res = await fetchWithAuth(`${apiUrl}/api/list-options/list/VisitType`);
+                const res = await fetchWithAuth(`${apiUrl}/api/tab-field-config/appointments`);
+                if (!res.ok) return;
                 const json = await res.json();
-                if (Array.isArray(json)) {
-                    const opts = json
-                        .filter((x: VisitType) => x.activity === 1)
-                        .sort((a: VisitType, b: VisitType) => a.seq - b.seq)
-                        .map((x: VisitType) => ({ value: x.title, label: x.title }));
-                    setVisitTypeOptions(opts);
+                const fc = typeof json.fieldConfig === "string" ? JSON.parse(json.fieldConfig) : json.fieldConfig;
+                const sections: Array<{ fields?: Array<{ key: string; options?: unknown[] }> }> = fc?.sections || [];
+                for (const section of sections) {
+                    for (const field of (section?.fields || [])) {
+                        if (field.key === "appointmentType" && Array.isArray(field.options)) {
+                            const strings: string[] = [];
+                            for (let i = 0; i < field.options.length; i++) {
+                                const item = field.options[i];
+                                const str = typeof item === "string" ? item : String((item as Record<string, unknown>)?.value ?? (item as Record<string, unknown>)?.label ?? "");
+                                if (str) strings.push(str);
+                            }
+                            if (!cancelled && strings.length > 0) {
+                                setVisitTypeOptions(strings);
+                            }
+                            return;
+                        }
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch visit types", err);
             }
         })();
+        return () => { cancelled = true; };
     }, [apiUrl]);
 
     // All ACTIVE providers
@@ -432,7 +441,6 @@ const AppointmentModal: React.FC = () => {
                         });
                     }
                 });
-                console.log('Found location IDs:', Array.from(locIds));
 
                 // id → label
                 const byId: Record<string, Option<string>> = {};
@@ -585,28 +593,20 @@ const AppointmentModal: React.FC = () => {
             return;
         }
 
-        const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-        const dto = {
-            visitType,
-            patientId: Number(selectedPatientId),
-            providerId: Number(providerId),
-            appointmentStartDate: startDate,
-            appointmentEndDate: endDate,
-            appointmentStartTime: startTime,
-            appointmentEndTime: endTime,
+        const dto: Record<string, unknown> = {
+            appointmentType: visitType,
+            status,
+            priority,
             start: combinedStart ? new Date(combinedStart).toISOString() : null,
             end: combinedEnd ? new Date(combinedEnd).toISOString() : null,
-            actorReferences: locationId ? [`Location/${locationId}`] : null,
-            timezone: browserTz,
-            priority,
-            locationId: Number(locationId),
-            status,
             reason: notes || null,
+            patient: `Patient/${selectedPatientId}`,
+            provider: `Practitioner/${providerId}`,
         };
+        if (locationId) dto.location = `Location/${locationId}`;
 
         try {
-            const res = await fetchWithAuth(`${apiUrl}/api/appointments`, {
+            const res = await fetchWithAuth(`${apiUrl}/api/fhir-resource/appointments`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(dto),
@@ -701,9 +701,12 @@ const AppointmentModal: React.FC = () => {
                             onChange={(e) => setVisitType(e.target.value)}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         >
-                            {visitTypeOptions.map((o) => (
-                                <option key={o.value} value={o.value}>
-                                    {o.label}
+                            {visitTypeOptions.length === 0 && (
+                                <option value="">Loading...</option>
+                            )}
+                            {visitTypeOptions.map((s) => (
+                                <option key={s} value={s}>
+                                    {s}
                                 </option>
                             ))}
                         </select>

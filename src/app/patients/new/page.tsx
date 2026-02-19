@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/app/(admin)/layout";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 
 
 // Define interfaces for your form data structure
@@ -476,15 +478,38 @@ export default function AddPatient() {
 
         setIsSubmitting(true);
         try {
-            console.log('Submitting form data:', JSON.stringify(formData, null, 2));
-            const response = await fetch('http://localhost:8080/api/patients', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhbGljZUBleGFtcGxlLmNvbSIsImZpcnN0TmFtZSI6IkFsaWNlIiwibGFzdE5hbWUiOiJKb2huc29uIiwib3JnSWRzIjpbMSwzXSwib3JncyI6W3sib3JnSWQiOjEsIm9yZ05hbWUiOiJRaWFiZW4gSGVhbHRoIiwicm9sZXMiOlsiU1VQRVJfQURNSU4iXX0seyJvcmdJZCI6Mywib3JnTmFtZSI6IkNhcmVXZWxsIiwicm9sZXMiOlsiTlVSU0UiXX1dLCJleHAiOjE3ODY2NDAxMzYsInVzZXJJZCI6MSwiaWF0IjoxNzU1MDgyNTM2LCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIn0.96KNosbhKRfO-VwMbPGgDzRENeb4ayXGrdzWrzlS6eA',
-                },
-                body: JSON.stringify(formData),
+            // Map form data to generic FHIR demographics field keys
+            const fhirPayload: Record<string, unknown> = {
+                firstName: formData.personalInfo.firstName,
+                lastName: formData.personalInfo.lastName,
+                middleName: formData.personalInfo.mi,
+                suffix: formData.personalInfo.suffix,
+                dateOfBirth: formData.personalInfo.dob,
+                gender: formData.personalInfo.gender,
+                maritalStatus: formData.personalInfo.maritalStatus,
+                ethnicity: formData.personalInfo.ethnicity,
+                language: formData.personalInfo.language,
+                ssn: formData.personalInfo.ptssn,
+                phoneNumber: formData.contactInfo.cellPhone || formData.contactInfo.homePhone,
+                homePhone: formData.contactInfo.homePhone,
+                email: formData.contactInfo.email,
+                occupation: formData.employerInfo.status ? formData.employerInfo.status : undefined,
+                employerName: formData.employerInfo.name,
+                employerAddress: [formData.employerInfo.address1, formData.employerInfo.address2, formData.employerInfo.city, formData.employerInfo.state, formData.employerInfo.zip].filter(Boolean).join(", "),
+            };
+            // Remove undefined/empty values
+            Object.keys(fhirPayload).forEach(key => {
+                if (fhirPayload[key] === undefined || fhirPayload[key] === "") delete fhirPayload[key];
             });
+
+            const response = await fetchWithAuth(
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/fhir-resource/demographics`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(fhirPayload),
+                }
+            );
 
             if (!response.ok) {
                 const text = await response.text();
@@ -492,18 +517,20 @@ export default function AddPatient() {
             }
 
             const data = await response.json();
-            console.log('Patient created:', data);
+            const patientId = data.data?.fhirId || data.data?.id;
 
-
-            setTimeout(() => {
+            if (patientId) {
+                // Redirect to patient demographics to add more details
+                router.push(`/patients/${patientId}`);
+            } else {
                 router.push('/patients');
-            }, 2000);
+            }
         } catch (error: unknown) {
             console.error('Error creating patient:', error);
             const message = error instanceof Error
                 ? error.message
                 : 'Failed to create patient. Please try again.';
-            alert(message); // or toast.error(message);
+            alert(message);
         } finally {
             setIsSubmitting(false);
         }

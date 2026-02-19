@@ -59,7 +59,7 @@ export default function PatientListPage() {
     const [error, setError] = useState<string | null>(null);
 
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [patientsPerPage, setPatientsPerPage] = useState<number>(10);
+    const [patientsPerPage, setPatientsPerPage] = useState<number>(25);
     const [totalPages, setTotalPages] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
 
