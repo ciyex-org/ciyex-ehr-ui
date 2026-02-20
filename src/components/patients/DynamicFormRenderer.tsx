@@ -293,16 +293,18 @@ function LookupField({
   value,
   onChange,
   readOnly,
+  displayLabel,
 }: {
   field: FieldDef;
   value: any;
   onChange: (val: any) => void;
   readOnly?: boolean;
+  displayLabel?: string;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [displayValue, setDisplayValue] = useState(value || "");
+  const [displayValue, setDisplayValue] = useState(displayLabel || value || "");
 
   const search = useCallback(
     async (q: string) => {
@@ -1511,7 +1513,7 @@ export default function DynamicFormRenderer({
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
-          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} readOnly={readOnly} />
+          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       );

@@ -250,11 +250,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     };
 
     // Format display value for list table
-    const formatValue = (value: any, colKey?: string): React.ReactNode => {
+    const formatValue = (value: any, colKey?: string, record?: Record<string, any>): React.ReactNode => {
         if (value == null) return "-";
         if (typeof value === "boolean") return value ? "Yes" : "No";
 
         const fieldDef = colKey ? findFieldDef(colKey) : undefined;
+
+        // Reference fields: use {key}Display if available
+        if (colKey && record && record[colKey + "Display"]) {
+            return record[colKey + "Display"];
+        }
 
         // Status badge rendering
         if (fieldDef?.badgeColors && typeof value === "string") {
@@ -513,7 +518,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                                                 key={col.key}
                                                 className="px-4 py-2.5 text-gray-700 dark:text-gray-300"
                                             >
-                                                {formatValue(record[col.key], col.key)}
+                                                {formatValue(record[col.key], col.key, record)}
                                             </td>
                                         ))}
                                         <td className="px-4 py-2.5 text-right">
