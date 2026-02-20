@@ -23,9 +23,10 @@ type Category = "visit-type" | "provider" | "location" | "calendar";
 
 /* ─── Deterministic random color from string (FNV-1a hash for better distribution) ─── */
 function hashString(str: string): number {
+    const s = str || "unknown";
     let h = 0x811c9dc5;
-    for (let i = 0; i < str.length; i++) {
-        h ^= str.charCodeAt(i);
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
         h = Math.imul(h, 0x01000193);
     }
     return h >>> 0;
@@ -232,6 +233,7 @@ export default function CalendarColorSettings() {
             case "provider": return providerOptions;
             case "location": return locationOptions;
             case "calendar": return calendarOptions;
+            default: return [];
         }
     }, [activeTab, visitTypeOptions, providerOptions, locationOptions, calendarOptions]);
 
@@ -242,7 +244,7 @@ export default function CalendarColorSettings() {
     };
 
     const mergedEntries = useMemo(() => {
-        return currentOptions.map((opt) => {
+        return (currentOptions || []).map((opt) => {
             const key = `${activeTab}:${opt.value}`;
             const local = localColors[key];
             const saved = savedColors[key];
