@@ -264,15 +264,27 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
         // Select/coded fields: show label instead of value
         if (fieldDef && (fieldDef.type === "select" || fieldDef.type === "coded") && fieldDef.options) {
-            const opt = fieldDef.options.find((o) => o.value === value);
-            if (opt) return opt.label;
+            const opt = fieldDef.options.find((o: any) =>
+                typeof o === "string" ? o === value : o.value === value
+            );
+            if (opt) return typeof opt === "string" ? opt : opt.label;
         }
 
         // Date fields: format as readable date
         if (fieldDef?.type === "date" && typeof value === "string") {
-            // Strip time portion from ISO datetime strings
             const dateOnly = value.includes("T") ? value.split("T")[0] : value;
             return dateOnly;
+        }
+
+        // Datetime fields: format as readable datetime
+        if (fieldDef?.type === "datetime" && typeof value === "string") {
+            try {
+                const d = new Date(value);
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+                }
+            } catch { /* fall through */ }
+            return value.replace(/(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/, "").replace("T", " ");
         }
 
         // File field: show file icon

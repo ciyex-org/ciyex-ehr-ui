@@ -1604,9 +1604,13 @@ export default function DynamicFormRenderer({
             />
           );
         }
+        // Normalize options: support both string[] and {label, value}[] formats
+        const normalizedOptions = (field.options || []).map((o: any) =>
+          typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label }
+        );
         return (
           <Select
-            options={field.options || []}
+            options={normalizedOptions}
             defaultValue={value || ""}
             onChange={(val) => onChange(field.key, val)}
           />
@@ -1708,15 +1712,22 @@ export default function DynamicFormRenderer({
         );
       }
 
-      case "datetime":
+      case "datetime": {
+        // Convert FHIR instant/datetime to datetime-local format (YYYY-MM-DDTHH:mm)
+        let dtValue = value || "";
+        if (typeof dtValue === "string" && dtValue.includes("T")) {
+          // Strip timezone suffix and milliseconds: "2026-02-19T21:00:00.000Z" → "2026-02-19T21:00"
+          dtValue = dtValue.replace(/(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/, "").slice(0, 16);
+        }
         return (
           <Input
             type="datetime-local"
-            value={value || ""}
+            value={dtValue}
             onChange={(e) => onChange(field.key, e.target.value)}
             error={!!error}
           />
         );
+      }
 
       case "file":
         return (
