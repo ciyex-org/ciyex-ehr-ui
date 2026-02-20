@@ -19,9 +19,13 @@ type EncounterStatus = "SIGNED" | "UNSIGNED" | "INCOMPLETE";
 interface DynamicEncounterFormProps {
   patientId: number;
   encounterId: number;
+  /** When true, renders without negative margins and hides Back link (for slide-over panel) */
+  embedded?: boolean;
+  /** Auto-scroll to a section on load, e.g. "vitals" */
+  initialSection?: string;
 }
 
-export default function DynamicEncounterForm({ patientId, encounterId }: DynamicEncounterFormProps) {
+export default function DynamicEncounterForm({ patientId, encounterId, embedded, initialSection }: DynamicEncounterFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pluginEvents = usePluginEventBus();
@@ -186,6 +190,17 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
     return () => observerRef.current?.disconnect();
   }, [fieldConfig]);
 
+  // Auto-scroll to initialSection after form loads
+  useEffect(() => {
+    if (!initialSection || loading || !fieldConfig) return;
+    // Small delay so DOM elements are rendered
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`section-${initialSection}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [initialSection, loading, fieldConfig]);
+
   // Sign / Unsign
   const postStatus = useCallback(
     async (action: "sign" | "unsign", next: EncounterStatus) => {
@@ -310,19 +325,21 @@ export default function DynamicEncounterForm({ patientId, encounterId }: Dynamic
       patient={{ id: String(patientId), name: patient ? `${patient.firstName} ${patient.lastName}` : undefined, birthDate: patient?.dateOfBirth }}
       encounter={{ id: String(encounterId), status }}
     >
-    <div className="-m-4 md:-m-6 flex flex-col h-[calc(100vh-64px)]">
+    <div className={embedded ? "flex flex-col h-full" : "-m-4 md:-m-6 flex flex-col h-[calc(100vh-64px)]"}>
       {/* Top Bar */}
       <div className="shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div className="px-4 py-2 flex items-center justify-between">
           {/* Left: Back + Encounter info */}
           <div className="flex items-center gap-3">
-            <Link
-              href={backUrl}
-              className="flex items-center gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-700 dark:text-gray-300"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back
-            </Link>
+            {!embedded && (
+              <Link
+                href={backUrl}
+                className="flex items-center gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-700 dark:text-gray-300"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back
+              </Link>
+            )}
             <span className="text-sm text-gray-600 dark:text-gray-400">
               Encounter <span className="font-semibold">#{encounterId}</span>
             </span>

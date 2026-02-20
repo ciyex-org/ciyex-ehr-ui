@@ -17,6 +17,7 @@ import {
 } from '@fullcalendar/core';
 import Alert from "@/components/ui/alert/Alert";
 import VideoCallButton from "@/components/telehealth/VideoCallButton";
+import FilterMultiSelect from "@/components/calendar/FilterMultiSelect";
 
 const monthViewStyles = `
 /* Hide FullCalendar scrollbars */
@@ -541,11 +542,20 @@ const Calendar: React.FC = () => {
 
     const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
 
-    // Header filters (existing)
+    // Header filters — empty array = "all" (show everything)
     const [providers, setProviders] = useState<{ value: string; label: string }[]>([]);
-    const [provider, setProvider] = useState('all');
+    const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
     const [locations, setLocations] = useState<{ value: string; label: string }[]>([]);
-    const [location, setLocation] = useState('all');
+    const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+    // Convenience: true when nothing is filtered
+    const allProvidersSelected = selectedProviders.length === 0;
+    const allLocationsSelected = selectedLocations.length === 0;
+    // Providers visible in multi-column day view
+    const visibleProviders = useMemo(() => {
+        const nonAll = providers.filter((p) => p.value !== "all");
+        if (allProvidersSelected) return nonAll;
+        return nonAll.filter((p) => selectedProviders.includes(p.value));
+    }, [providers, allProvidersSelected, selectedProviders]);
 
     // Modal provider list (based on chosen slot & location)
     const [providersForDate, setProvidersForDate] = useState<{ value: string; label: string }[]>([]);
@@ -586,8 +596,8 @@ const Calendar: React.FC = () => {
 
         for (const s of allSchedules) {
             if (String(s.status).toLowerCase() !== 'active') continue;
-            // If location filter is set, only consider schedules for that location
-            if (location !== 'all' && !scheduleHasLocation(s, location)) continue;
+            // If location filter is set, only consider schedules for those locations
+            if (!allLocationsSelected && !selectedLocations.some(lid => scheduleHasLocation(s, lid))) continue;
 
             const r = s.recurrence;
             if (r?.startTime && r?.endTime) {
@@ -607,7 +617,7 @@ const Calendar: React.FC = () => {
             setWorkingHoursStart('08:00');
             setWorkingHoursEnd('17:00');
         }
-    }, [allSchedules, location]);
+    }, [allSchedules, allLocationsSelected, selectedLocations]);
 
     // FullCalendar businessHours config
     const businessHours = useMemo(() => ({
@@ -632,11 +642,14 @@ const Calendar: React.FC = () => {
             }
         }, 300);
         return () => clearTimeout(timer);
-    }, [activeView, provider, workingHoursStart]);
+    }, [activeView, allProvidersSelected, selectedProviders, workingHoursStart]);
+
+    // Are we showing multi-column day view? (more than 1 provider visible)
+    const multiColumnDay = activeView === "timeGridDay" && (allProvidersSelected ? providers.length > 1 : selectedProviders.length !== 1);
 
     // FullCalendar controls
     const goPrev = () => {
-        if (provider === 'all') {
+        if (multiColumnDay) {
             Object.values(calendarRefs.current).forEach(cal => cal?.getApi().prev());
         } else {
             calendarRef.current?.getApi().prev();
@@ -644,7 +657,7 @@ const Calendar: React.FC = () => {
     };
 
     const goNext = () => {
-        if (provider === 'all') {
+        if (multiColumnDay) {
             Object.values(calendarRefs.current).forEach(cal => cal?.getApi().next());
         } else {
             calendarRef.current?.getApi().next();
@@ -654,8 +667,7 @@ const Calendar: React.FC = () => {
     const changeView = useCallback((v: ViewType) => {
         setActiveView(v);
 
-        if (provider === 'all') {
-            // update ALL provider calendars
+        if (multiColumnDay) {
             Object.values(calendarRefs.current).forEach(cal => {
                 if (cal) cal.getApi().changeView(v);
             });
@@ -664,7 +676,7 @@ const Calendar: React.FC = () => {
                 calendarRef.current.getApi().changeView(v);
             }
         }
-    }, [provider]);
+    }, [multiColumnDay]);
 
 
     // Fetch ACTIVE providers via generic FHIR endpoint
@@ -689,12 +701,12 @@ const Calendar: React.FC = () => {
         })();
     }, [apiUrl]);
 
-    /// Auto-select a real provider when in Week/Month view
+    /// Auto-select first provider when in Week/Month + no specific provider chosen
     useEffect(() => {
-        if (activeView !== "timeGridDay" && provider === "all" && providers.length > 1) {
-            setProvider(providers[1].value); // default to first provider
+        if (activeView !== "timeGridDay" && allProvidersSelected && providers.length > 1) {
+            setSelectedProviders([providers.filter(p => p.value !== 'all')[0]?.value].filter(Boolean));
         }
-    }, [activeView, provider, providers]);
+    }, [activeView, allProvidersSelected, providers]);
 
 
 
@@ -958,7 +970,7 @@ const Calendar: React.FC = () => {
 
         setLoadingProvidersForDate(true);
         const effectiveLocation =
-            appointmentLocationId || (location !== "all" ? location : "all");
+            appointmentLocationId || (selectedLocations.length === 1 ? selectedLocations[0] : "all");
 
         const providerIds = new Set<number>();
         for (const s of allSchedules) {
@@ -982,7 +994,7 @@ const Calendar: React.FC = () => {
         combinedEnd,
         providers,
         appointmentProviderId,
-        location,
+        selectedLocations,
         appointmentLocationId,
         allSchedules,
     ]);
@@ -1029,12 +1041,12 @@ const Calendar: React.FC = () => {
             setAppointmentLocationId('');
         } else if (
             filtered.length > 1 &&
-            location !== 'all' &&
-            filtered.some((l) => l.value === location)
+            selectedLocations.length === 1 &&
+            filtered.some((l) => l.value === selectedLocations[0])
         ) {
-            setAppointmentLocationId(location);
+            setAppointmentLocationId(selectedLocations[0]);
         }
-    }, [appointmentProviderId, combinedStart, combinedEnd, locations, allSchedules, appointmentLocationId, location]);
+    }, [appointmentProviderId, combinedStart, combinedEnd, locations, allSchedules, appointmentLocationId, selectedLocations]);
 
     // Clear modal location whenever provider changes
     useEffect(() => {
@@ -1110,11 +1122,11 @@ const Calendar: React.FC = () => {
             setAppointmentProviderId('');
         }
 
-        // ✅ Prefill location only if header filter is specific
-        setAppointmentLocationId(location === 'all' ? '' : location);
+        // ✅ Prefill location only if header filter is specific (single location)
+        setAppointmentLocationId(selectedLocations.length === 1 ? selectedLocations[0] : '');
 
         openModal();
-    }, [location, openModal]);
+    }, [selectedLocations, openModal]);
 
     // Click existing event → load into modal
     const handleEventClick = (clickInfo: EventClickArg) => {
@@ -1389,8 +1401,8 @@ const Calendar: React.FC = () => {
                     String(eventStart.getMonth() + 1).padStart(2, '0') + '-' +
                     String(eventStart.getDate()).padStart(2, '0');
                 if (eventDateStr !== cellDateStr) return false;
-                if (provider !== 'all' && e.extendedProps.providerId !== provider) return false;
-                if (location !== 'all' && e.extendedProps.locationId !== location) return false;
+                if (!allProvidersSelected && (!e.extendedProps.providerId || !selectedProviders.includes(e.extendedProps.providerId))) return false;
+                if (!allLocationsSelected && (!e.extendedProps.locationId || !selectedLocations.includes(e.extendedProps.locationId))) return false;
                 return true;
             }).length;
 
@@ -1442,7 +1454,7 @@ const Calendar: React.FC = () => {
                 </div>
             );
         },
-        [activeView, events, provider, location, changeView, handleDateSelect, calendarRef]
+        [activeView, events, allProvidersSelected, selectedProviders, allLocationsSelected, selectedLocations, changeView, handleDateSelect, calendarRef]
     );
 
 
@@ -1472,43 +1484,21 @@ const Calendar: React.FC = () => {
 
                 {/* Left: Providers + Locations */}
                 <div className="flex items-center gap-3">
-                    {/* Providers */}
-                    <div className="relative w-44">
-                        <select
-                            value={provider}
-                            onChange={(e) => setProvider(e.target.value)}
-                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900
-      focus:outline-none focus:ring-2 focus:ring-brand-500
-      dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                        >
-                            {/* Show "All Providers" only in Day view */}
-                            {activeView === "timeGridDay" && (
-                                <option value="all">All Providers</option>
-                            )}
-                            {providers
-                                .filter((p) => p.value !== "all")
-                                .map((p) => (
-                                    <option key={p.value} value={p.value}>
-                                        {p.label}
-                                    </option>
-                                ))}
-                        </select>
+                    <div className="w-48">
+                        <FilterMultiSelect
+                            label="Providers"
+                            options={providers.filter((p) => p.value !== "all")}
+                            selected={selectedProviders}
+                            onChange={setSelectedProviders}
+                        />
                     </div>
-
-                    {/* Locations */}
-                    <div className="relative w-52">
-                        <select
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900
-          focus:outline-none focus:ring-2 focus:ring-brand-500
-          dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                        >
-                            <option value="all">All Locations</option>
-                            {locations.filter((l) => l && l.value && l.value !== 'all').map((loc) => (
-                                <option key={loc.value} value={loc.value}>{loc.label}</option>
-                            ))}
-                        </select>
+                    <div className="w-52">
+                        <FilterMultiSelect
+                            label="Locations"
+                            options={locations.filter((l) => l && l.value && l.value !== "all")}
+                            selected={selectedLocations}
+                            onChange={setSelectedLocations}
+                        />
                     </div>
                 </div>
 
@@ -1572,253 +1562,164 @@ const Calendar: React.FC = () => {
                     '--cal-non-working-bg': colorConfig['calendar:non-working-hours-bg']?.bg || '#f1f5f9',
                 } as React.CSSProperties}
             >
-                {provider === "all" && providers.length > 1 ? (
-                    <>
-                        {/* Shared day headers */}
-                        {(activeView === "timeGridWeek" || activeView === "dayGridMonth") && (
-                            <div className="border rounded-md mb-4">
+                {multiColumnDay ? (
+                    /* === Multi-provider Day View → side-by-side columns */
+                    <div>
+                        {/* Sticky provider name header row */}
+                        <div
+                            className="sticky top-0 z-20 bg-white dark:bg-dark-900 grid gap-px border-b"
+                            style={{
+                                gridTemplateColumns: `repeat(${Math.max(visibleProviders.length, 1)}, minmax(100px, 1fr))`,
+                            }}
+                        >
+                            {visibleProviders.map((p) => {
+                                const clr = getColor('provider', p.value, p.label);
+                                return (
+                                    <div
+                                        key={`hdr-${p.value}`}
+                                        className="flex items-center justify-center gap-1 py-2 text-xs font-semibold"
+                                        style={{ backgroundColor: clr.bg, color: clr.text }}
+                                    >
+                                        <span className="truncate">{p.label}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Provider calendar columns grid */}
+                        <div
+                            className="multi-provider-grid grid gap-px"
+                            style={{
+                                gridTemplateColumns: `repeat(${Math.max(visibleProviders.length, 1)}, minmax(100px, 1fr))`,
+                            }}
+                        >
+                            {visibleProviders.map((p) => (
+                                <div key={`day-${p.value}`} className="provider-col border-r border-gray-200 last:border-r-0">
+                                    <FullCalendar
+                                        key={`day-${p.value}-${activeView}`}
+                                        ref={(el) => { calendarRefs.current[p.value] = el; }}
+                                        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                                        initialView="timeGridDay"
+                                        headerToolbar={false}
+                                        dayHeaders={false}
+                                        allDaySlot={false}
+                                        nowIndicator={true}
+                                        height="auto"
+                                        contentHeight="auto"
+                                        slotMinTime="00:00:00"
+                                        scrollTime={`${workingHoursStart}:00`}
+                                        businessHours={businessHours}
+                                        views={{ timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } } }}
+                                        datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
+                                        events={events.filter((e) => {
+                                            const matchProv = !e.extendedProps.providerId || e.extendedProps.providerId === p.value;
+                                            const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
+                                            return matchProv && matchLoc;
+                                        })}
+                                        selectable
+                                        select={(info) => handleDateSelect(info, p.value)}
+                                        eventClick={handleEventClick}
+                                        eventContent={renderEventContent}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : visibleProviders.length > 1 ? (
+                    /* === Multiple Providers in Week/Month View → stacked vertically */
+                    <div className="flex flex-col gap-6">
+                        {visibleProviders.map((p) => {
+                            const clr = getColor('provider', p.value, p.label);
+                            return (
+                                <div key={`${activeView}-${p.value}`} className="border rounded-md">
+                                    <h3
+                                        className="sticky top-0 z-10 text-center font-medium py-2 rounded-t-md"
+                                        style={{ backgroundColor: clr.bg, color: clr.text }}
+                                    >
+                                        {p.label}
+                                    </h3>
+                                    <FullCalendar
+                                        key={`stacked-${p.value}-${activeView}`}
+                                        ref={calendarRef}
+                                        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                                        initialView={activeView}
+                                        headerToolbar={false}
+                                        allDaySlot={false}
+                                        nowIndicator={true}
+                                        height="auto"
+                                        contentHeight="auto"
+                                        slotMinTime="00:00:00"
+                                        scrollTime={`${workingHoursStart}:00`}
+                                        businessHours={businessHours}
+                                        views={{
+                                            dayGridMonth: { titleFormat: { year: "numeric", month: "long" } },
+                                            timeGridWeek: { titleFormat: { month: "short", day: "numeric" } },
+                                            timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } },
+                                        }}
+                                        datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
+                                        events={events.filter((e) => {
+                                            const matchProv = !e.extendedProps.providerId || e.extendedProps.providerId === p.value;
+                                            const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
+                                            return matchProv && matchLoc;
+                                        })}
+                                        selectable
+                                        select={(info) => handleDateSelect(info, p.value)}
+                                        eventClick={handleEventClick}
+                                        eventContent={renderEventContent}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    /* === Single Provider / Single Calendar View */
+                    (() => {
+                        const singleProviderId = selectedProviders.length === 1 ? selectedProviders[0] : undefined;
+                        const provLabel = singleProviderId ? (providers.find((p) => p.value === singleProviderId)?.label || "") : "";
+                        const provClr = singleProviderId ? getColor('provider', singleProviderId, provLabel) : { bg: '', text: '' };
+                        return (
+                            <div className="border rounded-md">
+                                {singleProviderId && (
+                                    <h3
+                                        className="sticky top-0 z-10 text-center font-medium py-2 rounded-t-md"
+                                        style={{ backgroundColor: provClr.bg, color: provClr.text }}
+                                    >
+                                        {provLabel}
+                                    </h3>
+                                )}
                                 <FullCalendar
-                                    plugins={[dayGridPlugin, timeGridPlugin]}
+                                    key={`single-${singleProviderId || 'all'}-${activeView}`}
+                                    ref={calendarRef}
+                                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                                     initialView={activeView}
                                     headerToolbar={false}
-                                    events={[]} // no events, just headers
-                                    selectable={false}
-                                    editable={false}
+                                    allDaySlot={false}
+                                    nowIndicator={true}
                                     height="auto"
+                                    contentHeight="auto"
                                     slotMinTime="00:00:00"
                                     scrollTime={`${workingHoursStart}:00`}
                                     businessHours={businessHours}
-                                    dayHeaderFormat={{ weekday: "short", month: "numeric", day: "numeric" }}
                                     views={{
                                         dayGridMonth: { titleFormat: { year: "numeric", month: "long" } },
-                                        timeGridWeek: { titleFormat: { month: "short", day: "numeric" } },
-                                        timeGridDay: {
-                                            titleFormat: {
-                                                year: "numeric",
-                                                month: "long",
-                                                day: "numeric",
-                                                weekday: "long",
-                                            },
-                                        },
+                                        timeGridWeek: { titleFormat: { month: "short", day: "numeric", year: "numeric" } },
+                                        timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } },
                                     }}
+                                    datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
+                                    events={events.filter((e) => {
+                                        const matchProv = singleProviderId
+                                            ? (!e.extendedProps.providerId || e.extendedProps.providerId === singleProviderId)
+                                            : true;
+                                        const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
+                                        return matchProv && matchLoc;
+                                    })}
+                                    selectable
+                                    select={(info) => handleDateSelect(info, singleProviderId || undefined)}
+                                    eventClick={handleEventClick}
+                                    eventContent={renderEventContent}
+                                    dayCellContent={dayCellContent}
                                 />
                             </div>
-                        )}
-
-                        {activeView === "timeGridDay" ? (
-                            // === All Providers + Day View → Industry-standard columns
-                            <div>
-                                {/* Sticky provider name header row */}
-                                <div
-                                    className="sticky top-0 z-20 bg-white dark:bg-dark-900 grid gap-px border-b"
-                                    style={{
-                                        gridTemplateColumns: `repeat(${Math.max(
-                                            providers.length - 1,
-                                            1
-                                        )}, minmax(100px, 1fr))`,
-                                    }}
-                                >
-                                    {providers
-                                        .filter((p) => p.value !== "all")
-                                        .map((p) => {
-                                            const clr = getColor('provider', p.value, p.label);
-                                            return (
-                                                <div
-                                                    key={`hdr-${p.value}`}
-                                                    className="flex items-center justify-center gap-1 py-2 text-xs font-semibold"
-                                                    style={{ backgroundColor: clr.bg, color: clr.text }}
-                                                >
-                                                    <span className="truncate">{p.label}</span>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-
-                                {/* Provider calendar columns grid */}
-                                <div
-                                    className="multi-provider-grid grid gap-px"
-                                    style={{
-                                        gridTemplateColumns: `repeat(${Math.max(
-                                            providers.length - 1,
-                                            1
-                                        )}, minmax(100px, 1fr))`,
-                                    }}
-                                >
-                                    {providers
-                                        .filter((p) => p.value !== "all")
-                                        .map((p) => (
-                                            <div
-                                                key={`day-${p.value}`}
-                                                className="provider-col border-r border-gray-200 last:border-r-0"
-                                            >
-                                                <FullCalendar
-                                                    key={`day-${p.value}-${activeView}`}
-                                                    ref={(el) => {
-                                                        calendarRefs.current[p.value] = el;
-                                                    }}
-                                                    plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                                                    initialView="timeGridDay"
-                                                    headerToolbar={false}
-                                                    dayHeaders={false}
-                                                    allDaySlot={false}
-                                                    nowIndicator={true}
-                                                    height="auto"
-                                                    contentHeight="auto"
-                                                    slotMinTime="00:00:00"
-                                                    scrollTime={`${workingHoursStart}:00`}
-                                                    businessHours={businessHours}
-                                                    views={{
-                                                        timeGridDay: {
-                                                            titleFormat: {
-                                                                year: "numeric",
-                                                                month: "long",
-                                                                day: "numeric",
-                                                                weekday: "long",
-                                                            },
-                                                        },
-                                                    }}
-                                                    datesSet={(arg) => {
-                                                        setCalendarTitle(arg.view.title);
-                                                        setActiveView(arg.view.type as ViewType);
-                                                    }}
-                                                    events={events.filter(
-                                                        (e) => !e.extendedProps.providerId || e.extendedProps.providerId === p.value
-                                                    )}
-                                                    selectable
-                                                    select={(info) => handleDateSelect(info, p.value)}
-                                                    eventClick={handleEventClick}
-                                                    eventContent={renderEventContent}
-                                                />
-                                            </div>
-                                        ))}
-                                </div>
-                            </div>
-                        ) : (
-                            // === All Providers + Week/Month View → Stacked vertically
-                            <div className="flex flex-col gap-6">
-                                {providers
-                                    .filter((p) => p.value !== "all")
-                                    .map((p) => {
-                                        const clr = getColor('provider', p.value, p.label);
-                                        return (
-                                        <div key={`${activeView}-${p.value}`} className="border rounded-md">
-                                            <h3
-                                                className="sticky top-0 z-10 text-center font-medium py-2 rounded-t-md"
-                                                style={{ backgroundColor: clr.bg, color: clr.text }}
-                                            >
-                                                {p.label}
-                                            </h3>
-                                            <FullCalendar
-                                                key={`single-${provider}-${activeView}`}
-                                                ref={calendarRef}
-                                                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                                                initialView={activeView}
-                                                headerToolbar={false}
-                                                allDaySlot={false}
-                                                nowIndicator={true}
-                                                height="auto"
-                                                contentHeight="auto"
-                                                slotMinTime="00:00:00"
-                                                scrollTime={`${workingHoursStart}:00`}
-                                                businessHours={businessHours}
-                                                views={{
-                                                    dayGridMonth: { titleFormat: { year: "numeric", month: "long" } },
-                                                    timeGridWeek: { titleFormat: { month: "short", day: "numeric" } },
-                                                    timeGridDay: {
-                                                        titleFormat: {
-                                                            year: "numeric",
-                                                            month: "long",
-                                                            day: "numeric",
-                                                            weekday: "long",
-                                                        },
-                                                    },
-                                                }}
-                                                datesSet={(arg) => {
-                                                    setCalendarTitle(arg.view.title);
-                                                    setActiveView(arg.view.type as ViewType);
-                                                }}
-                                                events={events.filter((e) => {
-                                                    const matchesProvider =
-                                                        !e.extendedProps.providerId || e.extendedProps.providerId === p.value;
-                                                    const matchesLocation =
-                                                        location === "all" || e.extendedProps.locationId === location;
-                                                    return matchesProvider && matchesLocation;
-                                                })}
-                                                selectable
-                                                select={(info) =>
-                                                    handleDateSelect(info, p.value)
-                                                }
-                                                eventClick={handleEventClick}
-                                                eventContent={renderEventContent}
-                                            />
-                                        </div>
-                                        );
-                                    })}
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    // === Single Provider Selected
-                    (() => {
-                        const provLabel = providers.find((p) => p.value === provider)?.label || "";
-                        const provClr = getColor('provider', provider, provLabel);
-                        return (
-                    <div className="border rounded-md">
-                        {provider && (
-                            <h3
-                                className="sticky top-0 z-10 text-center font-medium py-2 rounded-t-md"
-                                style={{ backgroundColor: provClr.bg, color: provClr.text }}
-                            >
-                                {provLabel}
-                            </h3>
-                        )}
-                        <FullCalendar
-                            key={`single-${provider}-${activeView}`}
-                            ref={calendarRef}
-                            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                            initialView={activeView}
-                            headerToolbar={false}
-                            allDaySlot={false}
-                            nowIndicator={true}
-                            height="auto"
-                            contentHeight="auto"
-                            slotMinTime="00:00:00"
-                            scrollTime={`${workingHoursStart}:00`}
-                            businessHours={businessHours}
-                            views={{
-                                dayGridMonth: { titleFormat: { year: "numeric", month: "long" } },
-                                timeGridWeek: { titleFormat: { month: "short", day: "numeric", year: "numeric" } },
-                                timeGridDay: {
-                                    titleFormat: {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                        weekday: "long",
-                                    },
-                                },
-                            }}
-                            datesSet={(arg) => {
-                                setCalendarTitle(arg.view.title);
-                                setActiveView(arg.view.type as ViewType);
-                            }}
-                            events={events.filter((e) => {
-                                const matchesProvider =
-                                    provider && provider !== "all"
-                                        ? (!e.extendedProps.providerId || e.extendedProps.providerId === provider)
-                                        : true;
-                                const matchesLocation =
-                                    location === "all" || e.extendedProps.locationId === location;
-                                return matchesProvider && matchesLocation;
-                            })}
-                            selectable
-                            select={(info) =>
-                                handleDateSelect(info, provider !== "all" ? provider : undefined)
-                            }
-                            eventClick={handleEventClick}
-                            eventContent={renderEventContent}
-                            dayCellContent={dayCellContent}
-                        />
-                    </div>
                         );
                     })()
                 )}

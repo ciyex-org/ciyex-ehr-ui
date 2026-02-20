@@ -13,6 +13,253 @@ import DynamicFormRenderer from "@/components/patients/DynamicFormRenderer";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
+// Known extended option keys (beyond value/label) and their editor types
+const EXTENDED_OPTION_KEYS: Record<string, { label: string; type: "text" | "color" | "checkbox" | "number" }> = {
+  color: { label: "Color", type: "color" },
+  triggersEncounter: { label: "Triggers Encounter", type: "checkbox" },
+  terminal: { label: "Terminal", type: "checkbox" },
+  nextStatus: { label: "Next Status", type: "text" },
+  order: { label: "Order", type: "number" },
+  encounterNote: { label: "Encounter Note", type: "text" },
+};
+
+/** Detects if options have properties beyond value/label (i.e., extended metadata). */
+function hasExtendedOptions(options: any[]): boolean {
+  if (!options || options.length === 0) return false;
+  return options.some((o) => {
+    if (typeof o !== "object") return false;
+    return Object.keys(o).some((k) => k !== "value" && k !== "label");
+  });
+}
+
+/** Smart options editor — uses simple textarea for basic value|label options,
+ *  advanced table for options with extended metadata (color, triggersEncounter, etc.) */
+function OptionsEditor({ options, onChange }: { options: any[]; onChange: (opts: any[]) => void }) {
+  const isExtended = hasExtendedOptions(options);
+  const [mode, setMode] = React.useState<"auto" | "simple" | "advanced">("auto");
+  const effectiveMode = mode === "auto" ? (isExtended ? "advanced" : "simple") : mode;
+
+  // Collect all extra keys across all options
+  const extraKeys = React.useMemo(() => {
+    const keys = new Set<string>();
+    options.forEach((o) => {
+      if (typeof o === "object") {
+        Object.keys(o).forEach((k) => {
+          if (k !== "value" && k !== "label") keys.add(k);
+        });
+      }
+    });
+    return Array.from(keys);
+  }, [options]);
+
+  const updateOption = (idx: number, key: string, value: any) => {
+    const updated = options.map((o, i) => (i === idx ? { ...o, [key]: value } : o));
+    onChange(updated);
+  };
+
+  const removeOption = (idx: number) => {
+    onChange(options.filter((_, i) => i !== idx));
+  };
+
+  const moveOption = (idx: number, dir: -1 | 1) => {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= options.length) return;
+    const updated = [...options];
+    [updated[idx], updated[newIdx]] = [updated[newIdx], updated[idx]];
+    onChange(updated);
+  };
+
+  const addOption = () => {
+    const base: any = { value: "", label: "" };
+    // Carry forward the same extended keys from existing options
+    extraKeys.forEach((k) => {
+      const meta = EXTENDED_OPTION_KEYS[k];
+      if (meta?.type === "checkbox") base[k] = false;
+      else if (meta?.type === "number") base[k] = options.length + 1;
+      else if (meta?.type === "color") base[k] = "#9ca3af";
+      else base[k] = "";
+    });
+    onChange([...options, base]);
+  };
+
+  const switchToAdvanced = () => {
+    // Ensure all options have extended keys
+    const upgraded = options.map((o, idx) => {
+      const obj = typeof o === "string" ? { value: o, label: o } : { ...o };
+      if (!obj.color) obj.color = "#9ca3af";
+      if (obj.triggersEncounter === undefined) obj.triggersEncounter = false;
+      if (obj.terminal === undefined) obj.terminal = false;
+      if (obj.order === undefined) obj.order = idx + 1;
+      return obj;
+    });
+    onChange(upgraded);
+    setMode("advanced");
+  };
+
+  // Simple textarea mode
+  if (effectiveMode === "simple") {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-xs font-medium text-gray-500">Options (one per line: value|label)</label>
+          <button
+            onClick={switchToAdvanced}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
+            Switch to Advanced
+          </button>
+        </div>
+        <textarea
+          className="w-full px-2 py-1.5 text-sm border rounded font-mono dark:bg-gray-700 dark:border-gray-600"
+          rows={4}
+          value={options.map((o: any) => typeof o === "string" ? o : `${o.value}|${o.label}`).join("\n")}
+          onChange={(e) => {
+            const parsed = e.target.value.split("\n").filter(Boolean).map((line) => {
+              const [value, ...rest] = line.split("|");
+              return { value: value.trim(), label: (rest.join("|") || value).trim() };
+            });
+            onChange(parsed);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Advanced table mode
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-xs font-medium text-gray-500">Status Options (extended metadata)</label>
+        <button
+          onClick={() => setMode("simple")}
+          className="text-xs text-blue-600 hover:text-blue-800"
+        >
+          Switch to Simple
+        </button>
+      </div>
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        {/* Header */}
+        <div className="grid gap-1 px-2 py-1.5 bg-gray-100 dark:bg-gray-800 text-xs font-semibold text-gray-500 dark:text-gray-400"
+          style={{ gridTemplateColumns: `28px 1fr 1fr ${extraKeys.map((k) => {
+            const meta = EXTENDED_OPTION_KEYS[k];
+            if (meta?.type === "checkbox") return "80px";
+            if (meta?.type === "color") return "90px";
+            if (meta?.type === "number") return "60px";
+            return "1fr";
+          }).join(" ")} 60px` }}
+        >
+          <span></span>
+          <span>Value</span>
+          <span>Label</span>
+          {extraKeys.map((k) => (
+            <span key={k}>{EXTENDED_OPTION_KEYS[k]?.label || k}</span>
+          ))}
+          <span></span>
+        </div>
+        {/* Rows */}
+        {options.map((opt: any, idx: number) => (
+          <div
+            key={idx}
+            className="grid gap-1 px-2 py-1 border-t border-gray-100 dark:border-gray-800 items-center"
+            style={{ gridTemplateColumns: `28px 1fr 1fr ${extraKeys.map((k) => {
+              const meta = EXTENDED_OPTION_KEYS[k];
+              if (meta?.type === "checkbox") return "80px";
+              if (meta?.type === "color") return "90px";
+              if (meta?.type === "number") return "60px";
+              return "1fr";
+            }).join(" ")} 60px` }}
+          >
+            {/* Drag handle / reorder */}
+            <div className="flex flex-col gap-0.5">
+              <button onClick={() => moveOption(idx, -1)} className="text-gray-300 hover:text-gray-600 leading-none" title="Move up">
+                <ArrowUp className="w-3 h-3" />
+              </button>
+              <button onClick={() => moveOption(idx, 1)} className="text-gray-300 hover:text-gray-600 leading-none" title="Move down">
+                <ArrowDown className="w-3 h-3" />
+              </button>
+            </div>
+            {/* Value */}
+            <input
+              className="px-1.5 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600"
+              value={opt.value || ""}
+              onChange={(e) => updateOption(idx, "value", e.target.value)}
+            />
+            {/* Label */}
+            <input
+              className="px-1.5 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600"
+              value={opt.label || ""}
+              onChange={(e) => updateOption(idx, "label", e.target.value)}
+            />
+            {/* Extended fields */}
+            {extraKeys.map((k) => {
+              const meta = EXTENDED_OPTION_KEYS[k];
+              if (meta?.type === "checkbox") {
+                return (
+                  <div key={k} className="flex justify-center">
+                    <input
+                      type="checkbox"
+                      checked={!!opt[k]}
+                      onChange={(e) => updateOption(idx, k, e.target.checked)}
+                    />
+                  </div>
+                );
+              }
+              if (meta?.type === "color") {
+                return (
+                  <div key={k} className="flex items-center gap-1">
+                    <input
+                      type="color"
+                      value={opt[k] || "#9ca3af"}
+                      onChange={(e) => updateOption(idx, k, e.target.value)}
+                      className="w-5 h-5 rounded cursor-pointer border-0"
+                    />
+                    <input
+                      className="px-1 py-1 text-xs border rounded w-16 font-mono dark:bg-gray-700 dark:border-gray-600"
+                      value={opt[k] || ""}
+                      onChange={(e) => updateOption(idx, k, e.target.value)}
+                    />
+                  </div>
+                );
+              }
+              if (meta?.type === "number") {
+                return (
+                  <input
+                    key={k}
+                    type="number"
+                    className="px-1.5 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 w-full"
+                    value={opt[k] ?? ""}
+                    onChange={(e) => updateOption(idx, k, Number(e.target.value))}
+                  />
+                );
+              }
+              return (
+                <input
+                  key={k}
+                  className="px-1.5 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 w-full"
+                  value={opt[k] || ""}
+                  onChange={(e) => updateOption(idx, k, e.target.value)}
+                />
+              );
+            })}
+            {/* Delete */}
+            <div className="flex justify-center">
+              <button onClick={() => removeOption(idx)} className="p-0.5 text-gray-300 hover:text-red-500">
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={addOption}
+        className="mt-2 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+      >
+        <Plus className="w-3 h-3" /> Add Option
+      </button>
+    </div>
+  );
+}
+
 interface FieldConfigEditorProps {
   availableTabs: { tabKey: string; fhirResources: any[] }[];
   selectedTab: string;
@@ -380,21 +627,10 @@ export default function FieldConfigEditor({
 
             {/* Options (for select/radio/coded) */}
             {(field.type === "select" || field.type === "radio" || field.type === "coded" || field.type === "multiselect") && (
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Options (one per line: value|label)</label>
-                <textarea
-                  className="w-full px-2 py-1.5 text-sm border rounded font-mono dark:bg-gray-700 dark:border-gray-600"
-                  rows={4}
-                  value={(field.options || []).map((o) => `${o.value}|${o.label}`).join("\n")}
-                  onChange={(e) => {
-                    const options = e.target.value.split("\n").filter(Boolean).map((line) => {
-                      const [value, ...rest] = line.split("|");
-                      return { value: value.trim(), label: (rest.join("|") || value).trim() };
-                    });
-                    updateField(section.key, field.key, { options });
-                  }}
-                />
-              </div>
+              <OptionsEditor
+                options={(field.options || []) as any[]}
+                onChange={(options) => updateField(section.key, field.key, { options: options as any })}
+              />
             )}
 
             {/* Lookup config */}

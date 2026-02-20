@@ -42,6 +42,7 @@ interface ScheduleBlock {
 interface Location {
     id: number;
     name: string;
+    timezone?: string;
 }
 
 interface ProviderAvailabilityEditorProps {
@@ -145,6 +146,7 @@ export default function ProviderAvailabilityEditor({
 }: ProviderAvailabilityEditorProps) {
     const [blocks, setBlocks] = useState<ScheduleBlock[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
+    const [practiceTimezone, setPracticeTimezone] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -158,9 +160,10 @@ export default function ProviderAvailabilityEditor({
         if (!providerId) return;
         setLoading(true);
         try {
-            const [schedRes, locRes] = await Promise.all([
+            const [schedRes, locRes, practiceRes] = await Promise.all([
                 fetchWithAuth(`${API_BASE()}/api/providers/${providerId}/availability`),
-                fetchWithAuth(`${API_BASE()}/api/facilities`),
+                fetchWithAuth(`${API_BASE()}/api/locations`),
+                fetchWithAuth(`${API_BASE()}/api/practices`),
             ]);
 
             if (schedRes.ok) {
@@ -175,7 +178,17 @@ export default function ProviderAvailabilityEditor({
                 setLocations(Array.isArray(locList) ? locList.map((l: any) => ({
                     id: l.id || l.fhirId,
                     name: l.name || l.facilityName || `Location ${l.id}`,
+                    timezone: l.timezone || undefined,
                 })) : []);
+            }
+
+            if (practiceRes.ok) {
+                const practiceData = await practiceRes.json();
+                const practices = practiceData.data || [];
+                if (Array.isArray(practices) && practices.length > 0) {
+                    const tz = practices[0]?.regionalSettings?.timeZone;
+                    if (tz) setPracticeTimezone(tz);
+                }
             }
         } catch (e: any) {
             setError("Failed to load availability data");
@@ -256,7 +269,7 @@ export default function ProviderAvailabilityEditor({
 
     /* ---------- Save form into blocks array ---------- */
     const handleFormSave = () => {
-        const block = formToScheduleBlock(form, providerId);
+        const block = formToScheduleBlock(form, providerId, locations, practiceTimezone);
         if (editingIdx === -1) {
             // New
             setBlocks(prev => [...prev, block]);
@@ -408,7 +421,28 @@ function defaultForm(): FormState {
     };
 }
 
-function formToScheduleBlock(form: FormState, providerId: number | string | undefined): ScheduleBlock {
+function resolveTimezone(
+    locationId: string | undefined,
+    locations: Location[],
+    practiceTimezone: string | null,
+): string {
+    // 1. Location-level timezone
+    if (locationId) {
+        const loc = locations.find(l => String(l.id) === String(locationId));
+        if (loc?.timezone) return loc.timezone;
+    }
+    // 2. Practice-level timezone
+    if (practiceTimezone) return practiceTimezone;
+    // 3. Browser timezone (last resort)
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+function formToScheduleBlock(
+    form: FormState,
+    providerId: number | string | undefined,
+    locations: Location[],
+    practiceTimezone: string | null,
+): ScheduleBlock {
     const isMonthly = form.pattern.startsWith("monthly");
     const interval = isMonthly
         ? form.monthInterval
@@ -437,7 +471,7 @@ function formToScheduleBlock(form: FormState, providerId: number | string | unde
     const block: ScheduleBlock = {
         providerId: providerId ? Number(providerId) : undefined,
         status: form.status,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone: resolveTimezone(form.locationId, locations, practiceTimezone),
         serviceType: form.serviceType,
         recurrence,
         actorReferences: form.locationId ? [`Location/${form.locationId}`] : [],
