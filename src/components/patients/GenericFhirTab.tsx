@@ -268,6 +268,13 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             if (opt) return opt.label;
         }
 
+        // Date fields: format as readable date
+        if (fieldDef?.type === "date" && typeof value === "string") {
+            // Strip time portion from ISO datetime strings
+            const dateOnly = value.includes("T") ? value.split("T")[0] : value;
+            return dateOnly;
+        }
+
         // File field: show file icon
         if (fieldDef?.type === "file" && value) {
             return (

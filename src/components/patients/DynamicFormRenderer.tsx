@@ -1695,15 +1695,18 @@ export default function DynamicFormRenderer({
           />
         );
 
-      case "date":
+      case "date": {
+        // Strip time portion from FHIR datetime strings (e.g. "2025-04-10T16:11:23+00:00" → "2025-04-10")
+        const dateValue = typeof value === "string" && value.includes("T") ? value.split("T")[0] : (value || "");
         return (
           <Input
             type="date"
-            value={value || ""}
+            value={dateValue}
             onChange={(e) => onChange(field.key, e.target.value)}
             error={!!error}
           />
         );
+      }
 
       case "datetime":
         return (
