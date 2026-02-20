@@ -212,7 +212,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     setFormData({});
                     setSelectedRecord(null);
                 }
-                await fetchRecords(page);
+                // Brief delay for FHIR server search indexing after create/update
+                if (!isEdit) await new Promise(r => setTimeout(r, 1500));
+                await fetchRecords(0);
             } else {
                 const err = await res.json().catch(() => null);
                 setError(err?.message || "Failed to save");
