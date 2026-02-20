@@ -134,9 +134,9 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
                         allActivities.push({
                             id: `med-${med.id}`,
                             type: 'medication',
-                            title: `Medication: ${med.name}`,
-                            description: `${med.dosage} ${med.frequency}`,
-                            timestamp: med.startDate || med.createdDate,
+                            title: `Medication: ${med.medicationName || med.name || 'Unknown'}`,
+                            description: `${med.dosage || ''}`.trim(),
+                            timestamp: med.dateIssued || med.startDate || med.createdDate,
                             status: String(med.status ?? 'new') as ActivityItem['status'],
                         });
                     });
@@ -149,11 +149,11 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
                         allActivities.push({
                             id: `lab-${lab.id}`,
                             type: 'lab',
-                            title: `Lab Result: ${lab.testName}`,
-                            description: `Result: ${lab.result}, Status: ${lab.status}`,
-                            timestamp: lab.orderDate || lab.resultDate,
-                            status: lab.status?.toLowerCase() === 'completed' ? 'completed' : 'pending',
-                            priority: lab.result === 'Abnormal' ? 'high' : 'medium',
+                            title: `Lab Result: ${lab.testName || 'Unknown'}`,
+                            description: lab.conclusion || `Status: ${lab.status || 'unknown'}`,
+                            timestamp: lab.effectiveDate || lab.issued || lab.orderDate,
+                            status: lab.status?.toLowerCase() === 'completed' || lab.status === 'final' ? 'completed' : 'pending',
+                            priority: lab.conclusion?.includes('Abnormal') ? 'high' : 'medium',
                         });
                     });
                 }
