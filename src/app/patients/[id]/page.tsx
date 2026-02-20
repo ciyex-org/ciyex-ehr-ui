@@ -12,6 +12,7 @@ import AdminLayout from "@/app/(admin)/layout";
 
 import Link from "next/link";
 import GenericFhirTab from "@/components/patients/GenericFhirTab";
+import VitalsFlowsheet from "@/components/patients/VitalsFlowsheet";
 import PluginSlot from "@/components/plugins/PluginSlot";
 import { usePluginRegistry } from "@/context/PluginRegistryContext";
 import { PluginContextProvider } from "@/context/PluginContextProvider";
@@ -535,6 +536,11 @@ export default function PatientDashboardPage() {
                 return <contribution.component patientId={patient.id} />;
             }
             return <div className="p-4 text-gray-500">Plugin tab not found</div>;
+        }
+
+        // Vitals tab uses a dedicated flowsheet view instead of generic list
+        if (tabKey === "vitals") {
+            return <VitalsFlowsheet patientId={Number(patient.id)} />;
         }
 
         // All FHIR-resource-backed tabs render dynamically via GenericFhirTab

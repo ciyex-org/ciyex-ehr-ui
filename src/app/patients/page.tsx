@@ -72,7 +72,7 @@ export default function PatientListPage() {
     const [error, setError] = useState<string | null>(null);
 
     const [currentPage, setCurrentPage] = useState<number>(1);
-    const [patientsPerPage, setPatientsPerPage] = useState<number>(25);
+    const [patientsPerPage, setPatientsPerPage] = useState<number>(20);
     const [totalPages, setTotalPages] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
 
@@ -262,7 +262,7 @@ export default function PatientListPage() {
 
     return (
         <AdminLayout>
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-full overflow-hidden">
                 {/* Top bar: recent patients + actions */}
                 <div className="flex flex-wrap justify-between gap-3 px-4 py-3 items-start">
                     <div className="flex-1 min-w-0">
@@ -531,7 +531,7 @@ export default function PatientListPage() {
                                 className="border rounded-md px-2 py-1 bg-white text-sm"
                             >
                                 <option value={10}>10 / page</option>
-                                <option value={25}>25 / page</option>
+                                <option value={20}>20 / page</option>
                                 <option value={50}>50 / page</option>
                                 <option value={100}>100 / page</option>
                             </select>

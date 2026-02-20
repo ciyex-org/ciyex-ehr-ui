@@ -8,7 +8,9 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 type MedicalProblem = {
     id: number;
     title?: string;
+    conditionName?: string;
     verificationStatus?: string;
+    clinicalStatus?: string;
 };
 
 type ApiResponse<T> = {
@@ -106,7 +108,7 @@ export default function MedicalProblemsSummary({
                 <ul className="list-disc ml-5 text-sm">
                     {items.slice(0, 3).map((p) => (
                         <li key={p.id}>
-                            {p.title || "—"} ({p.verificationStatus || "—"})
+                            {p.conditionName || p.title || "—"} ({p.clinicalStatus || p.verificationStatus || "—"})
                         </li>
                     ))}
                     {items.length > 3 && (
