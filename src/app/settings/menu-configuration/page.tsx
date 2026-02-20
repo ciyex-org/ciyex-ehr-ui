@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { useMenu, type MenuItemNode } from "@/context/MenuContext";
-import AdminLayout from "@/app/(admin)/layout";
+
 import IconPicker from "@/components/settings/IconPicker";
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
@@ -565,21 +565,21 @@ export default function MenuConfigurationPage() {
 
   if (loading) {
     return (
-      <AdminLayout>
+      <>
         <div className="p-6">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-64" />
             <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded" />
           </div>
         </div>
-      </AdminLayout>
+      </>
     );
   }
 
   const topLevelItems = getChildren(null);
 
   return (
-    <AdminLayout>
+    <>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -756,6 +756,6 @@ export default function MenuConfigurationPage() {
         )}
       </div>
     </div>
-    </AdminLayout>
+    </>
   );
 }

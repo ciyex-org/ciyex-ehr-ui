@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import AdminLayout from "@/app/(admin)/layout";
+
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import {
@@ -190,16 +190,16 @@ export default function EncounterSettingsPage() {
 
     if (loading) {
         return (
-            <AdminLayout>
+            <>
                 <div className="flex items-center justify-center py-24">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                 </div>
-            </AdminLayout>
+            </>
         );
     }
 
     return (
-        <AdminLayout>
+        <>
             <div className="max-w-6xl mx-auto p-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -418,6 +418,6 @@ export default function EncounterSettingsPage() {
                     </button>
                 </div>
             )}
-        </AdminLayout>
+        </>
     );
 }

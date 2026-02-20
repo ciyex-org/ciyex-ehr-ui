@@ -5,18 +5,20 @@ import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import {
   Loader2, Video, RefreshCw, Tv, Monitor, Clock,
-  ChevronDown, ArrowRight, ExternalLink, Activity, FilePlus,
+  ChevronDown, ArrowRight, ExternalLink, Activity, FilePlus, FileText, Printer,
 } from "lucide-react";
 import VideoCallModal from "@/components/telehealth/VideoCallModal";
 import { SlideOverPanel } from "@/components/ui/slide-over-panel";
 import DynamicEncounterForm from "@/components/patients/DynamicEncounterForm";
 import PatientChartPanel from "@/components/patients/PatientChartPanel";
+import Encountersummary from "@/components/encounter/summary/Encountersummary";
 
 type PanelState =
   | { mode: "closed" }
   | { mode: "vitals"; patientId: number; encounterId: number; patientName: string }
   | { mode: "encounter"; patientId: number; encounterId: number; patientName: string }
-  | { mode: "patient"; patientId: number; patientName: string };
+  | { mode: "patient"; patientId: number; patientName: string }
+  | { mode: "summary"; patientId: number; encounterId: number; patientName: string };
 
 export type AppointmentDTO = {
   id: number;
@@ -901,6 +903,18 @@ export default function AppointmentPage() {
                               >
                                 <Activity className="h-4 w-4" />
                               </button>
+                              <button
+                                onClick={() => setPanel({
+                                  mode: "summary",
+                                  patientId: r.encounterPatientId || r.patientId,
+                                  encounterId: Number(r.encounterId),
+                                  patientName: r.patientName || "Patient",
+                                })}
+                                className="p-1.5 rounded hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-600"
+                                title="Visit Summary"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </button>
                             </>
                           ) : (
                             <button
@@ -989,6 +1003,8 @@ export default function AppointmentPage() {
               ? `Vitals — ${panel.patientName}`
               : panel.mode === "encounter"
               ? `Encounter — ${panel.patientName}`
+              : panel.mode === "summary"
+              ? `Visit Summary — ${panel.patientName}`
               : panel.mode === "patient"
               ? panel.patientName
               : undefined
@@ -1005,6 +1021,9 @@ export default function AppointmentPage() {
           )}
           {panel.mode === "encounter" && (
             <DynamicEncounterForm patientId={panel.patientId} encounterId={panel.encounterId} embedded />
+          )}
+          {panel.mode === "summary" && (
+            <Encountersummary patientId={panel.patientId} encounterId={panel.encounterId} showDownload />
           )}
           {panel.mode === "patient" && (
             <PatientChartPanel patientId={panel.patientId} />

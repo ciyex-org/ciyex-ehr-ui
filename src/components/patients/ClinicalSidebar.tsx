@@ -46,8 +46,23 @@ export default function ClinicalSidebar({
     const [vitals, setVitals] = useState<Record<string, any> | null>(null);
     const [loaded, setLoaded] = useState(false);
 
-    // All categories start expanded; user can collapse individually
-    const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
+    // Only the category containing the active tab starts expanded; all others collapsed
+    const [collapsedCats, setCollapsedCats] = useState<Set<string>>(() => {
+        const activeCatLabel = tabCategories.find(cat => cat.tabs.some(t => t.key === activeTab))?.label;
+        return new Set(tabCategories.map(c => c.label).filter(l => l !== activeCatLabel));
+    });
+
+    // Auto-expand the category containing the active tab when it changes
+    useEffect(() => {
+        const activeCat = tabCategories.find(cat => cat.tabs.some(t => t.key === activeTab));
+        if (activeCat && collapsedCats.has(activeCat.label)) {
+            setCollapsedCats(prev => {
+                const next = new Set(prev);
+                next.delete(activeCat.label);
+                return next;
+            });
+        }
+    }, [activeTab, tabCategories]);
 
     useEffect(() => {
         if (!patientId) return;
@@ -104,7 +119,7 @@ export default function ClinicalSidebar({
     /* --- Collapsed: icon-only strip --- */
     if (collapsed) {
         return (
-            <div className="w-12 shrink-0 bg-white border-r border-gray-200 flex flex-col items-center pt-2 gap-1 overflow-y-auto sticky top-13" style={{ maxHeight: "calc(100vh - 60px)" }}>
+            <div className="w-12 shrink-0 bg-white border-r border-gray-200 flex flex-col items-center pt-2 gap-1 overflow-y-auto">
                 <button onClick={onToggle} className="p-1.5 rounded hover:bg-gray-100 mb-2" title="Expand sidebar">
                     <PanelLeft className="w-4 h-4 text-gray-500" />
                 </button>
@@ -134,10 +149,10 @@ export default function ClinicalSidebar({
 
     /* --- Expanded: clinical snapshot + categorized nav --- */
     return (
-        <aside className="w-[250px] shrink-0 bg-white border-r border-gray-200 rounded-lg flex flex-col overflow-hidden sticky top-[52px]" style={{ maxHeight: "calc(100vh - 60px)" }}>
+        <aside className="w-[250px] shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 shrink-0">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Chart</span>
+                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Chart</span>
                 <button onClick={onToggle} className="p-1 rounded hover:bg-gray-100" title="Collapse">
                     <PanelLeftClose className="w-3.5 h-3.5 text-gray-400" />
                 </button>
@@ -146,54 +161,54 @@ export default function ClinicalSidebar({
             <div className="flex-1 overflow-y-auto no-scrollbar">
                 {/* ---- Clinical Snapshot ---- */}
                 <div className="border-b border-gray-200 py-2 px-2">
-                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider px-1 mb-1">Quick Info</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-1 mb-1">Quick Info</div>
 
                     {/* Allergies row */}
                     <button
                         onClick={() => onNavigate("allergies")}
-                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[11px] ${activeTab === "allergies" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
+                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] ${activeTab === "allergies" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
                     >
                         <ShieldAlert className="w-3 h-3 shrink-0 text-red-400" />
                         <span className="flex-1 text-left truncate">
                             {!loaded ? "..." : allergies.length === 0 ? "NKA" : allergies.slice(0, 2).map(a => a.allergyName || a.substance).join(", ")}
                         </span>
                         {allergies.length > 0 && (
-                            <span className="px-1 py-0.5 rounded bg-red-50 text-red-600 text-[9px] font-medium">{allergies.length}</span>
+                            <span className="px-1 py-0.5 rounded bg-red-50 text-red-600 text-[10px] font-medium">{allergies.length}</span>
                         )}
                     </button>
 
                     {/* Problems row */}
                     <button
                         onClick={() => onNavigate("medicalproblems")}
-                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[11px] ${activeTab === "medicalproblems" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
+                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] ${activeTab === "medicalproblems" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
                     >
                         <HeartPulse className="w-3 h-3 shrink-0 text-orange-400" />
                         <span className="flex-1 text-left truncate">
                             {!loaded ? "..." : problems.length === 0 ? "No problems" : problems.slice(0, 2).map(p => p.title || p.code).join(", ")}
                         </span>
                         {problems.length > 0 && (
-                            <span className="px-1 py-0.5 rounded bg-orange-50 text-orange-600 text-[9px] font-medium">{problems.length}</span>
+                            <span className="px-1 py-0.5 rounded bg-orange-50 text-orange-600 text-[10px] font-medium">{problems.length}</span>
                         )}
                     </button>
 
                     {/* Medications row */}
                     <button
                         onClick={() => onNavigate("medications")}
-                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[11px] ${activeTab === "medications" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
+                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] ${activeTab === "medications" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
                     >
                         <Pill className="w-3 h-3 shrink-0 text-blue-400" />
                         <span className="flex-1 text-left truncate">
                             {!loaded ? "..." : medications.length === 0 ? "No meds" : medications.slice(0, 2).map(m => m.medication_name || m.name).join(", ")}
                         </span>
                         {medications.length > 0 && (
-                            <span className="px-1 py-0.5 rounded bg-blue-50 text-blue-600 text-[9px] font-medium">{medications.length}</span>
+                            <span className="px-1 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-medium">{medications.length}</span>
                         )}
                     </button>
 
                     {/* Vitals row */}
                     <button
                         onClick={() => onNavigate("vitals")}
-                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[11px] ${activeTab === "vitals" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
+                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] ${activeTab === "vitals" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
                     >
                         <Activity className="w-3 h-3 shrink-0 text-green-500" />
                         <span className="flex-1 text-left truncate text-gray-600">
@@ -214,7 +229,7 @@ export default function ClinicalSidebar({
                         <div key={cat.label} className="border-b border-gray-100 last:border-b-0">
                             <button
                                 onClick={() => toggleCat(cat.label)}
-                                className="w-full flex items-center gap-1 px-3 py-1 text-[9px] font-bold text-gray-400 uppercase tracking-wider hover:bg-gray-50"
+                                className="w-full flex items-center gap-1 px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider hover:bg-gray-50"
                             >
                                 <span className="flex-1 text-left">{cat.label}</span>
                                 {hasActiveTab && !isCollapsed && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
@@ -230,7 +245,7 @@ export default function ClinicalSidebar({
                                             <button
                                                 key={tab.key}
                                                 onClick={() => onNavigate(tab.key)}
-                                                className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[11px] transition-colors ${
+                                                className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] transition-colors ${
                                                     isActive
                                                         ? "bg-blue-50 text-blue-700 font-medium"
                                                         : "text-gray-700 hover:bg-gray-50"
@@ -239,7 +254,7 @@ export default function ClinicalSidebar({
                                                 <Icon className={`w-3 h-3 shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
                                                 <span className="flex-1 text-left">{tab.label}</span>
                                                 {badge !== undefined && badge > 0 && (
-                                                    <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-[9px] text-gray-600 font-medium">
+                                                    <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-[10px] text-gray-600 font-medium">
                                                         {badge}
                                                     </span>
                                                 )}

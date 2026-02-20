@@ -6,9 +6,8 @@ import React from "react";
 import ResetPasswordCard from "@/components/user-profile/ResetPasswordCard";
 
 export const metadata: Metadata = {
-  title: "Next.js Profile | TailAdmin - Next.js Dashboard Template",
-  description:
-    "This is Next.js Profile page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+  title: "Profile | Ciyex EHR",
+  description: "Profile page for Ciyex EHR",
 };
 
 export default function Profile() {

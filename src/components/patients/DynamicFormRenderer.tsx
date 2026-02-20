@@ -93,7 +93,7 @@ export interface ShowWhenCondition {
 export interface FieldDef {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "select" | "multiselect" | "radio" | "checkbox" | "boolean" | "toggle" | "date" | "datetime" | "phone" | "email" | "lookup" | "coded" | "quantity" | "file" | "group" | "computed" | "address" | "ros-grid" | "exam-grid" | "diagnosis-list" | "plan-items" | "code-lookup" | "combobox";
+  type: "text" | "textarea" | "number" | "select" | "multiselect" | "radio" | "checkbox" | "boolean" | "toggle" | "date" | "datetime" | "phone" | "email" | "lookup" | "coded" | "quantity" | "file" | "group" | "computed" | "address" | "ros-grid" | "exam-grid" | "diagnosis-list" | "plan-items" | "code-lookup" | "combobox" | "family-history-list";
   required?: boolean;
   colSpan?: number;
   placeholder?: string;
@@ -110,6 +110,10 @@ export interface FieldDef {
   examConfig?: { systems: ExamSystemConfig[] };
   diagnosisConfig?: DiagnosisConfig;
   codeLookupConfig?: CodeLookupConfig;
+  familyHistoryConfig?: {
+    relationships: { value: string; label: string }[];
+    fields?: { ageOfOnset?: boolean; deceased?: boolean; notes?: boolean };
+  };
   showWhen?: ShowWhenCondition;
 }
 
@@ -1169,6 +1173,157 @@ function PlanItems({
   );
 }
 
+// ---- Family History List Component ----
+
+const DEFAULT_RELATIONSHIP_OPTIONS = [
+  { value: "father", label: "Father" },
+  { value: "mother", label: "Mother" },
+  { value: "brother", label: "Brother" },
+  { value: "sister", label: "Sister" },
+  { value: "maternal_grandmother", label: "Maternal Grandmother" },
+  { value: "maternal_grandfather", label: "Maternal Grandfather" },
+  { value: "paternal_grandmother", label: "Paternal Grandmother" },
+  { value: "paternal_grandfather", label: "Paternal Grandfather" },
+  { value: "son", label: "Son" },
+  { value: "daughter", label: "Daughter" },
+  { value: "uncle", label: "Uncle" },
+  { value: "aunt", label: "Aunt" },
+  { value: "other", label: "Other" },
+];
+
+function FamilyHistoryList({
+  field,
+  value,
+  onChange,
+  readOnly,
+}: {
+  field: FieldDef;
+  value: any;
+  onChange: (val: any) => void;
+  readOnly?: boolean;
+}) {
+  const config = field.familyHistoryConfig;
+  const relationshipOptions = config?.relationships?.length ? config.relationships : DEFAULT_RELATIONSHIP_OPTIONS;
+  const showAgeOfOnset = config?.fields?.ageOfOnset !== false;
+  const showDeceased = config?.fields?.deceased !== false;
+  const showNotes = config?.fields?.notes !== false;
+
+  const items: Array<{
+    relationship: string;
+    condition: string;
+    ageOfOnset: string;
+    deceased: boolean;
+    notes: string;
+  }> = Array.isArray(value) ? value : [];
+
+  const addItem = () => {
+    onChange([...items, { relationship: relationshipOptions[0]?.value || "other", condition: "", ageOfOnset: "", deceased: false, notes: "" }]);
+  };
+
+  const removeItem = (idx: number) => {
+    onChange(items.filter((_, i) => i !== idx));
+  };
+
+  const updateItem = (idx: number, patch: Partial<(typeof items)[0]>) => {
+    onChange(items.map((item, i) => (i === idx ? { ...item, ...patch } : item)));
+  };
+
+  return (
+    <div className="space-y-2">
+      {items.map((item, idx) => (
+        <div
+          key={idx}
+          className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+        >
+          {readOnly ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs px-2 py-0.5 rounded font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 whitespace-nowrap">
+                {relationshipOptions.find((o) => o.value === item.relationship)?.label || item.relationship}
+              </span>
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{item.condition || "—"}</span>
+              {showAgeOfOnset && item.ageOfOnset && <span className="text-xs text-gray-500">Onset: {item.ageOfOnset}</span>}
+              {showDeceased && item.deceased && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">Deceased</span>}
+              {showNotes && item.notes && <span className="text-xs text-gray-400 italic">{item.notes}</span>}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <select
+                  value={item.relationship}
+                  onChange={(e) => updateItem(idx, { relationship: e.target.value })}
+                  className="text-xs border rounded px-1.5 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white min-w-[160px]"
+                >
+                  {relationshipOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={item.condition}
+                  onChange={(e) => updateItem(idx, { condition: e.target.value })}
+                  placeholder="Condition (e.g., Diabetes, Heart Disease)..."
+                  className="flex-1 px-2 py-1 text-sm border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeItem(idx)}
+                  className="p-1 text-gray-400 hover:text-red-500"
+                >
+                  <XIcon className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-3 pl-1">
+                {showAgeOfOnset && (
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs text-gray-500">Age of onset:</label>
+                    <input
+                      type="text"
+                      value={item.ageOfOnset}
+                      onChange={(e) => updateItem(idx, { ageOfOnset: e.target.value })}
+                      placeholder="e.g., 45"
+                      className="w-20 px-2 py-0.5 text-xs border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                )}
+                {showDeceased && (
+                  <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={item.deceased}
+                      onChange={(e) => updateItem(idx, { deceased: e.target.checked })}
+                      className="rounded border-gray-300"
+                    />
+                    Deceased
+                  </label>
+                )}
+                {showNotes && (
+                  <input
+                    type="text"
+                    value={item.notes}
+                    onChange={(e) => updateItem(idx, { notes: e.target.value })}
+                    placeholder="Notes (optional)..."
+                    className="flex-1 px-2 py-0.5 text-xs border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={addItem}
+          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+        >
+          + Add Family Member
+        </button>
+      )}
+      {readOnly && items.length === 0 && <p className="text-xs text-gray-400">No family history recorded</p>}
+    </div>
+  );
+}
+
 // ---- Dynamic Options Select (fetches options from API) ----
 
 function DynamicOptionsSelect({
@@ -1244,13 +1399,9 @@ export default function DynamicFormRenderer({
   readOnly = false,
   errors = {},
 }: DynamicFormRendererProps) {
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
-    const initial = new Set<string>();
-    fieldConfig.sections?.forEach((s) => {
-      if (s.collapsed) initial.add(s.key);
-    });
-    return initial;
-  });
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    () => new Set<string>()
+  );
 
   const toggleSection = (key: string) => {
     setCollapsedSections((prev) => {
@@ -1328,6 +1479,17 @@ export default function DynamicFormRenderer({
             {field.label}
           </label>
           <PlanItems field={field} value={value} onChange={(v) => onChange(field.key, v)} readOnly={readOnly} />
+        </div>
+      );
+    }
+
+    if (field.type === "family-history-list") {
+      return (
+        <div key={field.key} className="col-span-full">
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            {field.label}
+          </label>
+          <FamilyHistoryList field={field} value={value} onChange={(v) => onChange(field.key, v)} readOnly={readOnly} />
         </div>
       );
     }

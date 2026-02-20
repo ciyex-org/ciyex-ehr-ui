@@ -24,6 +24,7 @@ interface Patient {
     dateOfBirth: string;
     gender: string;
     status?: string;
+    address?: string;
 }
 
 interface PageResponse<T> {
@@ -51,6 +52,18 @@ const badgeColors = [
     "bg-red-200 text-red-700",
 ];
 
+const emptyPatient: Omit<Patient, "id"> = {
+    firstName: "",
+    lastName: "",
+    middleName: "",
+    email: "",
+    phoneNumber: "",
+    dateOfBirth: "",
+    gender: "",
+    status: "Active",
+    address: "",
+};
+
 export default function PatientListPage() {
     const router = useRouter();
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -64,7 +77,14 @@ export default function PatientListPage() {
     const [totalItems, setTotalItems] = useState<number>(0);
 
     const [search, setSearch] = useState("");
+    const [showInactive, setShowInactive] = useState(false);
+    const [genderFilter, setGenderFilter] = useState("all");
+
     const [editPatient, setEditPatient] = useState<Patient | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newPatient, setNewPatient] = useState(emptyPatient);
+    const [saving, setSaving] = useState(false);
+    const [togglingId, setTogglingId] = useState<number | null>(null);
 
     useEffect(() => {
         const recent = JSON.parse(localStorage.getItem("recentPatients") || "[]");
@@ -100,7 +120,7 @@ export default function PatientListPage() {
     };
 
     const fetchPatients = useCallback(
-        async (page: number, size: number, search: string, signal?: AbortSignal) => {
+        async (page: number, size: number, search: string, status: string, gender: string, signal?: AbortSignal) => {
             setLoading(true);
             setError(null);
             try {
@@ -110,6 +130,8 @@ export default function PatientListPage() {
                 params.set("size", String(size));
                 params.set("sort", "id,asc");
                 if (search) params.set("search", search);
+                if (status && status !== "all") params.set("status", status);
+                if (gender && gender !== "all") params.set("gender", gender);
 
                 const url = `${base}?${params.toString()}`;
                 const res = await fetchWithAuth(url, { signal });
@@ -140,74 +162,129 @@ export default function PatientListPage() {
 
     useEffect(() => {
         const controller = new AbortController();
-        fetchPatients(currentPage, patientsPerPage, search, controller.signal);
+        fetchPatients(currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter, controller.signal);
         return () => controller.abort();
-    }, [currentPage, patientsPerPage, search, fetchPatients]);
+    }, [currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter, fetchPatients]);
 
     const handlePrevious = () => setCurrentPage((p) => Math.max(1, p - 1));
     const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
     const handleEdit = (patient: Patient) => setEditPatient(patient);
 
-
-
     const handleSaveEdit = async (updatedPatient: Patient) => {
         if (!updatedPatient) return;
-        await fetchWithAuth(
-            `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${updatedPatient.id}`,
-            {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(updatedPatient),
-            }
-        );
-        fetchPatients(currentPage, patientsPerPage, search);
-        setEditPatient(null);
+        setSaving(true);
+        try {
+            const res = await fetchWithAuth(
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${updatedPatient.id}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(updatedPatient),
+                }
+            );
+            const body = await res.json();
+            if (!body.success) throw new Error(body.message || "Failed to update patient");
+            fetchPatients(currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter);
+            setEditPatient(null);
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : "Failed to update patient");
+        } finally {
+            setSaving(false);
+        }
     };
 
-    if (loading) {
-        return (
-            <AdminLayout>
-                <div className="p-4 text-gray-500 text-base">Loading patients...</div>
-            </AdminLayout>
-        );
-    }
+    const handleAddPatient = async () => {
+        setSaving(true);
+        try {
+            const res = await fetchWithAuth(
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(newPatient),
+                }
+            );
+            const body = await res.json();
+            if (!body.success) {
+                const errMsg = typeof body.data === "object" && body.data
+                    ? Object.entries(body.data).map(([k, v]) => `${k}: ${v}`).join(", ")
+                    : body.message || "Failed to create patient";
+                throw new Error(errMsg);
+            }
+            setShowAddModal(false);
+            setNewPatient(emptyPatient);
+            fetchPatients(1, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter);
+            setCurrentPage(1);
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : "Failed to create patient");
+        } finally {
+            setSaving(false);
+        }
+    };
 
-    if (error) {
-        return (
-            <AdminLayout>
-                <div className="p-4 text-red-500 text-base">{error}</div>
-            </AdminLayout>
-        );
-    }
+    const handleToggleStatus = async (patient: Patient) => {
+        const newStatus = patient.status === "Active" ? "Inactive" : "Active";
+        if (newStatus === "Inactive") {
+            const confirmed = window.confirm(
+                `Are you sure you want to deactivate ${patient.firstName} ${patient.lastName}? This patient will be hidden from the default list.`
+            );
+            if (!confirmed) return;
+        }
+        setTogglingId(patient.id);
+        try {
+            const res = await fetchWithAuth(
+                `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${patient.id}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...patient, status: newStatus }),
+                }
+            );
+            const body = await res.json();
+            if (!body.success) throw new Error(body.message || "Failed to update status");
+            fetchPatients(currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter);
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : "Failed to toggle status");
+        } finally {
+            setTogglingId(null);
+        }
+    };
+
+    const clearFilters = () => {
+        setSearch("");
+        setShowInactive(false);
+        setGenderFilter("all");
+        setCurrentPage(1);
+    };
+
+    const hasActiveFilters = search || showInactive || genderFilter !== "all";
 
     return (
         <AdminLayout>
-            <div className="flex flex-col h-[calc(100vh-56px)] bg-[#f8fafb]">
-                {/* Recent patients + search */}
-                <div className="flex flex-wrap justify-between gap-2 px-3 py-2 items-start mb-4">
-                    <div>
+            <div className="flex flex-col h-full">
+                {/* Top bar: recent patients + actions */}
+                <div className="flex flex-wrap justify-between gap-3 px-4 py-3 items-start">
+                    <div className="flex-1 min-w-0">
                         {recentPatients.length > 0 && (
                             <>
-                                <div className="text-base text-gray-700 mb-1">Recent patients</div>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Recent patients</div>
+                                <div className="flex flex-wrap gap-1.5">
                                     {recentPatients.slice(0, 5).map((patient) => (
                                         <Link
                                             key={patient.id}
                                             href={`/patients/${patient.id}/`}
                                             onClick={() => handlePatientClick(patient)}
-                                            className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border text-base hover:bg-gray-50"
+                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-gray-200 text-sm hover:bg-gray-50 hover:border-gray-300 transition-colors"
                                         >
                                             <div
-                                                className={`flex items-center justify-center h-8 w-8 rounded-full text-sm font-semibold ${getBadgeColor(
-                                                    patient.id
-                                                )}`}
+                                                className={`flex items-center justify-center h-6 w-6 rounded-full text-xs font-semibold ${getBadgeColor(patient.id)}`}
                                             >
                                                 {getInitials(patient.firstName, patient.lastName)}
                                             </div>
-                                            <span className="text-base font-medium">
-                        {patient.firstName} {patient.lastName}
-                      </span>
+                                            <span className="text-sm font-medium text-gray-700">
+                                                {patient.firstName} {patient.lastName}
+                                            </span>
                                         </Link>
                                     ))}
                                 </div>
@@ -215,170 +292,377 @@ export default function PatientListPage() {
                         )}
                     </div>
 
-                    <form onSubmit={(e) => e.preventDefault()} className="relative w-60 mt-6">
-            <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <svg
-                  className="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
-              </svg>
-            </span>
-                        <input
-                            type="text"
-                            placeholder="Search patients..."
-                            value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                            className="w-full pl-10 pr-3 py-2 text-base border rounded-md focus:ring-2 focus:ring-blue-500"
-                        />
-                    </form>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Add Patient
+                    </button>
                 </div>
 
-                {/* Table with scroll and sticky pagination */}
-                <div className="flex flex-col flex-1 bg-white border-t border-gray-100">
-                    <div className="overflow-x-auto flex-1">
-                        <table className="w-full text-base">
+                {/* Filter bar */}
+                <div className="flex flex-wrap items-center gap-3 px-4 py-2 border-y border-gray-200 bg-gray-50/80">
+                    {/* Search */}
+                    <div className="relative flex-1 min-w-[200px] max-w-xs">
+                        <span className="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
+                            </svg>
+                        </span>
+                        <input
+                            type="text"
+                            placeholder="Search by name..."
+                            value={search}
+                            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+                            className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        />
+                    </div>
 
-                        <thead className="bg-gray-50 sticky top-0 z-10">
-                            <tr>
-                                <th className="px-3 py-2 text-left text-base text-gray-600 uppercase">Name</th>
-                                <th className="px-3 py-2 text-left text-base text-gray-600 uppercase">MRN</th>
-                                <th className="px-3 py-2 text-left text-base text-gray-600 uppercase">Email</th>
-                                <th className="px-3 py-2 text-left text-base text-gray-600 uppercase">Phone</th>
-                                <th className="px-3 py-2 text-left text-base text-gray-600 uppercase">DOB</th>
-                                <th className="px-3 py-2 text-left text-base text-gray-600 uppercase">Gender</th>
-                                <th className="px-3 py-2 text-left text-base text-gray-600 uppercase">Status</th>
-                                <th className="px-3 py-2 text-center text-base text-gray-600 uppercase">Actions</th>
-                            </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                            {patients.map((patient) => (
-                                <tr key={patient.id} className="hover:bg-gray-50">
-                                    {/* Name with initials */}
-                                    <td
-                                        className="px-3 py-2 flex items-center gap-2 cursor-pointer"
-                                        onClick={() => goToPatient(patient)}
-                                    >
-                                        <div
-                                            className={`h-7 w-7 flex items-center justify-center rounded-full text-xs font-semibold ${getBadgeColor(
-                                                patient.id
-                                            )}`}
-                                        >
-                                            {getInitials(patient.firstName, patient.lastName)}
-                                        </div>
-                                        <span className="font-medium text-gray-700 text-sm">
-            {patient.firstName} {patient.lastName}
-          </span>
-                                    </td>
+                    {/* Show Inactive checkbox */}
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={showInactive}
+                            onChange={(e) => { setShowInactive(e.target.checked); setCurrentPage(1); }}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-600">Show Inactive</span>
+                    </label>
 
-                                    <td className="px-3 py-2 text-gray-600">{patient.id}</td>
-                                    <td className="px-3 py-2 text-gray-600">{patient.email || "N/A"}</td>
-                                    <td className="px-3 py-2 text-gray-600">{patient.phoneNumber || "N/A"}</td>
-                                    <td className="px-3 py-2 text-gray-600">{formatDate(patient.dateOfBirth)}</td>
-                                    <td className="px-3 py-2 text-gray-600">{patient.gender || "N/A"}</td>
+                    {/* Gender filter */}
+                    <div className="flex items-center gap-1.5">
+                        <label className="text-xs font-medium text-gray-500">Gender:</label>
+                        <select
+                            value={genderFilter}
+                            onChange={(e) => { setGenderFilter(e.target.value); setCurrentPage(1); }}
+                            className="text-sm border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="all">All</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
 
-                                    {/* Status Badge */}
-                                    <td className="px-3 py-2">
-          <span className="inline-block bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-semibold">
-            {patient.status || "Active"}
-          </span>
-                                    </td>
+                    {/* Clear filters */}
+                    {hasActiveFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                            Clear filters
+                        </button>
+                    )}
 
-                                    {/* Actions */}
-                                    <td className="px-3 py-2 text-center">
-                                        <div className="flex justify-center gap-3">
-                                            {/* Edit */}
-                                            <button
-                                                onClick={() => handleEdit(patient)}
-                                                className="text-gray-500 hover:text-blue-600"
-                                            >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    className="w-5 h-5"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth={1.5}
+                    {/* Count badge */}
+                    <div className="ml-auto text-xs text-gray-500">
+                        {totalItems} patient{totalItems !== 1 ? "s" : ""}
+                    </div>
+                </div>
+
+                {/* Table */}
+                <div className="flex flex-col flex-1 min-h-0">
+                    <div className="overflow-auto flex-1">
+                        {loading ? (
+                            <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Loading patients...</div>
+                        ) : error ? (
+                            <div className="flex items-center justify-center py-16 text-red-500 text-sm">{error}</div>
+                        ) : patients.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                                <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" strokeWidth={1} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                                </svg>
+                                <div className="text-sm font-medium">No patients found</div>
+                                {hasActiveFilters && <div className="text-xs mt-1">Try adjusting your filters</div>}
+                            </div>
+                        ) : (
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Patient</th>
+                                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">MRN</th>
+                                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
+                                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">DOB</th>
+                                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Gender</th>
+                                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 bg-white">
+                                    {patients.map((patient) => (
+                                        <tr key={patient.id} className="hover:bg-blue-50/40 transition-colors">
+                                            {/* Name + avatar */}
+                                            <td className="px-3 py-2">
+                                                <button
+                                                    onClick={() => goToPatient(patient)}
+                                                    className="flex items-center gap-2 group text-left"
                                                 >
-                                                    {/* Pencil in a square */}
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M16.862 3.487a2.25 2.25 0 0 1 3.182 3.182l-9.193 9.193a4.5 4.5 0 0 1-1.591 1.05l-3.18 1.06 1.06-3.18a4.5 4.5 0 0 1 1.05-1.591l9.193-9.193z"
-                                                    />
-                                                    <path
-                                                        strokeLinecap="round"
-                                                        strokeLinejoin="round"
-                                                        d="M19.5 7.5L16.5 4.5"
-                                                    />
-                                                    <rect
-                                                        x="2.75"
-                                                        y="2.75"
-                                                        width="18.5"
-                                                        height="18.5"
-                                                        rx="2"
-                                                        ry="2"
-                                                        stroke="currentColor"
-                                                    />
-                                                </svg>
-                                            </button>
+                                                    <div
+                                                        className={`h-8 w-8 flex-shrink-0 flex items-center justify-center rounded-full text-xs font-semibold ${getBadgeColor(patient.id)}`}
+                                                    >
+                                                        {getInitials(patient.firstName, patient.lastName)}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="font-medium text-gray-900 group-hover:text-blue-600 truncate">
+                                                            {patient.firstName} {patient.lastName}
+                                                        </div>
+                                                        {patient.email && (
+                                                            <div className="text-xs text-gray-400 truncate">{patient.email}</div>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            </td>
 
+                                            <td className="px-3 py-2 text-gray-600 font-mono text-xs">{patient.id}</td>
 
+                                            {/* Contact: phone + email */}
+                                            <td className="px-3 py-2 text-gray-600">
+                                                <div className="text-sm">{patient.phoneNumber || "N/A"}</div>
+                                            </td>
 
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
+                                            <td className="px-3 py-2 text-gray-600 text-sm">{formatDate(patient.dateOfBirth)}</td>
+                                            <td className="px-3 py-2 text-gray-600 text-sm">{patient.gender || "N/A"}</td>
 
+                                            {/* Status badge */}
+                                            <td className="px-3 py-2">
+                                                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+                                                    patient.status === "Active"
+                                                        ? "bg-emerald-100 text-emerald-700"
+                                                        : "bg-gray-100 text-gray-500"
+                                                }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${
+                                                        patient.status === "Active" ? "bg-emerald-500" : "bg-gray-400"
+                                                    }`} />
+                                                    {patient.status || "Active"}
+                                                </span>
+                                            </td>
 
+                                            {/* Actions */}
+                                            <td className="px-3 py-2 text-center">
+                                                <div className="flex justify-center gap-1">
+                                                    {/* View chart */}
+                                                    <button
+                                                        onClick={() => goToPatient(patient)}
+                                                        title="View Chart"
+                                                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                    </button>
+
+                                                    {/* Edit */}
+                                                    <button
+                                                        onClick={() => handleEdit(patient)}
+                                                        title="Edit Patient"
+                                                        className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                                        </svg>
+                                                    </button>
+
+                                                    {/* Toggle active/inactive */}
+                                                    <button
+                                                        onClick={() => handleToggleStatus(patient)}
+                                                        title={patient.status === "Active" ? "Deactivate" : "Activate"}
+                                                        disabled={togglingId === patient.id}
+                                                        className={`p-1.5 rounded transition-colors ${
+                                                            togglingId === patient.id
+                                                                ? "opacity-50 cursor-not-allowed"
+                                                                : patient.status === "Active"
+                                                                ? "text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                                                : "text-gray-400 hover:text-emerald-600 hover:bg-emerald-50"
+                                                        }`}
+                                                    >
+                                                        {patient.status === "Active" ? (
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                                            </svg>
+                                                        ) : (
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
 
                     {/* Sticky pagination */}
-                    <div className="sticky bottom-0 flex items-center justify-between px-3 py-3 border-t bg-white text-base">
+                    <div className="flex items-center justify-between px-4 py-2.5 border-t bg-white text-sm shrink-0">
                         <div className="flex items-center gap-2">
                             <button
                                 disabled={currentPage === 1}
                                 onClick={handlePrevious}
-                                className="px-4 py-2 border rounded disabled:opacity-50 hover:bg-gray-100"
+                                className="px-3 py-1.5 text-sm border rounded-md disabled:opacity-40 hover:bg-gray-50 transition-colors"
                             >
-                                Prev
+                                Previous
                             </button>
-                            <div>Page {currentPage} of {totalPages}</div>
+                            <span className="text-gray-500 text-sm">
+                                Page <span className="font-medium text-gray-700">{currentPage}</span> of{" "}
+                                <span className="font-medium text-gray-700">{totalPages}</span>
+                            </span>
                             <button
                                 disabled={currentPage === totalPages}
                                 onClick={handleNext}
-                                className="px-4 py-2 border rounded disabled:opacity-50 hover:bg-gray-100"
+                                className="px-3 py-1.5 text-sm border rounded-md disabled:opacity-40 hover:bg-gray-50 transition-colors"
                             >
                                 Next
                             </button>
                         </div>
                         <div className="flex items-center gap-3">
-                            <div>Showing {patients.length} of {totalItems}</div>
+                            <span className="text-gray-500 text-sm">
+                                Showing <span className="font-medium text-gray-700">{patients.length}</span> of{" "}
+                                <span className="font-medium text-gray-700">{totalItems}</span>
+                            </span>
                             <select
                                 value={patientsPerPage}
-                                onChange={(e) => {
-                                    setPatientsPerPage(Number(e.target.value));
-                                    setCurrentPage(1);
-                                }}
-                                className="border rounded px-2 py-1 bg-white text-base"
+                                onChange={(e) => { setPatientsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                                className="border rounded-md px-2 py-1 bg-white text-sm"
                             >
-                                <option value={5}>5</option>
-                                <option value={10}>10</option>
-                                <option value={25}>25</option>
-                                <option value={50}>50</option>
+                                <option value={10}>10 / page</option>
+                                <option value={25}>25 / page</option>
+                                <option value={50}>50 / page</option>
+                                <option value={100}>100 / page</option>
                             </select>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Add Patient Modal */}
+            <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+                <DialogContent className="max-w-2xl" onClose={() => setShowAddModal(false)}>
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-semibold">Add New Patient</DialogTitle>
+                        <DialogDescription>Enter the patient&apos;s information. Fields marked with * are required.</DialogDescription>
+                    </DialogHeader>
+                    <form
+                        onSubmit={(e) => { e.preventDefault(); handleAddPatient(); }}
+                        className="space-y-4"
+                    >
+                        <div className="grid grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">First Name <span className="text-red-500">*</span></label>
+                                <input
+                                    required
+                                    placeholder="First name"
+                                    value={newPatient.firstName}
+                                    onChange={(e) => setNewPatient({ ...newPatient, firstName: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Middle Name</label>
+                                <input
+                                    placeholder="Middle (optional)"
+                                    value={newPatient.middleName}
+                                    onChange={(e) => setNewPatient({ ...newPatient, middleName: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Last Name <span className="text-red-500">*</span></label>
+                                <input
+                                    required
+                                    placeholder="Last name"
+                                    value={newPatient.lastName}
+                                    onChange={(e) => setNewPatient({ ...newPatient, lastName: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Date of Birth <span className="text-red-500">*</span></label>
+                                <input
+                                    type="date"
+                                    required
+                                    value={newPatient.dateOfBirth}
+                                    onChange={(e) => setNewPatient({ ...newPatient, dateOfBirth: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Gender <span className="text-red-500">*</span></label>
+                                <select
+                                    required
+                                    value={newPatient.gender}
+                                    onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="">Select gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Phone Number <span className="text-red-500">*</span></label>
+                                <input
+                                    type="tel"
+                                    required
+                                    placeholder="(555) 123-4567"
+                                    value={newPatient.phoneNumber}
+                                    onChange={(e) => setNewPatient({ ...newPatient, phoneNumber: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    placeholder="patient@email.com"
+                                    value={newPatient.email}
+                                    onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Address</label>
+                            <input
+                                placeholder="123 Main St, City, State ZIP"
+                                value={newPatient.address}
+                                onChange={(e) => setNewPatient({ ...newPatient, address: e.target.value })}
+                                className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+
+                        <DialogFooter>
+                            <button
+                                type="button"
+                                onClick={() => { setShowAddModal(false); setNewPatient(emptyPatient); }}
+                                className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                            >
+                                {saving ? "Creating..." : "Create Patient"}
+                            </button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* Edit Patient Modal */}
             {editPatient && (
@@ -386,98 +670,119 @@ export default function PatientListPage() {
                     <DialogContent className="max-w-2xl" onClose={() => setEditPatient(null)}>
                         <DialogHeader>
                             <DialogTitle className="text-lg font-semibold">Edit Patient</DialogTitle>
-                            <DialogDescription className="text-base">Update the patient details</DialogDescription>
+                            <DialogDescription>Update the patient details below.</DialogDescription>
                         </DialogHeader>
                         <form
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                handleSaveEdit(editPatient);
-                            }}
-                            className="space-y-6"
+                            onSubmit={(e) => { e.preventDefault(); handleSaveEdit(editPatient); }}
+                            className="space-y-4"
                         >
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-base font-medium mb-1 text-red-500">First Name *</label>
+                                    <label className="block text-sm font-medium mb-1">First Name <span className="text-red-500">*</span></label>
                                     <input
-                                        name="firstName"
                                         required
                                         placeholder="First name"
                                         value={editPatient.firstName}
-                                        onChange={(e) =>
-                                            setEditPatient({ ...editPatient, firstName: e.target.value })
-                                        }
-                                        className="w-full p-2 border rounded text-base"
+                                        onChange={(e) => setEditPatient({ ...editPatient, firstName: e.target.value })}
+                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-base font-medium mb-1">Middle Name</label>
+                                    <label className="block text-sm font-medium mb-1">Middle Name</label>
                                     <input
-                                        name="middleName"
                                         placeholder="Middle (optional)"
                                         value={editPatient.middleName}
-                                        onChange={(e) =>
-                                            setEditPatient({ ...editPatient, middleName: e.target.value })
-                                        }
-                                        className="w-full p-2 border rounded text-base"
+                                        onChange={(e) => setEditPatient({ ...editPatient, middleName: e.target.value })}
+                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-base font-medium mb-1 text-red-500">Last Name *</label>
+                                    <label className="block text-sm font-medium mb-1">Last Name <span className="text-red-500">*</span></label>
                                     <input
-                                        name="lastName"
                                         required
                                         placeholder="Last name"
                                         value={editPatient.lastName}
-                                        onChange={(e) =>
-                                            setEditPatient({ ...editPatient, lastName: e.target.value })
-                                        }
-                                        className="w-full p-2 border rounded text-base"
+                                        onChange={(e) => setEditPatient({ ...editPatient, lastName: e.target.value })}
+                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-base font-medium mb-1">Phone Number</label>
+                                    <label className="block text-sm font-medium mb-1">Date of Birth <span className="text-red-500">*</span></label>
                                     <input
-                                        name="phoneNumber"
-                                        value={editPatient.phoneNumber}
-                                        onChange={(e) =>
-                                            setEditPatient({ ...editPatient, phoneNumber: e.target.value })
-                                        }
-                                        className="w-full p-2 border rounded text-base"
+                                        type="date"
+                                        required
+                                        value={editPatient.dateOfBirth}
+                                        onChange={(e) => setEditPatient({ ...editPatient, dateOfBirth: e.target.value })}
+                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-base font-medium mb-1">Gender</label>
+                                    <label className="block text-sm font-medium mb-1">Gender <span className="text-red-500">*</span></label>
                                     <select
-                                        name="gender"
+                                        required
                                         value={editPatient.gender}
-                                        onChange={(e) =>
-                                            setEditPatient({ ...editPatient, gender: e.target.value })
-                                        }
-                                        className="w-full p-2 border rounded text-base"
+                                        onChange={(e) => setEditPatient({ ...editPatient, gender: e.target.value })}
+                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     >
                                         <option value="">Select gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Phone Number <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="tel"
+                                        required
+                                        value={editPatient.phoneNumber}
+                                        onChange={(e) => setEditPatient({ ...editPatient, phoneNumber: e.target.value })}
+                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Email</label>
+                                    <input
+                                        type="email"
+                                        value={editPatient.email}
+                                        onChange={(e) => setEditPatient({ ...editPatient, email: e.target.value })}
+                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Status</label>
+                                <select
+                                    value={editPatient.status || "Active"}
+                                    onChange={(e) => setEditPatient({ ...editPatient, status: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
                             </div>
 
                             <DialogFooter>
                                 <button
                                     type="button"
                                     onClick={() => setEditPatient(null)}
-                                    className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-base"
+                                    className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-base"
+                                    disabled={saving}
+                                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
                                 >
-                                    Save
+                                    {saving ? "Saving..." : "Save Changes"}
                                 </button>
                             </DialogFooter>
                         </form>

@@ -7,5 +7,5 @@ export default function DynamicSettingsPage() {
     const params = useParams()!;
     const pageKey = params.pageKey as string;
 
-    return <GenericSettingsPage pageKey={pageKey} />;
+    return <GenericSettingsPage pageKey={pageKey} embedded />;
 }

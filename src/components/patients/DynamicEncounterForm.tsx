@@ -7,8 +7,9 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import DynamicFormRenderer, { FieldConfig } from "./DynamicFormRenderer";
 import { useAutoSave, AutoSaveStatus } from "@/hooks/useAutoSave";
-import { Loader2, ArrowLeft, Printer, CheckCircle, XCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, ArrowLeft, Printer, CheckCircle, XCircle, ChevronDown, ChevronRight, Copy } from "lucide-react";
 import PluginSlot from "@/components/plugins/PluginSlot";
+import CloneEncounterModal from "@/components/encounter/CloneEncounterModal";
 import { PluginContextProvider } from "@/context/PluginContextProvider";
 import { usePluginEventBus } from "@/context/PluginEventBus";
 
@@ -48,6 +49,9 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
   const [activeSection, setActiveSection] = useState("");
   const observerRef = useRef<IntersectionObserver | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+
+  // Clone encounter
+  const [showCloneModal, setShowCloneModal] = useState(false);
 
   // Auto-save features from config
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
@@ -321,6 +325,7 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
   };
 
   return (
+    <>
     <PluginContextProvider
       patient={{ id: String(patientId), name: patient ? `${patient.firstName} ${patient.lastName}` : undefined, birthDate: patient?.dateOfBirth }}
       encounter={{ id: String(encounterId), status }}
@@ -334,7 +339,7 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
             {!embedded && (
               <Link
                 href={backUrl}
-                className="flex items-center gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs font-medium text-gray-700 dark:text-gray-300"
+                className="flex items-center gap-1 px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-xs font-medium text-white"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Back
@@ -386,6 +391,16 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
             >
               Unsign
             </button>
+
+            {!compositionId && status !== "SIGNED" && (
+              <button
+                className="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center gap-1.5"
+                onClick={() => setShowCloneModal(true)}
+                title="Clone from Previous Encounter"
+              >
+                <Copy className="w-4 h-4" /> Clone
+              </button>
+            )}
 
             <button
               className="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
@@ -461,5 +476,20 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
       </div>
     </div>
     </PluginContextProvider>
+
+    <CloneEncounterModal
+      patientId={patientId}
+      currentEncounterId={encounterId}
+      tabKey="encounter-form"
+      open={showCloneModal}
+      onClose={() => setShowCloneModal(false)}
+      onCloned={(data) => {
+        autoSave.setFormData(data);
+        setShowCloneModal(false);
+        // Trigger save immediately since setFormData doesn't schedule auto-save
+        setTimeout(() => autoSave.saveNow(), 100);
+      }}
+    />
+    </>
   );
 }

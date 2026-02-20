@@ -73,14 +73,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     return (
         <ProtectedRoute>
-            <div className="min-h-screen xl:flex font-sans text-[15px] leading-6 antialiased transition-colors duration-300 bg-slate-50 text-slate-700 dark:bg-slate-950 dark:text-slate-200">
+            <div className="h-screen overflow-hidden xl:flex font-sans text-[15px] leading-6 antialiased transition-colors duration-300 bg-slate-50 text-slate-700 dark:bg-slate-950 dark:text-slate-200">
                 <AppSidebar />
                 <Backdrop />
 
-                <div className={`flex-1 transition-all duration-300 ease-in-out ${mainContentMargin}`}>
+                <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${mainContentMargin}`}>
                     <AppHeader pageTitle={pageTitle} />
-                    <div className="p-4 md:p-6">
-                        <div key={pathname} className="transition-colors duration-300">
+                    <div className="flex-1 overflow-y-auto min-h-0 p-4 md:p-6">
+                        <div key={pathname} className="transition-colors duration-300 h-full">
                             {children}
                         </div>
                     </div>

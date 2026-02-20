@@ -35,6 +35,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const [totalElements, setTotalElements] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
 
+    // Reset view state when tab changes
+    useEffect(() => {
+        setMode("list");
+        setSelectedRecord(null);
+        setFormData({});
+        setSearchTerm("");
+        setPage(0);
+    }, [tabKey]);
+
     // Derive list columns from field config: use showInTable fields first, then fallback to first non-group fields
     const listColumns = useCallback((): { key: string; label: string }[] => {
         if (!fieldConfig?.sections?.length) return [];

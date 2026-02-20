@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import AdminLayout from "@/app/(admin)/layout";
+
 
 /* ─── Types ─── */
 interface ColorEntry {
@@ -325,7 +325,7 @@ export default function CalendarColorSettings() {
     ];
 
     return (
-        <AdminLayout>
+        <>
             <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -446,6 +446,6 @@ export default function CalendarColorSettings() {
                     </p>
                 </div>
             </div>
-        </AdminLayout>
+        </>
     );
 }

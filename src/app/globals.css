@@ -770,3 +770,36 @@ span.flatpickr-weekday,
   animation: slideInFromRight 0.3s ease-out forwards;
 }
 
+/* ===== Text-only scaling (Display Settings font size preference) =====
+   --text-scale is set by DisplaySettingsContext via JS.
+   Only font-size is scaled — padding, margin, width stay unchanged.
+   Rules placed OUTSIDE @layer to override Tailwind's @layer utilities. */
+
+:root { --text-scale: 1; }
+
+/* Scale inherited font-size for elements without explicit text classes */
+body { font-size: calc(1rem * var(--text-scale, 1)); }
+
+/* Standard Tailwind text utilities */
+.text-xs  { font-size: calc(0.75rem * var(--text-scale, 1)); }
+.text-sm  { font-size: calc(0.875rem * var(--text-scale, 1)); }
+.text-base { font-size: calc(1rem * var(--text-scale, 1)); }
+.text-lg  { font-size: calc(1.125rem * var(--text-scale, 1)); }
+.text-xl  { font-size: calc(1.25rem * var(--text-scale, 1)); }
+.text-2xl { font-size: calc(1.5rem * var(--text-scale, 1)); }
+.text-3xl { font-size: calc(1.875rem * var(--text-scale, 1)); }
+
+/* Custom theme text utilities */
+.text-theme-xl { font-size: calc(20px * var(--text-scale, 1)); }
+.text-theme-sm { font-size: calc(14px * var(--text-scale, 1)); }
+.text-theme-xs { font-size: calc(12px * var(--text-scale, 1)); }
+
+/* Arbitrary text sizes used in the codebase */
+.text-\[7px\]  { font-size: calc(7px * var(--text-scale, 1)); }
+.text-\[9px\]  { font-size: calc(9px * var(--text-scale, 1)); }
+.text-\[10px\] { font-size: calc(10px * var(--text-scale, 1)); }
+.text-\[11px\] { font-size: calc(11px * var(--text-scale, 1)); }
+.text-\[12px\] { font-size: calc(12px * var(--text-scale, 1)); }
+.text-\[13px\] { font-size: calc(13px * var(--text-scale, 1)); }
+.text-\[15px\] { font-size: calc(15px * var(--text-scale, 1)); }
+

@@ -8,6 +8,7 @@ import { MenuProvider } from '@/context/MenuContext';
 import { PluginRegistryProvider } from '@/context/PluginRegistryContext';
 import { PluginEventBusProvider } from '@/context/PluginEventBus';
 import { PluginContextProvider } from '@/context/PluginContextProvider';
+import { DisplaySettingsProvider } from '@/context/DisplaySettingsContext';
 import NativePluginLoader from '@/components/plugins/NativePluginLoader';
 import {Metadata} from "next";
 import SessionManager from '@/layout/SessionManager';
@@ -44,19 +45,21 @@ export default function RootLayout({
       <body className={`${outfit.className} dark:bg-gray-900`}>
         <EnvProvider>
           <ThemeProvider>
-            <SidebarProvider>
-              <MenuProvider>
-                <PluginEventBusProvider>
-                  <PluginRegistryProvider>
-                    <PluginContextProvider>
-                      <NativePluginLoader />
-                      <SessionManager />
-                      {children}
-                    </PluginContextProvider>
-                  </PluginRegistryProvider>
-                </PluginEventBusProvider>
-              </MenuProvider>
-            </SidebarProvider>
+            <DisplaySettingsProvider>
+              <SidebarProvider>
+                <MenuProvider>
+                  <PluginEventBusProvider>
+                    <PluginRegistryProvider>
+                      <PluginContextProvider>
+                        <NativePluginLoader />
+                        <SessionManager />
+                        {children}
+                      </PluginContextProvider>
+                    </PluginRegistryProvider>
+                  </PluginEventBusProvider>
+                </MenuProvider>
+              </SidebarProvider>
+            </DisplaySettingsProvider>
           </ThemeProvider>
         </EnvProvider>
       </body>

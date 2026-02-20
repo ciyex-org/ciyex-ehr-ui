@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
-import AdminLayout from "@/app/(admin)/layout";
+
 import TabManager, { type TabCategory } from "@/components/settings/TabManager";
 import FieldConfigEditor from "@/components/settings/FieldConfigEditor";
 import type { FieldConfig } from "@/components/patients/DynamicFormRenderer";
@@ -143,16 +143,16 @@ export default function PageConfigPage() {
 
     if (loading) {
         return (
-            <AdminLayout>
+            <>
                 <div className="flex items-center justify-center py-24">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                 </div>
-            </AdminLayout>
+            </>
         );
     }
 
     return (
-        <AdminLayout>
+        <>
             <div className="max-w-6xl mx-auto p-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
@@ -258,6 +258,6 @@ export default function PageConfigPage() {
                     </button>
                 </div>
             )}
-        </AdminLayout>
+        </>
     );
 }

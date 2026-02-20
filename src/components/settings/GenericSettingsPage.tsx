@@ -91,6 +91,15 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     const [totalElements, setTotalElements] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
 
+    // Reset view state when page changes
+    useEffect(() => {
+        setMode("list");
+        setSelectedRecord(null);
+        setFormData({});
+        setSearchTerm("");
+        setPage(0);
+    }, [pageKey]);
+
     // Fetch page config from backend tab-field-config API
     useEffect(() => {
         let cancelled = false;

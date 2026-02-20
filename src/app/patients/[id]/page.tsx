@@ -128,7 +128,8 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
 
                 if (medicationsRes.status === 'fulfilled' && medicationsRes.value.ok) {
                     const medications = await medicationsRes.value.json();
-                    medications.data?.forEach((med: Record<string, any>) => {
+                    const medList = Array.isArray(medications.data) ? medications.data : medications.data?.content ?? [];
+                    medList.forEach((med: Record<string, any>) => {
                         allActivities.push({
                             id: `med-${med.id}`,
                             type: 'medication',
@@ -142,7 +143,8 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
 
                 if (labsRes.status === 'fulfilled' && labsRes.value.ok) {
                     const labs = await labsRes.value.json();
-                    labs.data?.forEach((lab: Record<string, any>) => {
+                    const labList = Array.isArray(labs.data) ? labs.data : labs.data?.content ?? [];
+                    labList.forEach((lab: Record<string, any>) => {
                         allActivities.push({
                             id: `lab-${lab.id}`,
                             type: 'lab',
@@ -549,7 +551,7 @@ export default function PatientDashboardPage() {
         <PluginContextProvider patient={{ id: patient.id, name: `${patient.firstName} ${patient.lastName}`, birthDate: patient.dateOfBirth, gender: patient.gender }}>
         <AdminLayout>
             {/* Negate AdminLayout padding so chart goes full-bleed */}
-            <div className="pageScroll bg-gray-50 min-h-screen -m-4 md:-m-6">
+            <div className="pageScroll bg-gray-50 h-full -m-4 md:-m-6 flex flex-col">
                 {/* Patient header bar */}
                 <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between px-4 py-2">
@@ -619,7 +621,7 @@ export default function PatientDashboardPage() {
                 <PluginSlot name="patient-chart:banner-alert" context={{ patientId: patient.id }} className="px-4 pt-2 space-y-2" />
 
                 {/* Content area: sidebar + main */}
-                <div className="flex">
+                <div className="flex flex-1 min-h-0 overflow-hidden">
                     <ClinicalSidebar
                         patientId={Number(patient.id)}
                         collapsed={sidebarCollapsed}
@@ -628,7 +630,7 @@ export default function PatientDashboardPage() {
                         onNavigate={onTabClick}
                         tabCategories={tabCategories}
                     />
-                    <main className="flex-1 min-w-0 p-4">
+                    <main className="flex-1 min-w-0 p-4 overflow-y-auto">
                         {renderTabContent(viewMode)}
                     </main>
                     {/* Plugin sidebar widgets (e.g., Chat, AI Assistant, RPM panel) */}
