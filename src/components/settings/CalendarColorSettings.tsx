@@ -118,10 +118,15 @@ export default function CalendarColorSettings() {
                     for (const field of fields) {
                         if (field.key === "appointmentType" && Array.isArray(field.options)) {
                             setVisitTypeOptions(
-                                field.options.map((o: { value: string; label: string }) => ({
-                                    value: o.value || o.label,
-                                    label: o.label || o.value,
-                                }))
+                                field.options.map((o: string | { value: string; label: string }) => {
+                                    if (typeof o === "string") {
+                                        return { value: o, label: o };
+                                    }
+                                    return {
+                                        value: o.value || o.label,
+                                        label: o.label || o.value,
+                                    };
+                                })
                             );
                             return;
                         }

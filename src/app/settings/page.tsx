@@ -6,9 +6,10 @@ import { getEnv } from "@/utils/env";
 import GenericSettingsPage from "@/components/settings/GenericSettingsPage";
 import FormOptionsEditor from "@/components/settings/FormOptionsEditor";
 import DisplaySettings from "@/components/settings/DisplaySettings";
+import CalendarColorSettings from "@/components/settings/CalendarColorSettings";
 import PracticeLogoUpload from "@/components/settings/PracticeLogoUpload";
 import { ICONS } from "@/components/settings/IconPicker";
-import { Settings, Loader2, FileText, SlidersHorizontal, Monitor } from "lucide-react";
+import { Settings, Loader2, FileText, SlidersHorizontal, Monitor, Palette } from "lucide-react";
 import PluginSlot from "@/components/plugins/PluginSlot";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
@@ -22,6 +23,7 @@ interface SettingsItem {
 const BUILTIN_PAGES = [
     { tabKey: "__form-options__", label: "Form Options", icon: "SlidersHorizontal" },
     { tabKey: "__display__", label: "Display", icon: "Monitor" },
+    { tabKey: "__calendar-colors__", label: "Calendar Colors", icon: "Palette" },
 ];
 
 export default function SettingsPage() {
@@ -70,6 +72,7 @@ export default function SettingsPage() {
     const getIcon = (iconName: string) => {
         if (iconName === "SlidersHorizontal") return SlidersHorizontal;
         if (iconName === "Monitor") return Monitor;
+        if (iconName === "Palette") return Palette;
         return ICONS[iconName] || FileText;
     };
 
@@ -142,6 +145,8 @@ export default function SettingsPage() {
                     <FormOptionsEditor />
                 ) : activeKey === "__display__" ? (
                     <DisplaySettings />
+                ) : activeKey === "__calendar-colors__" ? (
+                    <CalendarColorSettings />
                 ) : activeKey ? (
                     <>
                         {activeKey === "practice" && <PracticeLogoUpload />}
