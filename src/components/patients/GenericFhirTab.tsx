@@ -175,6 +175,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             );
             if (res.ok) {
                 setRecords((prev) => prev.filter((r) => (r.id || r.fhirId) !== resourceId));
+                setTotalElements((prev) => Math.max(0, prev - 1));
             }
         } catch (err) {
             console.error("Error deleting record", err);

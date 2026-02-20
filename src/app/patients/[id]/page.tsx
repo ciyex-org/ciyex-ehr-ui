@@ -377,6 +377,14 @@ export default function PatientDashboardPage() {
         setViewMode(key);
         setHighlightedTab(key);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        // Persist tab in URL so it survives reload
+        const url = new URL(window.location.href);
+        if (key === "dashboard") {
+            url.searchParams.delete("tab");
+        } else {
+            url.searchParams.set("tab", key);
+        }
+        window.history.replaceState({}, "", url.toString());
     };
 
     const formatDateLocal = (date: string) => date ? new Date(date).toLocaleDateString() : "\u2014";
