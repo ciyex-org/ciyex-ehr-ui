@@ -8,8 +8,9 @@ import { getEnv } from "@/utils/env";
 import TabManager, { type TabCategory } from "@/components/settings/TabManager";
 import FieldConfigEditor from "@/components/settings/FieldConfigEditor";
 import type { FieldConfig } from "@/components/patients/DynamicFormRenderer";
+import JsonCodeView from "@/components/settings/JsonCodeView";
 import {
-    Settings, Loader2, Save, RotateCcw, X, Eye, Columns,
+    Settings, Loader2, Save, RotateCcw, X, Eye, Columns, Code,
 } from "lucide-react";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
@@ -19,6 +20,7 @@ export default function PageConfigPage() {
     const pageKey = params.pageKey as string;
 
     const [activeSection, setActiveSection] = useState<"tab-manager" | "field-config">("tab-manager");
+    const [showCode, setShowCode] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [configSource, setConfigSource] = useState("UNIVERSAL_DEFAULT");
@@ -43,7 +45,6 @@ export default function PageConfigPage() {
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            // Fetch all tab-field-configs and the specific page config
             const [allRes, configRes] = await Promise.all([
                 fetchWithAuth(`${API_BASE()}/api/tab-field-config/all`),
                 fetchWithAuth(`${API_BASE()}/api/tab-field-config/${pageKey}`),
@@ -51,8 +52,6 @@ export default function PageConfigPage() {
 
             if (allRes.ok) {
                 const allConfigs: any[] = await allRes.json();
-
-                // Build available tabs for Field Configuration (entries with fhirResources)
                 const settingsTabs = allConfigs
                     .filter((c: any) => {
                         const fhir = Array.isArray(c.fhirResources) ? c.fhirResources : [];
@@ -64,7 +63,6 @@ export default function PageConfigPage() {
                     }));
                 setAvailableTabs(settingsTabs);
 
-                // Build Tab Manager categories — match tabs by category for this pageKey
                 const categoryLabel = pageKey.replace(/-/g, " ").replace(/\b\w/g, (ch: string) => ch.toUpperCase());
                 const categoryTabs = allConfigs
                     .filter((c: any) => {
@@ -104,7 +102,6 @@ export default function PageConfigPage() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
-    // Save tab layout
     const handleSaveTabConfig = async () => {
         setSaving(true);
         try {
@@ -164,15 +161,27 @@ export default function PageConfigPage() {
                             Configure tabs, fields, and FHIR mappings for the {displayLabel} page
                         </p>
                     </div>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                        configSource === "ORG_CUSTOM" ? "bg-blue-100 text-blue-800" :
-                        configSource === "PRACTICE_TYPE_DEFAULT" ? "bg-green-100 text-green-800" :
-                        "bg-gray-100 text-gray-600"
-                    }`}>
-                        {configSource === "ORG_CUSTOM" ? "Custom Config" :
-                         configSource === "PRACTICE_TYPE_DEFAULT" ? "Practice Default" :
-                         "Universal Default"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowCode(!showCode)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md transition-colors ${
+                                showCode
+                                    ? "border-blue-300 bg-blue-50 text-blue-700"
+                                    : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                            }`}
+                        >
+                            <Code className="w-3.5 h-3.5" /> Code
+                        </button>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            configSource === "ORG_CUSTOM" ? "bg-blue-100 text-blue-800" :
+                            configSource === "PRACTICE_TYPE_DEFAULT" ? "bg-green-100 text-green-800" :
+                            "bg-gray-100 text-gray-600"
+                        }`}>
+                            {configSource === "ORG_CUSTOM" ? "Custom Config" :
+                             configSource === "PRACTICE_TYPE_DEFAULT" ? "Practice Default" :
+                             "Universal Default"}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Section Tabs */}
@@ -195,56 +204,76 @@ export default function PageConfigPage() {
                     ))}
                 </div>
 
-                {/* Tab Manager */}
-                {activeSection === "tab-manager" && (
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-gray-900">Manage Tabs</h3>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleResetToDefaults}
-                                    disabled={saving || configSource === "UNIVERSAL_DEFAULT"}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
-                                >
-                                    <RotateCcw className="w-3.5 h-3.5" /> Reset to Defaults
-                                </button>
-                                <button
-                                    onClick={handleSaveTabConfig}
-                                    disabled={saving}
-                                    className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
-                                >
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                    Save Changes
-                                </button>
-                            </div>
+                <div className={showCode ? "flex gap-4" : ""}>
+                    {/* Code Panel */}
+                    {showCode && (
+                        <div className="w-1/2 shrink-0 border border-gray-200 rounded-lg overflow-hidden h-[calc(100vh-280px)]">
+                            {activeSection === "field-config" && selectedTab && fieldConfig ? (
+                                <JsonCodeView
+                                    value={fieldConfig}
+                                    onChange={setFieldConfig}
+                                    tabKey={selectedTab}
+                                    fhirResources={fhirResources}
+                                />
+                            ) : (
+                                <JsonCodeView />
+                            )}
                         </div>
+                    )}
 
-                        <TabManager
-                            categories={tabCategories}
-                            onChange={setTabCategories}
-                        />
+                    <div className={showCode ? "w-1/2 overflow-auto" : ""}>
+                        {/* Tab Manager */}
+                        {activeSection === "tab-manager" && (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-gray-900">Manage Tabs</h3>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleResetToDefaults}
+                                            disabled={saving || configSource === "UNIVERSAL_DEFAULT"}
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+                                        >
+                                            <RotateCcw className="w-3.5 h-3.5" /> Reset to Defaults
+                                        </button>
+                                        <button
+                                            onClick={handleSaveTabConfig}
+                                            disabled={saving}
+                                            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                        >
+                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <TabManager
+                                    categories={tabCategories}
+                                    onChange={setTabCategories}
+                                />
+                            </div>
+                        )}
+
+                        {/* Field Configuration */}
+                        {activeSection === "field-config" && (
+                            <FieldConfigEditor
+                                availableTabs={availableTabs}
+                                selectedTab={selectedTab}
+                                setSelectedTab={setSelectedTab}
+                                fieldConfig={fieldConfig}
+                                setFieldConfig={setFieldConfig}
+                                fhirResources={fhirResources}
+                                setFhirResources={setFhirResources}
+                                fieldConfigPreview={fieldConfigPreview}
+                                setFieldConfigPreview={setFieldConfigPreview}
+                                previewFormData={previewFormData}
+                                setPreviewFormData={setPreviewFormData}
+                                saving={saving}
+                                setSaving={setSaving}
+                                showNotif={showNotif}
+                            />
+                        )}
                     </div>
-                )}
-
-                {/* Field Configuration */}
-                {activeSection === "field-config" && (
-                    <FieldConfigEditor
-                        availableTabs={availableTabs}
-                        selectedTab={selectedTab}
-                        setSelectedTab={setSelectedTab}
-                        fieldConfig={fieldConfig}
-                        setFieldConfig={setFieldConfig}
-                        fhirResources={fhirResources}
-                        setFhirResources={setFhirResources}
-                        fieldConfigPreview={fieldConfigPreview}
-                        setFieldConfigPreview={setFieldConfigPreview}
-                        previewFormData={previewFormData}
-                        setPreviewFormData={setPreviewFormData}
-                        saving={saving}
-                        setSaving={setSaving}
-                        showNotif={showNotif}
-                    />
-                )}
+                </div>
             </div>
 
             {/* Toast Notification */}

@@ -4,10 +4,11 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import JsonCodeView from "@/components/settings/JsonCodeView";
 import {
     ClipboardList, Loader2, Save, RotateCcw, X, Check,
     Eye, EyeOff, ArrowUp, ArrowDown, Search, GripVertical,
-    ChevronDown, ChevronRight,
+    ChevronDown, ChevronRight, Code,
 } from "lucide-react";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
@@ -29,6 +30,7 @@ interface FieldConfig {
 }
 
 export default function EncounterSettingsPage() {
+    const [showCode, setShowCode] = useState(false);
     const [fieldConfig, setFieldConfig] = useState<FieldConfig | null>(null);
     const [fhirResources, setFhirResources] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -238,6 +240,16 @@ export default function EncounterSettingsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                         <button
+                            onClick={() => setShowCode(!showCode)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md transition-colors ${
+                                showCode
+                                    ? "border-blue-300 bg-blue-50 text-blue-700"
+                                    : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                            }`}
+                        >
+                            <Code className="w-3.5 h-3.5" /> Code
+                        </button>
+                        <button
                             onClick={handleReset}
                             disabled={saving || configSource === "UNIVERSAL_DEFAULT"}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
@@ -257,6 +269,28 @@ export default function EncounterSettingsPage() {
                     </div>
                 </div>
 
+                <div className={showCode ? "flex gap-4" : ""}>
+                {/* Code Panel */}
+                {showCode && (
+                    <div className="w-1/2 shrink-0 border border-gray-200 rounded-lg overflow-hidden h-[calc(100vh-280px)]">
+                        <JsonCodeView
+                            value={fieldConfig}
+                            onChange={(parsed) => {
+                                if (parsed?.sections) {
+                                    parsed.sections = parsed.sections.map((s: any) => ({
+                                        ...s,
+                                        visible: s.visible !== false,
+                                    }));
+                                }
+                                setFieldConfig(parsed);
+                            }}
+                            tabKey="encounter-form"
+                            fhirResources={fhirResources}
+                        />
+                    </div>
+                )}
+
+                <div className={showCode ? "w-1/2 overflow-auto" : ""}>
                 {/* Sections List */}
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -405,6 +439,8 @@ export default function EncounterSettingsPage() {
                         This page controls section visibility, ordering, and display properties.
                     </p>
                 </div>
+                </div>{/* close sections column */}
+                </div>{/* close flex wrapper */}
             </div>
 
             {/* Toast Notification */}

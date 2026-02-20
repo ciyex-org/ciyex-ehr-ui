@@ -6,9 +6,10 @@ import { getEnv } from "@/utils/env";
 import { useMenu, type MenuItemNode } from "@/context/MenuContext";
 
 import IconPicker from "@/components/settings/IconPicker";
+import JsonCodeView from "@/components/settings/JsonCodeView";
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
-  RotateCcw, Pencil, X, Check, Eye, EyeOff, Undo2,
+  RotateCcw, Pencil, X, Check, Eye, EyeOff, Undo2, Code,
 } from "lucide-react";
 
 const API_URL = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
@@ -38,6 +39,7 @@ type Override = {
 
 export default function MenuConfigurationPage() {
   const { refreshMenu } = useMenu();
+  const [showCode, setShowCode] = useState(false);
   const [items, setItems] = useState<MenuItemFlat[]>([]);
   const [hiddenItems, setHiddenItems] = useState<MenuItemFlat[]>([]);
   const [overrides, setOverrides] = useState<Override[]>([]);
@@ -580,7 +582,7 @@ export default function MenuConfigurationPage() {
 
   return (
     <>
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -590,6 +592,16 @@ export default function MenuConfigurationPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCode(!showCode)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border rounded-md transition-colors ${
+              showCode
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-gray-300 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <Code className="w-3.5 h-3.5" /> Code
+          </button>
           {hasCustomizations ? (
             <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded">
               Customized
@@ -601,6 +613,16 @@ export default function MenuConfigurationPage() {
           )}
         </div>
       </div>
+
+      <div className={showCode ? "flex gap-4" : ""}>
+      {/* Code Panel */}
+      {showCode && (
+        <div className="w-1/2 shrink-0 border border-gray-200 rounded-lg overflow-hidden h-[calc(100vh-240px)]">
+          <JsonCodeView />
+        </div>
+      )}
+
+      <div className={showCode ? "w-1/2 overflow-auto space-y-6" : "space-y-6"}>
 
       {/* Action buttons */}
       <div className="flex items-center gap-3">
@@ -755,6 +777,9 @@ export default function MenuConfigurationPage() {
           <p className="text-center text-gray-400 py-8">No menu items found</p>
         )}
       </div>
+
+      </div>{/* close menu editor column */}
+      </div>{/* close flex wrapper */}
     </div>
     </>
   );
