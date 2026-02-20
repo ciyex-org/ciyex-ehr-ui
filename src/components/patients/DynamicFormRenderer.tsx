@@ -1657,6 +1657,25 @@ export default function DynamicFormRenderer({
           />
         );
 
+      case "color":
+        return (
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={value || "#3b82f6"}
+              onChange={(e) => onChange(field.key, e.target.value)}
+              className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0.5"
+            />
+            <Input
+              type="text"
+              value={value || ""}
+              placeholder="#3b82f6"
+              onChange={(e) => onChange(field.key, e.target.value)}
+              error={!!error}
+            />
+          </div>
+        );
+
       case "combobox":
         if (field.optionsSource) {
           return (
