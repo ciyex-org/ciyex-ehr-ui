@@ -10,7 +10,8 @@ import CalendarColorSettings from "@/components/settings/CalendarColorSettings";
 import PracticeLogoUpload from "@/components/settings/PracticeLogoUpload";
 import { ICONS } from "@/components/settings/IconPicker";
 import { Settings, Loader2, FileText, SlidersHorizontal, Monitor, Palette } from "lucide-react";
-import PluginSlot from "@/components/plugins/PluginSlot";
+import { usePluginRegistry } from "@/context/PluginRegistryContext";
+import PluginErrorBoundary from "@/components/plugins/PluginErrorBoundary";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -30,6 +31,9 @@ export default function SettingsPage() {
     const [items, setItems] = useState<SettingsItem[]>([]);
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const { getSlotContributions, loaded: pluginsLoaded } = usePluginRegistry();
+
+    const pluginNavItems = pluginsLoaded ? getSlotContributions("settings:nav-item") : [];
 
     useEffect(() => {
         (async () => {
@@ -75,6 +79,11 @@ export default function SettingsPage() {
         if (iconName === "Palette") return Palette;
         return ICONS[iconName] || FileText;
     };
+
+    // Find the active plugin contribution (if active key matches a plugin slug)
+    const activePlugin = pluginNavItems.find(
+        (c) => `__plugin_${c.pluginSlug}__` === activeKey
+    );
 
     return (
         <div className="flex h-[calc(100vh-64px)]">
@@ -130,18 +139,48 @@ export default function SettingsPage() {
                         );
                     })}
 
-                    {items.length === 0 && BUILTIN_PAGES.length === 0 && (
+                    {/* Plugin-contributed settings nav items */}
+                    {pluginNavItems.length > 0 && (
+                        <div className="border-t border-gray-200 my-2" />
+                    )}
+                    {pluginNavItems.map((contribution) => {
+                        const pluginKey = `__plugin_${contribution.pluginSlug}__`;
+                        const isActive = activeKey === pluginKey;
+                        const Icon = contribution.icon ? (ICONS[contribution.icon] || FileText) : FileText;
+                        return (
+                            <button
+                                key={pluginKey}
+                                onClick={() => setActiveKey(pluginKey)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                                    isActive
+                                        ? "bg-blue-600 text-white"
+                                        : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                            >
+                                <Icon className="w-4 h-4 shrink-0" />
+                                <span className="truncate">{contribution.label || contribution.pluginName}</span>
+                            </button>
+                        );
+                    })}
+
+                    {items.length === 0 && BUILTIN_PAGES.length === 0 && pluginNavItems.length === 0 && (
                         <p className="text-sm text-gray-400 px-3 py-4 text-center">
                             No settings pages configured
                         </p>
                     )}
-                    <PluginSlot name="settings:nav-item" className="mt-1 space-y-0.5" />
                 </nav>
             </div>
 
             {/* Content area */}
             <div className="flex-1 overflow-y-auto">
-                {activeKey === "__form-options__" ? (
+                {activePlugin ? (
+                    <PluginErrorBoundary
+                        pluginName={activePlugin.pluginName}
+                        slotName="settings:nav-item"
+                    >
+                        <activePlugin.component />
+                    </PluginErrorBoundary>
+                ) : activeKey === "__form-options__" ? (
                     <FormOptionsEditor />
                 ) : activeKey === "__display__" ? (
                     <DisplaySettings />

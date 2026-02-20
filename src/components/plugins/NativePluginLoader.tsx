@@ -61,8 +61,8 @@ interface PluginModule {
 const NATIVE_PLUGIN_LOADERS: Record<string, () => Promise<PluginModule>> = {
     // Demo plugin — validates the full plugin pipeline
     "demo-care-gaps": () => import("@/plugins/demo-care-gaps"),
-    // Add new native plugins here:
-    // "drug-interactions": () => import("@/plugins/drug-interactions"),
+    // Vaultik — secure file storage (S3-backed, per-practice overrides)
+    "vaultik": () => import("@/plugins/vaultik"),
 };
 
 /**
