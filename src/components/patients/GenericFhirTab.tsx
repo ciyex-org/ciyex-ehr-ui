@@ -28,6 +28,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const [selectedRecord, setSelectedRecord] = useState<Record<string, any> | null>(null);
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [searchTerm, setSearchTerm] = useState("");
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
     // Pagination
     const [page, setPage] = useState(0);
@@ -137,6 +138,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const handleCreate = () => {
         setFormData({});
         setSelectedRecord(null);
+        setValidationErrors({});
+        setError(null);
         setMode("create");
     };
 
@@ -145,6 +148,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (!rec) return;
         setFormData({ ...rec });
         setSelectedRecord(rec);
+        setValidationErrors({});
+        setError(null);
         setMode("edit");
     };
 
@@ -183,6 +188,26 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     };
 
     const handleSave = async () => {
+        // Validate required fields
+        if (fieldConfig?.sections) {
+            const errors: Record<string, string> = {};
+            for (const section of fieldConfig.sections) {
+                for (const field of section.fields) {
+                    if (field.required) {
+                        const val = formData[field.key];
+                        if (val == null || (typeof val === "string" && val.trim() === "") || (Array.isArray(val) && val.length === 0)) {
+                            errors[field.key] = `${field.label} is required`;
+                        }
+                    }
+                }
+            }
+            if (Object.keys(errors).length > 0) {
+                setValidationErrors(errors);
+                setError("Please fill in all required fields");
+                return;
+            }
+        }
+        setValidationErrors({});
         setSaving(true);
         setError(null);
         try {
@@ -385,6 +410,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                             formData={formData}
                             onChange={handleFieldChange}
                             readOnly={mode === "view"}
+                            errors={validationErrors}
                         />
                     )}
                 </div>
@@ -432,6 +458,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                             formData={formData}
                             onChange={handleFieldChange}
                             readOnly={mode === "view"}
+                            errors={validationErrors}
                         />
                     )}
                 </div>

@@ -1837,7 +1837,7 @@ const Calendar: React.FC = () => {
                                             placeholder="Search patient by name..."
                                         />
                                         {showPatientDropdown && (patientSearching || patientResults.length > 0) && (
-                                            <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-dark-900">
+                                            <div className="absolute z-60 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-dark-900">
                                                 {patientSearching ? (
                                                     <div className="px-3 py-2 text-xs text-gray-500">Searching…</div>
                                                 ) : (

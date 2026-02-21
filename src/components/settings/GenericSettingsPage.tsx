@@ -84,6 +84,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     const [selectedRecord, setSelectedRecord] = useState<Record<string, any> | null>(null);
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [searchTerm, setSearchTerm] = useState("");
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
     // Pagination
     const [page, setPage] = useState(0);
@@ -279,6 +280,26 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     };
 
     const handleSave = async () => {
+        // Validate required fields
+        if (fieldConfig?.sections) {
+            const errors: Record<string, string> = {};
+            for (const section of fieldConfig.sections) {
+                for (const field of section.fields) {
+                    if (field.required) {
+                        const val = formData[field.key];
+                        if (val == null || (typeof val === "string" && val.trim() === "") || (Array.isArray(val) && val.length === 0)) {
+                            errors[field.key] = `${field.label} is required`;
+                        }
+                    }
+                }
+            }
+            if (Object.keys(errors).length > 0) {
+                setValidationErrors(errors);
+                setError("Please fill in all required fields");
+                return;
+            }
+        }
+        setValidationErrors({});
         setSaving(true);
         setError(null);
         try {
@@ -444,6 +465,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                     formData={formData}
                                     onChange={handleFieldChange}
                                     readOnly={mode === "view"}
+                                    errors={validationErrors}
                                 />
                             ) : (
                                 /* Auto-generate form from record keys */
@@ -562,7 +584,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                             >
                                                 {cols.map(col => (
                                                     <td key={col.key} className="px-4 py-2.5 text-gray-700">
-                                                        {formatValue(getNestedValue(record, col.key))}
+                                                        {record[col.key + "Display"] || formatValue(getNestedValue(record, col.key))}
                                                     </td>
                                                 ))}
                                                 <td className="px-4 py-2.5 text-right">

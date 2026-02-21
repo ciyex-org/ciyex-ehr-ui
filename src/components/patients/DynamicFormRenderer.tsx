@@ -291,12 +291,14 @@ function LookupField({
   field,
   value,
   onChange,
+  onDisplayChange,
   readOnly,
   displayLabel,
 }: {
   field: FieldDef;
   value: any;
   onChange: (val: any) => void;
+  onDisplayChange?: (display: string) => void;
   readOnly?: boolean;
   displayLabel?: string;
 }) {
@@ -304,6 +306,11 @@ function LookupField({
   const [results, setResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [displayValue, setDisplayValue] = useState(displayLabel || value || "");
+
+  // Update display value when displayLabel prop changes (e.g., after data reload)
+  React.useEffect(() => {
+    if (displayLabel) setDisplayValue(displayLabel);
+  }, [displayLabel]);
 
   const search = useCallback(
     async (q: string) => {
@@ -354,6 +361,7 @@ function LookupField({
                 onClick={() => {
                   onChange(val);
                   setDisplayValue(display);
+                  if (onDisplayChange) onDisplayChange(display);
                   setQuery("");
                   setShowDropdown(false);
                 }}
@@ -1512,7 +1520,7 @@ export default function DynamicFormRenderer({
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
-          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
+          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} onDisplayChange={(d) => onChange(field.key + "Display", d)} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       );
