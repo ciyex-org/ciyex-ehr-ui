@@ -16,7 +16,6 @@ import { getEnv } from "@/utils/env";
 import ProviderAvailabilityEditor from "@/components/settings/ProviderAvailabilityEditor";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
-const CODES_BASE = () => (getEnv("NEXT_PUBLIC_CODES_SERVICE_URL") || "").replace(/\/$/, "");
 
 // ---- Types ----
 
@@ -805,7 +804,7 @@ function DiagnosisList({
       try {
         const codeSystem = field.diagnosisConfig?.codeSystem || "ICD10_CM";
         const base = API_BASE();
-        const url = `${base}/api/codes-proxy/${codeSystem}/search?q=${encodeURIComponent(q)}&size=15`;
+        const url = `${base}/api/app-proxy/ciyex-codes/api/codes/${codeSystem}/search?q=${encodeURIComponent(q)}&size=15`;
         const res = await fetchWithAuth(url);
         if (res.ok) {
           const json = await res.json();
@@ -948,7 +947,7 @@ function CodeLookup({
       if (!q || q.length < 2) { setSearchResults([]); return; }
       try {
         const base = API_BASE();
-        const url = `${base}/api/codes-proxy/${codeSystem}/search?q=${encodeURIComponent(q)}&size=15`;
+        const url = `${base}/api/app-proxy/ciyex-codes/api/codes/${codeSystem}/search?q=${encodeURIComponent(q)}&size=15`;
         const res = await fetchWithAuth(url);
         if (res.ok) {
           const json = await res.json();
