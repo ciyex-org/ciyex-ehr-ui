@@ -65,6 +65,12 @@ const NATIVE_PLUGIN_LOADERS: Record<string, () => Promise<PluginModule>> = {
     "vaultik": () => import("@/plugins/vaultik"),
     // Ask Dr. Ciya — AI clinical assistant chatbot
     "ask-ciya": () => import("@/plugins/ask-dr-ciya"),
+    // Ciyex Telehealth — video call sessions for patient consultations
+    "ciyex-telehealth": () => import("@/plugins/ciyex-telehealth"),
+    // Ciyex RCM — revenue cycle management, billing & claims
+    "ciyex-rcm": () => import("@/plugins/ciyex-rcm"),
+    // Ciyex Credentialing — provider credentialing management
+    "ciyex-credentialing": () => import("@/plugins/ciyex-credentialing"),
 };
 
 /**
