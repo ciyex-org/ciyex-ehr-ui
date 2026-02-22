@@ -770,6 +770,15 @@ span.flatpickr-weekday,
   animation: slideInFromRight 0.3s ease-out forwards;
 }
 
+@keyframes slideInUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@utility animate-slide-in {
+  animation: slideInUp 0.25s ease-out forwards;
+}
+
 /* ===== Text-only scaling (Display Settings font size preference) =====
    --text-scale is set by DisplaySettingsContext via JS.
    Only font-size is scaled — padding, margin, width stay unchanged.
