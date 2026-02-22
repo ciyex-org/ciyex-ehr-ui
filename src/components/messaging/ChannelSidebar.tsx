@@ -105,37 +105,8 @@ export default function ChannelSidebar({
         </div>
       </div>
 
-      {/* Conversation list — DMs first */}
+      {/* Conversation list — Channels first, then DMs */}
       <div className="flex-1 overflow-y-auto px-2">
-        {/* Direct Messages section */}
-        <SectionHeader
-          label="Direct Messages"
-          count={dmChannels.length}
-          expanded={expandedSections.dms}
-          onToggle={() => toggleSection("dms")}
-        />
-        {expandedSections.dms && (
-          <div className="mb-2">
-            {dmChannels.map((ch) => (
-              <DmRow
-                key={ch.id}
-                channel={ch}
-                isActive={ch.id === activeChannelId}
-                onClick={() => onSelectChannel(ch.id)}
-              />
-            ))}
-            {dmChannels.length === 0 && (
-              <button
-                onClick={() => setShowUserPicker(true)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
-              >
-                <PenSquare className="h-3.5 w-3.5" />
-                Start a conversation
-              </button>
-            )}
-          </div>
-        )}
-
         {/* Channels section */}
         <SectionHeader
           label="Channels"
@@ -164,6 +135,35 @@ export default function ChannelSidebar({
             ))}
             {allChannels.length === 0 && (
               <p className="px-2 py-1 text-xs text-gray-400">No channels yet</p>
+            )}
+          </div>
+        )}
+
+        {/* Direct Messages section */}
+        <SectionHeader
+          label="Direct Messages"
+          count={dmChannels.length}
+          expanded={expandedSections.dms}
+          onToggle={() => toggleSection("dms")}
+        />
+        {expandedSections.dms && (
+          <div className="mb-2">
+            {dmChannels.map((ch) => (
+              <DmRow
+                key={ch.id}
+                channel={ch}
+                isActive={ch.id === activeChannelId}
+                onClick={() => onSelectChannel(ch.id)}
+              />
+            ))}
+            {dmChannels.length === 0 && (
+              <button
+                onClick={() => setShowUserPicker(true)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+              >
+                <PenSquare className="h-3.5 w-3.5" />
+                Start a conversation
+              </button>
             )}
           </div>
         )}
