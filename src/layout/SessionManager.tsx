@@ -1,7 +1,7 @@
 "use client";
 
 import { getEnv } from "@/utils/env";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { clearAuth, refreshAccessToken } from "@/utils/authUtils";
 
 const API_BASE = getEnv("NEXT_PUBLIC_API_URL") || "";
@@ -35,8 +35,26 @@ async function tryRefreshSession(): Promise<boolean> {
   }
 }
 
+// Warning timeout: show warning 2 minutes before session expires
+const WARNING_BEFORE_MS = 2 * 60 * 1000;
+
 export default function SessionManager() {
   const timeoutId = useRef<number | null>(null);
+  const warningTimeoutId = useRef<number | null>(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const [countdown, setCountdown] = useState(120);
+  const countdownRef = useRef<number | null>(null);
+
+  const dismissWarning = useCallback(async () => {
+    setShowWarning(false);
+    setCountdown(120);
+    if (countdownRef.current) {
+      window.clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    // Try to refresh the session
+    await tryRefreshSession();
+  }, []);
 
   useEffect(() => {
     const orgId = typeof window !== "undefined" ? localStorage.getItem("orgId") || "default" : "default";
@@ -65,12 +83,58 @@ export default function SessionManager() {
       const nearJwtExpiry = payload && payload.exp && payload.exp - nowSec < 120; // 2 minutes before JWT expires
       if (nearJwtExpiry) {
         console.log("JWT near expiry, attempting refresh...");
-        await tryRefreshSession();
+        const refreshed = await tryRefreshSession();
+        if (!refreshed) {
+          // Show warning if refresh fails and JWT is about to expire
+          const secsLeft = payload.exp - nowSec;
+          if (secsLeft > 0 && secsLeft < 120) {
+            setShowWarning(true);
+            setCountdown(secsLeft);
+            if (countdownRef.current) window.clearInterval(countdownRef.current);
+            countdownRef.current = window.setInterval(() => {
+              setCountdown((prev) => {
+                if (prev <= 1) {
+                  if (countdownRef.current) window.clearInterval(countdownRef.current);
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+          }
+        }
+      }
+
+      // Dismiss warning on activity if it's showing
+      if (showWarning) {
+        // Don't dismiss - let the modal handle it
       }
 
       if (timeoutId.current) {
         window.clearTimeout(timeoutId.current);
       }
+      if (warningTimeoutId.current) {
+        window.clearTimeout(warningTimeoutId.current);
+      }
+
+      // Set warning timeout (fires before idle timeout)
+      const warningMs = Math.max(idleMs - WARNING_BEFORE_MS, 0);
+      if (warningMs > 0) {
+        warningTimeoutId.current = window.setTimeout(() => {
+          setShowWarning(true);
+          setCountdown(Math.floor(WARNING_BEFORE_MS / 1000));
+          if (countdownRef.current) window.clearInterval(countdownRef.current);
+          countdownRef.current = window.setInterval(() => {
+            setCountdown((prev) => {
+              if (prev <= 1) {
+                if (countdownRef.current) window.clearInterval(countdownRef.current);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        }, warningMs);
+      }
+
       timeoutId.current = window.setTimeout(onIdle, idleMs);
     };
 
@@ -91,6 +155,8 @@ export default function SessionManager() {
 
       // UI timeout reached - sign out user (respect UI setting)
       console.log(`Session timeout reached (${getExpiryMinutes()} minutes), signing out...`);
+      setShowWarning(false);
+      if (countdownRef.current) window.clearInterval(countdownRef.current);
       try {
         clearAuth();
       } catch {}
@@ -135,8 +201,52 @@ export default function SessionManager() {
       window.removeEventListener("storage", onStorage);
       window.removeEventListener('tokenExpiryUpdated', onTokenExpiryUpdated as (event: Event) => void);
       if (timeoutId.current) window.clearTimeout(timeoutId.current);
+      if (warningTimeoutId.current) window.clearTimeout(warningTimeoutId.current);
+      if (countdownRef.current) window.clearInterval(countdownRef.current);
     };
   }, []);
 
-  return null;
+  if (!showWarning) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+      <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
+            <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">Session Expiring</h3>
+        </div>
+        <p className="mb-1 text-sm text-gray-600">
+          Your session will expire in{" "}
+          <span className="font-bold text-amber-600">
+            {countdown > 60 ? `${Math.floor(countdown / 60)}m ${countdown % 60}s` : `${countdown}s`}
+          </span>
+        </p>
+        <p className="mb-5 text-sm text-gray-500">
+          Click below to stay logged in, or you will be signed out automatically.
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={dismissWarning}
+            className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Stay Logged In
+          </button>
+          <button
+            onClick={() => {
+              setShowWarning(false);
+              clearAuth();
+              window.location.href = "/signin";
+            }}
+            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

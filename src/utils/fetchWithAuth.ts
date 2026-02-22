@@ -1,4 +1,8 @@
 import { getEnv } from "@/utils/env";
+import { refreshAccessToken, clearAuth } from "@/utils/authUtils";
+
+// Track if a refresh is already in progress to avoid concurrent refreshes
+let refreshPromise: Promise<boolean> | null = null;
 
 export async function fetchWithAuth(
   input: RequestInfo | URL,
@@ -37,26 +41,48 @@ export async function fetchWithAuth(
   });
 
   if (res.status === 401) {
-    console.warn("⚠️ 401 Unauthorized - Token expired, redirecting to sign-in:", input);
+    // Try to refresh the token before giving up
+    try {
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken();
+      }
+      const refreshed = await refreshPromise;
+      refreshPromise = null;
 
-    // Clear all auth data
+      if (refreshed) {
+        // Retry the original request with the new token
+        const newToken = get("token") || get("authToken");
+        const retryHeaders = new Headers(init?.headers || {});
+        Object.entries({
+          "Accept": "application/json",
+          ...(newToken && { Authorization: `Bearer ${newToken}` }),
+        }).forEach(([k, v]) => retryHeaders.set(k, v));
+
+        if (isFormData) {
+          retryHeaders.delete("Content-Type");
+        } else if (!retryHeaders.has("Content-Type")) {
+          retryHeaders.set("Content-Type", "application/json");
+        }
+
+        const retryRes = await fetch(url, {
+          credentials: init?.credentials ?? "include",
+          ...init,
+          headers: retryHeaders,
+        });
+
+        if (retryRes.status !== 401) {
+          return retryRes; // Retry succeeded
+        }
+      }
+    } catch {
+      refreshPromise = null;
+    }
+
+    // Refresh failed or retry still got 401 — redirect to sign-in
+    console.warn("⚠️ 401 Unauthorized - Session expired, redirecting to sign-in:", input);
+
     if (typeof window !== "undefined") {
-      localStorage.removeItem("token");
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("userEmail");
-      localStorage.removeItem("userFullName");
-      localStorage.removeItem("authMethod");
-      localStorage.removeItem("orgId");
-      localStorage.removeItem("orgIds");
-      localStorage.removeItem("facilityId");
-      localStorage.removeItem("role");
-      localStorage.removeItem("groups");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("primaryGroup");
-      localStorage.removeItem("selectedTenant");
-      localStorage.removeItem("tenantName");
-
-      // Redirect to sign-in page
+      clearAuth();
       window.location.href = "/signin";
     }
   }

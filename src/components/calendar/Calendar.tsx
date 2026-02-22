@@ -962,11 +962,9 @@ const Calendar: React.FC = () => {
             return;
         }
 
-        if (appointmentProviderId) {
-            const chosen = providers.find((p) => p.value === appointmentProviderId);
-            setProvidersForDate(chosen ? [chosen] : []);
-            return;
-        }
+        // When a provider is pre-selected (e.g. from calendar column click),
+        // still show all available providers so the user can switch if needed.
+        // The selected provider will be pre-selected in the dropdown.
 
         setLoadingProvidersForDate(true);
         const effectiveLocation =
@@ -1030,19 +1028,22 @@ const Calendar: React.FC = () => {
 
         const filtered = Array.from(locIds).map((id) => byId[id]).filter(Boolean);
 
-        setProviderLocationOptions(filtered);
+        // Fallback: if no schedule-based locations found, show all locations
+        // so the user can still create the appointment
+        const effectiveLocations = filtered.length > 0 ? filtered : locations;
+        setProviderLocationOptions(effectiveLocations);
 
-        if (filtered.length === 1) {
-            setAppointmentLocationId(filtered[0].value);
+        if (effectiveLocations.length === 1) {
+            setAppointmentLocationId(effectiveLocations[0].value);
         } else if (
             appointmentLocationId &&
-            !filtered.some((l) => l.value === appointmentLocationId)
+            !effectiveLocations.some((l) => l.value === appointmentLocationId)
         ) {
             setAppointmentLocationId('');
         } else if (
-            filtered.length > 1 &&
+            effectiveLocations.length > 1 &&
             selectedLocations.length === 1 &&
-            filtered.some((l) => l.value === selectedLocations[0])
+            effectiveLocations.some((l) => l.value === selectedLocations[0])
         ) {
             setAppointmentLocationId(selectedLocations[0]);
         }

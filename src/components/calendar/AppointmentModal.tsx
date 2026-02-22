@@ -925,7 +925,7 @@ const AppointmentModal: React.FC = () => {
                         onClick={handleSave}
                         type="button"
                         className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 sm:w-auto"
-                        disabled={!startDate || !startTime || !endDate || !endTime || !providerId}
+                        disabled={!startDate || !startTime || !endDate || !endTime || !providerId || !locationId}
                     >
                         Save Appointment
                     </button>
