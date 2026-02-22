@@ -248,18 +248,37 @@ export const isAuthenticated = (): boolean => {
 };
 
 /**
- * Refresh access token using refresh token
+ * Refresh access token using refresh token.
+ * Uses a singleton pattern to prevent concurrent refresh calls
+ * (Keycloak rotates refresh tokens — a second concurrent call would
+ * use an already-consumed token and fail).
  */
+let _refreshPromise: Promise<boolean> | null = null;
+
 export const refreshAccessToken = async (): Promise<boolean> => {
     if (typeof window === 'undefined') return false;
-    
+
+    // Singleton: if a refresh is already in flight, share the same promise
+    if (_refreshPromise) {
+        return _refreshPromise;
+    }
+
+    _refreshPromise = _doRefreshAccessToken();
+    try {
+        return await _refreshPromise;
+    } finally {
+        _refreshPromise = null;
+    }
+};
+
+async function _doRefreshAccessToken(): Promise<boolean> {
     const refreshToken = getRefreshToken();
     if (!refreshToken) return false;
-    
+
     try {
         const API_BASE = getEnv("NEXT_PUBLIC_API_URL") || "";
         const refreshUrl = (API_BASE ? `${API_BASE.replace(/\/$/, "")}` : "") + "/api/auth/refresh";
-        
+
         const response = await fetch(refreshUrl, {
             method: "POST",
             credentials: "include",
@@ -268,27 +287,26 @@ export const refreshAccessToken = async (): Promise<boolean> => {
             },
             body: JSON.stringify({ refreshToken }),
         });
-        
+
         if (!response.ok) {
-            if (response.status === 401 || response.status === 403) {
-                clearAuth();
-            }
+            // Do NOT call clearAuth() here — let the caller decide.
+            // A concurrent race should not wipe valid tokens.
             return false;
         }
-        
+
         const data = await response.json();
-        
+
         if (data.success && data.data?.token) {
             storeTokens(data.data.token, data.data.refreshToken);
             return true;
         }
-        
+
         return false;
     } catch (error) {
         console.error('Token refresh failed:', error);
         return false;
     }
-};
+}
 
 /**
  * Get authorization header for API requests

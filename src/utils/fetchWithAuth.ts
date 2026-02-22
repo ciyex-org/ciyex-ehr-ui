@@ -1,9 +1,6 @@
 import { getEnv } from "@/utils/env";
 import { refreshAccessToken, clearAuth } from "@/utils/authUtils";
 
-// Track if a refresh is already in progress to avoid concurrent refreshes
-let refreshPromise: Promise<boolean> | null = null;
-
 export async function fetchWithAuth(
   input: RequestInfo | URL,
   init?: RequestInit
@@ -41,13 +38,11 @@ export async function fetchWithAuth(
   });
 
   if (res.status === 401) {
-    // Try to refresh the token before giving up
+    // Try to refresh the token before giving up.
+    // refreshAccessToken() has its own singleton guard, so concurrent
+    // 401s from multiple in-flight requests won't cause duplicate refreshes.
     try {
-      if (!refreshPromise) {
-        refreshPromise = refreshAccessToken();
-      }
-      const refreshed = await refreshPromise;
-      refreshPromise = null;
+      const refreshed = await refreshAccessToken();
 
       if (refreshed) {
         // Retry the original request with the new token
@@ -75,7 +70,7 @@ export async function fetchWithAuth(
         }
       }
     } catch {
-      refreshPromise = null;
+      // refresh threw — fall through to sign-out
     }
 
     // Refresh failed or retry still got 401 — redirect to sign-in

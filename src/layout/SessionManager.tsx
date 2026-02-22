@@ -1,46 +1,33 @@
 "use client";
 
-import { getEnv } from "@/utils/env";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { clearAuth, refreshAccessToken } from "@/utils/authUtils";
-
-const API_BASE = getEnv("NEXT_PUBLIC_API_URL") || "";
 
 function decodeJwt(token: string | null) {
   if (!token) return null;
   try {
     const parts = token.split(".");
     if (parts.length < 2) return null;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return payload;
-  } catch (e) {
+    return JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
     return null;
   }
 }
 
-async function tryRefreshSession(): Promise<boolean> {
-  try {
-    const success = await refreshAccessToken();
-    if (success) {
-      console.log("Token refreshed successfully");
-      sessionStorage.setItem("lastActivity", String(Date.now()));
-      return true;
-    } else {
-      console.log("Token refresh failed");
-      return false;
-    }
-  } catch (e) {
-    console.error("Token refresh error:", e);
-    return false;
-  }
-}
+// How early (in seconds) before JWT expiry to proactively refresh
+const REFRESH_BEFORE_EXPIRY_SEC = 60;
 
-// Warning timeout: show warning 2 minutes before session expires
+// Default idle timeout when no org setting is configured (30 minutes).
+// This is the UI-level idle timeout — separate from the JWT lifetime.
+const DEFAULT_IDLE_MINUTES = 30;
+
+// Warning shown 2 minutes before idle timeout fires
 const WARNING_BEFORE_MS = 2 * 60 * 1000;
 
 export default function SessionManager() {
-  const timeoutId = useRef<number | null>(null);
+  const idleTimeoutId = useRef<number | null>(null);
   const warningTimeoutId = useRef<number | null>(null);
+  const refreshTimerId = useRef<number | null>(null);
   const [showWarning, setShowWarning] = useState(false);
   const [countdown, setCountdown] = useState(120);
   const countdownRef = useRef<number | null>(null);
@@ -52,49 +39,85 @@ export default function SessionManager() {
       window.clearInterval(countdownRef.current);
       countdownRef.current = null;
     }
-    // Try to refresh the session
-    await tryRefreshSession();
+    await refreshAccessToken();
   }, []);
 
   useEffect(() => {
-    const orgId = typeof window !== "undefined" ? localStorage.getItem("orgId") || "default" : "default";
-    const getExpiryMinutes = () => {
+    const orgId =
+      typeof window !== "undefined"
+        ? localStorage.getItem("orgId") || "default"
+        : "default";
+
+    const getIdleMinutes = () => {
       try {
-        const v = localStorage.getItem(`tokenExpiryMinutes_${orgId}`) || localStorage.getItem("tokenExpiryMinutes");
+        const v =
+          localStorage.getItem(`tokenExpiryMinutes_${orgId}`) ||
+          localStorage.getItem("tokenExpiryMinutes");
         const n = v ? Number(v) : NaN;
-        return Number.isFinite(n) && n > 0 ? n : 5;
+        return Number.isFinite(n) && n > 0 ? n : DEFAULT_IDLE_MINUTES;
       } catch {
-        return 5;
+        return DEFAULT_IDLE_MINUTES;
       }
     };
 
-    let idleMs = getExpiryMinutes() * 60 * 1000;
+    let idleMs = getIdleMinutes() * 60 * 1000;
 
-    const resetTimer = async () => {
-      // on user activity, update timestamp
-      try {
-        sessionStorage.setItem("lastActivity", String(Date.now()));
-      } catch {}
+    // ── Proactive JWT refresh ───────────────────────────────────
+    // Runs on a timer, NOT on every mousemove.
+    // Schedules the next refresh based on the current token's exp.
+    const scheduleTokenRefresh = () => {
+      if (refreshTimerId.current) {
+        window.clearTimeout(refreshTimerId.current);
+        refreshTimerId.current = null;
+      }
 
-      // Only refresh token if it's near JWT expiry, not based on UI timeout
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken") || sessionStorage.getItem("token");
+      const token =
+        localStorage.getItem("token") ||
+        localStorage.getItem("authToken") ||
+        sessionStorage.getItem("token");
       const payload = decodeJwt(token);
+      if (!payload?.exp) return;
+
       const nowSec = Math.floor(Date.now() / 1000);
-      const nearJwtExpiry = payload && payload.exp && payload.exp - nowSec < 120; // 2 minutes before JWT expires
-      if (nearJwtExpiry) {
-        console.log("JWT near expiry, attempting refresh...");
-        const refreshed = await tryRefreshSession();
-        if (!refreshed) {
-          // Show warning if refresh fails and JWT is about to expire
-          const secsLeft = payload.exp - nowSec;
-          if (secsLeft > 0 && secsLeft < 120) {
+      const secsUntilExpiry = payload.exp - nowSec;
+
+      if (secsUntilExpiry <= 0) {
+        // Token already expired — try to refresh immediately
+        refreshAccessToken().then((ok) => {
+          if (ok) {
+            scheduleTokenRefresh(); // reschedule with new token
+          }
+        });
+        return;
+      }
+
+      // Refresh REFRESH_BEFORE_EXPIRY_SEC seconds before expiry
+      const refreshInMs =
+        Math.max(secsUntilExpiry - REFRESH_BEFORE_EXPIRY_SEC, 0) * 1000;
+
+      refreshTimerId.current = window.setTimeout(async () => {
+        const ok = await refreshAccessToken();
+        if (ok) {
+          console.log("Proactive token refresh succeeded");
+          scheduleTokenRefresh(); // reschedule with new token
+        } else {
+          console.warn("Proactive token refresh failed");
+          // Show warning — user may need to re-authenticate
+          const t =
+            localStorage.getItem("token") ||
+            localStorage.getItem("authToken");
+          const p = decodeJwt(t);
+          const now2 = Math.floor(Date.now() / 1000);
+          const left = p?.exp ? p.exp - now2 : 0;
+          if (left > 0) {
             setShowWarning(true);
-            setCountdown(secsLeft);
+            setCountdown(left);
             if (countdownRef.current) window.clearInterval(countdownRef.current);
             countdownRef.current = window.setInterval(() => {
               setCountdown((prev) => {
                 if (prev <= 1) {
-                  if (countdownRef.current) window.clearInterval(countdownRef.current);
+                  if (countdownRef.current)
+                    window.clearInterval(countdownRef.current);
                   return 0;
                 }
                 return prev - 1;
@@ -102,21 +125,19 @@ export default function SessionManager() {
             }, 1000);
           }
         }
-      }
+      }, refreshInMs);
+    };
 
-      // Dismiss warning on activity if it's showing
-      if (showWarning) {
-        // Don't dismiss - let the modal handle it
-      }
+    // ── Idle timeout ────────────────────────────────────────────
+    const resetIdleTimer = () => {
+      try {
+        sessionStorage.setItem("lastActivity", String(Date.now()));
+      } catch {}
 
-      if (timeoutId.current) {
-        window.clearTimeout(timeoutId.current);
-      }
-      if (warningTimeoutId.current) {
-        window.clearTimeout(warningTimeoutId.current);
-      }
+      if (idleTimeoutId.current) window.clearTimeout(idleTimeoutId.current);
+      if (warningTimeoutId.current) window.clearTimeout(warningTimeoutId.current);
 
-      // Set warning timeout (fires before idle timeout)
+      // Warning before idle timeout
       const warningMs = Math.max(idleMs - WARNING_BEFORE_MS, 0);
       if (warningMs > 0) {
         warningTimeoutId.current = window.setTimeout(() => {
@@ -126,7 +147,8 @@ export default function SessionManager() {
           countdownRef.current = window.setInterval(() => {
             setCountdown((prev) => {
               if (prev <= 1) {
-                if (countdownRef.current) window.clearInterval(countdownRef.current);
+                if (countdownRef.current)
+                  window.clearInterval(countdownRef.current);
                 return 0;
               }
               return prev - 1;
@@ -135,73 +157,96 @@ export default function SessionManager() {
         }, warningMs);
       }
 
-      timeoutId.current = window.setTimeout(onIdle, idleMs);
+      idleTimeoutId.current = window.setTimeout(onIdle, idleMs);
     };
 
-    const onIdle = async () => {
-      // double-check inactivity
+    const onIdle = () => {
+      // Double-check inactivity
       try {
         const last = Number(sessionStorage.getItem("lastActivity") || 0);
         const elapsed = Date.now() - (last || 0);
         if (elapsed < idleMs) {
-          // activity happened, don't sign out
-          if (timeoutId.current) {
-            window.clearTimeout(timeoutId.current);
-          }
-          timeoutId.current = window.setTimeout(onIdle, idleMs - elapsed);
+          if (idleTimeoutId.current) window.clearTimeout(idleTimeoutId.current);
+          idleTimeoutId.current = window.setTimeout(onIdle, idleMs - elapsed);
           return;
         }
       } catch {}
 
-      // UI timeout reached - sign out user (respect UI setting)
-      console.log(`Session timeout reached (${getExpiryMinutes()} minutes), signing out...`);
+      console.log(
+        `Idle timeout reached (${getIdleMinutes()} minutes), signing out...`
+      );
       setShowWarning(false);
       if (countdownRef.current) window.clearInterval(countdownRef.current);
-      try {
-        clearAuth();
-      } catch {}
-      try {
-        window.location.href = "/signin";
-      } catch {}
+      try { clearAuth(); } catch {}
+      try { window.location.href = "/signin"; } catch {}
     };
 
-    const activityEvents = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
-    activityEvents.forEach((ev) => window.addEventListener(ev, resetTimer, { passive: true }));
-    window.addEventListener("visibilitychange", resetTimer);
+    // ── Event listeners ─────────────────────────────────────────
+    const activityEvents = [
+      "mousemove",
+      "mousedown",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click",
+    ];
+    activityEvents.forEach((ev) =>
+      window.addEventListener(ev, resetIdleTimer, { passive: true })
+    );
+    window.addEventListener("visibilitychange", resetIdleTimer);
 
-    // initialize
-    resetTimer();
+    // Initialize
+    resetIdleTimer();
+    scheduleTokenRefresh();
 
-    // watch for changes to tokenExpiryMinutes in localStorage
+    // Watch for tokenExpiryMinutes changes
     const onStorage = (e: StorageEvent) => {
-      if (e.key === `tokenExpiryMinutes_${orgId}` || e.key === "tokenExpiryMinutes") {
-        idleMs = getExpiryMinutes() * 60 * 1000;
-        if (timeoutId.current) window.clearTimeout(timeoutId.current);
-        timeoutId.current = window.setTimeout(onIdle, idleMs);
+      if (
+        e.key === `tokenExpiryMinutes_${orgId}` ||
+        e.key === "tokenExpiryMinutes"
+      ) {
+        idleMs = getIdleMinutes() * 60 * 1000;
+        resetIdleTimer();
       }
     };
     window.addEventListener("storage", onStorage);
 
-    // listen for same-tab updates (storage doesn't fire in same tab)
     const onTokenExpiryUpdated = (ev: Event) => {
       try {
         const detail = (ev as CustomEvent)?.detail || {};
         const keyOrg = detail.orgId || orgId;
-        const mins = Number(detail.mins ?? (localStorage.getItem(`tokenExpiryMinutes_${keyOrg}`) || localStorage.getItem('tokenExpiryMinutes') || 5));
-        idleMs = (Number.isFinite(mins) && mins > 0 ? mins : 5) * 60 * 1000;
-        if (timeoutId.current) window.clearTimeout(timeoutId.current);
-        timeoutId.current = window.setTimeout(onIdle, idleMs);
+        const mins = Number(
+          detail.mins ??
+            localStorage.getItem(`tokenExpiryMinutes_${keyOrg}`) ??
+            localStorage.getItem("tokenExpiryMinutes") ??
+            DEFAULT_IDLE_MINUTES
+        );
+        idleMs =
+          (Number.isFinite(mins) && mins > 0 ? mins : DEFAULT_IDLE_MINUTES) *
+          60 *
+          1000;
+        resetIdleTimer();
       } catch {}
     };
-    window.addEventListener('tokenExpiryUpdated', onTokenExpiryUpdated as (event: Event) => void);
+    window.addEventListener(
+      "tokenExpiryUpdated",
+      onTokenExpiryUpdated as EventListener
+    );
 
     return () => {
-      activityEvents.forEach((ev) => window.removeEventListener(ev, resetTimer));
-      window.removeEventListener("visibilitychange", resetTimer);
+      activityEvents.forEach((ev) =>
+        window.removeEventListener(ev, resetIdleTimer)
+      );
+      window.removeEventListener("visibilitychange", resetIdleTimer);
       window.removeEventListener("storage", onStorage);
-      window.removeEventListener('tokenExpiryUpdated', onTokenExpiryUpdated as (event: Event) => void);
-      if (timeoutId.current) window.clearTimeout(timeoutId.current);
-      if (warningTimeoutId.current) window.clearTimeout(warningTimeoutId.current);
+      window.removeEventListener(
+        "tokenExpiryUpdated",
+        onTokenExpiryUpdated as EventListener
+      );
+      if (idleTimeoutId.current) window.clearTimeout(idleTimeoutId.current);
+      if (warningTimeoutId.current)
+        window.clearTimeout(warningTimeoutId.current);
+      if (refreshTimerId.current) window.clearTimeout(refreshTimerId.current);
       if (countdownRef.current) window.clearInterval(countdownRef.current);
     };
   }, []);
@@ -213,20 +258,35 @@ export default function SessionManager() {
       <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
-            <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            <svg
+              className="h-5 w-5 text-amber-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+              />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900">Session Expiring</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Session Expiring
+          </h3>
         </div>
         <p className="mb-1 text-sm text-gray-600">
           Your session will expire in{" "}
           <span className="font-bold text-amber-600">
-            {countdown > 60 ? `${Math.floor(countdown / 60)}m ${countdown % 60}s` : `${countdown}s`}
+            {countdown > 60
+              ? `${Math.floor(countdown / 60)}m ${countdown % 60}s`
+              : `${countdown}s`}
           </span>
         </p>
         <p className="mb-5 text-sm text-gray-500">
-          Click below to stay logged in, or you will be signed out automatically.
+          Click below to stay logged in, or you will be signed out
+          automatically.
         </p>
         <div className="flex gap-3">
           <button
