@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import AdminLayout from "@/app/(admin)/layout";
 import Button from "@/components/ui/button/Button";
 import Alert from "@/components/ui/alert/Alert";
 
@@ -237,7 +236,7 @@ export default function Orders() {
 
   /* ========== RENDER ========== */
   return (
-    <AdminLayout>
+    <>
       {alert && <div className="mb-3"><Alert variant={alert.variant} title={alert.title} message={alert.message} /></div>}
 
       {/* Header */}
@@ -465,7 +464,7 @@ export default function Orders() {
           </div>
         </Overlay>
       )}
-    </AdminLayout>
+    </>
   );
 }
 

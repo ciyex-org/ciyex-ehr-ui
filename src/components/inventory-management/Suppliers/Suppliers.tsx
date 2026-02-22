@@ -5,7 +5,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/form/Label";
 import { Input } from "@/components/ui/input";
-import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Alert from "@/components/ui/alert/Alert";
 
@@ -99,7 +98,7 @@ export default function Suppliers() {
   const dateInput = "flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-4">
         {alert && <Alert variant={alert.variant} title={alert.title} message={alert.message} />}
         <div className="flex items-center justify-between">
@@ -193,6 +192,6 @@ export default function Suppliers() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }

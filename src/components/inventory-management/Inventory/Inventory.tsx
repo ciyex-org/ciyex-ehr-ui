@@ -5,7 +5,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/form/Label";
 import { Input } from "@/components/ui/input";
-import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Alert from "@/components/ui/alert/Alert";
 
@@ -352,7 +351,7 @@ export default function Inventory() {
 
   // ── Render ──
   return (
-    <AdminLayout>
+    <>
       <div className="container mx-auto overflow-x-hidden p-6 text-gray-800 dark:text-gray-200">
         {/* Alert */}
         {alertData && (
@@ -490,6 +489,6 @@ export default function Inventory() {
           </div>
         )}
       </div>
-    </AdminLayout>
+    </>
   );
 }

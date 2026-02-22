@@ -2,7 +2,6 @@
 
 import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useCallback } from "react";
-import AdminLayout from "@/app/(admin)/layout";
 import Label from "@/components/form/Label";
 import { Input } from "@/components/ui/input";
 import Alert from "@/components/ui/alert/Alert";
@@ -120,10 +119,10 @@ export default function Settings() {
     else setAlert({ variant: "error", title: "Error", message: "Failed to create location." });
   }
 
-  if (loading) return <AdminLayout><p className="p-6 text-slate-500 dark:text-slate-400">Loading...</p></AdminLayout>;
+  if (loading) return <p className="p-6 text-slate-500 dark:text-slate-400">Loading...</p>;
 
   return (
-    <AdminLayout>
+    <>
       {alert && <div className="mb-4"><Alert variant={alert.variant} title={alert.title} message={alert.message} /></div>}
       <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">Configure inventory thresholds, categories, and storage locations.</p>
 
@@ -255,6 +254,6 @@ export default function Settings() {
               </div>}
         </Panel>
       )}
-    </AdminLayout>
+    </>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 
@@ -105,17 +104,13 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <AdminLayout>
-        <div className="flex h-64 items-center justify-center text-slate-400">Loading dashboard...</div>
-      </AdminLayout>
+      <div className="flex h-64 items-center justify-center text-slate-400">Loading dashboard...</div>
     );
   }
 
   if (!data) {
     return (
-      <AdminLayout>
-        <div className="flex h-64 items-center justify-center text-red-400">Failed to load dashboard data.</div>
-      </AdminLayout>
+      <div className="flex h-64 items-center justify-center text-red-400">Failed to load dashboard data.</div>
     );
   }
 
@@ -123,7 +118,7 @@ export default function Dashboard() {
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-6 p-1">
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Track stock, purchase orders, suppliers, and equipment upkeep.
@@ -204,6 +199,6 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }

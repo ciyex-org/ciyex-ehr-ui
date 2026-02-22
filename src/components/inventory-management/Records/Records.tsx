@@ -2,7 +2,6 @@
 
 import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useCallback } from "react";
-import AdminLayout from "@/app/(admin)/layout";
 import { Input } from "@/components/ui/input";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -95,7 +94,7 @@ export default function Records() {
   );
 
   return (
-    <AdminLayout>
+    <>
       <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
         View stock adjustment history and waste logs per item.
       </p>
@@ -233,6 +232,6 @@ export default function Records() {
           )}
         </div>
       </div>
-    </AdminLayout>
+    </>
   );
 }

@@ -2,7 +2,6 @@
 
 import { getEnv } from "@/utils/env";
 import React, { useState, useEffect, useCallback } from "react";
-import AdminLayout from "@/app/(admin)/layout";
 import Button from "@/components/ui/button/Button";
 import Label from "@/components/form/Label";
 import { Input } from "@/components/ui/input";
@@ -136,7 +135,7 @@ export default function Maintenance() {
   const selClass = "h-9 w-full rounded-md border border-gray-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
   return (
-    <AdminLayout>
+    <>
       <div className="space-y-4">
         {alert && <Alert variant={alert.variant} title={alert.title} message={alert.message} />}
         <div className="flex items-center justify-between">
@@ -261,6 +260,6 @@ export default function Maintenance() {
           </div>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
