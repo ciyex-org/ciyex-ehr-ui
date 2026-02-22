@@ -1,0 +1,310 @@
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
+import { X, Loader2, Search, Send, BookOpen } from "lucide-react";
+import { EducationMaterial, CATEGORY_COLORS, categoryLabel } from "./types";
+
+function apiUrl(path: string) {
+  return `${getEnv("NEXT_PUBLIC_API_URL")}${path}`;
+}
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  onAssigned: () => void;
+  preselectedMaterial?: EducationMaterial | null;
+}
+
+export default function AssignMaterialModal({
+  open,
+  onClose,
+  onAssigned,
+  preselectedMaterial,
+}: Props) {
+  const [patientId, setPatientId] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [selectedMaterial, setSelectedMaterial] = useState<EducationMaterial | null>(null);
+  const [materialSearch, setMaterialSearch] = useState("");
+  const [materialResults, setMaterialResults] = useState<EducationMaterial[]>([]);
+  const [searchingMaterials, setSearchingMaterials] = useState(false);
+  const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
+  const [dueDate, setDueDate] = useState("");
+  const [notes, setNotes] = useState("");
+  const [assignedBy, setAssignedBy] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setPatientId("");
+      setPatientName("");
+      setDueDate("");
+      setNotes("");
+      setError("");
+      setMaterialSearch("");
+      setMaterialResults([]);
+      setShowMaterialDropdown(false);
+
+      if (preselectedMaterial) {
+        setSelectedMaterial(preselectedMaterial);
+      } else {
+        setSelectedMaterial(null);
+      }
+
+      // auto-fill assignedBy from localStorage
+      const fullName = typeof window !== "undefined" ? localStorage.getItem("userFullName") : null;
+      setAssignedBy(fullName || "");
+    }
+  }, [open, preselectedMaterial]);
+
+  useEffect(() => {
+    if (!open) return;
+    const fn = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", fn);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", fn);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose]);
+
+  const searchMaterials = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setMaterialResults([]);
+      return;
+    }
+    setSearchingMaterials(true);
+    try {
+      const res = await fetchWithAuth(apiUrl(`/api/education/materials?q=${encodeURIComponent(q)}&size=10`));
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setMaterialResults(json.data.content || []);
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setSearchingMaterials(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!selectedMaterial && materialSearch.trim()) {
+      const t = setTimeout(() => searchMaterials(materialSearch), 300);
+      return () => clearTimeout(t);
+    }
+  }, [materialSearch, selectedMaterial, searchMaterials]);
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!patientId.trim()) { setError("Patient ID is required"); return; }
+    if (!patientName.trim()) { setError("Patient Name is required"); return; }
+    if (!selectedMaterial?.id) { setError("Please select a material"); return; }
+
+    setSaving(true);
+    try {
+      const res = await fetchWithAuth(apiUrl("/api/education/assignments"), {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: patientId.trim(),
+          patientName: patientName.trim(),
+          materialId: selectedMaterial.id,
+          assignedBy: assignedBy.trim(),
+          dueDate: dueDate || null,
+          encounterId: null,
+          notes: notes.trim(),
+        }),
+      });
+      if (res.ok) {
+        onAssigned();
+        onClose();
+      } else {
+        const json = await res.json().catch(() => ({}));
+        setError(json.message || "Failed to assign material");
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) return null;
+
+  const inputCls =
+    "w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+
+  const labelCls = "block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1";
+
+  return (
+    <div className="fixed inset-0 z-[10000]">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 flex items-center justify-center p-4">
+        <div
+          className="w-[min(520px,100%)] rounded-xl bg-white dark:bg-slate-900 shadow-xl border border-gray-200 dark:border-slate-700 flex flex-col max-h-[90vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
+            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              <Send className="w-5 h-5 text-green-600" />
+              Assign Material to Patient
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/30 rounded-lg px-3 py-2">
+                {error}
+              </div>
+            )}
+
+            {/* Patient Name + ID */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Patient Name *</label>
+                <input
+                  className={inputCls}
+                  value={patientName}
+                  onChange={(e) => setPatientName(e.target.value)}
+                  placeholder="Jane Doe"
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Patient ID *</label>
+                <input
+                  className={inputCls}
+                  value={patientId}
+                  onChange={(e) => setPatientId(e.target.value)}
+                  placeholder="PAT-001"
+                />
+              </div>
+            </div>
+
+            {/* Material Selector */}
+            <div className="relative">
+              <label className={labelCls}>Material *</label>
+              {selectedMaterial ? (
+                <div className="flex items-center gap-2 p-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-gray-50 dark:bg-slate-800">
+                  <BookOpen className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm text-gray-900 dark:text-gray-100 flex-1 truncate">
+                    {selectedMaterial.title}
+                  </span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[selectedMaterial.category] || CATEGORY_COLORS.other}`}>
+                    {categoryLabel(selectedMaterial.category)}
+                  </span>
+                  <button
+                    onClick={() => { setSelectedMaterial(null); setMaterialSearch(""); }}
+                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-400"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    placeholder="Search materials..."
+                    value={materialSearch}
+                    onChange={(e) => { setMaterialSearch(e.target.value); setShowMaterialDropdown(true); }}
+                    onFocus={() => setShowMaterialDropdown(true)}
+                  />
+                  {searchingMaterials && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                  )}
+                </div>
+              )}
+              {/* Material dropdown */}
+              {showMaterialDropdown && !selectedMaterial && materialResults.length > 0 && (
+                <div className="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {materialResults.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => {
+                        setSelectedMaterial(m);
+                        setShowMaterialDropdown(false);
+                        setMaterialSearch("");
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 transition"
+                    >
+                      <BookOpen className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <span className="truncate flex-1 text-gray-900 dark:text-gray-100">{m.title}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[m.category] || CATEGORY_COLORS.other}`}>
+                        {categoryLabel(m.category)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className={labelCls}>Due Date</label>
+              <input
+                type="date"
+                className={inputCls}
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className={labelCls}>Notes for Patient</label>
+              <textarea
+                className={inputCls}
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Special instructions for the patient..."
+              />
+            </div>
+
+            {/* Assigned By */}
+            <div>
+              <label className={labelCls}>Assigned By</label>
+              <input
+                className={inputCls}
+                value={assignedBy}
+                onChange={(e) => setAssignedBy(e.target.value)}
+                placeholder="Provider name"
+              />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="shrink-0 px-6 py-3 border-t border-gray-200 dark:border-slate-700 flex items-center justify-end gap-3 bg-gray-50 dark:bg-slate-800/50">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="px-5 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
+            >
+              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              Assign
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
