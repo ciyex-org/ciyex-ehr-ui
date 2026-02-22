@@ -27,7 +27,7 @@ import {
     Hand, Apple, GitBranch, Siren, ClipboardList, ClipboardCheck,
     TrendingUp, Target, Dumbbell, Forward, FileCheck, RotateCcw,
     BarChart3, AlertTriangle, Shield, Cpu, Glasses, Bandage,
-    type LucideIcon, MessageCircle, Search, Plane, Plus
+    type LucideIcon, MessageCircle, Search, Plane, Plus, Bot
 } from "lucide-react";
 
 const API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
@@ -43,7 +43,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
     Hand, Apple, GitBranch, Siren, ClipboardList, ClipboardCheck,
     TrendingUp, Target, Dumbbell, Forward, FileCheck, RotateCcw,
     BarChart3, AlertTriangle, Shield, Cpu, Glasses, Bandage,
-    MessageCircle, Search, Plane,
+    MessageCircle, Search, Plane, Bot,
 };
 
 interface Patient {

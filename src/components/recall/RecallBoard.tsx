@@ -1,1135 +1,873 @@
 "use client";
+
 import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
-import Alert from "../ui/alert/Alert";   // ✅ add this
+import Alert from "../ui/alert/Alert";
+import {
+  Calendar, Clock, AlertTriangle, CheckCircle2, Phone, Mail, MessageSquare,
+  FileText, ChevronRight, ChevronDown, Search, Plus, Filter, X, User,
+  TrendingUp, XCircle, Bell, Send, Eye,
+} from "lucide-react";
 
+const API = getEnv("NEXT_PUBLIC_API_URL")!;
 
-/* =========================
+/* ═══════════════════════════════════════════
  * Types
- * ======================= */
-export type RecallDTO = {
-    id: number;
-    orgId: number;
-    patientId: number;
-    providerId: number;
-
-    patientName: string;
-    dob?: string;
-
-    phone?: string;
-    email?: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-
-    lastVisit?: string;
-    recallDate: string;
-    recallReason?: string;
-
-    smsConsent: boolean;
-    emailConsent: boolean;
-
-    audit: {
-        createdDate: string;
-        lastModifiedDate: string;
-    };
-    fhirId?: string;
+ * ═══════════════════════════════════════════ */
+type RecallType = {
+  id: number; name: string; code: string; category: string;
+  intervalMonths: number; leadTimeDays: number; maxAttempts: number;
+  priority: string; active: boolean;
 };
 
-
-type NewRecallForm = {
-    patientId: string;
-    patientName: string;
-    dob: string;
-    lastVisit: string;
-    recallWhen: string;
-    recallDate: string;
-    recallType: string;
-    reason: string;
-    providerId: string;
-    facility: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    phone: string;
-    smsOk: boolean | null;
-    avmOk: boolean | null;
-    email: string;
-    emailOk: boolean | null;
-    notes: string;
+type PatientRecall = {
+  id: number; patientId: number; patientName: string;
+  patientPhone?: string; patientEmail?: string;
+  recallTypeId?: number; recallTypeName?: string; recallTypeCode?: string; recallTypeCategory?: string;
+  providerId?: number; providerName?: string; locationId?: number;
+  status: string; dueDate: string; notificationDate?: string;
+  sourceEncounterId?: string; sourceAppointmentId?: number;
+  linkedAppointmentId?: number; completedEncounterId?: string; completedDate?: string;
+  attemptCount: number; lastAttemptDate?: string; lastAttemptMethod?: string;
+  lastAttemptOutcome?: string; nextAttemptDate?: string;
+  preferredContact?: string; priority: string; notes?: string; cancelledReason?: string;
+  autoCreated: boolean; createdBy?: string; updatedBy?: string;
+  createdAt?: string; updatedAt?: string;
+  outreachLogs?: OutreachLog[];
 };
-type EditableRecallForm = NewRecallForm & { id?: number };
 
-/** Matches the Calendar file’s flexible shape */
+type OutreachLog = {
+  id: number; recallId: number; attemptNumber: number; attemptDate: string;
+  method: string; direction: string; performedBy?: string; performedByName?: string;
+  outcome: string; notes?: string; nextAction?: string; nextActionDate?: string;
+  automated: boolean; deliveryStatus?: string; createdAt?: string;
+};
+
+type KpiData = {
+  dueToday: number; overdue: number; completedThisMonth: number;
+  pendingTotal: number; contactedTotal: number; scheduledTotal: number;
+  cancelledTotal: number; complianceRate: number;
+};
+
 type Patient = {
-    id: number;
-    firstName?: string | null;
-    lastName?: string | null;
-    dateOfBirth?: string | null;
-    identification?: {
-        firstName?: string | null;
-        lastName?: string | null
-    } | null;
-
-    // ✅ From PatientDto
-    phoneNumber?: string | null;   // maps to Recall "Phone"
-    email?: string | null;
-    address?: string | null;
-    city?: string | null;
-    postalCode?: string | null;    // maps to Recall "zip"
-    country?: string | null;
+  id: number; firstName?: string | null; lastName?: string | null;
+  dateOfBirth?: string | null;
+  identification?: { firstName?: string | null; lastName?: string | null } | null;
+  phoneNumber?: string | null; email?: string | null;
 };
 
+type Provider = { id: number; name: string };
 
+/* ═══════════════════════════════════════════
+ * Constants
+ * ═══════════════════════════════════════════ */
+const STATUSES = ["ALL", "PENDING", "DUE", "OVERDUE", "CONTACTED", "SCHEDULED", "COMPLETED", "DECLINED", "CANCELLED"] as const;
 
-
-/* =========================
- * Helpers
- * ======================= */
-const initialNewRecall: NewRecallForm = {
-    patientId: "",
-    patientName: "",
-    dob: "",
-    lastVisit: "",
-    recallWhen: "",
-    recallDate: "",
-    recallType: "",
-    reason: "",
-    providerId: "",
-    facility: "",
-    address: "",
-    city: "",
-    state: "",
-    zip: "",
-    phone: "",
-    smsOk: null,
-    avmOk: null,
-    email: "",
-    emailOk: null,
-    notes: "",
+const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
+  PENDING:   { color: "text-slate-600 dark:text-slate-300", bg: "bg-slate-100 dark:bg-slate-700", icon: <Clock className="w-3 h-3" /> },
+  DUE:       { color: "text-blue-700 dark:text-blue-300", bg: "bg-blue-100 dark:bg-blue-900/40", icon: <Bell className="w-3 h-3" /> },
+  OVERDUE:   { color: "text-red-700 dark:text-red-300", bg: "bg-red-100 dark:bg-red-900/40", icon: <AlertTriangle className="w-3 h-3" /> },
+  CONTACTED: { color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-100 dark:bg-amber-900/40", icon: <Phone className="w-3 h-3" /> },
+  SCHEDULED: { color: "text-indigo-700 dark:text-indigo-300", bg: "bg-indigo-100 dark:bg-indigo-900/40", icon: <Calendar className="w-3 h-3" /> },
+  COMPLETED: { color: "text-green-700 dark:text-green-300", bg: "bg-green-100 dark:bg-green-900/40", icon: <CheckCircle2 className="w-3 h-3" /> },
+  DECLINED:  { color: "text-orange-700 dark:text-orange-300", bg: "bg-orange-100 dark:bg-orange-900/40", icon: <XCircle className="w-3 h-3" /> },
+  CANCELLED: { color: "text-gray-500 dark:text-gray-400", bg: "bg-gray-100 dark:bg-gray-800", icon: <X className="w-3 h-3" /> },
 };
 
+const PRIORITY_COLORS: Record<string, string> = {
+  HIGH: "text-red-600 dark:text-red-400",
+  URGENT: "text-red-700 dark:text-red-300 font-bold",
+  NORMAL: "text-slate-500 dark:text-slate-400",
+  LOW: "text-slate-400 dark:text-slate-500",
+};
 
-const pad = (n: number) => n.toString().padStart(2, "0");
+const OUTREACH_METHODS = ["PHONE", "SMS", "EMAIL", "PORTAL", "LETTER", "IN_PERSON"] as const;
+const OUTREACH_OUTCOMES = ["REACHED", "NO_ANSWER", "LEFT_VOICEMAIL", "WRONG_NUMBER", "SCHEDULED", "DECLINED", "CALLBACK_REQUESTED"] as const;
 
-function parseMMDDYYYY(s: string): string | null {
-    if (!s) return null;
-    const parts = s.split("/");
-    if (parts.length !== 3) return null;
-    const [mmStr, ddStr, yyyyStr] = parts;
-    const mm = parseInt(mmStr, 10);
-    const dd = parseInt(ddStr, 10);
-    const yyyy = parseInt(yyyyStr, 10);
-    if (Number.isNaN(mm) || Number.isNaN(dd) || Number.isNaN(yyyy)) return null;
-    const d = new Date(Date.UTC(yyyy, mm - 1, dd));
-    if (d.getUTCFullYear() !== yyyy || d.getUTCMonth() !== mm - 1 || d.getUTCDate() !== dd) return null;
-    return `${yyyy}-${pad(mm)}-${pad(dd)}`;
+const getPatientName = (p: Patient): string => {
+  const first = (p.firstName ?? p.identification?.firstName ?? "")?.trim();
+  const last = (p.lastName ?? p.identification?.lastName ?? "")?.trim();
+  return `${first} ${last}`.trim();
+};
+
+/* ═══════════════════════════════════════════
+ * API helper
+ * ═══════════════════════════════════════════ */
+async function api<T>(url: string, opts?: RequestInit): Promise<{ ok: boolean; data: T | null }> {
+  try {
+    const res = await fetchWithAuth(url, opts);
+    const text = await res.text();
+    if (!text) return { ok: res.ok, data: null };
+    const json = JSON.parse(text);
+    if (res.ok && json.success) return { ok: true, data: json.data };
+    return { ok: false, data: null };
+  } catch { return { ok: false, data: null }; }
 }
 
-function timeFromMMDDYYYY(s: string, fallback: number): number {
-    const iso = parseMMDDYYYY(s);
-    return iso ? new Date(iso).getTime() : fallback;
+/* ═══════════════════════════════════════════
+ * KPI Card
+ * ═══════════════════════════════════════════ */
+function KpiCard({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex items-center gap-3">
+      <div className={`p-2 rounded-lg ${color}`}>{icon}</div>
+      <div>
+        <div className="text-xl font-bold text-slate-800 dark:text-slate-100">{value}</div>
+        <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>
+      </div>
+    </div>
+  );
 }
 
-// ✅ Add this here
-const formatMMDDYYYY = (date: Date) => {
-    const mm = date.getMonth() + 1;  // no pad
-    const dd = date.getDate();       // no pad
-    const yyyy = date.getFullYear();
-    return `${mm}/${dd}/${yyyy}`;
-};
+/* ═══════════════════════════════════════════
+ * Status Badge
+ * ═══════════════════════════════════════════ */
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${cfg.bg} ${cfg.color}`}>
+      {cfg.icon} {status}
+    </span>
+  );
+}
 
-
-const getPatientFullName = (p: Patient | null | undefined): string => {
-    if (!p) return "";
-    const first = (p.firstName ?? p.identification?.firstName ?? "")?.trim();
-    const last = (p.lastName ?? p.identification?.lastName ?? "")?.trim();
-    return `${first} ${last}`.trim();
-};
-
-const fetchPatientName = async (id: number): Promise<string> => {
-    try {
-        const res = await fetchWithAuth(
-            `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`
-        );
-        if (!res.ok) return String(id);
-        const data = await res.json();
-        return getPatientFullName(data?.data) || String(id);
-    } catch {
-        return String(id);
-    }
-};
-
-/* =========================
- * Component
- * ======================= */
+/* ═══════════════════════════════════════════
+ * Main Component
+ * ═══════════════════════════════════════════ */
 export default function RecallPage() {
-    const [provider, setProvider] = useState("All Providers");
-    type Provider = { id: number; name: string };
-    const [providers, setProviders] = useState<Provider[]>([]);
-    const [patientId, setPatientId] = useState("");
-    const [patientName, setPatientName] = useState("");
-    const [from, setFrom] = useState("");
-    const [to, setTo] = useState("");
-    const [rows, setRows] = useState<RecallDTO[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [deleteTarget, setDeleteTarget] = useState<RecallDTO | null>(null); //  add here
+  /* ── State ── */
+  const [recalls, setRecalls] = useState<PatientRecall[]>([]);
+  const [recallTypes, setRecallTypes] = useState<RecallType[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [kpis, setKpis] = useState<KpiData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [alert, setAlert] = useState<{ variant: "success" | "error"; title: string; message: string } | null>(null);
 
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
+  // Filters
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [providerFilter, setProviderFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-    const [alertData, setAlertData] = useState<{
-        variant: "success" | "error" | "warning" | "info";
-        title: string;
-        message: string;
-    } | null>(null);
+  // Pagination
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
-    // ✅ Auto-dismiss alerts after 4s
-    useEffect(() => {
-        if (alertData) {
-            const timer = setTimeout(() => {
-                setAlertData(null);
-            }, 4000);
-            return () => clearTimeout(timer);
-        }
-    }, [alertData]);
+  // Create/Edit modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editRecall, setEditRecall] = useState<PatientRecall | null>(null);
+  const [formData, setFormData] = useState({
+    patientId: "", patientName: "", patientPhone: "", patientEmail: "",
+    recallTypeId: "", providerId: "", providerName: "", dueDate: "",
+    preferredContact: "PHONE", priority: "NORMAL", notes: "",
+  });
 
+  // Patient search in modal
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<Patient[]>([]);
+  const [patientSearching, setPatientSearching] = useState(false);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
 
-    // Modal state
-    const [isOpen, setIsOpen] = useState(false);
-    const [modalMode, setModalMode] = useState<"add" | "edit">("add");
-    const [newRecall, setNewRecall] = useState<EditableRecallForm>(initialNewRecall);
-    const [modalError, setModalError] = useState<string | null>(null);
+  // Detail side panel
+  const [detailRecall, setDetailRecall] = useState<PatientRecall | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
-    // 🔎 Patient search state (matches Calendar behavior)
-    const [patientQuery, setPatientQuery] = useState<string>("");
-    const [patientResults, setPatientResults] = useState<Patient[]>([]);
-    const [, setSelectedPatientId] = useState<string>("");
-    const [selectedPatientName, setSelectedPatientName] = useState<string>("");
-    const [patientSearching, setPatientSearching] = useState<boolean>(false);
-    const [showPatientDropdown, setShowPatientDropdown] = useState<boolean>(false);
+  // Outreach form
+  const [showOutreachForm, setShowOutreachForm] = useState(false);
+  const [outreachData, setOutreachData] = useState({ method: "PHONE", outcome: "REACHED", notes: "" });
 
-    // Load providers
-    useEffect(() => {
-        const fetchProviders = async () => {
-            try {
-                const res = await fetchWithAuth(
-                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`
-                );
-                if (!res.ok) throw new Error("Failed to fetch providers");
-                const data = await res.json();
-                interface ProviderApi {
-                    id: number;
-                    identification?: {
-                        firstName?: string;
-                        lastName?: string;
-                    };
-                }
-                const providerList: Provider[] = (data?.data ?? []).map((p: ProviderApi) => ({
-                    id: p.id,
-                    name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
-                }));
-                setProviders(providerList);
-            } catch {
-                setProviders([]);
-            }
-        };
-        fetchProviders();
-    }, []);
+  useEffect(() => { if (alert) { const t = setTimeout(() => setAlert(null), 4000); return () => clearTimeout(t); } }, [alert]);
 
-    // Default date range: no filter (show all)
-    useEffect(() => {
-        setFrom("");
-        setTo("");
-    }, []);
+  /* ── Load data ── */
+  const loadRecalls = useCallback(async () => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("size", String(pageSize));
+    if (statusFilter !== "ALL") params.set("status", statusFilter);
+    if (typeFilter) params.set("typeId", typeFilter);
+    if (providerFilter) params.set("providerId", providerFilter);
+    if (dateFrom) params.set("dueDateFrom", dateFrom);
+    if (dateTo) params.set("dueDateTo", dateTo);
+    if (searchQuery.trim()) params.set("search", searchQuery.trim());
 
-
-
-    // Load recalls (no pagination)
-    const loadRecalls = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await fetchWithAuth(
-                `${getEnv("NEXT_PUBLIC_API_URL")}/api/recalls?page=${currentPage - 1}&size=${pageSize}`
-            );
-            if (!res.ok) throw new Error("Failed to fetch recalls");
-            const data = await res.json();
-            if (data.success && data.data?.content) {
-                setRows(data.data.content);
-                setTotalPages(data.data.totalPages);
-                setTotalItems(data.data.totalElements ?? data.data.content.length);
-            } else {
-                setRows([]);
-            }
-        } catch (err) {
-            console.error("Error loading recalls:", err);
-            setRows([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [currentPage, pageSize]);
-
-    useEffect(() => {
-        loadRecalls();
-    }, [currentPage, pageSize]);
-
-    const handlePrevious = () => currentPage > 1 && setCurrentPage(currentPage - 1);
-    const handleNext = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
-
-    async function deleteRecall(id: number) {
-        try {
-            const res = await fetchWithAuth(
-                `${getEnv("NEXT_PUBLIC_API_URL")}/api/recalls/${id}`,
-                { method: "DELETE" }
-            );
-            const json = await res.json();
-            if (!res.ok || !json.success) throw new Error(json.message || "Failed");
-            setRows(prev => prev.filter(r => r.id !== id));
-            setAlertData({
-                variant: "success",
-                title: "Deleted",
-                message: "Recall deleted successfully.",
-            });
-        } catch (err) {
-            console.error("Delete failed:", err);
-            setAlertData({
-                variant: "error",
-                title: "Error",
-                message: "Failed to delete recall.",
-            });
-        }
+    const { data } = await api<any>(`${API}/api/recalls?${params}`);
+    if (data?.content) {
+      setRecalls(data.content);
+      setTotalPages(data.totalPages ?? 1);
+      setTotalItems(data.totalElements ?? 0);
+    } else if (Array.isArray(data)) {
+      setRecalls(data);
+      setTotalPages(1);
+      setTotalItems(data.length);
+    } else {
+      setRecalls([]);
+      setTotalPages(1);
+      setTotalItems(0);
     }
+    setLoading(false);
+  }, [page, pageSize, statusFilter, typeFilter, providerFilter, dateFrom, dateTo, searchQuery]);
 
+  const loadKpis = useCallback(async () => {
+    const { data } = await api<KpiData>(`${API}/api/recalls/kpis`);
+    if (data) setKpis(data);
+  }, []);
 
-    /* =========================
-     * Patient search (debounced)
-     * ======================= */
-    useEffect(() => {
-        if (!isOpen) return;
-        const q = patientQuery.trim();
-        if (q.length < 2) {
-            setPatientResults([]);
-            return;
-        }
-        let cancelled = false;
-        setPatientSearching(true);
-        const t = setTimeout(async () => {
-            try {
-                const res = await fetchWithAuth(
-                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients?search=${encodeURIComponent(q)}`
-                );
-                const json = await res.json();
-                if (cancelled) return;
+  const loadRecallTypes = useCallback(async () => {
+    const { data } = await api<RecallType[]>(`${API}/api/recall-types`);
+    if (data) setRecallTypes(data);
+  }, []);
 
-                // Handle both array and Page shapes
-                let list: Patient[] = [];
-                if (Array.isArray(json?.data)) list = json.data;
-                else if (Array.isArray(json?.data?.content)) list = json.data.content;
-
-                setPatientResults(list);
-                setShowPatientDropdown(true);
-            } catch (e) {
-                if (!cancelled) {
-                    console.error("Patient search failed", e);
-                    setPatientResults([]);
-                }
-            } finally {
-                if (!cancelled) setPatientSearching(false);
-            }
-        }, 250);
-
-        return () => {
-            cancelled = true;
-            clearTimeout(t);
-        };
-    }, [patientQuery, isOpen]);
-
-    const choosePatient = async (p: Patient) => {
-        const fullName = `${p.firstName ?? p.identification?.firstName ?? ""} ${
-            p.lastName ?? p.identification?.lastName ?? ""
-        }`.trim();
-
-        // Split address into parts
-        const parts = (p.address ?? "").split(",");
-        const street = parts[0]?.trim() || "";
-        const city = parts[1]?.trim() || "";
-        const stateZip = parts[2]?.trim() || "";
-        const [state, zip] = stateZip.split(" ").map((s) => s.trim());
-
-        setNewRecall((prev) => ({
-            ...prev,
-            patientId: String(p.id),
-            patientName: fullName,
-            dob: p.dateOfBirth ?? "",
-            phone: p.phoneNumber ?? "",
-            email: p.email ?? "",
-            address: street,
-            city: city,
-            state: state || "",
-            zip: zip || "",
+  const loadProviders = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth(`${API}/api/providers`);
+      if (res.ok) {
+        const json = await res.json();
+        const list = (json?.data ?? []).map((p: any) => ({
+          id: p.id,
+          name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
         }));
+        setProviders(list);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
-        setSelectedPatientId(String(p.id));
-        setSelectedPatientName(fullName);
-        setPatientQuery("");
-        setPatientResults([]);
-        setShowPatientDropdown(false);
+  useEffect(() => {
+    loadRecalls();
+    loadKpis();
+    loadRecallTypes();
+    loadProviders();
+  }, []);
 
-        // 🔎 Fetch latest appointment for Last Visit
-        try {
-            const res = await fetchWithAuth(
-                `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/patient/${p.id}?size=1&sort=appointmentStartDate,desc`
-            );
-            if (res.ok) {
-                const json = await res.json();
-                const latest = json?.data?.content?.[0];
-                if (latest?.appointmentStartDate) {
-                    setNewRecall((prev) => ({
-                        ...prev,
-                        lastVisit: latest.appointmentStartDate,
-                    }));
-                }
-            }
-        } catch (err) {
-            console.error("Failed to fetch last visit", err);
-        }
+  useEffect(() => { loadRecalls(); }, [page, pageSize, statusFilter, typeFilter, providerFilter, dateFrom, dateTo, searchQuery]);
+
+  /* ── Patient search (debounced) ── */
+  useEffect(() => {
+    if (!showCreateModal) return;
+    const q = patientQuery.trim();
+    if (q.length < 2) { setPatientResults([]); return; }
+    let cancelled = false;
+    setPatientSearching(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(`${API}/api/patients?search=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        if (cancelled) return;
+        let list: Patient[] = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(true);
+      } catch { if (!cancelled) setPatientResults([]); }
+      finally { if (!cancelled) setPatientSearching(false); }
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [patientQuery, showCreateModal]);
+
+  /* ── Actions ── */
+  const openCreate = () => {
+    setEditRecall(null);
+    setFormData({
+      patientId: "", patientName: "", patientPhone: "", patientEmail: "",
+      recallTypeId: "", providerId: "", providerName: "", dueDate: "",
+      preferredContact: "PHONE", priority: "NORMAL", notes: "",
+    });
+    setPatientQuery(""); setPatientResults([]); setShowPatientDropdown(false);
+    setShowCreateModal(true);
+  };
+
+  const openEdit = (r: PatientRecall) => {
+    setEditRecall(r);
+    setFormData({
+      patientId: String(r.patientId), patientName: r.patientName ?? "",
+      patientPhone: r.patientPhone ?? "", patientEmail: r.patientEmail ?? "",
+      recallTypeId: r.recallTypeId ? String(r.recallTypeId) : "",
+      providerId: r.providerId ? String(r.providerId) : "",
+      providerName: r.providerName ?? "",
+      dueDate: r.dueDate ?? "", preferredContact: r.preferredContact ?? "PHONE",
+      priority: r.priority ?? "NORMAL", notes: r.notes ?? "",
+    });
+    setPatientQuery(""); setShowCreateModal(true);
+  };
+
+  const choosePatient = (p: Patient) => {
+    const name = getPatientName(p);
+    setFormData(prev => ({
+      ...prev, patientId: String(p.id), patientName: name,
+      patientPhone: p.phoneNumber ?? "", patientEmail: p.email ?? "",
+    }));
+    setPatientQuery(""); setPatientResults([]); setShowPatientDropdown(false);
+  };
+
+  const saveRecall = async () => {
+    if (!formData.patientId) { setAlert({ variant: "error", title: "Error", message: "Please select a patient." }); return; }
+    if (!formData.dueDate) { setAlert({ variant: "error", title: "Error", message: "Due date is required." }); return; }
+
+    const payload = {
+      patientId: Number(formData.patientId),
+      patientName: formData.patientName,
+      patientPhone: formData.patientPhone || null,
+      patientEmail: formData.patientEmail || null,
+      recallTypeId: formData.recallTypeId ? Number(formData.recallTypeId) : null,
+      providerId: formData.providerId ? Number(formData.providerId) : null,
+      providerName: formData.providerName || null,
+      dueDate: formData.dueDate,
+      preferredContact: formData.preferredContact,
+      priority: formData.priority,
+      notes: formData.notes || null,
     };
 
-    const openNewRecall = () => {
-        setNewRecall(initialNewRecall);
-        setSelectedPatientId("");
-        setSelectedPatientName("");
-        setPatientQuery("");
-        setPatientResults([]);
-        setShowPatientDropdown(false);
-        setModalMode("add");   // 👈 add this
-        setIsOpen(true);
-    };
+    const url = editRecall ? `${API}/api/recalls/${editRecall.id}` : `${API}/api/recalls`;
+    const method = editRecall ? "PUT" : "POST";
+    const { ok } = await api<PatientRecall>(url, {
+      method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
 
-    const handleSaveRecall = async () => {
-        setModalError(null);
-        try {
-            if (!newRecall.patientId || newRecall.patientId.trim() === "") {
-                setModalError("Please select a patient from the dropdown.");
-                return;
-            }
+    if (ok) {
+      setAlert({ variant: "success", title: editRecall ? "Updated" : "Created", message: `Recall ${editRecall ? "updated" : "created"} successfully.` });
+      setShowCreateModal(false);
+      loadRecalls();
+      loadKpis();
+    } else {
+      setAlert({ variant: "error", title: "Error", message: "Failed to save recall." });
+    }
+  };
 
-            const payload: any = {
-                patientId: Number(newRecall.patientId),
-                patientName: newRecall.patientName || "",
-                dob: newRecall.dob || "",
-                lastVisit: newRecall.lastVisit || "",
-                recallDate: newRecall.recallDate || "",
-                recallReason: newRecall.reason && newRecall.reason.trim() ? newRecall.reason : "Routine recall",
-                smsConsent: newRecall.smsOk ?? false,
-                emailConsent: newRecall.emailOk ?? false,
-                phone: newRecall.phone || "",
-                email: newRecall.email || "",
-                address: newRecall.address || "",
-                city: newRecall.city || "",
-                state: newRecall.state || "",
-                zip: newRecall.zip || "",
-                providerId: newRecall.providerId ? Number(newRecall.providerId) : 0,
-            };
+  const deleteRecall = async (id: number) => {
+    const { ok } = await api<void>(`${API}/api/recalls/${id}`, { method: "DELETE" });
+    if (ok) {
+      setAlert({ variant: "success", title: "Deleted", message: "Recall deleted." });
+      setRecalls(prev => prev.filter(r => r.id !== id));
+      loadKpis();
+      if (detailRecall?.id === id) setDetailRecall(null);
+    } else {
+      setAlert({ variant: "error", title: "Error", message: "Failed to delete recall." });
+    }
+  };
 
-            let res;
-            if (modalMode === "edit" && newRecall.id) {
-                res = await fetchWithAuth(
-                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/recalls/${newRecall.id}`,
-                    {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
-                    }
-                );
-            }
-            else {
-                res = await fetchWithAuth(
-                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/recalls`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
-                    }
-                );
-            }
+  const openDetail = async (r: PatientRecall) => {
+    setDetailLoading(true);
+    setDetailRecall(r);
+    setShowOutreachForm(false);
+    setOutreachData({ method: "PHONE", outcome: "REACHED", notes: "" });
+    const { data } = await api<PatientRecall>(`${API}/api/recalls/${r.id}`);
+    if (data) setDetailRecall(data);
+    setDetailLoading(false);
+  };
 
-            const result = await res.json();
-            if (!res.ok || !result?.success) {
-                setModalError(result?.error || result?.message || "Failed to save recall");
-                return;
-            }
+  const logOutreach = async () => {
+    if (!detailRecall) return;
+    const { ok } = await api<OutreachLog>(`${API}/api/recalls/${detailRecall.id}/outreach`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(outreachData),
+    });
+    if (ok) {
+      setAlert({ variant: "success", title: "Logged", message: "Outreach attempt recorded." });
+      setShowOutreachForm(false);
+      setOutreachData({ method: "PHONE", outcome: "REACHED", notes: "" });
+      openDetail(detailRecall);
+      loadRecalls();
+      loadKpis();
+    } else {
+      setAlert({ variant: "error", title: "Error", message: "Failed to log outreach." });
+    }
+  };
 
-            setAlertData({
-                variant: "success",
-                title: modalMode === "add" ? "Success" : "Updated",
-                message:
-                    modalMode === "add"
-                        ? "Recall created successfully!"
-                        : "Recall updated successfully!",
-            });
+  const updateStatus = async (id: number, status: string) => {
+    const { ok } = await api<PatientRecall>(`${API}/api/recalls/${id}`, {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (ok) {
+      loadRecalls();
+      loadKpis();
+      if (detailRecall?.id === id) openDetail({ ...detailRecall, status });
+    }
+  };
 
-            setIsOpen(false);
-            setNewRecall(initialNewRecall);
-            setCurrentPage(1);
-            await loadRecalls();
-        } catch (err) {
-            console.error("Error saving recall:", err);
-            setModalError("Failed to save recall. Please try again.");
-        }
-    };
+  /* ── Helpers ── */
+  const formatDate = (d?: string) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  const daysUntil = (d?: string) => {
+    if (!d) return 0;
+    return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
+  };
 
-    const filtered = useMemo(() => {
-        return rows.filter((r) => {
-            const d = new Date(r.recallDate).getTime();
-            const fromTime = from ? timeFromMMDDYYYY(from, -Infinity) : -Infinity;
-            const toTime = to ? timeFromMMDDYYYY(to, Infinity) : Infinity;
-            const matchDate = d >= fromTime && d <= toTime;
-            const matchProvider =
-                provider === "All Providers" ? true : r.providerId === Number(provider);
-            const matchPatientId = patientId ? r.patientId === Number(patientId) : true;
-            const matchPatientName = patientName
-                ? r.patientName?.toLowerCase().includes(patientName.trim().toLowerCase())
-                : true;
-            return matchDate && matchProvider && matchPatientId && matchPatientName;
-        });
-    }, [rows, from, to, provider, patientId, patientName]);
+  /* ═══════════════════════════════════════════
+   * Render
+   * ═══════════════════════════════════════════ */
+  return (
+    <AdminLayout>
+      <div className="h-full flex flex-col overflow-hidden">
+        {/* Alert */}
+        {alert && <div className="px-5 pt-3"><Alert variant={alert.variant} title={alert.title} message={alert.message} /></div>}
 
-    const total = filtered.length;
-
-    return (
-        <AdminLayout>
-            <div className="container mx-auto p-6 overflow-x-hidden text-gray-800 dark:text-gray-200">
-                {/* Heading + Alert */}
-                {alertData && (
-                    <div className="mb-4">
-                        <Alert
-                            variant={alertData.variant}
-                            title={alertData.title}
-                            message={alertData.message}
-                        />
-                    </div>
-                )}
-                <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm">
-                        <span className="italic font-semibold">Total recalls:</span> {loading ? "…" : total}
-                    </div>
-                </div>
-
-                {/* Filters */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 w-full">
-                        <select
-                            value={provider}
-                            onChange={(e) => setProvider(e.target.value)}
-                            className="rounded-md border px-3 py-2 bg-white dark:bg-gray-800 dark:border-gray-600"
-                        >
-                            <option value="All Providers">All Providers</option>
-                            {providers.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                    {p.name}
-                                </option>
-                            ))}
-                        </select>
-
-                        <input
-                            type="text"
-                            placeholder="Patient ID"
-                            value={patientId}
-                            onChange={(e) => setPatientId(e.target.value)}
-                            className="rounded-md border px-3 py-2 bg-white dark:bg-gray-800 dark:border-gray-600"
-                        />
-
-                        <input
-                            type="text"
-                            placeholder="Patient Name"
-                            value={patientName}
-                            onChange={(e) => setPatientName(e.target.value)}
-                            className="rounded-md border px-3 py-2 bg-white dark:bg-gray-800 dark:border-gray-600"
-                        />
-
-                        {/* From Date */}
-                        <input
-                            type="text"
-                            placeholder="MM/DD/YYYY"
-                            value={from}
-                            onChange={(e) => setFrom(e.target.value)}
-                            className="rounded-md border px-3 py-2 bg-white dark:bg-gray-800 dark:border-gray-600"
-                        />
-
-                        {/* To Date */}
-                        <input
-                            type="text"
-                            placeholder="MM/DD/YYYY"
-                            value={to}
-                            onChange={(e) => setTo(e.target.value)}
-                            className="rounded-md border px-3 py-2 bg-white dark:bg-gray-800 dark:border-gray-600"
-                        />
-                    </div>
-
-                    <div className="flex gap-2">
-                        <button
-                            onClick={openNewRecall}
-                            className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 whitespace-nowrap"
-                        >
-                            + New Recall
-                        </button>
-                    </div>
-                </div>
-
-                {/* Table */}
-                <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md">
-                    <table className="w-full table-auto">
-                        <thead className="bg-gray-100 dark:bg-gray-800">
-                        <tr>
-                            <th className="py-3 px-6 text-left text-sm font-medium">Patient Name</th>
-                            <th className="py-3 px-6 text-left text-sm font-medium">Provider Name</th>
-                            <th className="py-3 px-6 text-left text-sm font-medium">Last Visit</th>
-                            <th className="py-3 px-6 text-left text-sm font-medium">Email</th>
-                            <th className="py-3 px-6 text-left text-sm font-medium">Phone</th>
-                            <th className="py-3 px-6 text-left text-sm font-medium">SMS</th>
-                            <th className="py-3 px-6 text-left text-sm font-medium">Email Consent</th>
-                            <th className="py-3 px-6 text-left text-sm font-medium">Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {loading ? (
-                            <tr>
-                                <td
-                                    colSpan={8}
-                                    className="py-8 text-center text-sm text-gray-500 dark:text-gray-400"
-                                />
-                            </tr>
-                        ) : filtered.length === 0 ? (
-                            <tr>
-                                <td
-                                    colSpan={8}
-                                    className="py-10 text-center text-sm text-gray-500 dark:text-gray-400"
-                                >
-                                    No recalls match your filters.
-                                </td>
-                            </tr>
-                        ) : (
-                            filtered.map((r) => (
-                                <tr
-                                    key={r.id}
-                                    className="hover:bg-gray-50 dark:hover:bg-gray-800 border-b dark:border-gray-700"
-                                >
-                                    <td className="py-3 px-6 text-sm">{r.patientName || "—"}</td>
-                                    <td className="py-3 px-6 text-sm">
-                                        {providers.find((p) => p.id === r.providerId)?.name || "—"}
-                                    </td>
-                                    <td className="py-3 px-6 text-sm">
-                                        {r.lastVisit
-                                            ? new Date(r.lastVisit).toLocaleDateString("en-US")
-                                            : "—"}
-                                    </td>
-                                    <td className="py-3 px-6 text-sm">{r.email || "—"}</td>
-                                    <td className="py-3 px-6 text-sm">{r.phone || "—"}</td>
-                                    <td className="py-3 px-6 text-sm">
-                                        {r.smsConsent ? "Yes" : "No"}
-                                    </td>
-                                    <td className="py-3 px-6 text-sm">
-                                        {r.emailConsent ? "Yes" : "No"}
-                                    </td>
-                                    <td className="py-3 px-6 text-sm">
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    // Figure out recallWhen automatically
-                                                    let recallWhen = "";
-                                                    if (r.lastVisit && r.recallDate) {
-                                                        const last = new Date(r.lastVisit);
-                                                        const recall = new Date(r.recallDate);
-
-                                                        const diffYears = recall.getFullYear() - last.getFullYear();
-                                                        if (
-                                                            diffYears >= 1 &&
-                                                            diffYears <= 3 &&
-                                                            last.getMonth() === recall.getMonth() &&
-                                                            last.getDate() === recall.getDate()
-                                                        ) {
-                                                            recallWhen = `${diffYears}y`;
-                                                        }
-                                                    }
-
-                                                    setNewRecall({
-                                                        ...initialNewRecall,
-                                                        ...r,
-                                                        patientId: String(r.patientId),
-                                                        recallDate: r.recallDate
-                                                            ? formatMMDDYYYY(new Date(r.recallDate))
-                                                            : "",
-                                                        reason: r.recallReason || "",
-                                                        providerId: String(r.providerId || ""),
-                                                        patientName: String(r.patientName || ""),
-                                                        smsOk: r.smsConsent,
-                                                        emailOk: r.emailConsent,
-                                                        recallWhen,
-                                                    });
-
-                                                    setSelectedPatientId(String(r.patientId));
-                                                    setSelectedPatientName(String(r.patientName || ""));
-                                                    setModalMode("edit");
-                                                    setIsOpen(true);
-                                                }}
-                                                className="p-1 text-blue-600 hover:text-blue-800 rounded"
-                                            >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4"
-                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                     strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round"
-                                                          d="M16.862 3.487a2.25 2.25 0 113.182 3.182L7.125 19.589 3 21l1.411-4.125L16.862 3.487z" />
-                                                </svg>
-                                            </button>
-                                            <button
-                                                onClick={() => setDeleteTarget(r)}
-                                                className="p-1 text-red-600 hover:text-red-800 rounded"
-                                            >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4"
-                                                     fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                     strokeWidth={2}>
-                                                    <path strokeLinecap="round" strokeLinejoin="round"
-                                                          d="M6 7h12M10 11v6m4-6v6M5 7l1 12a2 2 0 002 2h8a2 2 0 002-2l1-12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="mt-3 flex items-center justify-between px-3 py-2 border-t bg-white dark:bg-gray-900 dark:border-gray-700 text-sm">
-                    <div className="flex items-center gap-3">
-                        <button
-                            disabled={currentPage === 1 || loading}
-                            onClick={handlePrevious}
-                            className="px-3 py-1.5 border rounded disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                        >
-                            Prev
-                        </button>
-                        <div>Page {currentPage} of {totalPages}</div>
-                        <button
-                            disabled={currentPage === totalPages || loading}
-                            onClick={handleNext}
-                            className="px-3 py-1.5 border rounded disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800"
-                        >
-                            Next
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div>Showing {loading ? "…" : rows.length} of {totalItems}</div>
-                        <select
-                            value={pageSize}
-                            onChange={(e) => {
-                                setPageSize(Number(e.target.value));
-                                setCurrentPage(1);
-                            }}
-                            className="border rounded px-3 py-1.5 bg-white dark:bg-gray-800 dark:border-gray-600 text-sm"
-                        >
-                            <option value={5}>5</option>
-                            <option value={10}>10</option>
-                            <option value={25}>25</option>
-                            <option value={50}>50</option>
-                        </select>
-                    </div>
-                </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Patient Recall</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Manage patient follow-up recalls, outreach, and compliance tracking</p>
             </div>
+            <Button onClick={openCreate} className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5">
+              <Plus className="w-4 h-4" /> New Recall
+            </Button>
+          </div>
 
-            {/* Modal for new recall (inline popup, like Calendar) */}
-            {isOpen && (
-                <div className="absolute inset-0 z-50">
-                    {/* Transparent backdrop to catch outside clicks */}
-                    <button
-                        aria-label="Close recall panel"
-                        onClick={() => setIsOpen(false)}
-                        className="absolute inset-0 bg-transparent"
-                    />
+          {/* KPI Cards */}
+          {kpis && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+              <KpiCard label="Due Today" value={kpis.dueToday} icon={<Calendar className="w-4 h-4 text-blue-600" />} color="bg-blue-50 dark:bg-blue-900/30" />
+              <KpiCard label="Overdue" value={kpis.overdue} icon={<AlertTriangle className="w-4 h-4 text-red-600" />} color="bg-red-50 dark:bg-red-900/30" />
+              <KpiCard label="Completed (Mo)" value={kpis.completedThisMonth} icon={<CheckCircle2 className="w-4 h-4 text-green-600" />} color="bg-green-50 dark:bg-green-900/30" />
+              <KpiCard label="Compliance" value={`${kpis.complianceRate}%`} icon={<TrendingUp className="w-4 h-4 text-indigo-600" />} color="bg-indigo-50 dark:bg-indigo-900/30" />
+              <KpiCard label="Pending" value={kpis.pendingTotal} icon={<Clock className="w-4 h-4 text-slate-600" />} color="bg-slate-50 dark:bg-slate-800" />
+              <KpiCard label="Contacted" value={kpis.contactedTotal} icon={<Phone className="w-4 h-4 text-amber-600" />} color="bg-amber-50 dark:bg-amber-900/30" />
+              <KpiCard label="Scheduled" value={kpis.scheduledTotal} icon={<Calendar className="w-4 h-4 text-indigo-600" />} color="bg-indigo-50 dark:bg-indigo-900/30" />
+              <KpiCard label="Cancelled" value={kpis.cancelledTotal} icon={<XCircle className="w-4 h-4 text-gray-500" />} color="bg-gray-50 dark:bg-gray-800" />
+            </div>
+          )}
 
-                    {/* Panel */}
-                    <div className="pointer-events-auto absolute left-1/2 top-6 w-[95%] max-w-[760px] -translate-x-1/2 rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-dark-900">
-                        {/* Header */}
-                        <div className="flex items-start justify-between px-6 py-5">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Status pills */}
+            <div className="flex gap-1 flex-wrap">
+              {STATUSES.map(s => (
+                <button key={s} onClick={() => { setStatusFilter(s); setPage(0); }}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                    statusFilter === s
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                  }`}>
+                  {s === "ALL" ? "All" : s.charAt(0) + s.slice(1).toLowerCase()}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1" />
+            {/* Recall Type */}
+            <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(0); }}
+              className="h-8 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs">
+              <option value="">All Types</option>
+              {recallTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            {/* Provider */}
+            <select value={providerFilter} onChange={e => { setProviderFilter(e.target.value); setPage(0); }}
+              className="h-8 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs">
+              <option value="">All Providers</option>
+              {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            {/* Date range */}
+            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(0); }}
+              className="h-8 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs" />
+            <span className="text-xs text-slate-400">to</span>
+            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(0); }}
+              className="h-8 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs" />
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input type="text" placeholder="Search patient..." value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setPage(0); }}
+                className="h-8 pl-7 pr-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs w-44" />
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Patient</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Type</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Provider</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Due Date</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Status</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Priority</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Attempts</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Contact</th>
+                  <th className="px-4 py-2.5 text-right text-xs font-medium text-slate-500 dark:text-slate-400">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {loading ? (
+                  <tr><td colSpan={9} className="py-12 text-center text-sm text-slate-400">Loading recalls...</td></tr>
+                ) : recalls.length === 0 ? (
+                  <tr><td colSpan={9} className="py-12 text-center text-sm text-slate-400">No recalls found.</td></tr>
+                ) : recalls.map(r => {
+                  const days = daysUntil(r.dueDate);
+                  const overdue = days < 0;
+                  return (
+                    <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => openDetail(r)}>
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium text-slate-800 dark:text-slate-100">{r.patientName || "—"}</div>
+                        <div className="text-[10px] text-slate-400">ID: {r.patientId}</div>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-xs">{r.recallTypeName || "—"}</span>
+                        {r.recallTypeCategory && (
+                          <div className="text-[10px] text-slate-400">{r.recallTypeCategory}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300">{r.providerName || "—"}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="text-xs">{formatDate(r.dueDate)}</div>
+                        {overdue && r.status !== "COMPLETED" && r.status !== "CANCELLED" && (
+                          <div className="text-[10px] text-red-500 font-medium">{Math.abs(days)}d overdue</div>
+                        )}
+                        {!overdue && days <= 7 && r.status !== "COMPLETED" && r.status !== "CANCELLED" && (
+                          <div className="text-[10px] text-amber-500">in {days}d</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5"><StatusBadge status={r.status} /></td>
+                      <td className="px-4 py-2.5">
+                        <span className={`text-xs font-medium ${PRIORITY_COLORS[r.priority] ?? PRIORITY_COLORS.NORMAL}`}>{r.priority}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300">{r.attemptCount}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex gap-1">
+                          {r.patientPhone && <Phone className="w-3 h-3 text-slate-400" />}
+                          {r.patientEmail && <Mail className="w-3 h-3 text-slate-400" />}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-right" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => openDetail(r)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700" title="View details">
+                            <Eye className="w-3.5 h-3.5 text-slate-500" />
+                          </button>
+                          <button onClick={() => openEdit(r)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700" title="Edit">
+                            <FileText className="w-3.5 h-3.5 text-blue-500" />
+                          </button>
+                          <button onClick={() => deleteRecall(r.id)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700" title="Delete">
+                            <X className="w-3.5 h-3.5 text-red-500" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div>Showing {recalls.length} of {totalItems} recalls</div>
+            <div className="flex items-center gap-2">
+              <select value={pageSize} onChange={e => { setPageSize(Number(e.target.value)); setPage(0); }}
+                className="h-7 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs">
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
+                className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700">Prev</button>
+              <span>Page {page + 1} of {totalPages}</span>
+              <button disabled={page + 1 >= totalPages} onClick={() => setPage(p => p + 1)}
+                className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700">Next</button>
+            </div>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════
+         * Create/Edit Modal
+         * ══════════════════════════════════════ */}
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 bg-black/40">
+            <div className="w-full max-w-xl rounded-2xl bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-700 max-h-[85vh] flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{editRecall ? "Edit Recall" : "Create Recall"}</h2>
+                <button onClick={() => setShowCreateModal(false)} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+              <div className="overflow-y-auto px-6 py-4 space-y-4 flex-1">
+                {/* Patient search */}
+                <div className="relative">
+                  <Label>Patient <span className="text-red-500">*</span></Label>
+                  {formData.patientId ? (
+                    <div className="flex items-center gap-2 mt-1 p-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <User className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-100">{formData.patientName}</span>
+                      <span className="text-xs text-slate-400">#{formData.patientId}</span>
+                      {!editRecall && (
+                        <button onClick={() => { setFormData(prev => ({ ...prev, patientId: "", patientName: "" })); setPatientQuery(""); }}
+                          className="ml-auto p-0.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
+                          <X className="w-3.5 h-3.5 text-slate-400" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="relative mt-1">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input type="text" placeholder="Search patient by name..." value={patientQuery}
+                          onChange={e => { setPatientQuery(e.target.value); setShowPatientDropdown(true); }}
+                          onFocus={() => { if (patientResults.length > 0) setShowPatientDropdown(true); }}
+                          className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800" />
+                      </div>
+                      {showPatientDropdown && (patientSearching || patientResults.length > 0) && (
+                        <div className="absolute z-20 mt-1 w-full max-w-[calc(100%-3rem)] rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg">
+                          {patientSearching ? (
+                            <div className="px-3 py-2 text-xs text-slate-400">Searching...</div>
+                          ) : (
+                            <ul className="max-h-48 overflow-auto py-1">
+                              {patientResults.map(p => (
+                                <li key={p.id} onMouseDown={e => e.preventDefault()} onClick={() => choosePatient(p)}
+                                  className="cursor-pointer px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
+                                  <div className="font-medium text-slate-800 dark:text-slate-100">{getPatientName(p) || `Patient #${p.id}`}</div>
+                                  <div className="text-[10px] text-slate-400">
+                                    {p.dateOfBirth && `DOB: ${p.dateOfBirth}`}
+                                    {p.phoneNumber && ` | ${p.phoneNumber}`}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Recall Type */}
+                <div>
+                  <Label>Recall Type</Label>
+                  <select value={formData.recallTypeId}
+                    onChange={e => setFormData(prev => ({ ...prev, recallTypeId: e.target.value }))}
+                    className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm">
+                    <option value="">Select type...</option>
+                    {recallTypes.map(t => <option key={t.id} value={t.id}>{t.name} ({t.category})</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Provider */}
+                  <div>
+                    <Label>Provider</Label>
+                    <select value={formData.providerId}
+                      onChange={e => {
+                        const prov = providers.find(p => String(p.id) === e.target.value);
+                        setFormData(prev => ({ ...prev, providerId: e.target.value, providerName: prov?.name ?? "" }));
+                      }}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm">
+                      <option value="">Select provider...</option>
+                      {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                  {/* Due Date */}
+                  <div>
+                    <Label>Due Date <span className="text-red-500">*</span></Label>
+                    <input type="date" value={formData.dueDate}
+                      onChange={e => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Preferred Contact */}
+                  <div>
+                    <Label>Preferred Contact</Label>
+                    <select value={formData.preferredContact}
+                      onChange={e => setFormData(prev => ({ ...prev, preferredContact: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm">
+                      <option value="PHONE">Phone</option>
+                      <option value="EMAIL">Email</option>
+                      <option value="SMS">SMS</option>
+                      <option value="PORTAL">Portal</option>
+                      <option value="LETTER">Letter</option>
+                    </select>
+                  </div>
+                  {/* Priority */}
+                  <div>
+                    <Label>Priority</Label>
+                    <select value={formData.priority}
+                      onChange={e => setFormData(prev => ({ ...prev, priority: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm">
+                      <option value="LOW">Low</option>
+                      <option value="NORMAL">Normal</option>
+                      <option value="HIGH">High</option>
+                      <option value="URGENT">Urgent</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Phone</Label>
+                    <input type="text" value={formData.patientPhone}
+                      onChange={e => setFormData(prev => ({ ...prev, patientPhone: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <input type="email" value={formData.patientEmail}
+                      onChange={e => setFormData(prev => ({ ...prev, patientEmail: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <Label>Notes</Label>
+                  <textarea value={formData.notes} onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={2} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 px-6 py-3 border-t border-slate-200 dark:border-slate-700">
+                <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
+                <Button onClick={saveRecall} className="bg-blue-600 text-white hover:bg-blue-700">
+                  {editRecall ? "Update Recall" : "Create Recall"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════
+         * Detail Side Panel
+         * ══════════════════════════════════════ */}
+        {detailRecall && (
+          <div className="fixed inset-0 z-40 flex">
+            <button className="flex-1 bg-black/30" onClick={() => setDetailRecall(null)} aria-label="Close" />
+            <div className="w-[480px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 flex flex-col h-full overflow-hidden shadow-2xl">
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100">{detailRecall.patientName}</h3>
+                  <div className="text-xs text-slate-400 mt-0.5">{detailRecall.recallTypeName || "No type"} &bull; Due {formatDate(detailRecall.dueDate)}</div>
+                </div>
+                <button onClick={() => setDetailRecall(null)} className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+                {detailLoading ? (
+                  <p className="text-sm text-slate-400">Loading details...</p>
+                ) : (
+                  <>
+                    {/* Status & Actions */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <StatusBadge status={detailRecall.status} />
+                      <span className={`text-xs font-medium ${PRIORITY_COLORS[detailRecall.priority] ?? PRIORITY_COLORS.NORMAL}`}>{detailRecall.priority}</span>
+                      <div className="flex-1" />
+                      {detailRecall.status !== "COMPLETED" && detailRecall.status !== "CANCELLED" && (
+                        <>
+                          <button onClick={() => updateStatus(detailRecall.id, "COMPLETED")}
+                            className="text-xs px-2 py-1 rounded bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/50">
+                            Mark Complete
+                          </button>
+                          <button onClick={() => updateStatus(detailRecall.id, "CANCELLED")}
+                            className="text-xs px-2 py-1 rounded bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/50">
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Info grid */}
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div><span className="text-slate-400">Patient ID:</span><div className="font-medium text-slate-700 dark:text-slate-200">{detailRecall.patientId}</div></div>
+                      <div><span className="text-slate-400">Provider:</span><div className="font-medium text-slate-700 dark:text-slate-200">{detailRecall.providerName || "—"}</div></div>
+                      <div><span className="text-slate-400">Phone:</span><div className="font-medium text-slate-700 dark:text-slate-200">{detailRecall.patientPhone || "—"}</div></div>
+                      <div><span className="text-slate-400">Email:</span><div className="font-medium text-slate-700 dark:text-slate-200">{detailRecall.patientEmail || "—"}</div></div>
+                      <div><span className="text-slate-400">Preferred Contact:</span><div className="font-medium text-slate-700 dark:text-slate-200">{detailRecall.preferredContact || "—"}</div></div>
+                      <div><span className="text-slate-400">Attempts:</span><div className="font-medium text-slate-700 dark:text-slate-200">{detailRecall.attemptCount}</div></div>
+                      {detailRecall.lastAttemptDate && (
+                        <div><span className="text-slate-400">Last Attempt:</span><div className="font-medium text-slate-700 dark:text-slate-200">{formatDate(detailRecall.lastAttemptDate)} ({detailRecall.lastAttemptMethod})</div></div>
+                      )}
+                      {detailRecall.nextAttemptDate && (
+                        <div><span className="text-slate-400">Next Attempt:</span><div className="font-medium text-slate-700 dark:text-slate-200">{formatDate(detailRecall.nextAttemptDate)}</div></div>
+                      )}
+                    </div>
+
+                    {detailRecall.notes && (
+                      <div className="text-xs"><span className="text-slate-400">Notes:</span><p className="mt-1 text-slate-600 dark:text-slate-300">{detailRecall.notes}</p></div>
+                    )}
+
+                    {/* Outreach History */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Outreach History</h4>
+                        {detailRecall.status !== "COMPLETED" && detailRecall.status !== "CANCELLED" && (
+                          <button onClick={() => setShowOutreachForm(!showOutreachForm)}
+                            className="text-xs px-2 py-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 flex items-center gap-1">
+                            <Send className="w-3 h-3" /> Log Outreach
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Outreach form */}
+                      {showOutreachForm && (
+                        <div className="mb-3 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
                             <div>
-                                <h5 className="mb-1 font-semibold text-gray-800 text-theme-xl dark:text-white/90 lg:text-2xl">
-                                    {modalMode === "add" ? "Add Recall" : "Edit Recall"}
-                                </h5>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    {modalMode === "add" ? "Create a patient recall entry" : "Update patient recall entry"}
-                                </p>
+                              <label className="text-[10px] text-slate-500 font-medium">Method</label>
+                              <select value={outreachData.method} onChange={e => setOutreachData(prev => ({ ...prev, method: e.target.value }))}
+                                className="w-full h-7 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs mt-0.5">
+                                {OUTREACH_METHODS.map(m => <option key={m} value={m}>{m.replace("_", " ")}</option>)}
+                              </select>
                             </div>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                aria-label="Close"
-                                className="rounded-full border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300"
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        {/* Body */}
-                        <div className="custom-scrollbar max-h-[70vh] overflow-y-auto px-6 pb-6 lg:px-10">
-                            {modalError && (
-                                <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
-                                    <p className="text-sm text-red-700 dark:text-red-300">{modalError}</p>
-                                </div>
-                            )}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                                {/* Left Column */}
-                                <div className="space-y-4">
-                                    {/* Patient search */}
-                                    <div className="relative">
-                                        <Label>Name <span className="text-red-600">*</span></Label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                            value={selectedPatientName || patientQuery}
-                                            onChange={(e) => {
-                                                setPatientQuery(e.target.value);
-                                                setShowPatientDropdown(true);
-                                                if (e.target.value !== selectedPatientName) {
-                                                    setSelectedPatientId("");
-                                                    setSelectedPatientName("");
-                                                    setNewRecall((prev) => ({
-                                                        ...prev,
-                                                        patientId: "",
-                                                        patientName: e.target.value,
-                                                    }));
-                                                }
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" && patientResults.length > 0) {
-                                                    e.preventDefault();
-                                                    choosePatient(patientResults[0]);
-                                                }
-                                            }}
-                                            onFocus={() => {
-                                                if (patientResults.length > 0) setShowPatientDropdown(true);
-                                            }}
-                                            placeholder="Search patient by name…"
-                                        />
-                                        {showPatientDropdown &&
-                                            (patientSearching || patientResults.length > 0) && (
-                                                <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-dark-900">
-                                                    {patientSearching ? (
-                                                        <div className="px-3 py-2 text-xs text-gray-500">Searching…</div>
-                                                    ) : (
-                                                        <ul className="max-h-56 overflow-auto py-1">
-                                                            {patientResults.map((p) => {
-                                                                const name = getPatientFullName(p);
-                                                                return (
-                                                                    <li
-                                                                        key={p.id}
-                                                                        onMouseDown={(e) => e.preventDefault()}
-                                                                        onClick={() => choosePatient(p)}
-                                                                        className="cursor-pointer px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-white/10"
-                                                                    >
-                                                                        <div className="font-medium text-gray-800 dark:text-gray-100">
-                                                                            {name || `Patient #${p.id}`}
-                                                                        </div>
-                                                                        {p.dateOfBirth && (
-                                                                            <div className="text-xs text-gray-500">DOB: {p.dateOfBirth}</div>
-                                                                        )}
-                                                                        {p.phoneNumber && (
-                                                                            <div className="text-xs text-gray-500">Phone: {p.phoneNumber}</div>
-                                                                        )}
-                                                                        {p.email && (
-                                                                            <div className="text-xs text-gray-500">Email: {p.email}</div>
-                                                                        )}
-                                                                    </li>
-                                                                );
-                                                            })}
-                                                        </ul>
-                                                    )}
-                                                </div>
-                                            )}
-                                    </div>
-
-                                    {/* DOB */}
-                                    <div>
-                                        <Label>DOB</Label>
-                                        <input
-                                            type="text"
-                                            placeholder="MM/DD/YYYY"
-                                            pattern="\d{2}/\d{2}/\d{4}"
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                            value={newRecall.dob ? new Date(newRecall.dob).toLocaleDateString("en-US") : ""}
-                                            readOnly
-                                        />
-                                    </div>
-
-                                    {/* Last Visit */}
-                                    <div>
-                                        <Label>Last Visit <span className="text-red-600">*</span></Label>
-                                        <input
-                                            type="date"
-                                            className="order-date-input flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                                            value={newRecall.lastVisit || ""}
-                                            onChange={(e) => {
-                                                setNewRecall((prev) => ({ ...prev, lastVisit: e.target.value }));
-                                            }}
-                                        />
-                                        <div className="flex gap-4 mt-2 text-sm">
-                                            <button type="button" onClick={() => {
-                                                if (!newRecall.lastVisit) return;
-                                                const d = new Date(newRecall.lastVisit + "T00:00:00");
-                                                d.setFullYear(d.getFullYear() + 1);
-                                                setNewRecall((prev) => ({
-                                                    ...prev,
-                                                    recallWhen: "1y",
-                                                    recallDate: d.toISOString().split('T')[0],
-                                                }));
-                                            }} className="flex items-center gap-1">
-                                                <input type="radio" checked={newRecall.recallWhen === "1y"} readOnly />
-                                                plus 1 year
-                                            </button>
-
-                                            <button type="button" onClick={() => {
-                                                if (!newRecall.lastVisit) return;
-                                                const d = new Date(newRecall.lastVisit + "T00:00:00");
-                                                d.setFullYear(d.getFullYear() + 2);
-                                                setNewRecall((prev) => ({
-                                                    ...prev,
-                                                    recallWhen: "2y",
-                                                    recallDate: d.toISOString().split('T')[0],
-                                                }));
-                                            }} className="flex items-center gap-1">
-                                                <input type="radio" checked={newRecall.recallWhen === "2y"} readOnly />
-                                                plus 2 years
-                                            </button>
-
-                                            <button type="button" onClick={() => {
-                                                if (!newRecall.lastVisit) return;
-                                                const d = new Date(newRecall.lastVisit + "T00:00:00");
-                                                d.setFullYear(d.getFullYear() + 3);
-                                                setNewRecall((prev) => ({
-                                                    ...prev,
-                                                    recallWhen: "3y",
-                                                    recallDate: d.toISOString().split('T')[0],
-                                                }));
-                                            }} className="flex items-center gap-1">
-                                                <input type="radio" checked={newRecall.recallWhen === "3y"} readOnly />
-                                                plus 3 years
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Recall Date */}
-                                    <div>
-                                        <Label>Recall Date <span className="text-red-600">*</span></Label>
-                                        <input
-                                            type="date"
-                                            className="order-date-input flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                                            value={newRecall.recallDate || ""}
-                                            onChange={(e) => {
-                                                setNewRecall((prev) => ({ ...prev, recallDate: e.target.value }));
-                                            }}
-                                        />
-                                    </div>
-
-
-                                    <div>
-                                        <Label>Provider</Label>
-                                        <select
-                                            value={newRecall.providerId}
-                                            onChange={(e) => setNewRecall((prev) => ({ ...prev, providerId: e.target.value }))}
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                        >
-                                            <option value="">Select provider</option>
-                                            {providers.map((p) => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Right Column */}
-                                <div className="space-y-4">
-                                    {/* Address */}
-                                    <div>
-                                        <Label>Address</Label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                            placeholder="Address"
-                                            value={newRecall.address || ""}
-                                            onChange={(e) => setNewRecall((prev) => ({ ...prev, address: e.target.value }))}
-                                        />
-                                        <div className="grid grid-cols-3 gap-2 mt-2">
-                                            <input
-                                                type="text"
-                                                className="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                                placeholder="City"
-                                                value={newRecall.city || ""}
-                                                onChange={(e) => setNewRecall((prev) => ({ ...prev, city: e.target.value }))}
-                                            />
-                                            <input
-                                                type="text"
-                                                className="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                                placeholder="State"
-                                                value={newRecall.state || ""}
-                                                onChange={(e) => setNewRecall((prev) => ({ ...prev, state: e.target.value }))}
-                                            />
-                                            <input
-                                                type="text"
-                                                className="px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                                placeholder="ZIP Code"
-                                                value={newRecall.zip || ""}
-                                                onChange={(e) => setNewRecall((prev) => ({ ...prev, zip: e.target.value }))}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Phone */}
-                                    <div>
-                                        <Label>Phone</Label>
-                                        <input
-                                            type="text"
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                            value={newRecall.phone || ""}
-                                            onChange={(e) => setNewRecall((prev) => ({ ...prev, phone: e.target.value }))}
-                                        />
-                                    </div>
-
-                                    {/* SMS OK */}
-                                    <div className="flex gap-4">
-                                        <Label>SMS</Label>
-                                        <label>
-                                            <input
-                                                type="radio"
-                                                checked={newRecall.smsOk === true}
-                                                onClick={() =>
-                                                    setNewRecall((prev) => ({
-                                                        ...prev,
-                                                        smsOk: prev.smsOk === true ? null : true,
-                                                    }))
-                                                }
-                                                readOnly
-                                            />{" "}
-                                            YES
-                                        </label>
-                                        <label>
-                                            <input
-                                                type="radio"
-                                                checked={newRecall.smsOk === false}
-                                                onClick={() =>
-                                                    setNewRecall((prev) => ({
-                                                        ...prev,
-                                                        smsOk: prev.smsOk === false ? null : false,
-                                                    }))
-                                                }
-                                                readOnly
-                                            />{" "}
-                                            NO
-                                        </label>
-                                    </div>
-
-                                    {/* Email */}
-                                    <div>
-                                        <Label>Email</Label>
-                                        <input
-                                            type="email"
-                                            className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600"
-                                            value={newRecall.email || ""}
-                                            onChange={(e) =>
-                                                setNewRecall((prev) => ({ ...prev, email: e.target.value }))
-                                            }
-                                        />
-
-                                        <div className="flex gap-4 mt-2">
-                                            <Label>Email Consent</Label>
-                                            <label>
-                                                <input
-                                                    type="radio"
-                                                    checked={newRecall.emailOk === true}
-                                                    onClick={() =>
-                                                        setNewRecall((prev) => ({
-                                                            ...prev,
-                                                            emailOk: prev.emailOk === true ? null : true,
-                                                        }))
-                                                    }
-                                                    readOnly
-                                                />{" "}
-                                                YES
-                                            </label>
-                                            <label>
-                                                <input
-                                                    type="radio"
-                                                    checked={newRecall.emailOk === false}
-                                                    onClick={() =>
-                                                        setNewRecall((prev) => ({
-                                                            ...prev,
-                                                            emailOk: prev.emailOk === false ? null : false,
-                                                        }))
-                                                    }
-                                                    readOnly
-                                                />{" "}
-                                                NO
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div>
+                              <label className="text-[10px] text-slate-500 font-medium">Outcome</label>
+                              <select value={outreachData.outcome} onChange={e => setOutreachData(prev => ({ ...prev, outcome: e.target.value }))}
+                                className="w-full h-7 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs mt-0.5">
+                                {OUTREACH_OUTCOMES.map(o => <option key={o} value={o}>{o.replace(/_/g, " ")}</option>)}
+                              </select>
                             </div>
+                          </div>
+                          <textarea placeholder="Notes..." value={outreachData.notes}
+                            onChange={e => setOutreachData(prev => ({ ...prev, notes: e.target.value }))}
+                            rows={2} className="w-full rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-xs" />
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => setShowOutreachForm(false)} className="text-xs px-2 py-1 rounded text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                            <button onClick={logOutreach} className="text-xs px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
+                          </div>
                         </div>
+                      )}
 
-                        {/* Footer */}
-                        <div className="flex justify-end gap-3 px-6 pb-6">
-                            <Button size="sm" variant="outline" onClick={() => setIsOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button size="sm" onClick={handleSaveRecall}>
-                                {modalMode === "add" ? "Add Recall" : "Update Recall"}
-                            </Button>
+                      {/* Outreach log list */}
+                      {detailRecall.outreachLogs && detailRecall.outreachLogs.length > 0 ? (
+                        <div className="space-y-2">
+                          {detailRecall.outreachLogs.map(log => (
+                            <div key={log.id} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-slate-700 dark:text-slate-200">#{log.attemptNumber}</span>
+                                  <span className="text-slate-400">{formatDate(log.attemptDate)}</span>
+                                </div>
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  log.outcome === "SCHEDULED" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" :
+                                  log.outcome === "DECLINED" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" :
+                                  "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                                }`}>{log.outcome.replace(/_/g, " ")}</span>
+                              </div>
+                              <div className="text-slate-500 dark:text-slate-400">
+                                {log.method.replace("_", " ")} {log.direction === "INBOUND" ? "(inbound)" : ""} {log.performedByName ? `by ${log.performedByName}` : ""}
+                              </div>
+                              {log.notes && <p className="mt-1 text-slate-600 dark:text-slate-300">{log.notes}</p>}
+                            </div>
+                          ))}
                         </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 text-center py-3">No outreach attempts yet</p>
+                      )}
                     </div>
-                </div>
-            )}
-
-            {deleteTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                    <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-900">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                            Delete Recall
-                        </h3>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                            Are you sure you want to delete{" "}
-                            <span className="font-medium">{deleteTarget.patientName}</span>’s recall?
-                        </p>
-                        <div className="mt-6 flex justify-end gap-3">
-                            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-                                Cancel
-                            </Button>
-                            <Button
-                                className="bg-rose-600 text-white hover:bg-rose-700"
-                                onClick={async () => {
-                                    await deleteRecall(deleteTarget.id);
-                                    setDeleteTarget(null);
-                                }}
-                            >
-                                Yes, Delete
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </AdminLayout>
-    );
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  );
 }
-
-
-
-
-

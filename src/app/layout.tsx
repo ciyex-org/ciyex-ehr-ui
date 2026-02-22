@@ -10,6 +10,7 @@ import { PluginEventBusProvider } from '@/context/PluginEventBus';
 import { PluginContextProvider } from '@/context/PluginContextProvider';
 import { DisplaySettingsProvider } from '@/context/DisplaySettingsContext';
 import NativePluginLoader from '@/components/plugins/NativePluginLoader';
+import PluginSlot from '@/components/plugins/PluginSlot';
 import {Metadata} from "next";
 import SessionManager from '@/layout/SessionManager';
 
@@ -54,6 +55,7 @@ export default function RootLayout({
                         <NativePluginLoader />
                         <SessionManager />
                         {children}
+                        <PluginSlot name="global:floating-widget" as="fragment" />
                       </PluginContextProvider>
                     </PluginRegistryProvider>
                   </PluginEventBusProvider>

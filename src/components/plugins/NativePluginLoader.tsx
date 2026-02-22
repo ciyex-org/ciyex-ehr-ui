@@ -63,6 +63,8 @@ const NATIVE_PLUGIN_LOADERS: Record<string, () => Promise<PluginModule>> = {
     "demo-care-gaps": () => import("@/plugins/demo-care-gaps"),
     // Vaultik — secure file storage (S3-backed, per-practice overrides)
     "vaultik": () => import("@/plugins/vaultik"),
+    // Ask Dr. Ciya — AI clinical assistant chatbot
+    "ask-ciya": () => import("@/plugins/ask-dr-ciya"),
 };
 
 /**
