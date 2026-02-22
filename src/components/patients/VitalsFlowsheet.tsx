@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Activity, Plus, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
-const API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
+const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
 // Vital measurement definitions — order matches standard EHR flowsheet
 const VITAL_ROWS = [
@@ -81,7 +81,7 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
             try {
                 setLoading(true);
                 const res = await fetchWithAuth(
-                    `${API_BASE}/api/fhir-resource/vitals/patient/${patientId}?page=0&size=50`
+                    `${API_BASE()}/api/fhir-resource/vitals/patient/${patientId}?page=0&size=50`
                 );
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const body = await res.json();

@@ -12,8 +12,9 @@ import { messagingReducer, initialState } from "@/components/messaging/messaging
 import * as api from "@/components/messaging/messagingApi";
 import type { Channel, MessageItem, ChannelMember } from "@/components/messaging/types";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API_URL = () => getEnv("NEXT_PUBLIC_API_URL") || "";
 
 export default function MessagingPage() {
   const [state, dispatch] = useReducer(messagingReducer, initialState);
@@ -97,7 +98,7 @@ export default function MessagingPage() {
   // Load available users (for DM user picker + channel creation)
   const loadUsers = useCallback(async () => {
     try {
-      const res = await fetchWithAuth(`${API_URL}/api/providers?status=ACTIVE`);
+      const res = await fetchWithAuth(`${API_URL()}/api/providers?status=ACTIVE`);
       if (res.ok) {
         const json = await res.json();
         const providers = json.data || json.content || json || [];

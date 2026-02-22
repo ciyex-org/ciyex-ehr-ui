@@ -470,7 +470,7 @@ useEffect(() => {
    
 const downloadPdf = useCallback(async () => {
     try {
-        const base = getEnv("NEXT_PUBLIC_API_URL") ?? "http://localhost:8080";
+        const base = getEnv("NEXT_PUBLIC_API_URL") ?? "";
         const url = `${base}/api/encounters/${patientId}/${encounterId}/summary/print`;
         
         const headers = new Headers();

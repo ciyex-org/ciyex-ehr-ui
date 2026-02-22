@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 const MARKETPLACE_URL = (
   process.env.MARKETPLACE_SERVICE_URL ||
   process.env.NEXT_PUBLIC_MARKETPLACE_URL ||
-  "http://localhost:8081"
+  ""
 ).replace(/\/$/, "");
 
 /**

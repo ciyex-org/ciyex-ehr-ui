@@ -16,7 +16,7 @@ import AdminLayout from '@/app/(admin)/layout';
 import { fetchWithAuth } from '@/utils/fetchWithAuth';
 
 /* ---------------------------------- API ---------------------------------- */
-const API_BASE = getEnv("NEXT_PUBLIC_API_URL") ?? 'http://localhost:8080';
+const API_BASE = () => getEnv("NEXT_PUBLIC_API_URL") ?? '';
 
 /* -------- Inline Icons -------- */
 function Icon({ path, className = 'w-5 h-5' }: { path: string; className?: string }) {
@@ -866,7 +866,7 @@ export default function Page() {
             const body: any = { orgId: orgId || meta.orgId, integrations };
             if (meta.id) body.id = meta.id; // Use PUT when id exists
 
-            const url = meta.id ? `${API_BASE}/api/org-configs/${meta.id}` : `${API_BASE}/api/org-configs`;
+            const url = meta.id ? `${API_BASE()}/api/org-configs/${meta.id}` : `${API_BASE()}/api/org-configs`;
             const method = meta.id ? 'PUT' : 'POST';
 
             const res = await fetchWithAuth(url, { method, body: JSON.stringify(body) });
@@ -928,7 +928,7 @@ export default function Page() {
 
         (async () => {
             try {
-                const res = await fetchWithAuth(`${API_BASE}/api/org-configs/by-org/${orgId}`);
+                const res = await fetchWithAuth(`${API_BASE()}/api/org-configs/by-org/${orgId}`);
                 if (!res.ok) {
                     console.warn('Org config fetch failed', res.status);
                     return;

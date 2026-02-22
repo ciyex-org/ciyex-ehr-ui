@@ -102,7 +102,16 @@ export default function TransactionsTab({ showToast }: Props) {
     try {
       const res = await fetchWithAuth(apiUrl("/api/payments/stats"));
       const json = await res.json();
-      if (res.ok) setStats(json.data || json);
+      if (res.ok) {
+        const raw = json.data || json;
+        setStats({
+          today: raw.todayCollections ?? raw.today ?? 0,
+          last7d: raw.last7d ?? 0,
+          last30d: raw.monthCollections ?? raw.last30d ?? 0,
+          pendingCount: raw.pendingCount ?? 0,
+          failedCount: raw.failedCount ?? 0,
+        });
+      }
     } catch { /* silent */ }
   }, []);
 

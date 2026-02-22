@@ -60,7 +60,7 @@ export function PluginRegistryProvider({ children }: { children: React.ReactNode
 
     const loadPlugins = useCallback(async () => {
         try {
-            const apiBase = (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
+            const apiBase = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
             const res = await fetchWithAuth(`${apiBase}/api/app-installations`);
             if (res.ok) {
                 const data = await res.json();

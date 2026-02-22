@@ -25,7 +25,7 @@ import { getEnv } from "@/utils/env";
 
 // utils/fetchWithOrg.ts
 export async function fetchWithOrg(input: RequestInfo, init: RequestInit = {}) {
-    const base = getEnv("NEXT_PUBLIC_API_URL") ?? "http://localhost:8080";
+    const base = getEnv("NEXT_PUBLIC_API_URL");
 
     // Build the final URL only if input is relative
     const url =

@@ -8,7 +8,7 @@ import AppGrid from "@/components/hub/AppGrid";
 import { Package, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
+const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
 interface InstalledApp {
     id: string;

@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Send, Loader2, Plus, X } from "lucide-react";
 
 const MARKETPLACE_BASE = () =>
-    (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "http://localhost:8081").replace(/\/$/, "");
+    (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
 
 const CATEGORIES = [
     "Clinical",

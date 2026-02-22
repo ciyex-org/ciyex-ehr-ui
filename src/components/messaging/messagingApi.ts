@@ -1,12 +1,13 @@
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 import type { Channel, MessageItem, ChannelMember, Template, MessageAttachment } from "./types";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API = () => getEnv("NEXT_PUBLIC_API_URL") || "";
 
 type ApiResponse<T> = { success: boolean; message: string; data: T };
 
 async function api<T>(url: string, options?: RequestInit): Promise<T> {
-  const res = await fetchWithAuth(`${API}${url}`, options);
+  const res = await fetchWithAuth(`${API()}${url}`, options);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   const json = await res.json();
   return json.data ?? json;
@@ -51,7 +52,7 @@ export async function updateChannel(
 }
 
 export async function deleteChannel(channelId: string): Promise<void> {
-  await fetchWithAuth(`${API}/api/channels/${channelId}`, { method: "DELETE" });
+  await fetchWithAuth(`${API()}/api/channels/${channelId}`, { method: "DELETE" });
 }
 
 // Messages
@@ -88,7 +89,7 @@ export async function editMessage(
 }
 
 export async function deleteMessage(messageId: string): Promise<void> {
-  await fetchWithAuth(`${API}/api/messages/${messageId}`, { method: "DELETE" });
+  await fetchWithAuth(`${API()}/api/messages/${messageId}`, { method: "DELETE" });
 }
 
 // Threads
@@ -101,7 +102,7 @@ export async function addReaction(
   messageId: string,
   emoji: string
 ): Promise<void> {
-  await fetchWithAuth(`${API}/api/messages/${messageId}/reactions`, {
+  await fetchWithAuth(`${API()}/api/messages/${messageId}/reactions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ emoji }),
@@ -112,7 +113,7 @@ export async function removeReaction(
   messageId: string,
   emoji: string
 ): Promise<void> {
-  await fetchWithAuth(`${API}/api/messages/${messageId}/reactions`, {
+  await fetchWithAuth(`${API()}/api/messages/${messageId}/reactions`, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ emoji }),
@@ -121,11 +122,11 @@ export async function removeReaction(
 
 // Pins
 export async function pinMessage(messageId: string): Promise<void> {
-  await fetchWithAuth(`${API}/api/messages/${messageId}/pin`, { method: "POST" });
+  await fetchWithAuth(`${API()}/api/messages/${messageId}/pin`, { method: "POST" });
 }
 
 export async function unpinMessage(messageId: string): Promise<void> {
-  await fetchWithAuth(`${API}/api/messages/${messageId}/pin`, { method: "DELETE" });
+  await fetchWithAuth(`${API()}/api/messages/${messageId}/pin`, { method: "DELETE" });
 }
 
 export async function getPinnedMessages(channelId: string): Promise<MessageItem[]> {
@@ -141,7 +142,7 @@ export async function addChannelMember(
   channelId: string,
   userId: string
 ): Promise<void> {
-  await fetchWithAuth(`${API}/api/channels/${channelId}/members`, {
+  await fetchWithAuth(`${API()}/api/channels/${channelId}/members`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId }),
@@ -152,7 +153,7 @@ export async function removeChannelMember(
   channelId: string,
   userId: string
 ): Promise<void> {
-  await fetchWithAuth(`${API}/api/channels/${channelId}/members/${userId}`, {
+  await fetchWithAuth(`${API()}/api/channels/${channelId}/members/${userId}`, {
     method: "DELETE",
   });
 }
@@ -175,7 +176,7 @@ export async function uploadAttachment(
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetchWithAuth(
-    `${API}/api/messages/${messageId}/attachments`,
+    `${API()}/api/messages/${messageId}/attachments`,
     { method: "POST", body: formData }
   );
   const json = await res.json();
@@ -187,7 +188,7 @@ export async function downloadAttachment(
   attachmentId: string
 ): Promise<Blob> {
   const res = await fetchWithAuth(
-    `${API}/api/messages/${messageId}/attachments/${attachmentId}/download`
+    `${API()}/api/messages/${messageId}/attachments/${attachmentId}/download`
   );
   return res.blob();
 }
@@ -219,7 +220,7 @@ export async function updateTemplate(
 }
 
 export async function deleteTemplate(id: number): Promise<void> {
-  await fetchWithAuth(`${API}/api/templates/${id}`, { method: "DELETE" });
+  await fetchWithAuth(`${API()}/api/templates/${id}`, { method: "DELETE" });
 }
 
 // Presence
@@ -233,7 +234,7 @@ export async function getUserPresence(): Promise<
 
 // Mark as read
 export async function markChannelRead(channelId: string): Promise<void> {
-  await fetchWithAuth(`${API}/api/channels/${channelId}/read`, {
+  await fetchWithAuth(`${API()}/api/channels/${channelId}/read`, {
     method: "POST",
   });
 }

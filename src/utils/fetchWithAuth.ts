@@ -27,7 +27,7 @@ export async function fetchWithAuth(
     headers.set("Content-Type", "application/json");
   }
 
-  const base = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
+  const base = getEnv("NEXT_PUBLIC_API_URL");
   const url = typeof input === 'string' && input.startsWith('/') ? `${base}${input}` : input;
 
   const res = await fetch(url, {

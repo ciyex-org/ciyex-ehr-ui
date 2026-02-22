@@ -201,7 +201,7 @@ function CheckinLogTab() {
     try {
       const res = await fetchWithAuth(`${API()}/api/kiosk/checkins?page=${page}&size=${pageSize}`);
       const json = await res.json();
-      if (res.ok && json.success) {
+      if (res.ok && json.success && json.data) {
         setCheckins(json.data.content || json.data || []);
         setTotalPages(json.data.totalPages || 1);
         setTotalElements(json.data.totalElements || 0);

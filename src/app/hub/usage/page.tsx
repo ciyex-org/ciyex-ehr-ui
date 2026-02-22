@@ -7,7 +7,7 @@ import AdminLayout from "@/app/(admin)/layout";
 import { BarChart3, Activity, Zap, TrendingUp, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-const API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
+const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
 interface UsageSummary {
     appSlug: string;
@@ -33,7 +33,7 @@ export default function AppUsageDashboard() {
         async function fetchSummary() {
             setLoading(true);
             try {
-                const res = await fetchWithAuth(`${API_BASE}/api/app-usage/summary?days=${days}`);
+                const res = await fetchWithAuth(`${API_BASE()}/api/app-usage/summary?days=${days}`);
                 if (res.ok) {
                     setSummaries(await res.json());
                 }
@@ -52,7 +52,7 @@ export default function AppUsageDashboard() {
         }
         async function fetchTrend() {
             try {
-                const res = await fetchWithAuth(`${API_BASE}/api/app-usage/trend/${selectedApp}?days=${days}`);
+                const res = await fetchWithAuth(`${API_BASE()}/api/app-usage/trend/${selectedApp}?days=${days}`);
                 if (res.ok) {
                     setTrend(await res.json());
                 }

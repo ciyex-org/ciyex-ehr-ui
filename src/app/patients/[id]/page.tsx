@@ -30,7 +30,7 @@ import {
     type LucideIcon, MessageCircle, Search, Plane, Plus, Bot
 } from "lucide-react";
 
-const API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
+const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
 const ICON_MAP: Record<string, LucideIcon> = {
     LayoutDashboard, Stethoscope, HeartPulse, ShieldAlert, Pill,
@@ -106,9 +106,9 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
             try {
                 setLoading(true);
                 const [appointmentsRes, medicationsRes, labsRes] = await Promise.allSettled([
-                    fetchWithAuth(`${API_BASE}/api/patients/${patientId}/appointments?limit=5`),
-                    fetchWithAuth(`${API_BASE}/api/patients/${patientId}/medications?limit=5`),
-                    fetchWithAuth(`${API_BASE}/api/patients/${patientId}/labs?limit=5`),
+                    fetchWithAuth(`${API_BASE()}/api/patients/${patientId}/appointments?limit=5`),
+                    fetchWithAuth(`${API_BASE()}/api/patients/${patientId}/medications?limit=5`),
+                    fetchWithAuth(`${API_BASE()}/api/patients/${patientId}/labs?limit=5`),
                 ]);
 
                 const allActivities: ActivityItem[] = [];
@@ -313,7 +313,7 @@ export default function PatientDashboardPage() {
     useEffect(() => {
         const fetchTabConfig = async () => {
             try {
-                const res = await fetchWithAuth(`${API_BASE}/api/tab-field-config/layout`);
+                const res = await fetchWithAuth(`${API_BASE()}/api/tab-field-config/layout`);
                 if (res.ok) {
                     const data = await res.json();
                     if (data.tabConfig && Array.isArray(data.tabConfig)) {
@@ -343,7 +343,7 @@ export default function PatientDashboardPage() {
         const fetchPatientData = async () => {
             try {
                 setLoading(true);
-                const res = await fetchWithAuth(`${API_BASE}/api/patients/${id}`);
+                const res = await fetchWithAuth(`${API_BASE()}/api/patients/${id}`);
 
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 

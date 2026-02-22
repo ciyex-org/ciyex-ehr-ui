@@ -21,7 +21,7 @@ export default function NewEncounterPage() {
 
     (async () => {
       try {
-        const apiUrl = getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080";
+        const apiUrl = getEnv("NEXT_PUBLIC_API_URL") || "";
         const now = new Date().toISOString();
 
         const res = await fetchWithAuth(`${apiUrl}/api/${patientId}/encounters`, {

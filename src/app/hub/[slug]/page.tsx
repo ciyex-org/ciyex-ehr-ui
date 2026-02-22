@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
-const MARKETPLACE_BASE = () => (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "http://localhost:8081").replace(/\/$/, "");
+const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+const MARKETPLACE_BASE = () => (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
 
 interface AppDetail {
     id: string;

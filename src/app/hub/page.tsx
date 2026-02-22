@@ -10,8 +10,8 @@ import { Store, Search, Loader2, Package, GitCompareArrows, X, Code2 } from "luc
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
-const MARKETPLACE_BASE = () => (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "http://localhost:8081").replace(/\/$/, "");
+const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+const MARKETPLACE_BASE = () => (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
 
 interface MarketplaceApp {
     id: string;

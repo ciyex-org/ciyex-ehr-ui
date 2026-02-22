@@ -5,7 +5,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Save, Loader2, CheckCircle } from "lucide-react";
 
-const METADATA_API_BASE = (getEnv("NEXT_PUBLIC_METADATA_URL") || "http://localhost:8081").replace(/\/$/, "");
+const METADATA_API_BASE = () => (getEnv("NEXT_PUBLIC_METADATA_URL") || "").replace(/\/$/, "");
 
 interface FormField {
     name: string;
@@ -50,7 +50,7 @@ export default function CustomFormTab({ tabId, patientId, formSchema, tabLabel }
         const fetchData = async () => {
             try {
                 const res = await fetchWithAuth(
-                    `${METADATA_API_BASE}/api/tab-config/custom-tabs/${tabId}/patients/${patientId}/data`
+                    `${METADATA_API_BASE()}/api/tab-config/custom-tabs/${tabId}/patients/${patientId}/data`
                 );
                 if (res.ok && res.status !== 204) {
                     const data = await res.json();
@@ -75,7 +75,7 @@ export default function CustomFormTab({ tabId, patientId, formSchema, tabLabel }
         setSaving(true);
         try {
             const res = await fetchWithAuth(
-                `${METADATA_API_BASE}/api/tab-config/custom-tabs/${tabId}/patients/${patientId}/data`,
+                `${METADATA_API_BASE()}/api/tab-config/custom-tabs/${tabId}/patients/${patientId}/data`,
                 {
                     method: "PUT",
                     body: JSON.stringify({

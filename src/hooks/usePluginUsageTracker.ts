@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 
-const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "http://localhost:8080").replace(/\/$/, "");
+const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
 /** Batches usage events and sends them periodically to avoid excessive API calls */
 let eventBuffer: UsageEvent[] = [];
