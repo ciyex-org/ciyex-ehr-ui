@@ -57,7 +57,7 @@ export interface PrescriptionStats {
   active: number;
   completed: number;
   cancelled: number;
-  onHold: number;
+  on_hold: number;
   discontinued: number;
 }
 

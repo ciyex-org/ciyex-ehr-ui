@@ -61,7 +61,10 @@ function KioskConfigPanel({ showToast }: { showToast: (t: ToastState) => void })
       try {
         const res = await fetchWithAuth(`${API()}/api/kiosk/config`);
         const json = await res.json();
-        if (res.ok && json.success && json.data) setConfig(json.data);
+        if (res.ok && json.success && json.data) setConfig({
+          ...json.data,
+          config: json.data.config ?? { verify_dob: true, verify_phone: false, update_demographics: true, update_insurance: true, sign_consent: true, collect_copay: false, show_wait_time: true },
+        });
       } catch { /* use defaults */ }
       finally { setLoading(false); }
     })();

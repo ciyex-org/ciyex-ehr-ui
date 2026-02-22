@@ -246,7 +246,7 @@ function DeleteModal({
 export default function PrescriptionsPage() {
   /* State */
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [stats, setStats] = useState<PrescriptionStats>({ active: 0, completed: 0, cancelled: 0, onHold: 0, discontinued: 0 });
+  const [stats, setStats] = useState<PrescriptionStats>({ active: 0, completed: 0, cancelled: 0, on_hold: 0, discontinued: 0 });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(20);
@@ -417,13 +417,13 @@ export default function PrescriptionsPage() {
   };
 
   /* Stat counts for tabs */
-  const totalAll = stats.active + stats.completed + stats.cancelled + stats.onHold + stats.discontinued;
+  const totalAll = stats.active + stats.completed + stats.cancelled + stats.on_hold + stats.discontinued;
   const tabCountMap: Record<string, number> = {
     all: totalAll,
     active: stats.active,
     completed: stats.completed,
     cancelled: stats.cancelled,
-    on_hold: stats.onHold,
+    on_hold: stats.on_hold,
     discontinued: stats.discontinued,
   };
 

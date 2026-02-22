@@ -20,7 +20,7 @@ const STAT_CARDS: {
   { key: "active", statusKey: "active", label: "Active", icon: <Pill className="w-4 h-4" />, color: "text-blue-600 dark:text-blue-400" },
   { key: "completed", statusKey: "completed", label: "Completed", icon: <CheckCircle2 className="w-4 h-4" />, color: "text-green-600 dark:text-green-400" },
   { key: "cancelled", statusKey: "cancelled", label: "Cancelled", icon: <XCircle className="w-4 h-4" />, color: "text-gray-500 dark:text-gray-400" },
-  { key: "onHold", statusKey: "on_hold", label: "On Hold", icon: <PauseCircle className="w-4 h-4" />, color: "text-amber-600 dark:text-amber-400" },
+  { key: "on_hold", statusKey: "on_hold", label: "On Hold", icon: <PauseCircle className="w-4 h-4" />, color: "text-amber-600 dark:text-amber-400" },
   { key: "discontinued", statusKey: "discontinued", label: "Discontinued", icon: <Ban className="w-4 h-4" />, color: "text-red-600 dark:text-red-400" },
 ];
 
