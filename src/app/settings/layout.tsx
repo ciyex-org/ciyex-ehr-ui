@@ -3,12 +3,13 @@
 import React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AdminLayout from "@/app/(admin)/layout";
-import { LayoutDashboard, Menu, ClipboardList, Settings } from "lucide-react";
+import { LayoutDashboard, Menu, ClipboardList, Settings, Globe } from "lucide-react";
 
 const LAYOUT_SETTINGS_NAV = [
     { href: "/settings/layout-settings", label: "Chart", icon: LayoutDashboard },
     { href: "/settings/menu-configuration", label: "Menu", icon: Menu },
     { href: "/settings/encounter-settings", label: "Encounter", icon: ClipboardList },
+    { href: "/settings/portal-settings", label: "Portal", icon: Globe },
     { href: "/settings/layout-settings/config/settings", label: "Settings", icon: Settings },
 ];
 
@@ -20,7 +21,9 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     const router = useRouter();
 
     const showSidebar = LAYOUT_PAGES.some((p) =>
-        p === pathname || (p === "/settings/layout-settings" && pathname.startsWith("/settings/layout-settings"))
+        p === pathname ||
+        (p === "/settings/layout-settings" && pathname.startsWith("/settings/layout-settings")) ||
+        (p === "/settings/portal-settings" && pathname.startsWith("/settings/portal-settings"))
     );
 
     return (
@@ -36,7 +39,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                         <nav className="p-1.5 space-y-0.5">
                             {LAYOUT_SETTINGS_NAV.map(({ href, label, icon: Icon }) => {
                                 const isActive = href === pathname ||
-                                    (href === "/settings/layout-settings" && pathname.startsWith("/settings/layout-settings") && !pathname.startsWith("/settings/layout-settings/config/settings"));
+                                    (href === "/settings/layout-settings" && pathname.startsWith("/settings/layout-settings") && !pathname.startsWith("/settings/layout-settings/config/settings")) ||
+                                    (href === "/settings/portal-settings" && pathname.startsWith("/settings/portal-settings"));
                                 return (
                                     <button
                                         key={href}

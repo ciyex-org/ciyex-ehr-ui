@@ -277,6 +277,8 @@ interface FieldConfigEditorProps {
   showNotif: (type: "success" | "error", message: string) => void;
   /** Hide the tab selector header — used when editing a single page config */
   hideTabSelector?: boolean;
+  /** Hide save/reset buttons — used when parent controls saving */
+  hideSaveButton?: boolean;
 }
 
 export default function FieldConfigEditor({
@@ -287,6 +289,7 @@ export default function FieldConfigEditor({
   previewFormData, setPreviewFormData,
   saving, setSaving, showNotif,
   hideTabSelector = false,
+  hideSaveButton = false,
 }: FieldConfigEditorProps) {
 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -728,20 +731,24 @@ export default function FieldConfigEditor({
                 {fieldConfigPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 {fieldConfigPreview ? "Edit Mode" : "Preview"}
               </button>
-              <button
-                onClick={handleReset}
-                disabled={saving}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
-              >
-                <RotateCcw className="w-4 h-4" /> Reset
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save"}
-              </button>
+              {!hideSaveButton && (
+                <>
+                  <button
+                    onClick={handleReset}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Reset
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save"}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
