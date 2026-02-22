@@ -1,297 +1,209 @@
 "use client";
 
-import { getEnv } from "@/utils/env";
 import React, { useEffect, useState } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 
+const API = getEnv("NEXT_PUBLIC_API_URL")!;
 
+/* ---------- inline helpers ---------- */
 
-/** UI primitives */
 function Panel({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
-    return (
-        <div
-            className={`rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none ${className}`}
-        >
-            {title && (
-                <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                    <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300">{title}</h3>
-                </div>
-            )}
-            <div className="p-4">{children}</div>
+  return (
+    <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 ${className}`}>
+      {title && (
+        <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+          <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300">{title}</h3>
         </div>
-    );
+      )}
+      <div className="p-4">{children}</div>
+    </div>
+  );
 }
 
-function Pill({
-                  children,
-                  tone = "neutral" as const,
-              }: {
-    children: React.ReactNode;
-    tone?: "neutral" | "warn" | "ok" | "danger";
-}) {
-    const map: Record<string, string> = {
-        neutral: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-        warn: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200",
-        ok: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200",
-        danger: "bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200",
-    };
-    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ${map[tone]}`}>{children}</span>;
+function MetricCard({ title, value, color }: { title: string; value: string | number; color?: string }) {
+  const ring = color ? `border-l-4 border-l-${color}-500` : "";
+  return (
+    <Panel className={ring}>
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">{title}</p>
+      <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
+    </Panel>
+  );
 }
 
-function SimpleBarChart<T extends Record<string, unknown>>({
-                                                               data,
-                                                               valueKey,
-                                                               labelKey,
-                                                           }: {
-    data: T[];
-    valueKey: keyof T & string;
-    labelKey: keyof T & string;
-}) {
-    const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0), 1);
-
-    return (
-        <div className="space-y-3">
-            {data.map((d, i) => {
-                const v = Number(d[valueKey]) || 0;
-                const pct = Math.round((v / max) * 100);
-                return (
-                    <div key={i}>
-                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                            <span>{String(d[labelKey])}</span>
-                            <span className="tabular-nums">{v}</span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                            <div className="h-full bg-indigo-500" style={{ width: `${pct}%` }} />
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
+function SimpleBarChart({ data, labelKey, valueKey }: { data: Record<string, unknown>[]; labelKey: string; valueKey: string }) {
+  const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0), 1);
+  return (
+    <div className="space-y-3">
+      {data.map((d, i) => {
+        const v = Number(d[valueKey]) || 0;
+        const pct = Math.round((v / max) * 100);
+        return (
+          <div key={i}>
+            <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span>{String(d[labelKey])}</span>
+              <span className="tabular-nums">{v}</span>
+            </div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
-function MetricCard({
-                        title,
-                        value,
-                        subtext,
-                        tone,
-                    }: {
-    title: string;
-    value: string;
-    subtext?: string;
-    tone?: "warn" | "ok";
-}) {
-    return (
-        <Panel>
-            <div className="text-sm text-slate-500 dark:text-slate-400">{title}</div>
-            <div className="mt-1 text-3xl font-semibold text-slate-900 dark:text-slate-100">{value}</div>
-            {subtext && (
-                <div className={`mt-1 text-xs ${tone === "warn" ? "text-amber-600" : "text-slate-500 dark:text-slate-400"}`}>
-                    {subtext}
-                </div>
-            )}
-        </Panel>
-    );
+/* ---------- types ---------- */
+
+interface LowStockItem {
+  name: string;
+  sku: string;
+  stockOnHand: number;
+  minStock: number;
+  supplierName: string;
 }
 
-const API_URL = getEnv("NEXT_PUBLIC_API_URL")!;
+interface DashboardData {
+  totalItems: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  pendingOrders: number;
+  totalValue: number;
+  expiringWithin30Days: number;
+  overdueMaintenanceTasks: number;
+  lowStockItems: LowStockItem[];
+  categoryBreakdown: Record<string, unknown>[];
+}
 
-/** Component */
+/* ---------- component ---------- */
+
 export default function Dashboard() {
-    const [stats, setStats] = useState({
-        totalSkus: 0,
-        lowCritical: 0,
-        pendingOrders: 0,
-        suppliers: 0,
-        ordersByMonth: [] as { month: string; value: number }[],
-        stockHealth: { adequate: 0, low: 0, critical: 0 },
-    });
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [supplierCount, setSupplierCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-    const [alertItems, setAlertItems] = useState<{
-        critical: string[];
-        low: string[];
-    }>({ critical: [], low: [] });
+  useEffect(() => {
+    (async () => {
+      try {
+        const [dashRes, suppRes] = await Promise.all([
+          fetchWithAuth(`${API}/api/inventory/dashboard`),
+          fetchWithAuth(`${API}/api/suppliers/count`),
+        ]);
+        const dash = await dashRes.json();
+        const supp = await suppRes.json();
+        if (dash.success) setData(dash.data);
+        if (supp.success) setSupplierCount(supp.data ?? 0);
+      } catch (e) {
+        console.error("Dashboard fetch failed", e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
-    const [criticalLowPercentage, setCriticalLowPercentage] = useState(10);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const [skuRes, lowRes, pendingRes, suppRes, monthlyRes, settingsRes, inventoryRes] = await Promise.all([
-                    fetchWithAuth(`${API_URL}/api/inventory/count`),
-                    fetchWithAuth(`${API_URL}/api/inventory/low-critical`),
-                    fetchWithAuth(`${API_URL}/api/orders/pending/count`),
-                    fetchWithAuth(`${API_URL}/api/suppliers/count`),
-                    fetchWithAuth(`${API_URL}/api/inventory/records/monthly-orders`),
-                    fetchWithAuth(`${API_URL}/api/inventory-settings`),
-                    fetchWithAuth(`${API_URL}/api/inventory/list`),
-                ]);
-
-                // Safe JSON parsing with text fallback
-                const safeJson = async (res: Response) => {
-                    const text = await res.text();
-                    if (!text) return {};
-                    try {
-                        return JSON.parse(text);
-                    } catch {
-                        return {};
-                    }
-                };
-
-                const [sku, low, pending, supp, monthly, settings, inventory] = await Promise.all([
-                    safeJson(skuRes),
-                    safeJson(lowRes),
-                    safeJson(pendingRes),
-                    safeJson(suppRes),
-                    safeJson(monthlyRes),
-                    safeJson(settingsRes),
-                    safeJson(inventoryRes),
-                ]);
-
-                const lowCount = low.data?.low ?? 0;
-                const critical = low.data?.critical ?? 0;
-                const total = sku.data ?? 1;
-                const adequate = Math.max(total - (lowCount + critical), 0);
-
-                // Get critical threshold from settings
-                const threshold = settings.data?.criticalLowPercentage ?? 10;
-                const alertsEnabled = settings.data?.lowStockAlerts ?? true; // Default to TRUE
-                setCriticalLowPercentage(threshold);
-
-                // Process inventory items for alerts
-                const criticalItems: string[] = [];
-                const lowItems: string[] = [];
-
-                if (inventory.success && Array.isArray(inventory.data)) {
-                    inventory.data.forEach((item: any) => {
-                        const stock = item.stock || 0;
-                        const minStock = item.minStock || 0;
-                        const percent = minStock > 0 ? (stock / minStock) * 100 : 100;
-
-                        if (stock === 0 || (alertsEnabled && minStock > 0 && percent <= threshold)) {
-                            criticalItems.push(item.name);
-                        } else if (alertsEnabled && minStock > 0 && stock <= minStock) {
-                            lowItems.push(item.name);
-                        }
-                    });
-                }
-
-                setAlertItems({ critical: criticalItems, low: lowItems });
-
-                setStats({
-                    totalSkus: sku.data ?? 0,
-                    lowCritical: lowCount + critical,
-                    pendingOrders: pending.data ?? 0,
-                    suppliers: supp.data ?? 0,
-                    ordersByMonth: Array.isArray(monthly.data)
-                        ? (monthly.data as { month: string; value: number }[]).map((m) => ({
-                            month: m.month,
-                            value: m.value,
-                        }))
-                        : [],
-                    stockHealth: {
-                        adequate: Math.round((adequate / total) * 100),
-                        low: Math.round((lowCount / total) * 100),
-                        critical: Math.round((critical / total) * 100),
-                    },
-                });
-            } catch (err) {
-                console.error("Failed to load dashboard stats", err);
-            }
-        })();
-    }, []);
-
+  if (loading) {
     return (
-        <AdminLayout>
-            <div className="p-1">
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                    Track stock, purchase orders, suppliers, and equipment upkeep.
-                </p>
-            </div>
-
-            <div className="space-y-6">
-                {/* Alert Summary Card */}
-                {(alertItems.critical.length > 0 || alertItems.low.length > 0) && (
-                    <Panel className="border-l-4 border-l-red-500">
-                        <div className="flex items-start gap-3">
-                            <div className="text-red-500">
-                                🚨
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-semibold text-red-700 dark:text-red-400">
-                                    Inventory Alerts
-                                </h3>
-                                <div className="mt-2 space-y-1 text-sm">
-                                    {alertItems.critical.length > 0 && (
-                                        <div className="text-red-600 dark:text-red-400">
-                                            <strong>{alertItems.critical.length} item{alertItems.critical.length > 1 ? 's' : ''} critically low:</strong>
-                                            <div className="mt-1">
-                                                {alertItems.critical.slice(0, 3).join(", ")}
-                                                {alertItems.critical.length > 3 && ` and ${alertItems.critical.length - 3} more`}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {alertItems.low.length > 0 && (
-                                        <div className="text-amber-600 dark:text-amber-400">
-                                            <strong>{alertItems.low.length} item{alertItems.low.length > 1 ? 's' : ''} need restock:</strong>
-                                            <div className="mt-1">
-                                                {alertItems.low.slice(0, 3).join(", ")}
-                                                {alertItems.low.length > 3 && ` and ${alertItems.low.length - 3} more`}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="mt-3">
-                                    <a 
-                                        href="/inventory-management/inventory" 
-                                        className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                                    >
-                                        View Inventory → 
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </Panel>
-                )}
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <MetricCard title="Total SKUs" value={String(stats.totalSkus)} subtext="Tracked items" />
-                    <a href="/inventory-management/inventory" className="block hover:opacity-80 transition-opacity">
-                        <MetricCard title="Low / Critical" value={String(stats.lowCritical)} subtext="Needs restock" tone="warn" />
-                    </a>
-                    <MetricCard title="Pending Orders" value={String(stats.pendingOrders)} subtext="Awaiting receipt" />
-                    <MetricCard title="Suppliers" value={String(stats.suppliers)} subtext="Active partners" />
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <Panel title="Orders (Last 6 Months)" className="lg:col-span-2">
-                        <SimpleBarChart data={stats.ordersByMonth} valueKey="value" labelKey="month" />
-                        <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-                            Numbers represent order count per month.
-                        </div>
-                    </Panel>
-
-                    <Panel title="Stock Health">
-                        <div className="space-y-2">
-                            {Object.entries(stats.stockHealth).map(([label, value]) => (
-                                <div key={label} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                    <span
-                        className={`inline-block h-2 w-2 rounded-full ${
-                            label === "critical" ? "bg-rose-500" : label === "low" ? "bg-amber-500" : "bg-indigo-500"
-                        }`}
-                    />
-                                        <span className="text-sm capitalize text-slate-600 dark:text-slate-300">{label}</span>
-                                    </div>
-                                    <Pill>{value}%</Pill>
-                                </div>
-                            ))}
-                        </div>
-                    </Panel>
-                </div>
-            </div>
-        </AdminLayout>
-        
+      <AdminLayout>
+        <div className="flex h-64 items-center justify-center text-slate-400">Loading dashboard...</div>
+      </AdminLayout>
     );
+  }
+
+  if (!data) {
+    return (
+      <AdminLayout>
+        <div className="flex h-64 items-center justify-center text-red-400">Failed to load dashboard data.</div>
+      </AdminLayout>
+    );
+  }
+
+  const fmtCurrency = (v: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(v);
+
+  return (
+    <AdminLayout>
+      <div className="space-y-6 p-1">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Track stock, purchase orders, suppliers, and equipment upkeep.
+        </p>
+
+        {/* Alert banner */}
+        {data.lowStockItems.length > 0 && (
+          <Panel className="border-l-4 border-l-red-500">
+            <div className="flex items-start gap-3">
+              <span className="text-lg text-red-500">!</span>
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-700 dark:text-red-400">Low Stock Alerts</h3>
+                <p className="mt-1 text-sm text-red-600 dark:text-red-300">
+                  {data.lowStockItems.length} item{data.lowStockItems.length > 1 ? "s" : ""} below minimum:{" "}
+                  {data.lowStockItems
+                    .slice(0, 3)
+                    .map((i) => i.name)
+                    .join(", ")}
+                  {data.lowStockItems.length > 3 && ` and ${data.lowStockItems.length - 3} more`}
+                </p>
+                <a href="/inventory-management/inventory" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                  View Inventory &rarr;
+                </a>
+              </div>
+            </div>
+          </Panel>
+        )}
+
+        {/* KPI cards */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <MetricCard title="Total Items" value={data.totalItems} />
+          <MetricCard title="Low Stock" value={data.lowStockCount} color="amber" />
+          <MetricCard title="Out of Stock" value={data.outOfStockCount} color="red" />
+          <MetricCard title="Pending Orders" value={data.pendingOrders} />
+          <MetricCard title="Total Value" value={fmtCurrency(data.totalValue)} />
+          <MetricCard title="Expiring (30d)" value={data.expiringWithin30Days} />
+          <MetricCard title="Overdue Maint." value={data.overdueMaintenanceTasks} color="red" />
+          <MetricCard title="Active Suppliers" value={supplierCount} />
+        </div>
+
+        {/* Bottom panels */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Category breakdown */}
+          {data.categoryBreakdown.length > 0 && (
+            <Panel title="Category Breakdown">
+              <SimpleBarChart data={data.categoryBreakdown} labelKey="category" valueKey="count" />
+            </Panel>
+          )}
+
+          {/* Low stock table */}
+          {data.lowStockItems.length > 0 && (
+            <Panel title="Low Stock Items">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                      <th className="pb-2 pr-4">Name</th>
+                      <th className="pb-2 pr-4">SKU</th>
+                      <th className="pb-2 pr-4 text-right">Stock</th>
+                      <th className="pb-2 pr-4 text-right">Min</th>
+                      <th className="pb-2">Supplier</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.lowStockItems.map((item, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 dark:border-slate-800">
+                        <td className="py-2 pr-4 font-medium text-slate-800 dark:text-slate-200">{item.name}</td>
+                        <td className="py-2 pr-4 text-slate-500 dark:text-slate-400">{item.sku}</td>
+                        <td className="py-2 pr-4 text-right font-mono text-red-600 dark:text-red-400">{item.stockOnHand}</td>
+                        <td className="py-2 pr-4 text-right font-mono text-slate-500 dark:text-slate-400">{item.minStock}</td>
+                        <td className="py-2 text-slate-500 dark:text-slate-400">{item.supplierName || "---"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          )}
+        </div>
+      </div>
+    </AdminLayout>
+  );
 }

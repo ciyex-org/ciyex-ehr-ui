@@ -1,6 +1,7 @@
 "use client";
-import CreateOrderForm from "@/components/inventory-management/Orders/CreateOrderForm";
+import { redirect } from "next/navigation";
 
+// Order creation is now handled via the modal in Orders.tsx
 export default function Page() {
-    return <CreateOrderForm />;
+    redirect("/inventory-management/orders");
 }

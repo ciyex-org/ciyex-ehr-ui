@@ -1,282 +1,238 @@
 "use client";
 
 import { getEnv } from "@/utils/env";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import AdminLayout from "@/app/(admin)/layout";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import Button from "@/components/ui/button/Button";
-import Label from "@/components/form/Label";
 import { Input } from "@/components/ui/input";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
-const API_URL = getEnv("NEXT_PUBLIC_API_URL")!;
+const API = getEnv("NEXT_PUBLIC_API_URL")!;
 
-type WeeklyRecord = {
-    day?: string;
-    label?: string;
-    stock?: number;
-    value?: number;
+type Item = { id: number; name: string; category: string; stock: number; unit: string };
+type Adjustment = {
+  id: number; itemId: number; itemName: string; quantityChange: number;
+  reasonCode: string; notes: string; adjustedBy: string;
+  referenceType: string; referenceId: number; createdAt: string;
+};
+type Waste = {
+  id: number; itemId: number; itemName: string; quantity: number;
+  reasonCode: string; notes: string; loggedBy: string; createdAt: string;
 };
 
-type MonthlyRecord = {
-    month?: string;
-    label?: string;
-    count?: number;
-    value?: number;
-};
+const RECORD_TABS = ["Adjustments", "Waste Log"] as const;
+type RecordTab = (typeof RECORD_TABS)[number];
 
-type CategoryItem = {
-    id: string;
-    name: string;
-    category: string;
-    stock: number;
-    unit: string;
-};
-
-
-/** UI */
-function Panel({ title, children }: { title?: string; children: React.ReactNode }) {
-    return (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-            {title && (
-                <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                    <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300">{title}</h3>
-                </div>
-            )}
-            <div className="p-4">{children}</div>
-        </div>
-    );
+async function api<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetchWithAuth(url);
+    const text = await res.text();
+    if (!text) return null;
+    const json = JSON.parse(text);
+    return res.ok && json.success ? json.data : null;
+  } catch { return null; }
 }
 
-function SimpleBarChart<T extends Record<string, unknown>>({
-                                                               data,
-                                                               valueKey,
-                                                               labelKey,
-                                                           }: {
-    data: T[];
-    valueKey: keyof T & string;
-    labelKey: keyof T & string;
-}) {
-    const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0), 1);
-
-    return (
-        <div className="space-y-3">
-            {data.map((d, i) => {
-                const v = Number(d[valueKey]) || 0;
-                const pct = Math.round((v / max) * 100);
-                return (
-                    <div key={i}>
-                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                            <span>{String(d[labelKey])}</span>
-                            <span className="tabular-nums">{v}</span>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                            <div className="h-full bg-indigo-500" style={{ width: `${pct}%` }} />
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
+function Badge({ text, color }: { text: string; color: string }) {
+  return <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>{text}</span>;
 }
 
-/** Component */
+function reasonBadge(code: string) {
+  const map: Record<string, string> = {
+    received: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+    consumed: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    damaged: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    expired: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    returned: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    correction: "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
+  };
+  return <Badge text={code} color={map[code] || "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"} />;
+}
+
+function formatDate(iso: string) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    + " " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function Records() {
-    const [weekly, setWeekly] = useState<{ label: string; value: number }[]>([]);
-    const [monthly, setMonthly] = useState<{ label: string; value: number }[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
-    const [categories, setCategories] = useState<string[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<string>("All");
-    const [categoryItems, setCategoryItems] = useState<CategoryItem[]>([]);
-    const [showItems, setShowItems] = useState(false);
+  const [items, setItems] = useState<Item[]>([]);
+  const [search, setSearch] = useState("");
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [tab, setTab] = useState<RecordTab>("Adjustments");
+  const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
+  const [waste, setWaste] = useState<Waste[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [recordLoading, setRecordLoading] = useState(false);
 
-    // ✅ Safe JSON helper
-    async function safeJson(res: Response) {
-        const text = await res.text();
-        if (!text) return null;
-        try {
-            return JSON.parse(text);
-        } catch (err) {
-            console.error("Invalid JSON:", err);
-            return null;
-        }
-    }
+  useEffect(() => {
+    (async () => {
+      const data = await api<Item[]>(`${API}/api/inventory/list`);
+      if (data) setItems(data);
+      setLoading(false);
+    })();
+  }, []);
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const [weeklyRes, monthlyRes, categoriesRes, inventoryRes] = await Promise.all([
-                    fetchWithAuth(`${API_URL}/api/inventory/records/weekly-consumption`),
-                    fetchWithAuth(`${API_URL}/api/inventory/records/monthly-orders`),
-                    fetchWithAuth(`${API_URL}/api/list-options/list/inventorytype`),
-                    fetchWithAuth(`${API_URL}/api/inventory/list`),
-                ]);
+  const loadRecords = useCallback(async (itemId: number) => {
+    setRecordLoading(true);
+    const [adj, w] = await Promise.all([
+      api<Adjustment[]>(`${API}/api/inventory/${itemId}/adjustments`),
+      api<Waste[]>(`${API}/api/inventory/${itemId}/waste`),
+    ]);
+    setAdjustments(adj || []);
+    setWaste(w || []);
+    setRecordLoading(false);
+  }, []);
 
-                const weeklyJson = await safeJson(weeklyRes);
-                const monthlyJson = await safeJson(monthlyRes);
-                const categoriesJson = await safeJson(categoriesRes);
-                const inventoryJson = await safeJson(inventoryRes);
+  function selectItem(item: Item) {
+    setSelectedItem(item);
+    setTab("Adjustments");
+    loadRecords(item.id);
+  }
 
-                setWeekly(
-                    (weeklyJson?.data as WeeklyRecord[] || []).map((d) => ({
-                        label: d.day || d.label || "N/A",
-                        value: d.stock || d.value || 0,
-                    }))
-                );
+  const filtered = items.filter((i) =>
+    i.name.toLowerCase().includes(search.toLowerCase()) || i.category?.toLowerCase().includes(search.toLowerCase())
+  );
 
-                setMonthly(
-                    (monthlyJson?.data as MonthlyRecord[] || []).map((d) => ({
-                        label: d.month || d.label || "N/A",
-                        value: d.count || d.value || 0,
-                    }))
-                );
+  return (
+    <AdminLayout>
+      <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+        View stock adjustment history and waste logs per item.
+      </p>
 
-                // Load categories from API or extract from inventory
-                let cats: string[] = [];
-                if (Array.isArray(categoriesJson)) {
-                    cats = categoriesJson.map((c: any) => c.title || c.name || c.value).filter(Boolean);
-                }
-                
-                // Fallback: extract unique categories from inventory
-                if (cats.length === 0 && inventoryJson?.success && Array.isArray(inventoryJson.data)) {
-                    const uniqueCats = [...new Set(inventoryJson.data.map((item: any) => item.category).filter(Boolean))];
-                    cats = uniqueCats as string[];
-                }
-                
-                setCategories(cats);
-            } catch (e) {
-                console.error("Error loading records", e);
-            } finally {
-                setLoading(false);
-            }
-        })();
-    }, []);
-
-    async function loadCategoryItems() {
-        try {
-            const res = await fetchWithAuth(`${API_URL}/api/inventory/list`);
-            const json = await safeJson(res);
-            if (json?.success && Array.isArray(json.data)) {
-                const items = json.data.map((d: any) => ({
-                    id: String(d.id),
-                    name: d.name,
-                    category: d.category,
-                    stock: d.stock,
-                    unit: d.unit,
-                }));
-                setCategoryItems(
-                    selectedCategory === "All"
-                        ? items
-                        : items.filter((i: CategoryItem) => i.category === selectedCategory)
-                );
-            }
-        } catch (e) {
-            console.error("Error loading category items", e);
-        }
-    }
-
-    return (
-        <AdminLayout>
-            <div className="text-2xl font-semibold text-slate-900 dark:text-slate-100"></div>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Maintain records of past stock movements and audit history.
-            </p>
-
-            {loading ? (
-                <p className="mt-4 text-slate-500 dark:text-slate-400">Loading...</p>
-            ) : (
-                <>
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mt-4">
-                        <Panel title="Weekly Stock Consumption">
-                            <SimpleBarChart data={weekly} valueKey="value" labelKey="label" />
-                        </Panel>
-                        <Panel title="Monthly Orders (count)">
-                            <SimpleBarChart data={monthly} valueKey="value" labelKey="label" />
-                        </Panel>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Item Selector */}
+        <div className="lg:col-span-4">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div className="border-b border-slate-200 p-3 dark:border-slate-700">
+              <Input placeholder="Search items..." value={search}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                className="dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
+            </div>
+            <div className="max-h-105 overflow-y-auto">
+              {loading ? (
+                <p className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading items...</p>
+              ) : filtered.length === 0 ? (
+                <p className="p-4 text-sm text-slate-500 dark:text-slate-400 text-center">No items found.</p>
+              ) : (
+                filtered.map((item) => (
+                  <button key={item.id} onClick={() => selectItem(item)}
+                    className={`w-full text-left px-4 py-3 border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800 ${
+                      selectedItem?.id === item.id ? "bg-indigo-50 dark:bg-indigo-900/20" : ""}`}>
+                    <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{item.name}</div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{item.category}</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">|</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{item.stock} {item.unit}</span>
                     </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
 
-                    {/* Monthly Records Section */}
-                    <div className="mt-6">
-                        <Panel title="Monthly Records">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div>
-                                    <Label className="text-sm">Select Month</Label>
-                                    <Input
-                                        type="month"
-                                        value={selectedMonth}
-                                        onChange={(e) => setSelectedMonth(e.target.value)}
-                                        className="w-48"
-                                    />
-                                </div>
-                                <div>
-                                    <Label className="text-sm">Category</Label>
-                                    <select
-                                        value={selectedCategory}
-                                        onChange={(e) => setSelectedCategory(e.target.value)}
-                                        className="h-10 w-48 rounded-md border border-slate-300 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-900"
-                                    >
-                                        <option value="All">All Categories</option>
-                                        {categories.map((cat) => (
-                                            <option key={cat} value={cat}>
-                                                {cat}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="mt-6">
-                                    <Button
-                                        onClick={() => {
-                                            setShowItems(true);
-                                            loadCategoryItems();
-                                        }}
-                                        className="bg-blue-600 text-white hover:bg-blue-700"
-                                    >
-                                        View Items
-                                    </Button>
-                                </div>
-                            </div>
+        {/* Records Panel */}
+        <div className="lg:col-span-8">
+          {!selectedItem ? (
+            <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-700">
+              <p className="text-sm text-slate-500 dark:text-slate-400">Select an item to view its records.</p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+              {/* Item header */}
+              <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{selectedItem.name}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedItem.category} -- Stock: {selectedItem.stock} {selectedItem.unit}</p>
+              </div>
 
-                            {showItems && (
-                                <div className="mt-4">
-                                    <h4 className="text-sm font-medium mb-3">
-                                        Items for {selectedMonth} - {selectedCategory}
-                                    </h4>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-slate-100 dark:bg-slate-800">
-                                                <tr>
-                                                    <th className="px-4 py-2 text-left">Item Name</th>
-                                                    <th className="px-4 py-2 text-left">Category</th>
-                                                    <th className="px-4 py-2 text-right">Stock</th>
-                                                    <th className="px-4 py-2 text-left">Unit</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {categoryItems.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={4} className="px-4 py-3 text-center text-slate-500">
-                                                            No items found
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    categoryItems.map((item) => (
-                                                        <tr key={item.id} className="border-b dark:border-slate-700">
-                                                            <td className="px-4 py-3">{item.name}</td>
-                                                            <td className="px-4 py-3">{item.category}</td>
-                                                            <td className="px-4 py-3 text-right">{item.stock}</td>
-                                                            <td className="px-4 py-3">{item.unit}</td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-                        </Panel>
+              {/* Sub-tabs */}
+              <div className="flex gap-1 border-b border-slate-200 px-4 pt-2 dark:border-slate-700">
+                {RECORD_TABS.map((t) => (
+                  <button key={t} onClick={() => setTab(t)}
+                    className={`px-3 py-2 text-sm font-medium border-b-2 transition ${
+                      tab === t ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+                        : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400"}`}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* Content */}
+              <div className="p-4">
+                {recordLoading ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 py-8 text-center">Loading records...</p>
+                ) : tab === "Adjustments" ? (
+                  adjustments.length === 0 ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 py-8 text-center">No adjustments recorded.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-800">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">Date</th>
+                            <th className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">Qty</th>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">Reason</th>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">Notes</th>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">By</th>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">Ref</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {adjustments.map((a) => (
+                            <tr key={a.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                              <td className="px-3 py-2 text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatDate(a.createdAt)}</td>
+                              <td className={`px-3 py-2 text-right font-semibold tabular-nums whitespace-nowrap ${
+                                a.quantityChange > 0 ? "text-green-600 dark:text-green-400" : a.quantityChange < 0 ? "text-red-600 dark:text-red-400" : "text-slate-500"}`}>
+                                {a.quantityChange > 0 ? "+" : ""}{a.quantityChange}
+                              </td>
+                              <td className="px-3 py-2">{reasonBadge(a.reasonCode)}</td>
+                              <td className="px-3 py-2 text-slate-600 dark:text-slate-400 max-w-45 truncate">{a.notes || "-"}</td>
+                              <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{a.adjustedBy || "-"}</td>
+                              <td className="px-3 py-2 text-slate-500 dark:text-slate-400 text-xs whitespace-nowrap">
+                                {a.referenceType ? `${a.referenceType}#${a.referenceId}` : "-"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                </>
-            )}
-        </AdminLayout>
-    );
+                  )
+                ) : (
+                  waste.length === 0 ? (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 py-8 text-center">No waste entries recorded.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-800">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">Date</th>
+                            <th className="px-3 py-2 text-right text-slate-600 dark:text-slate-300">Qty</th>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">Reason</th>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">Notes</th>
+                            <th className="px-3 py-2 text-left text-slate-600 dark:text-slate-300">By</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {waste.map((w) => (
+                            <tr key={w.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                              <td className="px-3 py-2 text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatDate(w.createdAt)}</td>
+                              <td className="px-3 py-2 text-right font-semibold tabular-nums text-red-600 dark:text-red-400">-{w.quantity}</td>
+                              <td className="px-3 py-2">{reasonBadge(w.reasonCode)}</td>
+                              <td className="px-3 py-2 text-slate-600 dark:text-slate-400 max-w-55 truncate">{w.notes || "-"}</td>
+                              <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{w.loggedBy || "-"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </AdminLayout>
+  );
 }
