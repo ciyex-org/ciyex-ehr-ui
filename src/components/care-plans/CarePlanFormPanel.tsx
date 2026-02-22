@@ -1,0 +1,476 @@
+"use client";
+
+import React, { useState } from "react";
+import {
+  X,
+  Plus,
+  Trash2,
+  Loader2,
+  Target,
+  Activity,
+} from "lucide-react";
+import {
+  CarePlan,
+  Goal,
+  Intervention,
+  EMPTY_FORM,
+  EMPTY_GOAL,
+  EMPTY_INTERVENTION,
+  CATEGORIES,
+} from "./types";
+
+type FormData = Omit<CarePlan, "id" | "createdAt" | "updatedAt">;
+
+interface Props {
+  editing: CarePlan | null;
+  onClose: () => void;
+  onSave: (data: FormData) => Promise<void>;
+}
+
+export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
+  const initial: FormData = editing
+    ? {
+        patientId: editing.patientId,
+        patientName: editing.patientName,
+        title: editing.title,
+        status: editing.status,
+        category: editing.category,
+        startDate: editing.startDate,
+        endDate: editing.endDate,
+        authorName: editing.authorName,
+        description: editing.description,
+        notes: editing.notes,
+        goals: editing.goals || [],
+        interventions: editing.interventions || [],
+      }
+    : { ...EMPTY_FORM, startDate: new Date().toISOString().split("T")[0] };
+
+  const [form, setForm] = useState<FormData>(initial);
+  const [saving, setSaving] = useState(false);
+
+  function setField<K extends keyof FormData>(key: K, val: FormData[K]) {
+    setForm((prev) => ({ ...prev, [key]: val }));
+  }
+
+  // --- Goal management in form ---
+  function addGoal() {
+    setForm((prev) => ({
+      ...prev,
+      goals: [...prev.goals, { ...EMPTY_GOAL } as Goal],
+    }));
+  }
+
+  function updateGoal(idx: number, partial: Partial<Goal>) {
+    setForm((prev) => ({
+      ...prev,
+      goals: prev.goals.map((g, i) => (i === idx ? { ...g, ...partial } : g)),
+    }));
+  }
+
+  function removeGoal(idx: number) {
+    setForm((prev) => ({
+      ...prev,
+      goals: prev.goals.filter((_, i) => i !== idx),
+    }));
+  }
+
+  // --- Intervention management in form ---
+  function addIntervention() {
+    setForm((prev) => ({
+      ...prev,
+      interventions: [
+        ...prev.interventions,
+        { ...EMPTY_INTERVENTION } as Intervention,
+      ],
+    }));
+  }
+
+  function updateIntervention(idx: number, partial: Partial<Intervention>) {
+    setForm((prev) => ({
+      ...prev,
+      interventions: prev.interventions.map((int, i) =>
+        i === idx ? { ...int, ...partial } : int
+      ),
+    }));
+  }
+
+  function removeIntervention(idx: number) {
+    setForm((prev) => ({
+      ...prev,
+      interventions: prev.interventions.filter((_, i) => i !== idx),
+    }));
+  }
+
+  async function handleSubmit() {
+    setSaving(true);
+    try {
+      await onSave(form);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputClass =
+    "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const labelClass =
+    "block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1";
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/30 dark:bg-black/50 z-40"
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <div className="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {editing ? "Edit Care Plan" : "New Care Plan"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+          {/* Basic Info */}
+          <div className="space-y-3">
+            <div>
+              <label className={labelClass}>Title *</label>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => setField("title", e.target.value)}
+                className={inputClass}
+                placeholder="Care plan title"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Patient Name</label>
+                <input
+                  type="text"
+                  value={form.patientName}
+                  onChange={(e) => setField("patientName", e.target.value)}
+                  className={inputClass}
+                  placeholder="Patient name"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Patient ID</label>
+                <input
+                  type="text"
+                  value={form.patientId}
+                  onChange={(e) => setField("patientId", e.target.value)}
+                  className={inputClass}
+                  placeholder="Patient ID"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Category</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => setField("category", e.target.value)}
+                  className={inputClass}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Status</label>
+                <select
+                  value={form.status}
+                  onChange={(e) =>
+                    setField("status", e.target.value as CarePlan["status"])
+                  }
+                  className={inputClass}
+                >
+                  <option value="draft">Draft</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                  <option value="revoked">Revoked</option>
+                  <option value="on_hold">On Hold</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Start Date</label>
+                <input
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) => setField("startDate", e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>End Date</label>
+                <input
+                  type="date"
+                  value={form.endDate}
+                  onChange={(e) => setField("endDate", e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Author Name</label>
+              <input
+                type="text"
+                value={form.authorName}
+                onChange={(e) => setField("authorName", e.target.value)}
+                className={inputClass}
+                placeholder="Author / provider name"
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Description</label>
+              <textarea
+                rows={3}
+                value={form.description}
+                onChange={(e) => setField("description", e.target.value)}
+                className={`${inputClass} resize-none`}
+                placeholder="Plan description"
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Notes</label>
+              <textarea
+                rows={2}
+                value={form.notes}
+                onChange={(e) => setField("notes", e.target.value)}
+                className={`${inputClass} resize-none`}
+                placeholder="Additional notes"
+              />
+            </div>
+          </div>
+
+          {/* Goals */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                <Target className="w-4 h-4" />
+                Goals ({form.goals.length})
+              </h3>
+              <button
+                type="button"
+                onClick={addGoal}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Goal
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {form.goals.map((goal, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Goal {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeGoal(idx)}
+                      className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Description"
+                    value={goal.description}
+                    onChange={(e) =>
+                      updateGoal(idx, { description: e.target.value })
+                    }
+                    className={inputClass}
+                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className={labelClass}>Target Date</label>
+                      <input
+                        type="date"
+                        value={goal.targetDate}
+                        onChange={(e) =>
+                          updateGoal(idx, { targetDate: e.target.value })
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Measure</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. HbA1c"
+                        value={goal.measure}
+                        onChange={(e) =>
+                          updateGoal(idx, { measure: e.target.value })
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Target Value</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 7.0"
+                        value={goal.targetValue}
+                        onChange={(e) =>
+                          updateGoal(idx, { targetValue: e.target.value })
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelClass}>Priority</label>
+                    <select
+                      value={goal.priority}
+                      onChange={(e) =>
+                        updateGoal(idx, {
+                          priority: e.target.value as Goal["priority"],
+                        })
+                      }
+                      className={inputClass}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Interventions */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                <Activity className="w-4 h-4" />
+                Interventions ({form.interventions.length})
+              </h3>
+              <button
+                type="button"
+                onClick={addIntervention}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Intervention
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {form.interventions.map((int, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Intervention {idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeIntervention(idx)}
+                      className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Description"
+                    value={int.description}
+                    onChange={(e) =>
+                      updateIntervention(idx, {
+                        description: e.target.value,
+                      })
+                    }
+                    className={inputClass}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className={labelClass}>Assigned To</label>
+                      <input
+                        type="text"
+                        placeholder="Practitioner / team"
+                        value={int.assignedTo}
+                        onChange={(e) =>
+                          updateIntervention(idx, {
+                            assignedTo: e.target.value,
+                          })
+                        }
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Frequency</label>
+                      <select
+                        value={int.frequency}
+                        onChange={(e) =>
+                          updateIntervention(idx, {
+                            frequency:
+                              e.target.value as Intervention["frequency"],
+                          })
+                        }
+                        className={inputClass}
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="as_needed">As Needed</option>
+                        <option value="once">Once</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving || !form.title}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {editing ? "Update" : "Create"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
