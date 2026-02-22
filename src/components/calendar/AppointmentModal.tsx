@@ -606,7 +606,7 @@ const AppointmentModal: React.FC = () => {
         if (locationId) dto.location = `Location/${locationId}`;
 
         try {
-            const res = await fetchWithAuth(`${apiUrl}/api/fhir-resource/appointments`, {
+            const res = await fetchWithAuth(`${apiUrl}/api/fhir-resource/appointments/patient/${selectedPatientId}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(dto),

@@ -233,11 +233,11 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <label className={labelCls}>Patient Name *</label>
-              <input className={inputCls} value={form.patientName} onChange={(e) => set("patientName", e.target.value)} placeholder="Jane Doe" />
+              <input className={inputCls} value={form.patientName} onChange={(e) => set("patientName", e.target.value)} placeholder="Enter patient name" />
             </div>
             <div>
               <label className={labelCls}>Patient ID</label>
-              <input className={inputCls} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="12345" />
+              <input className={inputCls} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="Enter patient ID" />
             </div>
             <div>
               <label className={labelCls}>Consent Type</label>
