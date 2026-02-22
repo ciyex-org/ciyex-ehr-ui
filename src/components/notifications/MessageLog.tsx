@@ -1,0 +1,336 @@
+"use client";
+
+import React, { useEffect, useState, useCallback } from "react";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import {
+  Eye,
+  Filter,
+  Mail,
+  MessageSquare,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Send,
+} from "lucide-react";
+import type { NotificationLog, NotificationStats, NotificationStatus } from "./types";
+
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: "", label: "All" },
+  { value: "queued", label: "Queued" },
+  { value: "sent", label: "Sent" },
+  { value: "delivered", label: "Delivered" },
+  { value: "failed", label: "Failed" },
+  { value: "bounced", label: "Bounced" },
+];
+
+function statusBadge(status: NotificationStatus) {
+  const map: Record<string, string> = {
+    queued: "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300",
+    sent: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    delivered: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+    failed: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+    bounced: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${map[status] || map.queued}`}
+    >
+      {status}
+    </span>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  icon,
+  color,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${color}`}>
+      {icon}
+      <div>
+        <div className="text-lg font-bold leading-tight">{value}</div>
+        <div className="text-xs opacity-70">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function MessageLog() {
+  const [logs, setLogs] = useState<NotificationLog[]>([]);
+  const [stats, setStats] = useState<NotificationStats | null>(null);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState<NotificationLog | null>(null);
+
+  /* --- load logs --- */
+  const loadLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      let url = `/api/notifications/log?page=${page}&size=20`;
+      if (statusFilter) url += `&status=${statusFilter}`;
+      const res = await fetchWithAuth(url);
+      if (res.ok) {
+        const data = await res.json();
+        setLogs(Array.isArray(data) ? data : data.content || []);
+        setTotalPages(data.totalPages || 1);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
+  }, [page, statusFilter]);
+
+  /* --- load stats --- */
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth("/api/notifications/log/stats");
+      if (res.ok) setStats(await res.json());
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+  useEffect(() => { loadStats(); }, [loadStats]);
+
+  const fmtDate = (d?: string) => {
+    if (!d) return "-";
+    return new Date(d).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  /* ====== Detail modal ====== */
+  if (detail) {
+    return (
+      <div className="h-full overflow-y-auto pr-1">
+        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-5 py-4">
+            <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+              Message Detail
+            </h3>
+            <button
+              onClick={() => setDetail(null)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <XCircle className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="p-5 space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <div><span className="text-slate-500">Channel:</span> {detail.channelType}</div>
+              <div><span className="text-slate-500">Status:</span> {statusBadge(detail.status)}</div>
+              <div><span className="text-slate-500">Recipient:</span> {detail.recipientName || detail.recipient}</div>
+              <div><span className="text-slate-500">Sent At:</span> {fmtDate(detail.sentAt)}</div>
+              {detail.patientName && (
+                <div><span className="text-slate-500">Patient:</span> {detail.patientName}</div>
+              )}
+              {detail.triggerType && (
+                <div><span className="text-slate-500">Trigger:</span> {detail.triggerType}</div>
+              )}
+              {detail.errorMessage && (
+                <div className="col-span-2 text-red-600 dark:text-red-400">
+                  <span className="text-slate-500">Error:</span> {detail.errorMessage}
+                </div>
+              )}
+            </div>
+            {detail.subject && (
+              <div>
+                <span className="text-slate-500">Subject:</span>
+                <div className="mt-1 font-medium text-slate-800 dark:text-slate-100">{detail.subject}</div>
+              </div>
+            )}
+            {detail.body && (
+              <div>
+                <span className="text-slate-500">Body:</span>
+                <div className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 p-3 text-slate-700 dark:text-slate-200">
+                  {detail.body}
+                </div>
+              </div>
+            )}
+            <button
+              onClick={() => setDetail(null)}
+              className="rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+            >
+              Back to Log
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full overflow-y-auto pr-1 space-y-4">
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <StatCard
+            label="Sent"
+            value={stats.totalSent}
+            icon={<Send className="h-5 w-5" />}
+            color="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+          />
+          <StatCard
+            label="Delivered"
+            value={stats.totalDelivered}
+            icon={<CheckCircle className="h-5 w-5" />}
+            color="border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300"
+          />
+          <StatCard
+            label="Failed"
+            value={stats.totalFailed}
+            icon={<XCircle className="h-5 w-5" />}
+            color="border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300"
+          />
+          <StatCard
+            label="Bounced"
+            value={stats.totalBounced}
+            icon={<XCircle className="h-5 w-5" />}
+            color="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+          />
+          <StatCard
+            label="Queued"
+            value={stats.totalQueued}
+            icon={<Clock className="h-5 w-5" />}
+            color="border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+          />
+        </div>
+      )}
+
+      {/* Filter bar */}
+      <div className="flex items-center gap-3">
+        <Filter className="h-4 w-4 text-slate-400" />
+        <div className="flex gap-1">
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => { setStatusFilter(f.value); setPage(0); }}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                statusFilter === f.value
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+        </div>
+      ) : logs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <Send className="h-12 w-12 mb-3" />
+          <p className="text-sm">No messages found.</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800 text-left">
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Timestamp</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Channel</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Recipient</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Subject</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Status</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Trigger</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Patient</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">View</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
+              {logs.map((log) => (
+                <tr
+                  key={log.id}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                >
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                    {fmtDate(log.sentAt)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                        log.channelType === "email"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                          : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                      }`}
+                    >
+                      {log.channelType === "email" ? (
+                        <Mail className="h-3 w-3" />
+                      ) : (
+                        <MessageSquare className="h-3 w-3" />
+                      )}
+                      {log.channelType}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
+                    {log.recipientName || log.recipient}
+                  </td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-200 max-w-[200px] truncate">
+                    {log.subject || "-"}
+                  </td>
+                  <td className="px-4 py-3">{statusBadge(log.status)}</td>
+                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400 capitalize">
+                    {log.triggerType || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
+                    {log.patientName || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => setDetail(log)}
+                      className="rounded-md p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 py-2">
+          <button
+            disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-slate-500 dark:text-slate-400">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
