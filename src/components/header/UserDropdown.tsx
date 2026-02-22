@@ -8,11 +8,13 @@ import {getInitials} from "@/utils/getInitials";
 import {useRouter} from "next/navigation";
 import SwitchPractice from "@/components/auth/SwitchPractice";
 import { getSelectedTenant } from "@/utils/tenantService";
+import FeatureRequestModal from "@/components/feature-request/FeatureRequestModal";
 
 
 export default function UserDropdown() {
     const [isOpen, setIsOpen] = useState(false);
     const [showSwitchPractice, setShowSwitchPractice] = useState(false);
+    const [showFeatureRequest, setShowFeatureRequest] = useState(false);
     const [user, setUser] = useState<{
         firstName?: string;
         lastName?: string;
@@ -178,6 +180,33 @@ export default function UserDropdown() {
                 <DropdownItem
                     onItemClick={() => {
                         closeDropdown();
+                        setShowFeatureRequest(true);
+                    }}
+                    tag="button"
+                    className="flex items-center gap-3 px-3 py-2 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="stroke-gray-500 group-hover:stroke-gray-700 dark:stroke-gray-400 dark:group-hover:stroke-gray-300"
+                    >
+                        <path d="M9 18h6" /><path d="M10 22h4" />
+                        <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+                    </svg>
+                    Request Feature
+                </DropdownItem>
+            </li>
+            <li>
+                <DropdownItem
+                    onItemClick={() => {
+                        closeDropdown();
                         setShowSwitchPractice(true);
                     }}
                     tag="button"
@@ -225,6 +254,14 @@ export default function UserDropdown() {
           Sign out
         </button>
       </Dropdown>
+
+      {/* Feature Request Modal */}
+      <FeatureRequestModal
+        open={showFeatureRequest}
+        onClose={() => setShowFeatureRequest(false)}
+        userName={user ? `${user.firstName} ${user.lastName}` : undefined}
+        userEmail={user?.email}
+      />
 
       {/* Switch Practice Modal */}
       {showSwitchPractice && (
