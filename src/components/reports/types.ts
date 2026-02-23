@@ -96,7 +96,8 @@ export type ReportCategory =
   | "operational"
   | "compliance"
   | "population"
-  | "administrative";
+  | "administrative"
+  | "ai";
 
 export interface ReportCategoryInfo {
   key: ReportCategory;
@@ -113,6 +114,7 @@ export const REPORT_CATEGORIES: ReportCategoryInfo[] = [
   { key: "compliance", label: "Compliance", icon: "ShieldCheck", color: "text-amber-600", description: "Quality measures, MIPS, immunizations" },
   { key: "population", label: "Population Health", icon: "Heart", color: "text-rose-600", description: "Risk stratification, care gaps, disease registry" },
   { key: "administrative", label: "Administrative", icon: "Settings", color: "text-slate-600", description: "Audit logs, system usage, staff productivity" },
+  { key: "ai", label: "AI Usage", icon: "Bot", color: "text-violet-600", description: "AI model usage, token costs, and performance" },
 ];
 
 /* ---- Shared filter presets ---- */

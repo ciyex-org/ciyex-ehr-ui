@@ -5,12 +5,13 @@ import dynamic from "next/dynamic";
 import AdminLayout from "@/app/(admin)/layout";
 import {
   BarChart3, Stethoscope, DollarSign, Activity, ShieldCheck, Heart, Settings,
-  ChevronRight, Search,
+  ChevronRight, Search, Bot,
 } from "lucide-react";
 import { REPORT_CATEGORIES, type ReportCategory } from "@/components/reports/types";
 import { REPORT_REGISTRY, getReportsByCategory, getReportByKey } from "@/components/reports/report-registry";
 
 const ReportShell = dynamic(() => import("@/components/reports/ReportShell"), { ssr: false });
+const AiUsageDashboard = dynamic(() => import("@/components/reports/AiUsageDashboard"), { ssr: false });
 
 /* ── Icon map ── */
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -20,6 +21,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   ShieldCheck: <ShieldCheck className="w-4 h-4" />,
   Heart: <Heart className="w-4 h-4" />,
   Settings: <Settings className="w-4 h-4" />,
+  Bot: <Bot className="w-4 h-4" />,
 };
 
 /* ── Report icon map (smaller) ── */
@@ -30,6 +32,7 @@ const ICON_DOT_COLORS: Record<ReportCategory, string> = {
   compliance: "bg-amber-500",
   population: "bg-rose-500",
   administrative: "bg-slate-500",
+  ai: "bg-violet-500",
 };
 
 export default function ReportsPage() {
@@ -114,6 +117,27 @@ export default function ReportsPage() {
           {!filteredReports && (
             <div className="flex-1 min-h-0 overflow-y-auto py-2">
               {REPORT_CATEGORIES.map(cat => {
+                // AI category is a single dashboard, not registry-based reports
+                if (cat.key === "ai") {
+                  const isActive = selectedReport === "__ai-usage__";
+                  return (
+                    <div key={cat.key} className="mb-0.5">
+                      <button
+                        onClick={() => handleSelectReport("__ai-usage__")}
+                        className={`w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold transition ${
+                          isActive
+                            ? "text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-700/50"
+                            : "text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700/50"
+                        }`}
+                      >
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${ICON_DOT_COLORS.ai}`} />
+                        <span className={cat.color}>{CATEGORY_ICONS[cat.icon]}</span>
+                        <span className="flex-1 text-left">{cat.label}</span>
+                      </button>
+                    </div>
+                  );
+                }
+
                 const reports = getReportsByCategory(cat.key);
                 const isExpanded = expandedCategory === cat.key;
 
@@ -158,7 +182,18 @@ export default function ReportsPage() {
 
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0 overflow-y-auto p-5">
-          {report ? (
+          {selectedReport === "__ai-usage__" ? (
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-2.5 h-2.5 rounded-full ${ICON_DOT_COLORS.ai}`} />
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">AI Token Usage</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Monitor AI model usage, token costs, and performance</p>
+                </div>
+              </div>
+              <AiUsageDashboard />
+            </div>
+          ) : report ? (
             <div>
               {/* Report header */}
               <div className="flex items-center gap-3 mb-4">
