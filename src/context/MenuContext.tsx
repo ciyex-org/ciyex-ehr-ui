@@ -11,6 +11,7 @@ export type MenuItemData = {
   screenSlug: string | null;
   position: number;
   roles: string[] | null;
+  requiredPermission: string | null;
 };
 
 export type MenuItemNode = {

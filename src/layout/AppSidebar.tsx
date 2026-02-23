@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import { useMenu, type MenuItemNode } from "../context/MenuContext";
+import { usePermissions } from "../context/PermissionContext";
 import {
   ChevronDownIcon,
   GridIcon,
@@ -93,20 +94,57 @@ function transformMenuToNavItems(items: MenuItemNode[]): NavItem[] {
 // Empty fallback — all navigation comes from the Menu API (database)
 const FALLBACK_NAV_ITEMS: NavItem[] = [];
 
+// Filter menu tree by permissions (recursive).
+// An item is visible if:
+//   - it has no requiredPermission (null) → always visible
+//   - or the user hasCategory(requiredPermission)
+// A parent with children is visible if it has at least one visible child.
+function filterByPermission(
+  items: MenuItemNode[],
+  hasCategory: (cat: string) => boolean
+): MenuItemNode[] {
+  return items
+    .map((node) => {
+      const perm = node.item.requiredPermission;
+      const selfAllowed = !perm || hasCategory(perm);
+
+      // Recursively filter children
+      const filteredChildren = node.children?.length
+        ? filterByPermission(node.children, hasCategory)
+        : [];
+
+      // A parent item (with children) is shown if it has any visible child
+      // A leaf item is shown only if selfAllowed
+      if (node.children?.length) {
+        // Parent: visible if selfAllowed AND has visible children
+        if (selfAllowed && filteredChildren.length > 0) {
+          return { ...node, children: filteredChildren };
+        }
+        return null;
+      }
+
+      // Leaf node
+      return selfAllowed ? { ...node, children: filteredChildren } : null;
+    })
+    .filter(Boolean) as MenuItemNode[];
+}
+
 // ===== Component =====
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const { menuItems, isLoading } = useMenu();
+  const { hasCategory, loading: permLoading } = usePermissions();
   const pathname = usePathname();
   const hasMounted = useHasMounted();
 
-  // Build navItems from API data or fallback
+  // Filter by permissions, then transform to NavItems
   const navItems = useMemo(() => {
     if (menuItems.length > 0) {
-      return transformMenuToNavItems(menuItems);
+      const filtered = filterByPermission(menuItems, hasCategory);
+      return transformMenuToNavItems(filtered);
     }
     return FALLBACK_NAV_ITEMS;
-  }, [menuItems]);
+  }, [menuItems, hasCategory]);
 
   // Safe isActive (handles undefined, ignores query)
   const isActive = useCallback(
@@ -404,7 +442,7 @@ const AppSidebar: React.FC = () => {
               >
                 {isExpanded || isHovered || isMobileOpen ? "Menu" : <HorizontaLDots />}
               </h2>
-              {isLoading ? (
+              {(isLoading || permLoading) ? (
                 <div className="space-y-3 px-2">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="h-8 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />

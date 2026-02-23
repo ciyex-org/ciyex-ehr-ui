@@ -5,6 +5,7 @@ import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { EnvProvider } from '@/context/EnvContext';
 import { MenuProvider } from '@/context/MenuContext';
+import { PermissionProvider } from '@/context/PermissionContext';
 import { PluginRegistryProvider } from '@/context/PluginRegistryContext';
 import { PluginEventBusProvider } from '@/context/PluginEventBus';
 import { PluginContextProvider } from '@/context/PluginContextProvider';
@@ -49,6 +50,7 @@ export default function RootLayout({
             <DisplaySettingsProvider>
               <SidebarProvider>
                 <MenuProvider>
+                  <PermissionProvider>
                   <PluginEventBusProvider>
                     <PluginRegistryProvider>
                       <PluginContextProvider>
@@ -59,6 +61,7 @@ export default function RootLayout({
                       </PluginContextProvider>
                     </PluginRegistryProvider>
                   </PluginEventBusProvider>
+                  </PermissionProvider>
                 </MenuProvider>
               </SidebarProvider>
             </DisplaySettingsProvider>
