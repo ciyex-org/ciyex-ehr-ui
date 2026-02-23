@@ -451,9 +451,8 @@ export default function PatientDashboardPage() {
                 { key: "demographics", label: "Demographics", icon: UserRound },
                 { key: "appointments", label: "Appointments", icon: CalendarDays },
                 { key: "documents", label: "Documents", icon: FileText },
-                { key: "messages", label: "Messages", icon: MessageSquare },
+                { key: "messaging", label: "Messages", icon: MessageSquare },
                 { key: "relationships", label: "Relationships", icon: Users },
-                { key: "healthcareservices", label: "Services", icon: Building2 },
             ],
         },
         {
