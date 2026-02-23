@@ -61,10 +61,13 @@ function KioskConfigPanel({ showToast }: { showToast: (t: ToastState) => void })
       try {
         const res = await fetchWithAuth(`${API()}/api/kiosk/config`);
         const json = await res.json();
-        if (res.ok && json.success && json.data) setConfig({
-          ...json.data,
-          config: json.data.config ?? { verify_dob: true, verify_phone: false, update_demographics: true, update_insurance: true, sign_consent: true, collect_copay: false, show_wait_time: true },
-        });
+        if (res.ok && json.success && json.data) {
+          const rawConfig = json.data.config;
+          const parsedConfig = rawConfig
+            ? (typeof rawConfig === 'string' ? JSON.parse(rawConfig) : rawConfig)
+            : { verify_dob: true, verify_phone: false, update_demographics: true, update_insurance: true, sign_consent: true, collect_copay: false, show_wait_time: true };
+          setConfig({ ...json.data, config: parsedConfig });
+        }
       } catch { /* use defaults */ }
       finally { setLoading(false); }
     })();
@@ -73,9 +76,13 @@ function KioskConfigPanel({ showToast }: { showToast: (t: ToastState) => void })
   const handleSave = async () => {
     setSaving(true);
     try {
+      const payload = {
+        ...config,
+        config: typeof config.config === 'object' ? JSON.stringify(config.config) : config.config,
+      };
       const res = await fetchWithAuth(`${API()}/api/kiosk/config`, {
         method: "PUT",
-        body: JSON.stringify(config),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (res.ok && json.success) showToast({ type: "success", text: "Kiosk config saved" });

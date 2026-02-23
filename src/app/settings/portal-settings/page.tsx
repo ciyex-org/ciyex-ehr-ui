@@ -75,19 +75,21 @@ export default function PortalSettingsPage() {
         setLoading(true);
         try {
             const [configRes, formsRes] = await Promise.all([
-                fetchWithAuth(`${API()}/api/portal-config`),
-                fetchWithAuth(`${API()}/api/portal-config/forms`),
+                fetchWithAuth(`${API()}/api/portal/config`),
+                fetchWithAuth(`${API()}/api/portal/config/forms`),
             ]);
 
             if (configRes.ok) {
-                const data = await configRes.json();
+                const json = await configRes.json();
+                const data = json.data || json;
                 setGeneralConfig(data.general || {});
                 setFeatures(data.features || {});
                 setNavigation(Array.isArray(data.navigation) ? data.navigation : []);
             }
 
             if (formsRes.ok) {
-                const data = await formsRes.json();
+                const json = await formsRes.json();
+                const data = json.data || json;
                 setForms(Array.isArray(data) ? data : []);
             }
         } catch (err) {
@@ -102,7 +104,7 @@ export default function PortalSettingsPage() {
     const saveSection = async (section: string, data: any) => {
         setSaving(true);
         try {
-            const res = await fetchWithAuth(`${API()}/api/portal-config/${section}`, {
+            const res = await fetchWithAuth(`${API()}/api/portal/config/${section}`, {
                 method: "PATCH",
                 body: JSON.stringify(data),
             });
@@ -122,8 +124,8 @@ export default function PortalSettingsPage() {
         try {
             const method = form.id ? "PUT" : "POST";
             const url = form.id
-                ? `${API()}/api/portal-config/forms/${form.id}`
-                : `${API()}/api/portal-config/forms`;
+                ? `${API()}/api/portal/config/forms/${form.id}`
+                : `${API()}/api/portal/config/forms`;
             const res = await fetchWithAuth(url, {
                 method,
                 body: JSON.stringify(form),
@@ -144,7 +146,7 @@ export default function PortalSettingsPage() {
     const deleteForm = async (id: number) => {
         setSaving(true);
         try {
-            await fetchWithAuth(`${API()}/api/portal-config/forms/${id}`, { method: "DELETE" });
+            await fetchWithAuth(`${API()}/api/portal/config/forms/${id}`, { method: "DELETE" });
             notify("success", "Form deleted");
             await loadAll();
         } catch {
@@ -155,7 +157,7 @@ export default function PortalSettingsPage() {
 
     const toggleFormActive = async (id: number, active: boolean) => {
         try {
-            await fetchWithAuth(`${API()}/api/portal-config/forms/${id}/toggle?active=${active}`, { method: "PATCH" });
+            await fetchWithAuth(`${API()}/api/portal/config/forms/${id}/toggle?active=${active}`, { method: "PATCH" });
             await loadAll();
         } catch {
             notify("error", "Toggle failed");

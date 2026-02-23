@@ -1,6 +1,9 @@
 import { getEnv } from "@/utils/env";
 import { refreshAccessToken, clearAuth } from "@/utils/authUtils";
 
+// Prevent concurrent 401 redirects — only the first one wins
+let _redirecting = false;
+
 export async function fetchWithAuth(
   input: RequestInfo | URL,
   init?: RequestInit
@@ -77,10 +80,11 @@ export async function fetchWithAuth(
       // refresh threw — fall through to sign-out
     }
 
-    // Refresh failed or retry still got 401 — redirect to sign-in
+    // Refresh failed or retry still got 401 — redirect to sign-in (once only)
     console.warn("⚠️ 401 Unauthorized - Session expired, redirecting to sign-in:", input);
 
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !_redirecting) {
+      _redirecting = true;
       clearAuth();
       window.location.href = "/signin";
     }
