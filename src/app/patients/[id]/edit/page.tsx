@@ -156,6 +156,7 @@ export default function EditPatientPage() {
                             name="dateOfBirth"
                             value={formData.dateOfBirth || ""}
                             onChange={handleChange}
+                            max={new Date().toISOString().split("T")[0]}
                             className="mt-1 block w-full p-2 border rounded-md"
                             required
                         />
@@ -185,6 +186,9 @@ export default function EditPatientPage() {
                             name="ssn"
                             value={formData.ssn || ""}
                             onChange={handleChange}
+                            pattern="\d{3}-?\d{2}-?\d{4}"
+                            placeholder="123-45-6789"
+                            title="SSN format: 123-45-6789"
                             className="mt-1 block w-full p-2 border rounded-md"
                             required
                         />
