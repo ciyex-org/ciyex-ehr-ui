@@ -19,11 +19,11 @@ import Campaigns from "@/components/notifications/Campaigns";
 
 /* ---------- Tab definitions ---------- */
 const TABS = [
-  { key: "config", label: "Configuration", icon: Settings },
-  { key: "templates", label: "Templates", icon: FileText },
-  { key: "preferences", label: "Event Preferences", icon: Calendar },
   { key: "log", label: "Message Log", icon: Send },
   { key: "campaigns", label: "Campaigns", icon: Users },
+  { key: "templates", label: "Templates", icon: FileText },
+  { key: "preferences", label: "Event Preferences", icon: Calendar },
+  { key: "config", label: "Configuration", icon: Settings },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -32,7 +32,7 @@ type TabKey = (typeof TABS)[number]["key"];
  * Notifications Management Page
  * =================================================================== */
 export default function NotificationsPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>("config");
+  const [activeTab, setActiveTab] = useState<TabKey>("log");
 
   return (
     <AdminLayout>

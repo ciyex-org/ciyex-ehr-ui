@@ -13,6 +13,7 @@ interface Patient {
     phoneNumber: string;
     ssn: string;
     dateOfBirth: string;
+    gender: string;
     status: "Active" | "Pending" | "Inactive";
 }
 
@@ -52,7 +53,7 @@ export default function EditPatientPage() {
         fetchPatientDetails();
     }, [id]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         if (formData) {
             setFormData({
@@ -158,6 +159,23 @@ export default function EditPatientPage() {
                             className="mt-1 block w-full p-2 border rounded-md"
                             required
                         />
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gender</label>
+                        <select
+                            id="gender"
+                            name="gender"
+                            value={formData.gender || ""}
+                            onChange={handleChange}
+                            className="mt-1 block w-full p-2 border rounded-md"
+                            required
+                        >
+                            <option value="">Select</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
                     </div>
                     <div className="mb-4">
                         <label htmlFor="ssn" className="block text-sm font-medium text-gray-700">SSN</label>

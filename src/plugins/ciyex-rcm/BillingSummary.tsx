@@ -37,21 +37,11 @@ export default function BillingSummary({ patientId, encounterId }: BillingSummar
                 const data = await res.json();
                 setCodes(data.suggestions || data || []);
             } else {
-                // Use placeholder data when API is not yet available
-                setCodes([
-                    { code: "99213", description: "Office visit, est. patient, low complexity", type: "CPT", charge: 125.00 },
-                    { code: "99214", description: "Office visit, est. patient, moderate complexity", type: "CPT", charge: 185.00 },
-                    { code: "I10", description: "Essential (primary) hypertension", type: "ICD-10" },
-                    { code: "E11.9", description: "Type 2 diabetes mellitus without complications", type: "ICD-10" },
-                ]);
+                // API not available — show empty state, never hardcoded data
+                setCodes([]);
             }
         } catch {
-            setCodes([
-                { code: "99213", description: "Office visit, est. patient, low complexity", type: "CPT", charge: 125.00 },
-                { code: "99214", description: "Office visit, est. patient, moderate complexity", type: "CPT", charge: 185.00 },
-                { code: "I10", description: "Essential (primary) hypertension", type: "ICD-10" },
-                { code: "E11.9", description: "Type 2 diabetes mellitus without complications", type: "ICD-10" },
-            ]);
+            setCodes([]);
         } finally {
             setLoading(false);
         }

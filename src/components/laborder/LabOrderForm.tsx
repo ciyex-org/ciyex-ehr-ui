@@ -463,6 +463,16 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     setDraft((d) => ({ ...d, diagnosisCode: diagCodes.join(";") }));
   }, [procModalRows]);
 
+  // Close code picker modal on Escape key
+  useEffect(() => {
+    if (!codePickerOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCodePickerOpen(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [codePickerOpen]);
+
   const upd = (k: keyof Draft | string, v: unknown) => {
     setDraft((d) => ({ ...d, [k]: v } as Draft));
     if (k === 'orderNumber' && errors.orderNumber) setErrors(prev => ({ ...prev, orderNumber: undefined }));
@@ -544,8 +554,11 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     setCodePickerMode(type);
     setCodePickerRowIndex(rowIndex);
     setCodePickerQuery("");
+    // Default to CPT for procedure codes, ICD10 for diagnosis codes
+    const defaultCodeType = type === "procedure" ? "CPT" : "ICD10";
+    setCodePickerCodeType(defaultCodeType);
     setCodePickerOpen(true);
-    loadCodesForPicker("", codePickerCodeType);
+    loadCodesForPicker("", defaultCodeType);
   }
 
   function selectCode(item: CodeItem) {
