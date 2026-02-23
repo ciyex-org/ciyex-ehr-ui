@@ -1089,6 +1089,128 @@ function CodeLookup({
   );
 }
 
+// ---- Single Code Search Component (for "coded" fields with fhirMapping.system) ----
+
+const FHIR_SYSTEM_TO_CODE_SYSTEM: Record<string, string> = {
+  "http://hl7.org/fhir/sid/icd-10-cm": "ICD10_CM",
+  "http://loinc.org": "LOINC",
+  "http://hl7.org/fhir/sid/cvx": "CVX",
+  "http://www.ama-assn.org/go/cpt": "CPT",
+  "http://snomed.info/sct": "SNOMED_CT",
+  "http://www.nlm.nih.gov/research/umls/rxnorm": "RXNORM",
+  "http://hl7.org/fhir/sid/ndc": "NDC",
+  "http://www.ada.org/cdt": "CDT",
+  "https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets": "HCPCS",
+};
+
+function CodedField({
+  field,
+  value,
+  onChange,
+  readOnly,
+}: {
+  field: FieldDef;
+  value: any;
+  onChange: (val: string) => void;
+  readOnly?: boolean;
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
+  const [displayLabel, setDisplayLabel] = useState(value || "");
+
+  const fhirSystem = field.fhirMapping?.system || "";
+  const codeSystem = FHIR_SYSTEM_TO_CODE_SYSTEM[fhirSystem] || "ICD10_CM";
+
+  useEffect(() => {
+    setDisplayLabel(value || "");
+  }, [value]);
+
+  const searchCodes = useCallback(
+    async (q: string) => {
+      if (!q || q.length < 2) { setSearchResults([]); return; }
+      try {
+        const base = API_BASE();
+        const url = `${base}/api/app-proxy/ciyex-codes/api/codes/${codeSystem}/search?q=${encodeURIComponent(q)}&size=15`;
+        const res = await fetchWithAuth(url);
+        if (res.ok) {
+          const json = await res.json();
+          setSearchResults(json.content || []);
+        }
+      } catch { setSearchResults([]); }
+    },
+    [codeSystem]
+  );
+
+  const selectCode = (item: any) => {
+    const code = item.code || item.codeValue || "";
+    const desc = item.shortDescription || item.description || item.longDescription || "";
+    onChange(code);
+    setDisplayLabel(`${code} - ${desc}`);
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowSearch(false);
+  };
+
+  const clearCode = () => {
+    onChange("");
+    setDisplayLabel("");
+    setSearchQuery("");
+  };
+
+  if (readOnly) {
+    return (
+      <div className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300">
+        {displayLabel || <span className="text-gray-400">-</span>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {value ? (
+        <div className="flex items-center gap-2 px-3 py-2 text-sm border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-600">
+          <span className="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">{value}</span>
+          <span className="text-gray-700 dark:text-gray-300 flex-1 truncate">{displayLabel.replace(`${value} - `, "")}</span>
+          <button type="button" onClick={clearCode} className="p-0.5 text-gray-400 hover:text-red-500">
+            <XIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : (
+        <input
+          type="text"
+          placeholder={`Search ${codeSystem.replace(/_/g, "-")} codes...`}
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); setShowSearch(true); searchCodes(e.target.value); }}
+          onFocus={() => setShowSearch(true)}
+          onBlur={() => setTimeout(() => setShowSearch(false), 200)}
+          className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500"
+        />
+      )}
+      {showSearch && searchResults.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {searchResults.map((item, idx) => (
+            <button
+              key={idx}
+              type="button"
+              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => selectCode(item)}
+            >
+              <span className="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                {item.code || item.codeValue}
+              </span>
+              <span className="text-gray-700 dark:text-gray-300 truncate">
+                {item.shortDescription || item.description || item.longDescription}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Plan Items Component ----
 
 function PlanItems({
@@ -1620,8 +1742,39 @@ export default function DynamicFormRenderer({
           />
         );
 
-      case "select":
       case "coded":
+        // If the field has a FHIR system mapping, use the searchable CodedField component
+        if (field.fhirMapping?.system && FHIR_SYSTEM_TO_CODE_SYSTEM[field.fhirMapping.system]) {
+          return (
+            <CodedField
+              field={field}
+              value={value}
+              onChange={(val) => onChange(field.key, val)}
+              readOnly={readOnly}
+            />
+          );
+        }
+        // Fall through to regular select for coded fields without a known code system
+        if (field.optionsSource) {
+          return (
+            <DynamicOptionsSelect
+              field={field}
+              value={value}
+              onChange={(val) => onChange(field.key, val)}
+            />
+          );
+        }
+        return (
+          <Select
+            options={(field.options || []).map((o: any) =>
+              typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label }
+            )}
+            defaultValue={value || ""}
+            onChange={(val) => onChange(field.key, val)}
+          />
+        );
+
+      case "select":
         if (field.optionsSource) {
           return (
             <DynamicOptionsSelect
