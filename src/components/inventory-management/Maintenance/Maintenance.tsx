@@ -165,7 +165,7 @@ export default function Maintenance() {
                   </td>
                   <td className="px-4 py-3 capitalize text-gray-600 dark:text-gray-300">{m.category}</td>
                   <td className="px-4 py-3"><Pill text={m.priority} colors={priorityBadge[m.priority] || priorityBadge.medium} /></td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{m.dueDate ? new Date(m.dueDate).toLocaleDateString() : "-"}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{m.dueDate ? new Date(m.dueDate + "T00:00:00").toLocaleDateString() : "-"}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{m.assignee}</td>
                   <td className="px-4 py-3"><Pill text={statusLabel[m.status] || m.status} colors={statusBadge[m.status] || statusBadge.scheduled} /></td>
                   <td className="px-4 py-3 text-right">

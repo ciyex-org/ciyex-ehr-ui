@@ -217,11 +217,11 @@ const UnclaimedClaims: React.FC = () => {
   // ✅ Helper function to format date
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit' 
+    const date = new Date(dateString.includes("T") ? dateString : dateString + "T00:00:00");
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
     });
   };
 

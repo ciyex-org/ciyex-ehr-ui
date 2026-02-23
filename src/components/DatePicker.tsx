@@ -27,7 +27,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
     try {
-      const date = new Date(dateStr);
+      const date = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
       if (isNaN(date.getTime())) return '';
       return date.toLocaleDateString('en-GB');
     } catch {

@@ -143,7 +143,7 @@ function CareGapTab({ patientId }: { patientId: string }) {
                                     </p>
                                 </div>
                                 <span className="text-xs text-gray-400 shrink-0 ml-4">
-                                    Due: {new Date(gap.dueDate).toLocaleDateString()}
+                                    Due: {new Date(gap.dueDate + "T00:00:00").toLocaleDateString()}
                                 </span>
                             </div>
                         </div>

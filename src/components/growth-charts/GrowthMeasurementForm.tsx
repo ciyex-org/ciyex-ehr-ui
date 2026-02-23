@@ -15,8 +15,8 @@ interface Props {
 }
 
 function calculateAgeMonths(dob: string, date: string): number {
-  const birth = new Date(dob);
-  const meas = new Date(date);
+  const birth = new Date(dob.includes("T") ? dob : dob + "T00:00:00");
+  const meas = new Date(date.includes("T") ? date : date + "T00:00:00");
   return (meas.getFullYear() - birth.getFullYear()) * 12 + (meas.getMonth() - birth.getMonth());
 }
 

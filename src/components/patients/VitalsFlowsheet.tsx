@@ -36,7 +36,7 @@ type VitalsRecord = Record<string, unknown>;
 function formatDate(dateStr: string | undefined): string {
     if (!dateStr) return "—";
     try {
-        const d = new Date(dateStr);
+        const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
         if (isNaN(d.getTime())) return "—";
         return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     } catch {
@@ -47,7 +47,7 @@ function formatDate(dateStr: string | undefined): string {
 function formatTime(dateStr: string | undefined): string {
     if (!dateStr) return "";
     try {
-        const d = new Date(dateStr);
+        const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
         if (isNaN(d.getTime())) return "";
         return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
     } catch {

@@ -387,10 +387,10 @@ export default function PatientDashboardPage() {
         window.history.replaceState({}, "", url.toString());
     };
 
-    const formatDateLocal = (date: string) => date ? new Date(date).toLocaleDateString() : "\u2014";
+    const formatDateLocal = (date: string) => date ? new Date(date.includes("T") ? date : date + "T00:00:00").toLocaleDateString() : "\u2014";
     const calculateAgeLocal = (dob: string) => {
         if (!dob) return "\u2014";
-        const ageDifMs = Date.now() - new Date(dob).getTime();
+        const ageDifMs = Date.now() - new Date(dob.includes("T") ? dob : dob + "T00:00:00").getTime();
         const ageDate = new Date(ageDifMs);
         return Math.abs(ageDate.getUTCFullYear() - 1970);
     };

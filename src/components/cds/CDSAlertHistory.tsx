@@ -46,7 +46,7 @@ const SeverityIcon = ({ severity }: { severity: string }) => {
 };
 
 function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const diff = Date.now() - new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00").getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;

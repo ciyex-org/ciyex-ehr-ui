@@ -240,7 +240,7 @@ export default function PatientApprovals() {
                         Org ID: {user.orgId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(user.createdDate).toLocaleDateString('en-US', {
+                        {new Date(user.createdDate?.includes("T") ? user.createdDate : user.createdDate + "T00:00:00").toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric',

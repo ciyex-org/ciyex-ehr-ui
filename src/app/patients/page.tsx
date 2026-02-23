@@ -94,7 +94,7 @@ export default function PatientListPage() {
     const formatDate = (dateString: string) => {
         if (!dateString) return "N/A";
         try {
-            return new Date(dateString).toLocaleDateString();
+            return new Date(dateString.includes("T") ? dateString : dateString + "T00:00:00").toLocaleDateString();
         } catch {
             return dateString;
         }

@@ -492,7 +492,7 @@ export default function AppointmentPage() {
     const toTime = to ? timeFromMMDDYYYY(to, Infinity) : Infinity;
 
     return rows.filter((r) => {
-      const d = new Date(r.appointmentStartDate).getTime();
+      const d = new Date(r.appointmentStartDate?.includes("T") ? r.appointmentStartDate : r.appointmentStartDate + "T00:00:00").getTime();
       const matchDate = d >= fromTime && d <= toTime;
       const matchProvider = provider === "All Providers" || r.providerId === Number(provider);
       const matchCategory = category === "All Visit Categories" || r.visitType === category;
@@ -506,8 +506,8 @@ export default function AppointmentPage() {
       return matchDate && matchProvider && matchCategory && matchLocation && matchPatient && matchCompleted;
     }).sort((a, b) => {
       // Sort by date first, then by time
-      const dateA = new Date(a.appointmentStartDate).getTime();
-      const dateB = new Date(b.appointmentStartDate).getTime();
+      const dateA = new Date(a.appointmentStartDate?.includes("T") ? a.appointmentStartDate : a.appointmentStartDate + "T00:00:00").getTime();
+      const dateB = new Date(b.appointmentStartDate?.includes("T") ? b.appointmentStartDate : b.appointmentStartDate + "T00:00:00").getTime();
       if (dateA !== dateB) return dateA - dateB;
       // Parse time strings (HH:mm format) for same-day sorting
       const timeA = (a.appointmentStartTime || "").replace(":", "");

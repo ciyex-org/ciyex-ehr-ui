@@ -35,7 +35,7 @@ interface Props {
 function isOverdue(task: Task): boolean {
   if (!task.dueDate || task.status === "completed" || task.status === "cancelled") return false;
   const now = new Date();
-  const due = new Date(task.dueDate);
+  const due = new Date(task.dueDate + "T00:00:00");
   if (task.dueTime) {
     const [h, m] = task.dueTime.split(":").map(Number);
     due.setHours(h, m, 0, 0);
@@ -47,7 +47,7 @@ function isOverdue(task: Task): boolean {
 
 function formatDueDate(date?: string, time?: string): string {
   if (!date) return "--";
-  const d = new Date(date);
+  const d = new Date(date + "T00:00:00");
   const formatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   if (time) return `${formatted} ${time}`;
   return formatted;
