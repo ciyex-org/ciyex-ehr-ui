@@ -10,10 +10,12 @@ export async function fetchWithAuth(
 
   const token = get("token") || get("authToken");
 
-  // Org is extracted from JWT on the backend — no need to send headers
+  const selectedTenant = get("selectedTenant");
+
   const authHeaders: Record<string, string> = {
     "Accept": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
+    ...(selectedTenant && { "X-Tenant-Name": selectedTenant }),
   };
 
   const headers = new Headers(init?.headers || {});
@@ -48,9 +50,11 @@ export async function fetchWithAuth(
         // Retry the original request with the new token
         const newToken = get("token") || get("authToken");
         const retryHeaders = new Headers(init?.headers || {});
+        const retryTenant = get("selectedTenant");
         Object.entries({
           "Accept": "application/json",
           ...(newToken && { Authorization: `Bearer ${newToken}` }),
+          ...(retryTenant && { "X-Tenant-Name": retryTenant }),
         }).forEach(([k, v]) => retryHeaders.set(k, v));
 
         if (isFormData) {

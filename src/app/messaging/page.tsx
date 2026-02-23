@@ -259,6 +259,29 @@ export default function MessagingPage() {
     }
   }, [loadChannels]);
 
+  const handleAttachFile = useCallback(async (files: File[]) => {
+    if (!state.activeChannelId || files.length === 0) return;
+    try {
+      // Send a message first, then attach files to it
+      const msg = await api.sendMessage(state.activeChannelId, {
+        content: files.map(f => f.name).join(", "),
+      });
+      if (msg?.id) {
+        dispatch({ type: "ADD_MESSAGE", message: msg });
+        for (const file of files) {
+          try {
+            await api.uploadAttachment(msg.id, file);
+          } catch (err) {
+            console.error(`Failed to upload ${file.name}:`, err);
+          }
+        }
+        loadMessages(state.activeChannelId);
+      }
+    } catch (err) {
+      console.error("Failed to upload attachment:", err);
+    }
+  }, [state.activeChannelId, loadMessages]);
+
   const handleOpenThread = useCallback((messageId: string) => {
     dispatch({ type: "OPEN_THREAD", messageId });
   }, []);
@@ -315,6 +338,7 @@ export default function MessagingPage() {
             onToggleDetail={() => dispatch({ type: "TOGGLE_DETAIL_PANEL" })}
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
+            onAttachFile={handleAttachFile}
           />
 
           {/* Search overlay */}
