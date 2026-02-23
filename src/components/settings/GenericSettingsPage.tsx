@@ -79,6 +79,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     const [configLoading, setConfigLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [savedOk, setSavedOk] = useState(false);
 
     const [mode, setMode] = useState<"list" | "create" | "edit" | "view">("list");
     const [selectedRecord, setSelectedRecord] = useState<Record<string, any> | null>(null);
@@ -209,6 +210,8 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                     setTotalElements(0);
                     setTotalPages(0);
                 }
+            } else if (res.status === 403) {
+                setError("Access Denied: You don't have permission to view this page.");
             } else {
                 setError("Failed to load records");
             }
@@ -314,6 +317,8 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
             });
 
             if (res.ok) {
+                setSavedOk(true);
+                setTimeout(() => setSavedOk(false), 3000);
                 const saved = await res.json().catch(() => null);
                 if (isSingleton) {
                     // Stay in edit mode — refresh with the saved record
@@ -325,6 +330,8 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                             const rec = json.data || json;
                             setFormData({ ...rec, ...flattenObject(rec) });
                             setSelectedRecord(rec);
+                            // Update records so singleton effect doesn't re-trigger handleCreate
+                            setRecords(prev => prev.length > 0 ? prev.map(r => (r.id || r.fhirId) === (rec.id || rec.fhirId) ? rec : r) : [rec]);
                         }
                     } else {
                         // Fallback: re-fetch list
@@ -425,6 +432,11 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                 {mode === "create" ? `New ${displayLabel.replace(/s$/, "")}` : mode === "edit" ? `Edit ${displayLabel.replace(/s$/, "")}` : `View ${displayLabel.replace(/s$/, "")}`}
                             </h2>
                             <div className="flex items-center gap-2">
+                                {savedOk && (
+                                    <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded">
+                                        ✓ Saved
+                                    </span>
+                                )}
                                 {mode !== "view" && (
                                     <button
                                         onClick={handleSave}

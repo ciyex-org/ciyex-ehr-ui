@@ -6,7 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
 import AppGrid from "@/components/hub/AppGrid";
 import CategoryFilter from "@/components/hub/CategoryFilter";
-import { Store, Search, Loader2, Package, GitCompareArrows, X, Code2 } from "lucide-react";
+import { Store, Search, Loader2, Package, GitCompareArrows, X, Code2, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -59,12 +59,16 @@ export default function HubBrowsePage() {
 
     useEffect(() => {
         const loadData = async () => {
+            // Use AbortController with 10s timeout to avoid infinite spinner
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
             try {
                 // Fetch apps from marketplace and installed apps from ciyex-api in parallel
                 const [appsRes, installedRes] = await Promise.all([
-                    fetch(`${MARKETPLACE_BASE()}/api/v1/apps`),
+                    fetch(`${MARKETPLACE_BASE()}/api/v1/apps`, { signal: controller.signal }),
                     fetchWithAuth(`${API_BASE()}/api/app-installations`),
                 ]);
+                clearTimeout(timeoutId);
 
                 if (appsRes.ok) {
                     const appsData = await appsRes.json();
@@ -76,8 +80,20 @@ export default function HubBrowsePage() {
                     const list = installedData.data || installedData || [];
                     setInstalledSlugs(new Set(list.map((i: any) => i.appSlug)));
                 }
-            } catch (err) {
-                console.error("Failed to load hub data:", err);
+            } catch (err: any) {
+                clearTimeout(timeoutId);
+                if (err?.name !== "AbortError") {
+                    console.error("Failed to load hub data:", err);
+                }
+                // Load installed apps even if marketplace is unavailable
+                try {
+                    const installedRes = await fetchWithAuth(`${API_BASE()}/api/app-installations`);
+                    if (installedRes.ok) {
+                        const installedData = await installedRes.json();
+                        const list = installedData.data || installedData || [];
+                        setInstalledSlugs(new Set(list.map((i: any) => i.appSlug)));
+                    }
+                } catch { /* ignore */ }
             }
             setLoading(false);
         };

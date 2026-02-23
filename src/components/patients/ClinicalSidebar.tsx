@@ -64,8 +64,12 @@ export default function ClinicalSidebar({
         }
     }, [activeTab, tabCategories]);
 
+    // Refresh badge counts on mount and whenever switching to/from a clinical tab
+    const BADGE_TABS = new Set(["allergies", "medicalproblems", "medications", "vitals"]);
     useEffect(() => {
         if (!patientId) return;
+        // Only re-fetch when navigating into a badge tab (to pick up counts after saves)
+        if (loaded && !BADGE_TABS.has(activeTab)) return;
 
         Promise.allSettled([
             fetchWithAuth(`${API_BASE()}/api/allergy-intolerances/${patientId}`).then(r => r.ok ? r.json() : null),
@@ -90,7 +94,7 @@ export default function ClinicalSidebar({
             }
             setLoaded(true);
         });
-    }, [patientId]);
+    }, [patientId, activeTab]);
 
     const toggleCat = (label: string) => {
         setCollapsedCats(prev => {

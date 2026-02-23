@@ -112,6 +112,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     setSelectedRecord(content[0]);
                     setMode("view");
                 }
+            } else if (res.status === 403) {
+                setError("Access Denied: You don't have permission to view this data.");
             } else {
                 setError("Failed to load records");
             }
