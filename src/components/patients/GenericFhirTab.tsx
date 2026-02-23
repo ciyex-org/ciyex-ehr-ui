@@ -411,6 +411,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                             onChange={handleFieldChange}
                             readOnly={mode === "view"}
                             errors={validationErrors}
+                            patientId={patientId}
                         />
                     )}
                 </div>
@@ -459,6 +460,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                             onChange={handleFieldChange}
                             readOnly={mode === "view"}
                             errors={validationErrors}
+                            patientId={patientId}
                         />
                     )}
                 </div>

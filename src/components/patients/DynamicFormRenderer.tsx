@@ -155,6 +155,7 @@ export interface DynamicFormRendererProps {
   onChange: (key: string, value: any) => void;
   readOnly?: boolean;
   errors?: Record<string, string>;
+  patientId?: number;
 }
 
 // ---- Combobox Field Component (select + free text, fixed positioning) ----
@@ -433,11 +434,15 @@ function FileUploadField({
   value,
   onChange,
   features,
+  patientId,
+  formData: parentFormData,
 }: {
   field: FieldDef;
   value: any;
   onChange: (val: any) => void;
   features?: FieldConfigFeatures;
+  patientId?: number;
+  formData?: Record<string, any>;
 }) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -477,6 +482,18 @@ function FileUploadField({
       try {
         const formData = new FormData();
         formData.append("file", file);
+        // Include patientId and document metadata for document uploads
+        if (patientId) {
+          formData.append("patientId", String(patientId));
+        }
+        if (parentFormData) {
+          const dto: Record<string, any> = {};
+          for (const [k, v] of Object.entries(parentFormData)) {
+            if (v != null && k !== field.key) dto[k] = v;
+          }
+          dto.fileName = file.name;
+          formData.append("dto", JSON.stringify(dto));
+        }
         const res = await fetchWithAuth(`${API_BASE()}${uploadEndpoint}`, {
           method: "POST",
           body: formData,
@@ -1407,6 +1424,7 @@ export default function DynamicFormRenderer({
   onChange,
   readOnly = false,
   errors = {},
+  patientId,
 }: DynamicFormRendererProps) {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     () => new Set<string>()
@@ -1745,6 +1763,8 @@ export default function DynamicFormRenderer({
             value={value}
             onChange={(val) => onChange(field.key, val)}
             features={fieldConfig.features}
+            patientId={patientId}
+            formData={formData}
           />
         );
 
