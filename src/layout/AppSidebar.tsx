@@ -20,7 +20,7 @@ import {
   Stethoscope, LayoutGrid, Menu, TestTube, FileBarChart, DollarSign,
   Store, Code2, Palette, CheckSquare, ArrowRightLeft, ShieldCheck,
   FileCheck, Syringe, ScrollText, Printer, TabletSmartphone, BookOpen,
-  Globe, ShieldAlert, ScanLine, Pill, HeartPulse,
+  Globe, ShieldAlert, ScanLine, Pill, HeartPulse, Bot,
   type LucideIcon,
 } from "lucide-react";
 import PluginSlot from "@/components/plugins/PluginSlot";
@@ -60,7 +60,7 @@ const SIDEBAR_ICON_MAP: Record<string, LucideIcon> = {
   Stethoscope, LayoutGrid, Menu, TestTube, FileBarChart, DollarSign,
   Store, Code2, Palette, CheckSquare, ArrowRightLeft, ShieldCheck,
   FileCheck, Syringe, ScrollText, Printer, TabletSmartphone, BookOpen,
-  Globe, ShieldAlert, ScanLine, Pill, HeartPulse,
+  Globe, ShieldAlert, ScanLine, Pill, HeartPulse, Bot,
 };
 
 // Transform API menu tree nodes into SubItem[] (recursive)
