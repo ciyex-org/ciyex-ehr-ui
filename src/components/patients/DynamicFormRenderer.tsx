@@ -1118,11 +1118,17 @@ function CodedField({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [displayLabel, setDisplayLabel] = useState(value || "");
+  const justSelected = React.useRef(false);
 
   const fhirSystem = field.fhirMapping?.system || "";
   const codeSystem = FHIR_SYSTEM_TO_CODE_SYSTEM[fhirSystem] || "ICD10_CM";
 
   useEffect(() => {
+    // Don't overwrite the rich label when we just selected a code
+    if (justSelected.current) {
+      justSelected.current = false;
+      return;
+    }
     setDisplayLabel(value || "");
   }, [value]);
 
@@ -1145,8 +1151,9 @@ function CodedField({
   const selectCode = (item: any) => {
     const code = item.code || item.codeValue || "";
     const desc = item.shortDescription || item.description || item.longDescription || "";
-    onChange(code);
+    justSelected.current = true;
     setDisplayLabel(`${code} - ${desc}`);
+    onChange(code);
     setSearchQuery("");
     setSearchResults([]);
     setShowSearch(false);
