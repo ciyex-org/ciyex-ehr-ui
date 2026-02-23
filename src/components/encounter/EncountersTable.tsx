@@ -15,6 +15,8 @@ type Encounter = {
     visitCategory?: string | null;
     status?: EncounterStatus | null;
     patientName?: string | null;
+    encounterProvider?: string | null;
+    reason?: string | null;
 };
 
 function toDate(value: Encounter["encounterDate"]): Date | null {
@@ -151,18 +153,20 @@ export default function EncountersTable() {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">#</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12">#</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Patient</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Visit Category</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Provider</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Visit Type</th>
+                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reason</th>
                                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-28">Action</th>
+                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                             {loading && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-12 text-center">
+                                    <td colSpan={8} className="px-4 py-12 text-center">
                                         <Loader2 className="w-6 h-6 animate-spin text-gray-400 mx-auto" />
                                     </td>
                                 </tr>
@@ -176,9 +180,11 @@ export default function EncountersTable() {
                                         onClick={() => router.push(`/patients/${row.patientId}/encounters/${row.id}?from=encounters`)}
                                     >
                                         <td className="px-4 py-3 text-gray-400 dark:text-gray-500">{clampedPage * pageSize + idx + 1}</td>
-                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{row.id}</td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{d ? d.toLocaleDateString() : "—"}</td>
+                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{row.patientName || "—"}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">{d ? d.toLocaleDateString() : "—"}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{row.encounterProvider || "—"}</td>
                                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{row.visitCategory || "—"}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300 max-w-[200px] truncate">{row.reason || "—"}</td>
                                         <td className="px-4 py-3"><StatusBadge value={row.status} /></td>
                                         <td className="px-4 py-3 text-right">
                                             <button
@@ -197,7 +203,7 @@ export default function EncountersTable() {
                             })}
                             {!loading && paged.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
+                                    <td colSpan={8} className="px-4 py-12 text-center text-gray-400 dark:text-gray-500">
                                         No encounters found.
                                     </td>
                                 </tr>
