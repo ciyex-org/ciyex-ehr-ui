@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import {
@@ -117,7 +116,6 @@ export default function UserManagementPage() {
   };
 
   return (
-    <AdminLayout>
       <div className="flex flex-col h-full overflow-hidden">
         {/* Toast */}
         {toast && (
@@ -201,6 +199,5 @@ export default function UserManagementPage() {
           onClose={() => { setShowResetModal(false); setResetData(null); }}
         />
       </div>
-    </AdminLayout>
   );
 }

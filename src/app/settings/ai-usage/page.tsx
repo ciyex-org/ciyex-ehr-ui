@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import {
@@ -123,7 +122,6 @@ export default function AiUsagePage() {
   const avgLatency = totals.weightedCount > 0 ? Math.round(totals.latency / totals.weightedCount) : 0;
 
   return (
-    <AdminLayout>
       <div className="flex flex-col h-full overflow-hidden">
         {/* Toast */}
         {toast && (
@@ -214,7 +212,6 @@ export default function AiUsagePage() {
           )}
         </div>
       </div>
-    </AdminLayout>
   );
 }
 
