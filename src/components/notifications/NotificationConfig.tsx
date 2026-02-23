@@ -88,8 +88,17 @@ function ChannelCard({
     try {
       const res = await fetchWithAuth(`/api/notifications/config/${channel}`);
       if (res.ok) {
-        const data = await res.json();
-        setCfg({ ...emptyConfig(channel), ...data });
+        const json = await res.json();
+        const dto = json.data; // unwrap ApiResponse
+        if (dto) {
+          // Backend stores config as JSON string — parse it to object for form fields
+          let configObj: Record<string, string> = {};
+          if (dto.config) {
+            try { configObj = typeof dto.config === 'string' ? JSON.parse(dto.config) : dto.config; }
+            catch { configObj = {}; }
+          }
+          setCfg({ ...emptyConfig(channel), ...dto, config: configObj });
+        }
       }
     } catch {
       /* first-time: use defaults */
@@ -114,11 +123,22 @@ function ChannelCard({
   const save = async () => {
     setSaving(true);
     try {
+      // Backend expects config as a JSON string, dailyLimit as integer
+      const payload = {
+        channelType: cfg.channelType,
+        provider: cfg.provider,
+        enabled: cfg.enabled,
+        config: JSON.stringify(cfg.config),
+        senderName: cfg.senderName,
+        senderAddress: cfg.senderAddress,
+        dailyLimit: typeof cfg.dailyLimit === 'string' ? parseInt(cfg.dailyLimit, 10) : cfg.dailyLimit,
+      };
       const res = await fetchWithAuth(`/api/notifications/config/${channel}`, {
         method: "PUT",
-        body: JSON.stringify(cfg),
+        body: JSON.stringify(payload),
       });
       showToast(res.ok, res.ok ? "Configuration saved" : "Save failed");
+      if (res.ok) load(); // reload to get server state
     } catch {
       showToast(false, "Network error");
     } finally {
@@ -132,10 +152,11 @@ function ChannelCard({
     try {
       const res = await fetchWithAuth(
         `/api/notifications/config/${channel}/test`,
-        { method: "POST", body: JSON.stringify(cfg) }
+        { method: "POST" }
       );
-      const data = await res.json().catch(() => ({}));
-      showToast(res.ok, res.ok ? "Connection successful" : data.message || "Test failed");
+      const json = await res.json().catch(() => ({}));
+      const msg = json.data?.message || json.message || (res.ok ? "Connection successful" : "Test failed");
+      showToast(res.ok && json.success !== false, msg);
     } catch {
       showToast(false, "Network error");
     } finally {
