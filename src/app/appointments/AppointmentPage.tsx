@@ -248,17 +248,27 @@ export default function AppointmentPage() {
     })();
   }, []);
 
-  // Visit Categories
+  // Visit Categories — loaded from tab_field_config appointmentType options
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/list-options/list/Visit Type`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/tab-field-config/appointments`);
         if (!res.ok) throw new Error();
-        const data = await res.json();
-        const active = (data as { title: string; optionName: string; activity?: number }[])
-          .filter((c) => c.activity === 1).map((c) => c.title || c.optionName);
-        setCategories(active);
-      } catch { setCategories([]); }
+        const json = await res.json();
+        const config = json.data || json;
+        const fc = typeof config.fieldConfig === "string" ? JSON.parse(config.fieldConfig) : config.fieldConfig;
+        const sections: Array<{ fields?: Array<{ key: string; options?: unknown[] }> }> = fc?.sections || [];
+        for (const section of sections) {
+          for (const field of (section?.fields || [])) {
+            if (field.key === "appointmentType" && Array.isArray(field.options)) {
+              const strings = field.options.map((item) =>
+                typeof item === "string" ? item : String((item as Record<string, unknown>)?.value ?? (item as Record<string, unknown>)?.label ?? "")
+              ).filter(Boolean);
+              if (strings.length > 0) { setCategories(strings); return; }
+            }
+          }
+        }
+      } catch { /* leave categories empty */ }
       finally { setLoadingCategories(false); }
     })();
   }, []);
