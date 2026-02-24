@@ -53,6 +53,7 @@ export const PERMISSION_CATEGORIES: { category: string; permissions: { key: stri
     permissions: [
       { key: "billing.read", label: "View Billing" },
       { key: "billing.write", label: "Edit Billing" },
+      { key: "billing.submit", label: "Submit Claims" },
     ],
   },
   {
@@ -80,8 +81,8 @@ export const PERMISSION_CATEGORIES: { category: string; permissions: { key: stri
   {
     category: "Reports",
     permissions: [
-      { key: "reports.clinical", label: "Clinical Reports" },
-      { key: "reports.financial", label: "Financial Reports" },
+      { key: "reports.read", label: "View Reports" },
+      { key: "reports.write", label: "Manage Reports" },
     ],
   },
 ];
