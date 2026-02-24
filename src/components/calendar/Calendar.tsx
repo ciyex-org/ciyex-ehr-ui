@@ -184,6 +184,9 @@ interface FhirAppointment {
     provider?: string; // "Practitioner/456"
     location?: string; // "Location/789"
     patientName?: string;
+    patientDisplay?: string;
+    providerDisplay?: string;
+    locationDisplay?: string;
     [key: string]: unknown;
 }
 
@@ -862,7 +865,7 @@ const Calendar: React.FC = () => {
                         const startDt = a.start ? new Date(a.start) : null;
                         const endDt = a.end ? new Date(a.end) : null;
 
-                        let name = a.patientName || '';
+                        let name = a.patientName || a.patientDisplay || '';
                         if (!name && patientId && patientNameCache.current[patientId]) {
                             name = patientNameCache.current[patientId];
                         }
