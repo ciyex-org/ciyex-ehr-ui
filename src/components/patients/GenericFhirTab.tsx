@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import DynamicFormRenderer, { FieldConfig, FieldConfigFeatures, SectionDef, FieldDef } from "./DynamicFormRenderer";
-import { Plus, Pencil, Trash2, X, Save, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Save, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText, CheckCircle2 } from "lucide-react";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -21,6 +21,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [singleRecord, setSingleRecord] = useState(false);
 
     // View state: "list" | "create" | "edit" | "view"
@@ -227,6 +228,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             });
 
             if (res.ok) {
+                const label = isEdit ? "updated" : "saved";
                 if (singleRecord) {
                     // Stay in view mode for single-record tabs
                     const json = await res.json();
@@ -239,6 +241,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     setFormData({});
                     setSelectedRecord(null);
                 }
+                setSuccessMsg(`Record ${label} successfully`);
+                setTimeout(() => setSuccessMsg(null), 3000);
                 // Brief delay for FHIR server search indexing after create/update
                 if (!isEdit) await new Promise(r => setTimeout(r, 1500));
                 await fetchRecords(0);
@@ -498,6 +502,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     Add
                 </button>
             </div>
+
+            {/* Success / Error flash */}
+            {successMsg && (
+                <div className="mx-4 mt-3 flex items-center gap-2 p-2.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm rounded-lg">
+                    <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                    {successMsg}
+                </div>
+            )}
 
             {/* Table */}
             {error ? (

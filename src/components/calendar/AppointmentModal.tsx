@@ -301,14 +301,14 @@ const AppointmentModal: React.FC = () => {
             try {
                 const res = await fetchWithAuth(`${apiUrl}/api/providers?status=ACTIVE`);
                 const json = await res.json();
-                if (json?.success && Array.isArray(json.data)) {
-                    const active = (json.data as Provider[])
-                        .filter((p) => p?.systemAccess?.status === "ACTIVE")
-                        .map((p) => ({
-                            value: String(p.id),
-                            label: `${p.identification?.firstName || ""} ${p.identification?.lastName || ""}`.trim(),
-                        }));
-                    setAllProviders(active);
+                if (json?.success && json?.data) {
+                    const providerData = json.data.content || json.data;
+                    const list: Provider[] = Array.isArray(providerData) ? providerData : [];
+                    const opts = list.map((p) => ({
+                        value: String(p.id),
+                        label: `${p.identification?.firstName || ""} ${p.identification?.lastName || ""}`.trim(),
+                    })).filter((o) => o.label.trim() !== "");
+                    setAllProviders(opts);
                 }
             } catch (e) {
                 console.error("Failed to fetch providers", e);
