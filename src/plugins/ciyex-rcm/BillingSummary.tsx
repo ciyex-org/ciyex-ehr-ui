@@ -34,8 +34,10 @@ export default function BillingSummary({ patientId, encounterId }: BillingSummar
             );
 
             if (res.ok) {
-                const data = await res.json();
-                setCodes(data.suggestions || data || []);
+                const json = await res.json();
+                // Handle ApiResponse wrapper: {success, message, data: {suggestions: [...]}}
+                const raw = json?.data?.suggestions ?? json?.suggestions ?? json?.data ?? json ?? [];
+                setCodes(Array.isArray(raw) ? raw : []);
             } else {
                 // API not available — show empty state, never hardcoded data
                 setCodes([]);
