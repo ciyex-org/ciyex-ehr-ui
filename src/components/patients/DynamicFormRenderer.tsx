@@ -321,7 +321,12 @@ function LookupField({
         const res = await fetchWithAuth(`${base}${field.lookupConfig.endpoint}?search=${encodeURIComponent(q)}`);
         if (res.ok) {
           const data = await res.json();
-          setResults(Array.isArray(data) ? data : data.data || data.content || []);
+          const items = Array.isArray(data) ? data
+            : Array.isArray(data.data) ? data.data
+            : Array.isArray(data.data?.content) ? data.data.content
+            : Array.isArray(data.content) ? data.content
+            : [];
+          setResults(items);
         }
       } catch {
         setResults([]);
