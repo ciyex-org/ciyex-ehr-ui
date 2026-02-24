@@ -113,8 +113,18 @@ function AuthCallbackContent() {
                     // Clean up PKCE code verifier
                     sessionStorage.removeItem('pkce_code_verifier');
 
+                    // If the user is a PATIENT, they should use the portal, not the EHR
+                    const isPatient = Array.isArray(groups) &&
+                        groups.some((g: string) => g?.toUpperCase() === "PATIENT");
+                    if (isPatient) {
+                        const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-dev.ciyex.org";
+                        console.log("👤 Patient user detected — redirecting to portal:", portalUrl);
+                        window.location.href = portalUrl;
+                        return;
+                    }
+
                     console.log("🔍 About to check if user needs to select practice...");
-                    
+
                     // Check if user already has a selected practice in localStorage
                     const existingTenant = localStorage.getItem('selectedTenant');
                     
