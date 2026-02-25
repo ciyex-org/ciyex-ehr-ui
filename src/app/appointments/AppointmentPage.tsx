@@ -99,7 +99,8 @@ function parseMMDDYYYY(s: string): string | null {
 
 function timeFromMMDDYYYY(s: string, fallback: number): number {
   const iso = parseMMDDYYYY(s);
-  return iso ? new Date(iso).getTime() : fallback;
+  // Use local time (T00:00:00) to match appointment date parsing which also uses local time
+  return iso ? new Date(iso + "T00:00:00").getTime() : fallback;
 }
 
 /** Format elapsed wait time with color */
