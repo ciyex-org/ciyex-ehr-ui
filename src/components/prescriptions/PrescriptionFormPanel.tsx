@@ -85,12 +85,48 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  /* Patient search state */
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+
   useEffect(() => {
     if (open) {
-      setForm(prescription ? { ...prescription } : blankPrescription());
+      const p = prescription ? { ...prescription } : blankPrescription();
+      setForm(p);
       setErrors({});
+      setPatientQuery(p.patientName || "");
+      setPatientResults([]);
+      setShowPatientDropdown(false);
     }
   }, [open, prescription]);
+
+  /* Debounced patient search */
+  useEffect(() => {
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(`${apiBase()}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const json = await res.json();
+        let list: typeof patientResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(list.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [patientQuery]);
+
+  const pName = (p: typeof patientResults[0]) =>
+    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+
+  const selectPatient = (p: typeof patientResults[0]) => {
+    const name = pName(p);
+    setForm((prev) => ({ ...prev, patientId: p.id, patientName: name }));
+    setPatientQuery(name);
+    setShowPatientDropdown(false);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -172,14 +208,41 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
           {/* Patient Info */}
           <Section title="Patient Information" icon={<User className="w-4 h-4" />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Patient Name *</label>
-                <input className={inputCls("patientName")} value={form.patientName} onChange={(e) => set("patientName", e.target.value)} placeholder="Jane Doe" />
+                <input
+                  className={inputCls("patientName")}
+                  value={patientQuery}
+                  onChange={(e) => {
+                    setPatientQuery(e.target.value);
+                    set("patientName", e.target.value);
+                    set("patientId", "");
+                    setShowPatientDropdown(true);
+                  }}
+                  onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
+                  placeholder="Search patient by name..."
+                  autoComplete="off"
+                />
                 {errors.patientName && <p className="text-xs text-red-500 mt-1">{errors.patientName}</p>}
+                {showPatientDropdown && patientResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                    {patientResults.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => selectPatient(p)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0"
+                      >
+                        <span className="font-medium">{pName(p)}</span>
+                        <span className="text-xs text-gray-400 ml-2">#{p.id}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Patient ID</label>
-                <input className={inputCls()} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="PAT-001" />
+                <input className={inputCls()} value={form.patientId} readOnly placeholder="Auto-filled from search" />
               </div>
             </div>
           </Section>

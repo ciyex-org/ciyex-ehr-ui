@@ -273,7 +273,7 @@ const HistoryClaims: React.FC = () => {
       (!searchPatient || (claim.patientName && claim.patientName.toLowerCase().includes(searchPatient.toLowerCase()))) &&
       (!searchClaim || (claim.id && claim.id.toString().includes(searchClaim))) &&
       (!filters.type || (claim.type && claim.type.toLowerCase() === filters.type.toLowerCase())) &&
-      (!filters.carrier || claim.provider === filters.carrier) &&
+      (!filters.carrier || (claim.payerName || claim.provider) === filters.carrier) &&
       (!filters.attachment || (filters.attachment === "yes" ? claim.hasAttachment : !claim.hasAttachment)) &&
       !hiddenClaims.has(claim.id)
     );
@@ -413,9 +413,9 @@ const HistoryClaims: React.FC = () => {
                 <td className="p-2">{claim.type}</td>
                 <td className="p-2">{formatDate(claim.sentOn || claim.createdOn)}</td>
                 <td className="p-2">{formatDate(claim.printedOn) || ''}</td>
-                <td className="p-2">{claim.provider}</td>
+                <td className="p-2">{claim.payerName || claim.provider || "\u2014"}</td>
                 <td className="p-2">
-                  <button 
+                  <button
                     className="text-blue-500 hover:text-blue-700 hover:underline"
                     onClick={() => fetchLineDetails(claim.id)}
                     disabled={lineDetailsLoading}
@@ -666,7 +666,7 @@ const HistoryClaims: React.FC = () => {
                         <td className="border border-gray-300 p-2">{claim.type}</td>
                         <td className="border border-gray-300 p-2">{formatDate(claim.sentOn || claim.createdOn)}</td>
                         <td className="border border-gray-300 p-2">{formatDate(claim.printedOn) || '-'}</td>
-                        <td className="border border-gray-300 p-2">{claim.provider}</td>
+                        <td className="border border-gray-300 p-2">{claim.payerName || claim.provider || "\u2014"}</td>
                         <td className="border border-gray-300 p-2">{claim.status}</td>
                         <td className="border border-gray-300 p-2">{claim.eraStatus || '-'}</td>
                         <td className="border border-gray-300 p-2">{claim.clearingHouseStatusMessage || '-'}</td>

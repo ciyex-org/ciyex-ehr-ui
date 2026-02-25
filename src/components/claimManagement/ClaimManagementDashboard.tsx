@@ -4,6 +4,7 @@ import  { useState } from 'react';
 import UnsentClaims from './UnsentClaims';
 import ErroredClaims from './ErroredClaims';
 import RejectedClaims from './RejectedClaims';
+import DeniedClaims from './DeniedClaims';
 import HistoryClaims from './HistoryClaims';
 import UnclaimedClaims from './UnclaimedClaims';
 
@@ -11,6 +12,7 @@ const tabs = [
   { id: 'unsent', label: 'Unsent Claims', component: <UnsentClaims /> },
   { id: 'errored', label: 'Errored Claims', component: <ErroredClaims /> },
   { id: 'rejected', label: 'Rejected Claims', component: <RejectedClaims /> },
+  { id: 'denied', label: 'Billing Denials', component: <DeniedClaims /> },
   { id: 'history', label: 'History Claims', component: <HistoryClaims /> },
   { id: 'unclaimed', label: 'Unclaimed Claims', component: <UnclaimedClaims /> },
 ];

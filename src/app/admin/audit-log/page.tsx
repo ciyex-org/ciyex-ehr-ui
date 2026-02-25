@@ -89,12 +89,11 @@ export default function AuditLogPage() {
         setTotalElements(json.data.totalElements ?? 0);
         setTotalPages(json.data.totalPages ?? 0);
 
-        // Collect distinct resource types for filter dropdown
-        const types = new Set<string>(resourceTypes);
-        content.forEach((entry: AuditLogEntry) => {
-          if (entry.resourceType) types.add(entry.resourceType);
-        });
-        setResourceTypes(Array.from(types).sort());
+        // Collect distinct resource types for filter dropdown (use functional update to avoid stale closure)
+        const newTypes = content
+          .map((entry: AuditLogEntry) => entry.resourceType)
+          .filter((rt): rt is string => Boolean(rt));
+        setResourceTypes((prev) => Array.from(new Set([...prev, ...newTypes])).sort());
       }
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);

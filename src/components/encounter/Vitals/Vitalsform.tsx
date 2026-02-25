@@ -32,6 +32,26 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
+    // Auto-calculate BMI from weight and height
+    useEffect(() => {
+        const w = parseFloat(weightKg);
+        const h = parseFloat(heightCm);
+        if (w > 0 && h > 0) {
+            const heightM = h / 100;
+            const calculated = (w / (heightM * heightM)).toFixed(1);
+            setBmi(calculated);
+        }
+    }, [weightKg, heightCm]);
+
+    function getBmiStatus(bmiValue: string): { label: string; color: string } | null {
+        const v = parseFloat(bmiValue);
+        if (isNaN(v)) return null;
+        if (v < 18.5) return { label: "Underweight", color: "text-blue-600" };
+        if (v < 25)   return { label: "Normal",      color: "text-green-600" };
+        if (v < 30)   return { label: "Overweight",  color: "text-amber-600" };
+        return             { label: "Obese",         color: "text-red-600" };
+    }
+
     useEffect(() => {
         const encounterData = getEncounterData(patientId, encounterId);
         if (encounterData.vitals && !editing?.id) {
@@ -208,12 +228,26 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
                     value={oxygenSaturation}
                     onChange={(e) => setOxygenSaturation(e.target.value)}
                 />
-                <input
-                    className="w-full rounded-lg border px-3 py-2"
-                    placeholder="BMI"
-                    value={bmi}
-                    onChange={(e) => setBmi(e.target.value)}
-                />
+                <div>
+                    <label className="block text-sm font-medium mb-1">BMI</label>
+                    <div className="flex items-center gap-2">
+                        <input
+                            className="w-full rounded-lg border px-3 py-2 bg-gray-50"
+                            placeholder="Auto-calculated"
+                            value={bmi}
+                            readOnly
+                            title="BMI is automatically calculated from weight and height"
+                        />
+                        {bmi && (() => {
+                            const status = getBmiStatus(bmi);
+                            return status ? (
+                                <span className={`text-xs font-semibold whitespace-nowrap ${status.color}`}>
+                                    {status.label}
+                                </span>
+                            ) : null;
+                        })()}
+                    </div>
+                </div>
                 <textarea
                     className="w-full rounded-lg border px-3 py-2 md:col-span-2"
                     placeholder="Notes"

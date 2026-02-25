@@ -238,7 +238,7 @@ const ErroredClaims: React.FC = () => {
       (!searchPatient || claim.patientName?.toLowerCase().includes(searchPatient.toLowerCase())) &&
       (!searchClaim || claim.id?.toString().includes(searchClaim) || claim.createdOn?.includes(searchClaim)) &&
       (!filters.type || (claim.type && claim.type.toLowerCase() === filters.type.toLowerCase())) &&
-      (!filters.carrier || claim.provider === filters.carrier) &&
+      (!filters.carrier || (claim.payerName || claim.provider) === filters.carrier) &&
       (!filters.attachment || (filters.attachment === "yes" ? claim.hasAttachment : !claim.hasAttachment))
     );
   });
@@ -455,9 +455,9 @@ const ErroredClaims: React.FC = () => {
                 <td className="p-2">{claim.id}</td>
                 <td className="p-2">{claim.type}</td>
                 <td className="p-2">{formatDate(claim.createdOn)}</td>
-                <td className="p-2">{claim.provider}</td>
+                <td className="p-2">{claim.payerName || claim.provider || "\u2014"}</td>
                 <td className="p-2">
-                  <button 
+                  <button
                     className="text-blue-500 hover:text-blue-700 hover:underline"
                     onClick={() => fetchLineDetails(claim.id)}
                     disabled={lineDetailsLoading}

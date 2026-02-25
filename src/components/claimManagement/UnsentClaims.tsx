@@ -12,6 +12,9 @@ type Claim = {
   type: string;
   createdOn: string;
   provider: string;
+  payerName?: string;
+  planName?: string;
+  policyNumber?: string;
   status: string;
   notes?: string;
   description?: string;
@@ -141,7 +144,7 @@ const UnsentClaims: React.FC = () => {
       const response = await res.json();
       setClaims(response.data || []);
       setUniqueCarriers(
-        Array.from(new Set((response.data || []).map((c: Claim) => String(c.provider)).filter(Boolean)))
+        Array.from(new Set((response.data || []).map((c: Claim) => String(c.payerName || c.provider || "")).filter(Boolean)))
       );
       setError(null);
     } catch (err: unknown) {
@@ -166,7 +169,7 @@ const UnsentClaims: React.FC = () => {
         })
         .then(data => {
           setClaims(data);
-          setUniqueCarriers(Array.from(new Set(data.map((c: Claim) => String(c.provider)).filter(Boolean))));
+          setUniqueCarriers(Array.from(new Set(data.map((c: Claim) => String(c.payerName || c.provider || "")).filter(Boolean))));
           setError(null);
         })
         .catch(err => {
@@ -194,7 +197,7 @@ const UnsentClaims: React.FC = () => {
       (!searchPatient || (claim.patientName && claim.patientName.toLowerCase().includes(searchPatient.toLowerCase()))) &&
       (!searchClaim || (claim.id && claim.id.toString().includes(searchClaim)) || claim.createdOn?.includes(searchClaim)) &&
       (!filters.type || claim.type === filters.type) &&
-      (!filters.carrier || claim.provider === filters.carrier) &&
+      (!filters.carrier || (claim.payerName || claim.provider) === filters.carrier) &&
       (!filters.attachment || (filters.attachment === "yes" ? claim.hasAttachment : !claim.hasAttachment))
     );
   });
@@ -682,7 +685,7 @@ const handleChangeStatus = async () => {
                 <td className="p-2">{claim.id}</td>
                 <td className="p-2">{claim.type}</td>
                 <td className="p-2">{formatDate(claim.createdOn)}</td>
-                <td className="p-2">{claim.provider}</td>
+                <td className="p-2">{claim.payerName || claim.provider || "\u2014"}</td>
                 <td className="p-2">
                   <button 
                     className="text-blue-500 hover:text-blue-700 hover:underline"

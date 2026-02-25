@@ -88,6 +88,71 @@ const ROUTE_OPTIONS = [
   { value: "intradermal", label: "Intradermal" },
 ];
 
+// Common CDC CVX codes (vaccine code => vaccine name)
+const CVX_CODES: { code: string; name: string }[] = [
+  { code: "03",  name: "MMR (Measles, Mumps, Rubella)" },
+  { code: "08",  name: "Hepatitis B, adolescent or pediatric" },
+  { code: "10",  name: "IPV (Poliovirus, inactivated)" },
+  { code: "17",  name: "HIB (Haemophilus influenzae type b)" },
+  { code: "20",  name: "DTaP" },
+  { code: "21",  name: "Varicella (Chickenpox)" },
+  { code: "33",  name: "Pneumococcal polysaccharide (PPV23)" },
+  { code: "43",  name: "Hepatitis B, adult" },
+  { code: "46",  name: "Hepatitis B, pediatric/adolescent" },
+  { code: "49",  name: "Hib (PRP-OMP)" },
+  { code: "62",  name: "HPV, bivalent" },
+  { code: "83",  name: "Hepatitis A, pediatric/adolescent" },
+  { code: "85",  name: "Hepatitis A, unspecified" },
+  { code: "88",  name: "Flu, unspecified" },
+  { code: "94",  name: "MMR-Varicella (MMRV)" },
+  { code: "100", name: "Pneumococcal conjugate (PCV7)" },
+  { code: "106", name: "DTaP, 5-component" },
+  { code: "107", name: "DTaP, unspecified" },
+  { code: "110", name: "DTaP-Hepatitis B-IPV" },
+  { code: "111", name: "Flu, live, intranasal" },
+  { code: "113", name: "Td, adult" },
+  { code: "114", name: "Meningococcal MCV4P" },
+  { code: "115", name: "Tdap" },
+  { code: "116", name: "Rotavirus, pentavalent" },
+  { code: "119", name: "Rotavirus, monovalent" },
+  { code: "120", name: "DTaP-Hib-IPV" },
+  { code: "121", name: "Zoster (shingles), live" },
+  { code: "122", name: "Rotavirus, unspecified" },
+  { code: "130", name: "DTaP-IPV" },
+  { code: "133", name: "PCV13 (Pneumococcal conjugate)" },
+  { code: "135", name: "Influenza, high dose" },
+  { code: "136", name: "Meningococcal MCV4O" },
+  { code: "138", name: "Td, adult, unspecified" },
+  { code: "139", name: "Td, adult, Adacel" },
+  { code: "140", name: "Influenza, seasonal, injectable" },
+  { code: "141", name: "Influenza, seasonal, injectable, preservative free" },
+  { code: "143", name: "Adenovirus, type 4 and type 7" },
+  { code: "146", name: "DTaP, 5 pertussis antigens" },
+  { code: "150", name: "Influenza, injectable, quadrivalent" },
+  { code: "155", name: "Influenza, recombinant, injectable" },
+  { code: "158", name: "Influenza, injectable, quadrivalent, preservative free" },
+  { code: "160", name: "Influenza A monovalent" },
+  { code: "161", name: "Influenza, injectable, quadrivalent, preservative free, pediatric" },
+  { code: "162", name: "Meningococcal B, recombinant" },
+  { code: "163", name: "Meningococcal B, OMV" },
+  { code: "165", name: "HPV9 (Human Papillomavirus 9-valent)" },
+  { code: "166", name: "Influenza, intradermal, quadrivalent" },
+  { code: "168", name: "Influenza, trivalent, adjuvanted" },
+  { code: "171", name: "Influenza, quadrivalent, adjuvanted" },
+  { code: "175", name: "Rabies, intramuscular injection" },
+  { code: "176", name: "COVID-19 Pfizer-BioNTech" },
+  { code: "207", name: "COVID-19 Moderna" },
+  { code: "210", name: "COVID-19 Janssen (Johnson & Johnson)" },
+  { code: "212", name: "COVID-19 Novavax" },
+  { code: "213", name: "COVID-19 vaccine, unspecified" },
+  { code: "217", name: "COVID-19 Pfizer, bivalent" },
+  { code: "218", name: "COVID-19 Moderna, bivalent" },
+  { code: "228", name: "Zoster (shingles), recombinant (Shingrix)" },
+  { code: "229", name: "COVID-19 Pfizer, bivalent, age 6-11" },
+  { code: "230", name: "COVID-19 Moderna, bivalent, age 6+" },
+  { code: "300", name: "COVID-19 XBB.1.5 updated, unspecified" },
+];
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
@@ -215,7 +280,24 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
               </div>
               <div>
                 <label className={labelCls}>CVX Code</label>
-                <input className={inputCls} value={form.cvxCode} onChange={(e) => set("cvxCode", e.target.value)} placeholder="141" />
+                <select
+                  className={inputCls}
+                  value={form.cvxCode}
+                  onChange={(e) => {
+                    const selected = CVX_CODES.find((c) => c.code === e.target.value);
+                    set("cvxCode", e.target.value);
+                    if (selected && !form.vaccineName.trim()) {
+                      set("vaccineName", selected.name);
+                    }
+                  }}
+                >
+                  <option value="">Select CVX code...</option>
+                  {CVX_CODES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} - {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelCls}>Manufacturer</label>

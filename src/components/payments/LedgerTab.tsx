@@ -138,7 +138,7 @@ export default function LedgerTab({ showToast }: Props) {
   const labelCls = "block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1";
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col">
       {/* Patient search */}
       <div className="shrink-0 mb-4 relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -214,6 +214,9 @@ export default function LedgerTab({ showToast }: Props) {
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
                     <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice #</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Recipient</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Issuer</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
                     <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Balance</th>
                   </tr>
@@ -221,14 +224,14 @@ export default function LedgerTab({ showToast }: Props) {
                 <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-20">
+                      <td colSpan={8} className="text-center py-20">
                         <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mb-2" />
                         <span className="text-sm text-gray-500">Loading ledger...</span>
                       </td>
                     </tr>
                   ) : entries.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-20">
+                      <td colSpan={8} className="text-center py-20">
                         <Receipt className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                         <p className="text-sm text-gray-500">No ledger entries</p>
                       </td>
@@ -246,6 +249,9 @@ export default function LedgerTab({ showToast }: Props) {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{e.description || "--"}</td>
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300 font-mono text-xs">{e.invoiceNumber || "--"}</td>
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{e.recipient || "--"}</td>
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{e.issuer || "--"}</td>
                         <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${
                           isCredit(e.entryType)
                             ? "text-green-600 dark:text-green-400"

@@ -1678,6 +1678,19 @@ export default function DynamicFormRenderer({
       );
     }
 
+    // Reference fields with a lookupConfig use LookupField; without one, fall through to text input
+    if (field.fhirMapping?.type === "reference" && field.lookupConfig) {
+      return (
+        <div key={field.key} className={`col-span-${field.colSpan || 1}`}>
+          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            {field.label} {field.required && <span className="text-red-500">*</span>}
+          </label>
+          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} onDisplayChange={(d) => onChange(field.key + "Display", d)} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
+          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+        </div>
+      );
+    }
+
     return (
       <div key={field.key} className={`col-span-${field.colSpan || 1}`}>
         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
@@ -1699,6 +1712,8 @@ export default function DynamicFormRenderer({
                 ? field.options?.find((o) => o.value === value)?.label || value || "-"
                 : field.type === "checkbox" || field.type === "boolean" || field.type === "toggle"
                 ? value ? "Yes" : "No"
+                : field.fhirMapping?.type === "reference"
+                ? formData[field.key + "Display"] || value || "-"
                 : value || "-"}
             </span>
           )

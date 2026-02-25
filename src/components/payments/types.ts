@@ -124,6 +124,9 @@ export type PatientLedger = {
   description: string;
   referenceType: string;
   referenceId: string;
+  invoiceNumber?: string;
+  recipient?: string;
+  issuer?: string;
   postedBy: string;
   createdAt?: string;
 };

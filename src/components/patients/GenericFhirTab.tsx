@@ -107,11 +107,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 setTotalElements(data.totalElements || 0);
                 setTotalPages(data.totalPages || 0);
 
-                // Single-record mode: auto-open in view mode
+                // Single-record mode: auto-open in view or create mode
                 if (isSingle && content.length > 0) {
                     setFormData({ ...content[0] });
                     setSelectedRecord(content[0]);
                     setMode("view");
+                } else if (isSingle && content.length === 0) {
+                    // No record yet — auto-open create form
+                    setFormData({});
+                    setSelectedRecord(null);
+                    setMode("create");
                 }
             } else if (res.status === 403) {
                 setError("Access Denied: You don't have permission to view this data.");

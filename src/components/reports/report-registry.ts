@@ -53,6 +53,15 @@ function filterByDateRange(records: any[], dateField: string, from: string, to: 
   });
 }
 
+function filterByProvider(records: any[], providerFilter: string | undefined): any[] {
+  if (!providerFilter || providerFilter === "") return records;
+  const q = providerFilter.toLowerCase();
+  return records.filter(r => {
+    const prov = (r.encounterProvider || r.provider || r.providerName || r.prescriber || "").toLowerCase();
+    return prov.includes(q);
+  });
+}
+
 async function safeFetch(url: string, fetchFn: typeof fetch): Promise<any[]> {
   try {
     const res = await fetchFn(url);
@@ -191,7 +200,8 @@ const encounterSummary: ReportDefinition = {
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
     const all = await safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn);
-    const records = filterByDateRange(all, "encounterDate", from, to);
+    const byDate = filterByDateRange(all, "encounterDate", from, to);
+    const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, e => (e.status || "Unsigned").toString());
     const typeCounts = countBy(records, e => (e.type || e.visitCategory || "Unknown").toString());
     const monthly = groupByMonth(records, "encounterDate");
@@ -214,7 +224,7 @@ const encounterSummary: ReportDefinition = {
       tableData: records.map(e => ({
         id: e.id, date: e.encounterDate || e.date || "",
         patient: e.patientName || e.patientId || "", provider: e.encounterProvider || e.provider || "",
-        type: e.type || "", status: e.status || "Unsigned", diagnosis: e.diagnosis || "",
+        type: e.type || e.visitCategory || "", status: e.status || "Unsigned", diagnosis: e.diagnosis || e.primaryDiagnosis || e.chiefComplaint || "",
       })),
       totalRecords: records.length,
     };
@@ -250,7 +260,8 @@ const labResults: ReportDefinition = {
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
     const all = await safeFetch(`${apiUrl}/api/lab-order/search?q=`, fetchFn);
-    const records = filterByDateRange(all, "orderDate", from, to);
+    const byDate = filterByDateRange(all, "orderDate", from, to);
+    const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, o => (o.status || "Unknown").toString());
     const priorityCounts = countBy(records, o => (o.priority || "Routine").toString());
     const monthly = groupByMonth(records, "orderDate");
@@ -267,9 +278,9 @@ const labResults: ReportDefinition = {
         monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })),
       },
       tableData: records.map(o => ({
-        id: o.id, orderDate: o.orderDate || o.createdAt || "", patient: o.patientName || o.patientId || "",
-        testName: o.testName || o.labTestName || o.name || "", status: o.status || "",
-        priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || "",
+        id: o.id, orderDate: o.orderDate || o.orderedDate || o.date || o.createdAt || "", patient: o.patientName || o.patientId || "",
+        testName: o.testName || o.labTestName || o.name || o.code || o.description || "", status: o.status || "",
+        priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || "",
       })),
       totalRecords: records.length,
     };
@@ -303,8 +314,9 @@ const medicationReport: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const records = await safeFetch(`${apiUrl}/api/prescriptions?page=0&size=1000`, fetchFn);
-    const filtered = filterByDateRange(records, "prescriptionDate", from, to);
+    const all = await safeFetch(`${apiUrl}/api/prescriptions?page=0&size=1000`, fetchFn);
+    const byDate = filterByDateRange(all, "prescriptionDate", from, to);
+    const filtered = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(filtered, p => (p.status || "Active").toString());
     const monthly = groupByMonth(filtered, "prescriptionDate");
     const medCounts = countBy(filtered, p => (p.medicationName || p.medication || p.drugName || "Unknown").toString());
@@ -327,7 +339,7 @@ const medicationReport: ReportDefinition = {
         id: p.id, prescriptionDate: p.prescriptionDate || p.dateWritten || p.createdAt || "",
         patient: p.patientName || p.patientId || "",
         medication: p.medicationName || p.medication || p.drugName || "",
-        status: p.status || "Active", prescriber: p.prescriber || p.providerName || "",
+        status: p.status || "Active", prescriber: p.prescriberName || p.prescriber || p.providerName || "",
       })),
       totalRecords: filtered.length,
     };
@@ -374,7 +386,7 @@ const referralReport: ReportDefinition = {
         { key: "completionRate", label: "Completion Rate", value: Math.round(((statusCounts["completed"] || statusCounts["Completed"] || 0) / total) * 100), format: "percent", color: "text-purple-600" },
       ],
       charts: { byStatus: toChartData(statusCounts, "name", "count"), bySpecialty: toChartData(specCounts, "name", "count").slice(0, 10), monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })) },
-      tableData: records.map(r => ({ id: r.id, date: r.referralDate || r.createdAt || "", patient: r.patientName || r.patientId || "", referTo: r.referredToName || r.referredTo || "", specialty: r.specialty || "", status: r.status || "", urgency: r.urgency || "Routine" })),
+      tableData: records.map(r => ({ id: r.id, date: r.referralDate || r.createdAt || "", patient: r.patientName || r.patientId || "", referTo: r.specialistName || r.referredToName || r.referredTo || r.facilityName || "", specialty: r.specialty || "", status: r.status || "", urgency: r.urgency || "Routine" })),
       totalRecords: records.length,
     };
   },
@@ -417,7 +429,7 @@ const immunizationReport: ReportDefinition = {
         { key: "thisMonth", label: "This Month", value: records.filter(i => { const d = i.administeredDate; if (!d) return false; return new Date(d) >= new Date(daysAgo(30)); }).length, format: "number", color: "text-purple-600" },
       ],
       charts: { byVaccine: toChartData(vaccineCounts, "name", "count"), monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })) },
-      tableData: records.map(i => ({ id: i.id, date: i.administeredDate || "", patient: i.patientName || "", vaccine: i.vaccineName || i.vaccine || "", dose: i.doseNumber || "", site: i.site || "", provider: i.provider || "" })),
+      tableData: records.map(i => ({ id: i.id, date: i.administeredDate || i.occurrenceDateTime || i.date || i.createdAt || "", patient: i.patientName || "", vaccine: i.vaccineName || i.vaccineCode || i.vaccine || "", dose: i.doseNumber || i.doseQuantity || "", site: i.site || i.bodySite || "", provider: i.administeredBy || i.performedBy || i.providerName || i.provider || "" })),
       totalRecords: records.length,
     };
   },
@@ -790,7 +802,8 @@ const appointmentVolume: ReportDefinition = {
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
     const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
-    const records = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
+    const all = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
+    const records = filterByProvider(all, filters.provider as string | undefined);
     const statusCounts = countBy(records, a => (a.status || "Unknown").toString());
     const typeCounts = countBy(records, a => (a.visitType || a.type || "Unknown").toString());
     const weekday = groupByWeekday(records, "appointmentStartDate");

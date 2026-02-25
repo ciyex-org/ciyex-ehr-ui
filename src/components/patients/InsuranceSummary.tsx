@@ -46,7 +46,7 @@ export default function InsuranceSummary({
                 }
 
                 const res = await fetchWithAuth(
-                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/coverages`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/coverages?patientId=${patientId}&size=50`,
                     { headers }
                 );
 
@@ -54,20 +54,25 @@ export default function InsuranceSummary({
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
 
-                const body: ApiResponse<Coverage[]> = await res.json();
+                const body: ApiResponse<Coverage[] | { content?: Coverage[] }> = await res.json();
 
-                // Handle different response structures
+                // Handle paginated, wrapped, or plain array response structures
                 let coverages: Coverage[] = [];
 
-                if (body.success && Array.isArray(body.data)) {
-                    coverages = body.data;
+                if (body.success && body.data) {
+                    const d = body.data as any;
+                    if (Array.isArray(d)) {
+                        coverages = d;
+                    } else if (Array.isArray(d.content)) {
+                        coverages = d.content;
+                    }
                 } else if (Array.isArray(body)) {
-                    coverages = body;
+                    coverages = body as unknown as Coverage[];
                 }
 
-                // Filter by patientId
+                // Filter by patientId as a safety net
                 const patientCoverages = coverages.filter(
-                    (c: any) => c.patientId && Number(c.patientId) === patientId
+                    (c: any) => !c.patientId || Number(c.patientId) === patientId
                 );
 
                 setRows(patientCoverages);

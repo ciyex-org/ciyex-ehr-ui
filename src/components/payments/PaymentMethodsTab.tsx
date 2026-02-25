@@ -187,10 +187,10 @@ export default function PaymentMethodsTab({ showToast }: Props) {
   const handleSetDefault = async (m: PatientPaymentMethod) => {
     if (!m.id || !selectedPatient) return;
     try {
-      const res = await fetchWithAuth(apiUrl(`/api/payments/methods/${m.id}/set-default`), {
-        method: "POST",
-        body: JSON.stringify({ patientId: selectedPatient.id }),
-      });
+      const res = await fetchWithAuth(
+        apiUrl(`/api/payments/methods/${m.id}/set-default?patientId=${selectedPatient.id}`),
+        { method: "POST" }
+      );
       const json = await res.json();
       if (res.ok && (json.success !== false)) {
         showToast({ type: "success", text: "Default method updated" });

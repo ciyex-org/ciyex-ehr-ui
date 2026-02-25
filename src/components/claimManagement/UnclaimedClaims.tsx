@@ -46,6 +46,7 @@ const UnclaimedClaims: React.FC = () => {
   const [uniqueCarriers, setUniqueCarriers] = useState<string[]>([]);
   const [searchPatient, setSearchPatient] = useState("");
   const [searchClaim, setSearchClaim] = useState("");
+  const [searchDiagnosis, setSearchDiagnosis] = useState("");
   const [filters, setFilters] = useState({ type: "", carrier: "", attachment: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +95,29 @@ const UnclaimedClaims: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [patientSearchQuery]);
+
+  // ✅ Debounce diagnosis search — fetches from backend and merges results into claims
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (!searchDiagnosis || searchDiagnosis.trim().length < 2) return;
+      try {
+        const API_URL = getEnv("NEXT_PUBLIC_API_URL");
+        const res = await fetchWithAuth(
+          `${API_URL}/api/all-claims/diagnosis-search?query=${encodeURIComponent(searchDiagnosis.trim())}`
+        );
+        if (!res.ok) return;
+        const response = await res.json();
+        const results = response.data || [];
+        if (Array.isArray(results) && results.length > 0) {
+          setClaims(results);
+        }
+      } catch (err) {
+        console.error("Diagnosis search error:", err);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchDiagnosis]);
 
   // ✅ Load claims by patient ID
   const loadClaimsByPatient = async (patientId: number) => {
@@ -230,8 +254,9 @@ const UnclaimedClaims: React.FC = () => {
     return (
       (!searchPatient || (claim.patientName && claim.patientName.toLowerCase().includes(searchPatient.toLowerCase()))) &&
       (!searchClaim || (claim.id && claim.id.toString().includes(searchClaim)) || claim.createdOn?.includes(searchClaim)) &&
+      (!searchDiagnosis || (claim.diagnosisCode && claim.diagnosisCode.toLowerCase().includes(searchDiagnosis.toLowerCase())) || (claim.notes && claim.notes.toLowerCase().includes(searchDiagnosis.toLowerCase()))) &&
       (!filters.type || (claim.type && claim.type.toLowerCase() === filters.type.toLowerCase())) &&
-      (!filters.carrier || claim.provider === filters.carrier) &&
+      (!filters.carrier || (claim.payerName || claim.provider) === filters.carrier) &&
       (!filters.attachment || (filters.attachment === "yes" ? claim.hasAttachment : !claim.hasAttachment)) &&
       !hiddenClaims.has(claim.id)
     );
@@ -354,6 +379,14 @@ const UnclaimedClaims: React.FC = () => {
           placeholder="Search by claim # or date"
           value={searchClaim}
           onChange={e => setSearchClaim(e.target.value)}
+          className="border px-2 py-1 rounded"
+        />
+
+        <input
+          type="text"
+          placeholder="Search by diagnosis code (ICD)"
+          value={searchDiagnosis}
+          onChange={e => setSearchDiagnosis(e.target.value)}
           className="border px-2 py-1 rounded"
         />
 
@@ -599,7 +632,7 @@ const UnclaimedClaims: React.FC = () => {
                           <td className="border border-gray-300 p-2">{claim.id}</td>
                           <td className="border border-gray-300 p-2">{claim.type}</td>
                           <td className="border border-gray-300 p-2">{formatDate(claim.createdOn)}</td>
-                          <td className="border border-gray-300 p-2">{claim.provider}</td>
+                          <td className="border border-gray-300 p-2">{claim.payerName || claim.provider || "\u2014"}</td>
                           <td className="border border-gray-300 p-2">{claim.status}</td>
                           <td className="border border-gray-300 p-2">{claim.notes || '-'}</td>
                         </tr>
@@ -659,9 +692,9 @@ const UnclaimedClaims: React.FC = () => {
                 <td className="p-2">{claim.id}</td>
                 <td className="p-2">{claim.type}</td>
                 <td className="p-2">{formatDate(claim.createdOn)}</td>
-                <td className="p-2">{claim.provider}</td>
+                <td className="p-2">{claim.payerName || claim.provider || "\u2014"}</td>
                 <td className="p-2">
-                  <button 
+                  <button
                     className="text-blue-500 hover:text-blue-700 hover:underline"
                     onClick={() => fetchLineDetails(claim.id)}
                     disabled={lineDetailsLoading}

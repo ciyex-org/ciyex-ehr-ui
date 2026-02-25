@@ -455,7 +455,10 @@ export default function RecallPage() {
             <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setPage(0); }}
               className="h-8 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs">
               <option value="">All Types</option>
-              {recallTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              {recallTypes.length === 0
+                ? <option value="" disabled>No types available</option>
+                : recallTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
+              }
             </select>
             {/* Provider */}
             <select value={providerFilter} onChange={e => { setProviderFilter(e.target.value); setPage(0); }}
@@ -642,7 +645,9 @@ export default function RecallPage() {
                   <select value={formData.recallTypeId}
                     onChange={e => setFormData(prev => ({ ...prev, recallTypeId: e.target.value }))}
                     className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm">
-                    <option value="">Select type...</option>
+                    <option value="" disabled>
+                      {recallTypes.length === 0 ? "Loading types..." : "Select type..."}
+                    </option>
                     {recallTypes.map(t => <option key={t.id} value={t.id}>{t.name} ({t.category})</option>)}
                   </select>
                 </div>

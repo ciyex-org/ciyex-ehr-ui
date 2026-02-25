@@ -125,6 +125,20 @@ function TrendChart({ data, refLow, refHigh }: { data: { date: string; val: numb
   );
 }
 
+/* ── Input label helper (defined outside component to prevent re-mount on each render) ── */
+function Inp({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-gray-600 dark:text-gray-400 text-xs">
+        {label}{required && <span className="text-red-500"> *</span>}
+      </span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+}
+
+const inputClsGlobal = "w-full border dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm";
+
 /* ══════════════════════ Main Component ══════════════════════ */
 export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => {
   const [results, setResults] = useState<LabResultDto[]>([]);
@@ -268,11 +282,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
   function sortBy(k: SortKey) { if (sortKey === k) setSortAsc(!sortAsc); else { setSortKey(k); setSortAsc(true); } }
   const arrow = (k: SortKey) => sortKey === k ? (sortAsc ? " \u25B2" : " \u25BC") : "";
 
-  /* ── Input helper ── */
-  const Inp = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
-    <label className="block"><span className="text-gray-600 dark:text-gray-400 text-xs">{label}{required && <span className="text-red-500"> *</span>}</span><div className="mt-1">{children}</div></label>
-  );
-  const inputCls = "w-full border dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-700 dark:text-gray-100 text-sm";
+  const inputCls = inputClsGlobal;
 
   /* ══════════ Render ══════════ */
   return (
@@ -321,7 +331,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
 
       {/* ───── LIST VIEW ───── */}
       {!loading && view === "list" && (
-        <div className="border border-slate-200 dark:border-gray-700 rounded-lg shadow-sm bg-white dark:bg-gray-800 overflow-hidden">
+        <div className="border border-slate-200 dark:border-gray-700 rounded-lg shadow-sm bg-white dark:bg-gray-800 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
               <tr>

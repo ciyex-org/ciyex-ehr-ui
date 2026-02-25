@@ -634,7 +634,7 @@ export default function PatientDashboardPage() {
                 <PluginSlot name="patient-chart:banner-alert" context={{ patientId: patient.id }} className="px-4 pt-2 space-y-2" />
 
                 {/* Content area: sidebar + main */}
-                <div className="flex flex-1 min-h-0 overflow-hidden">
+                <div className="flex flex-1 min-h-0">
                     <ClinicalSidebar
                         patientId={Number(patient.id)}
                         collapsed={sidebarCollapsed}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchWithOrg } from "@/utils/fetchWithOrg";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import type { ApiResponse, ProviderNoteDto } from "@/utils/types";
 import { getEncounterData, setEncounterSection, removeEncounterSection } from "@/utils/encounterStorage";
 
@@ -157,7 +157,7 @@ export default function Providernoteform({
                 ? `/api/provider-notes/${patientId}/${encounterId}/${editing.id}`
                 : `/api/provider-notes/${patientId}/${encounterId}`;
 
-            const res = await fetchWithOrg(url, {
+            const res = await fetchWithAuth(url, {
                 method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),

@@ -616,9 +616,17 @@ export default function ReferralsPage() {
       const res = await fetchWithAuth(url);
       const json = await res.json();
       if (res.ok && json.success) {
-        setReferrals(json.data.content || []);
-        setTotalPages(json.data.totalPages || 1);
-        setTotalElements(json.data.totalElements || 0);
+        // Search returns a plain List; paginated fetch returns a Page object
+        const data = json.data;
+        if (Array.isArray(data)) {
+          setReferrals(data);
+          setTotalPages(1);
+          setTotalElements(data.length);
+        } else {
+          setReferrals(data.content || []);
+          setTotalPages(data.totalPages || 1);
+          setTotalElements(data.totalElements || 0);
+        }
       } else {
         setReferrals([]);
       }

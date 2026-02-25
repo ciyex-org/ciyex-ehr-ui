@@ -72,7 +72,7 @@ export default function EncounterList({ patientId }: Props) {
     );
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col space-y-4 max-h-screen overflow-y-auto">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Encounters</h2>
             </div>

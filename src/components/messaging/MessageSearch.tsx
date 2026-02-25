@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Search, X, Hash, Calendar } from "lucide-react";
 import type { MessageItem } from "./types";
 import { searchMessages } from "./messagingApi";
@@ -14,26 +14,57 @@ interface Props {
 
 export default function MessageSearch({ isOpen, onClose, currentChannelId, onGoToMessage }: Props) {
   const [query, setQuery] = useState("");
+  const [fromUser, setFromUser] = useState("");
+  const [toUser, setToUser] = useState("");
   const [results, setResults] = useState<MessageItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searched, setSearched] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSearch = useCallback(async () => {
-    if (!query.trim()) return;
+  const handleSearch = useCallback(async (q: string, from: string, to: string) => {
+    if (!q.trim() && !from.trim() && !to.trim()) {
+      setResults([]);
+      setSearched(false);
+      return;
+    }
     setIsSearching(true);
     setSearched(true);
     try {
-      const data = await searchMessages(query.trim(), currentChannelId);
-      setResults(Array.isArray(data) ? data : []);
+      const params = new URLSearchParams();
+      if (q.trim()) params.set("q", q.trim());
+      if (from.trim()) params.set("from", from.trim());
+      if (to.trim()) params.set("to", to.trim());
+      if (currentChannelId) params.set("channelId", currentChannelId);
+      const data = await searchMessages(q.trim() || "*", currentChannelId);
+      // Client-side filter by from/to if API doesn't support those params yet
+      let filtered = Array.isArray(data) ? data : [];
+      if (from.trim()) {
+        const f = from.trim().toLowerCase();
+        filtered = filtered.filter(m => (m.senderName || "").toLowerCase().includes(f));
+      }
+      if (to.trim()) {
+        const t = to.trim().toLowerCase();
+        filtered = filtered.filter(m => (m.channelId || "").toLowerCase().includes(t));
+      }
+      setResults(filtered);
     } catch {
       setResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, [query, currentChannelId]);
+  }, [currentChannelId]);
+
+  // Debounce search on input change
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      handleSearch(query, fromUser, toUser);
+    }, 350);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, fromUser, toUser, handleSearch]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleSearch();
+    if (e.key === "Enter") handleSearch(query, fromUser, toUser);
     if (e.key === "Escape") onClose();
   };
 
@@ -41,29 +72,49 @@ export default function MessageSearch({ isOpen, onClose, currentChannelId, onGoT
 
   return (
     <div className="absolute inset-x-0 top-[49px] z-40 mx-4 mt-2 max-h-[70vh] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800">
-      {/* Search input */}
-      <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-        <Search className="h-4 w-4 shrink-0 text-gray-400" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Search messages..."
-          className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder-gray-400 dark:text-gray-100"
-          autoFocus
-        />
-        {query && (
-          <button
-            onClick={() => { setQuery(""); setResults([]); setSearched(false); }}
-            className="text-gray-400 hover:text-gray-600"
-          >
+      {/* Search inputs */}
+      <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700 space-y-2">
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 shrink-0 text-gray-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search messages..."
+            className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder-gray-400 dark:text-gray-100"
+            autoFocus
+          />
+          {(query || fromUser || toUser) && (
+            <button
+              onClick={() => { setQuery(""); setFromUser(""); setToUser(""); setResults([]); setSearched(false); }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+          <button onClick={onClose} className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
             <X className="h-4 w-4" />
           </button>
-        )}
-        <button onClick={onClose} className="rounded p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
-          <X className="h-4 w-4" />
-        </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={fromUser}
+            onChange={(e) => setFromUser(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="From (sender name)..."
+            className="flex-1 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-900 outline-none placeholder-gray-400 focus:border-brand-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+          />
+          <input
+            type="text"
+            value={toUser}
+            onChange={(e) => setToUser(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="To (channel/recipient)..."
+            className="flex-1 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-900 outline-none placeholder-gray-400 focus:border-brand-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+          />
+        </div>
       </div>
 
       {/* Results */}
@@ -123,7 +174,7 @@ export default function MessageSearch({ isOpen, onClose, currentChannelId, onGoT
         {!searched && !isSearching && (
           <div className="py-8 text-center">
             <p className="text-sm text-gray-500">Type to search messages</p>
-            <p className="mt-1 text-xs text-gray-400">Press Enter to search</p>
+            <p className="mt-1 text-xs text-gray-400">Use From/To fields to filter by sender or recipient</p>
           </div>
         )}
       </div>
