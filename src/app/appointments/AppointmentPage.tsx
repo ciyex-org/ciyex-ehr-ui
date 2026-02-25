@@ -324,6 +324,11 @@ export default function AppointmentPage() {
         size: String(pageSize),
       });
       if (statusFilter && statusFilter !== "All") params.set("status", statusFilter);
+      // Pass date range for server-side FHIR filtering
+      const isoFrom = from ? parseMMDDYYYY(from) : null;
+      const isoTo = to ? parseMMDDYYYY(to) : null;
+      if (isoFrom) params.set("dateFrom", isoFrom);
+      if (isoTo) params.set("dateTo", isoTo);
 
       const res = await fetchWithAuth(
         `${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments?${params.toString()}`
@@ -358,7 +363,7 @@ export default function AppointmentPage() {
       if (!silent) setLoadingAppointments(false);
       setRefreshing(false);
     }
-  }, [currentPage, pageSize, statusFilter]);
+  }, [currentPage, pageSize, statusFilter, from, to]);
 
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
 
