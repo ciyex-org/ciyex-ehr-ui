@@ -400,8 +400,8 @@ function LookupField({
                         || (ep.includes("provider") || ep.includes("practitioner") ? "Practitioner"
                         : ep.includes("patient") ? "Patient"
                         : ep.includes("location") ? "Location"
-                        : ep.includes("organization") ? "Organization"
-                        : field.fhirMapping.resource || "");
+                        : ep.includes("organization") || ep.includes("insurance") ? "Organization"
+                        : "");
                     if (targetType) finalVal = `${targetType}/${val}`;
                   }
                   onChange(finalVal);
