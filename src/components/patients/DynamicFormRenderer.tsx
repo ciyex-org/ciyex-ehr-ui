@@ -17,6 +17,13 @@ import ProviderAvailabilityEditor from "@/components/settings/ProviderAvailabili
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
+/** Resolve a dot-notation or direct path on a possibly nested object */
+const getNestedValue = (obj: any, path: string): any => {
+  if (!obj || !path) return undefined;
+  if (path in obj) return obj[path];
+  return path.split(".").reduce((cur: any, key: string) => cur?.[key], obj);
+};
+
 // ---- Types ----
 
 export interface FhirMapping {
@@ -100,6 +107,9 @@ export interface FieldDef {
   options?: { value: string; label: string }[];
   optionsSource?: OptionsSource;
   lookupConfig?: LookupConfig;
+  /** When a lookup item is selected, auto-fill other form fields from the selected record.
+   *  Keys are target form field keys, values are source property paths on the selected record. */
+  autoFill?: Record<string, string>;
   fhirMapping?: FhirMapping;
   validation?: FieldValidation;
   computeExpression?: string;
@@ -293,6 +303,7 @@ function LookupField({
   value,
   onChange,
   onDisplayChange,
+  onItemSelect,
   readOnly,
   displayLabel,
 }: {
@@ -300,6 +311,7 @@ function LookupField({
   value: any;
   onChange: (val: any) => void;
   onDisplayChange?: (display: string) => void;
+  onItemSelect?: (item: Record<string, any>) => void;
   readOnly?: boolean;
   displayLabel?: string;
 }) {
@@ -307,11 +319,21 @@ function LookupField({
   const [results, setResults] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [displayValue, setDisplayValue] = useState(displayLabel || value || "");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
 
   // Update display value when displayLabel prop changes (e.g., after data reload)
   React.useEffect(() => {
     if (displayLabel) setDisplayValue(displayLabel);
   }, [displayLabel]);
+
+  // Recalculate dropdown position when showing
+  React.useEffect(() => {
+    if (showDropdown && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+  }, [showDropdown, results]);
 
   const search = useCallback(
     async (q: string) => {
@@ -342,6 +364,7 @@ function LookupField({
   return (
     <div className="relative">
       <input
+        ref={inputRef}
         type="text"
         className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         placeholder={field.placeholder || `Search ${field.label}...`}
@@ -353,8 +376,11 @@ function LookupField({
         }}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
       />
-      {showDropdown && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+      {showDropdown && results.length > 0 && ReactDOM.createPortal(
+        <div
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+          style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+        >
           {results.map((item, idx) => {
             const display = item[field.lookupConfig!.displayField] || item.name || item.label;
             const val = item[field.lookupConfig!.valueField] || item.id;
@@ -365,9 +391,23 @@ function LookupField({
                 className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
-                  onChange(val);
+                  // For FHIR reference fields, prefix the value with the TARGET resource type
+                  let finalVal = val;
+                  if (field.fhirMapping?.type === "reference" && val && !String(val).includes("/")) {
+                    // Infer target resource type from the lookup endpoint (not the source resource)
+                    const ep = (field.lookupConfig?.endpoint || "").toLowerCase();
+                    const targetType = item._resourceType
+                        || (ep.includes("provider") || ep.includes("practitioner") ? "Practitioner"
+                        : ep.includes("patient") ? "Patient"
+                        : ep.includes("location") ? "Location"
+                        : ep.includes("organization") ? "Organization"
+                        : field.fhirMapping.resource || "");
+                    if (targetType) finalVal = `${targetType}/${val}`;
+                  }
+                  onChange(finalVal);
                   setDisplayValue(display);
                   if (onDisplayChange) onDisplayChange(display);
+                  if (onItemSelect) onItemSelect(item);
                   setQuery("");
                   setShowDropdown(false);
                 }}
@@ -376,7 +416,8 @@ function LookupField({
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -1108,6 +1149,42 @@ const FHIR_SYSTEM_TO_CODE_SYSTEM: Record<string, string> = {
   "https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets": "HCPCS",
 };
 
+// Fallback CVX codes when the ciyex-codes API has no CVX data loaded
+const FALLBACK_CVX_CODES: { code: string; shortDescription: string }[] = [
+  { code: "03", shortDescription: "MMR (Measles, Mumps, Rubella)" },
+  { code: "08", shortDescription: "Hepatitis B, adolescent or pediatric" },
+  { code: "10", shortDescription: "IPV (Poliovirus, inactivated)" },
+  { code: "17", shortDescription: "HIB (Haemophilus influenzae type b)" },
+  { code: "20", shortDescription: "DTaP" },
+  { code: "21", shortDescription: "Varicella (Chickenpox)" },
+  { code: "33", shortDescription: "Pneumococcal polysaccharide (PPV23)" },
+  { code: "43", shortDescription: "Hepatitis B, adult" },
+  { code: "49", shortDescription: "Hib (PRP-OMP)" },
+  { code: "62", shortDescription: "HPV, bivalent" },
+  { code: "83", shortDescription: "Hepatitis A, pediatric/adolescent" },
+  { code: "88", shortDescription: "Flu, unspecified" },
+  { code: "94", shortDescription: "MMR-Varicella (MMRV)" },
+  { code: "100", shortDescription: "Pneumococcal conjugate (PCV7)" },
+  { code: "110", shortDescription: "DTaP-Hepatitis B-IPV" },
+  { code: "113", shortDescription: "Td, adult" },
+  { code: "114", shortDescription: "Meningococcal MCV4P" },
+  { code: "115", shortDescription: "Tdap" },
+  { code: "116", shortDescription: "Rotavirus, pentavalent" },
+  { code: "121", shortDescription: "Zoster (shingles), live" },
+  { code: "133", shortDescription: "PCV13 (Pneumococcal conjugate)" },
+  { code: "135", shortDescription: "Influenza, high dose" },
+  { code: "140", shortDescription: "Influenza, seasonal, injectable" },
+  { code: "150", shortDescription: "Influenza, injectable, quadrivalent" },
+  { code: "158", shortDescription: "Influenza, injectable, quadrivalent, preservative free" },
+  { code: "162", shortDescription: "Meningococcal B, recombinant" },
+  { code: "165", shortDescription: "HPV9 (Human Papillomavirus 9-valent)" },
+  { code: "176", shortDescription: "COVID-19 Pfizer-BioNTech" },
+  { code: "207", shortDescription: "COVID-19 Moderna" },
+  { code: "210", shortDescription: "COVID-19 Janssen (Johnson & Johnson)" },
+  { code: "212", shortDescription: "COVID-19 Novavax" },
+  { code: "228", shortDescription: "Zoster (shingles), recombinant (Shingrix)" },
+];
+
 function CodedField({
   field,
   value,
@@ -1146,9 +1223,23 @@ function CodedField({
         const res = await fetchWithAuth(url);
         if (res.ok) {
           const json = await res.json();
-          setSearchResults(json.content || []);
+          const results = json.content || [];
+          if (results.length > 0) {
+            setSearchResults(results);
+            return;
+          }
         }
-      } catch { setSearchResults([]); }
+      } catch { /* fall through to fallback */ }
+      // Fallback: for CVX codes, use local data when API returns empty
+      if (codeSystem === "CVX") {
+        const lq = q.toLowerCase();
+        const fallback = FALLBACK_CVX_CODES.filter(
+          (c) => c.code.includes(lq) || c.shortDescription.toLowerCase().includes(lq)
+        ).slice(0, 15);
+        setSearchResults(fallback);
+      } else {
+        setSearchResults([]);
+      }
     },
     [codeSystem]
   );
@@ -1178,6 +1269,16 @@ function CodedField({
     );
   }
 
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [dropdownPos, setDropdownPos] = React.useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+
+  React.useEffect(() => {
+    if (showSearch && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    }
+  }, [showSearch, searchResults]);
+
   return (
     <div className="relative">
       {value ? (
@@ -1190,6 +1291,7 @@ function CodedField({
         </div>
       ) : (
         <input
+          ref={inputRef}
           type="text"
           placeholder={`Search ${codeSystem.replace(/_/g, "-")} codes...`}
           value={searchQuery}
@@ -1199,8 +1301,11 @@ function CodedField({
           className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500"
         />
       )}
-      {showSearch && searchResults.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+      {showSearch && searchResults.length > 0 && ReactDOM.createPortal(
+        <div
+          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+          style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+        >
           {searchResults.map((item, idx) => (
             <button
               key={idx}
@@ -1217,7 +1322,8 @@ function CodedField({
               </span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -1672,7 +1778,14 @@ export default function DynamicFormRenderer({
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
-          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} onDisplayChange={(d) => onChange(field.key + "Display", d)} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
+          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} onDisplayChange={(d) => onChange(field.key + "Display", d)} onItemSelect={field.autoFill ? (item) => {
+            for (const [targetKey, sourceKey] of Object.entries(field.autoFill!)) {
+              const sourceValue = getNestedValue(item, sourceKey);
+              if (sourceValue !== undefined) {
+                onChange(targetKey, sourceValue);
+              }
+            }
+          } : undefined} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       );
@@ -1685,7 +1798,14 @@ export default function DynamicFormRenderer({
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
-          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} onDisplayChange={(d) => onChange(field.key + "Display", d)} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
+          <LookupField field={field} value={value} onChange={(v) => onChange(field.key, v)} onDisplayChange={(d) => onChange(field.key + "Display", d)} onItemSelect={field.autoFill ? (item) => {
+            for (const [targetKey, sourceKey] of Object.entries(field.autoFill!)) {
+              const sourceValue = getNestedValue(item, sourceKey);
+              if (sourceValue !== undefined) {
+                onChange(targetKey, sourceValue);
+              }
+            }
+          } : undefined} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       );

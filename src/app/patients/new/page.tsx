@@ -496,6 +496,9 @@ export default function AddPatient() {
                 occupation: formData.employerInfo.status ? formData.employerInfo.status : undefined,
                 employerName: formData.employerInfo.name,
                 employerAddress: [formData.employerInfo.address1, formData.employerInfo.address2, formData.employerInfo.city, formData.employerInfo.state, formData.employerInfo.zip].filter(Boolean).join(", "),
+                // Ensure patient is active by default and has an MRN
+                status: "true",
+                medicalRecordNumber: "MRN-" + Date.now(),
             };
             // Remove undefined/empty values
             Object.keys(fhirPayload).forEach(key => {

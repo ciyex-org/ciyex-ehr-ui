@@ -116,6 +116,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
         method: "POST",
         body: JSON.stringify({
           ...form,
+          patientId: form.patientId ? parseInt(String(form.patientId), 10) || form.patientId : null,
           amount: parseFloat(form.amount),
         }),
       });
@@ -240,12 +241,20 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
               {/* Reference Type */}
               <div>
                 <label className={labelCls}>Reference Type</label>
-                <input
+                <select
                   className={inputCls()}
                   value={form.referenceType}
                   onChange={(e) => setForm((prev) => ({ ...prev, referenceType: e.target.value }))}
-                  placeholder="encounter"
-                />
+                >
+                  <option value="">Select...</option>
+                  <option value="encounter">Encounter</option>
+                  <option value="claim">Claim</option>
+                  <option value="invoice">Invoice</option>
+                  <option value="copay">Copay</option>
+                  <option value="deductible">Deductible</option>
+                  <option value="self_pay">Self Pay</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
 
               {/* Invoice Number */}

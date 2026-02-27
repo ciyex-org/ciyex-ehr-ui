@@ -406,14 +406,14 @@ const HistoryClaims: React.FC = () => {
                     onClick={() => navigateToPatientBilling(claim.patientId)}
                     title="View patient billing"
                   >
-                    {claim.patientName}
+                    {claim.patientName || claim.patientDisplay || claim.patient || "—"}
                   </button>
                 </td>
                 <td className="p-2">{claim.id}</td>
                 <td className="p-2">{claim.type}</td>
                 <td className="p-2">{formatDate(claim.sentOn || claim.createdOn)}</td>
                 <td className="p-2">{formatDate(claim.printedOn) || ''}</td>
-                <td className="p-2">{claim.payerName || claim.provider || "\u2014"}</td>
+                <td className="p-2">{claim.payerName || claim.provider || claim.insurerName || claim.carrierName || "—"}</td>
                 <td className="p-2">
                   <button
                     className="text-blue-500 hover:text-blue-700 hover:underline"
@@ -428,7 +428,7 @@ const HistoryClaims: React.FC = () => {
                 <td className="p-2">{claim.clearingHouseStatusMessage || ''}</td>
                 <td className="p-2">{claim.value || ''}</td>
                 <td className="p-2">{claim.notes}</td>
-                <td className="p-2">{claim.description || ''}</td>
+                <td className="p-2">{claim.description || claim.notes || claim.memo || "—"}</td>
                 <td className="p-2 flex gap-2">
                   <button 
                     className="border px-2 py-1 rounded text-xs hover:bg-blue-50 flex items-center gap-1" 

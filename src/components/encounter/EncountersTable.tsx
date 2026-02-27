@@ -37,10 +37,23 @@ function toDate(value: Encounter["encounterDate"]): Date | null {
 
 function normalizeData(data: unknown): Encounter[] {
     if (!data) return [];
-    if (Array.isArray(data)) return data as Encounter[];
-    const rec = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
-    if (Array.isArray(rec.content)) return rec.content as Encounter[];
-    return [];
+    let list: Record<string, unknown>[] = [];
+    if (Array.isArray(data)) list = data;
+    else {
+        const rec = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
+        if (Array.isArray(rec.content)) list = rec.content;
+    }
+    return list.map((e) => ({
+        ...e,
+        id: e.id as number,
+        patientId: e.patientId as number,
+        encounterDate: (e.encounterDate ?? e.startDate ?? e.date ?? e.period ?? e._lastUpdated) as Encounter["encounterDate"],
+        encounterProvider: (e.encounterProvider ?? e.providerDisplay ?? e.provider ?? e.practitionerName) as string | undefined,
+        visitCategory: (e.visitCategory ?? e.type ?? e.encounterType ?? e.serviceType) as string | undefined,
+        reason: (e.reason ?? e.reasonCode ?? e.chiefComplaint ?? e.reasonForVisit) as string | undefined,
+        patientName: (e.patientName ?? e.patientDisplay ?? e.subjectDisplay) as string | undefined,
+        status: e.status as EncounterStatus | undefined,
+    }));
 }
 
 function StatusBadge({ value }: { value?: EncounterStatus | null }) {
@@ -81,7 +94,14 @@ export default function EncountersTable() {
                 }
                 const list = normalizeData(body.data)
                     .map((e) => ({ ...e, status: (e.status ?? "UNSIGNED") as EncounterStatus }))
-                    .sort((a, b) => (b.id ?? 0) - (a.id ?? 0));
+                    .sort((a, b) => {
+                        const da = toDate(a.encounterDate);
+                        const db = toDate(b.encounterDate);
+                        if (da && db) return db.getTime() - da.getTime();
+                        if (da) return -1;
+                        if (db) return 1;
+                        return (b.id ?? 0) - (a.id ?? 0);
+                    });
                 setRows(list);
             } catch (err: unknown) {
                 setRows([]);
@@ -149,7 +169,7 @@ export default function EncountersTable() {
 
             {/* Table */}
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
@@ -242,7 +262,7 @@ export default function EncountersTable() {
                             value={pageSize}
                             onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
                         >
-                            {[10, 20, 50].map((n) => (
+                            {[10, 20, 50, 100].map((n) => (
                                 <option key={n} value={n}>{n}</option>
                             ))}
                         </select>

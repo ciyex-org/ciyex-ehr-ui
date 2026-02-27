@@ -15,6 +15,7 @@ export interface FilterConfig {
   options?: { value: string; label: string }[];
   defaultValue?: string | string[];
   apiSource?: string; // endpoint to fetch options dynamically
+  apiMapping?: { valueField: string; labelField: string }; // how to map API response items to dropdown options
 }
 
 export type FilterValues = Record<string, string | string[] | undefined>;
@@ -129,7 +130,8 @@ export const PROVIDER_FILTER: FilterConfig = {
   label: "Provider",
   type: "select",
   options: [{ value: "", label: "All Providers" }],
-  apiSource: "/api/practitioners",
+  apiSource: "/api/providers",
+  apiMapping: { valueField: "name", labelField: "name" },
 };
 
 export const LOCATION_FILTER: FilterConfig = {
@@ -144,6 +146,8 @@ export const PAYER_FILTER: FilterConfig = {
   label: "Payer",
   type: "select",
   options: [{ value: "", label: "All Payers" }],
+  apiSource: "/api/insurance-companies",
+  apiMapping: { valueField: "name", labelField: "name" },
 };
 
 export const STATUS_FILTER: FilterConfig = {

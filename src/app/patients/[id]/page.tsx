@@ -459,7 +459,7 @@ export default function PatientDashboardPage() {
             label: "Financial",
             tabs: [
                 { key: "billing", label: "Billing", icon: Receipt },
-                { key: "insurance", label: "Insurance", icon: ShieldCheck },
+                { key: "insurance-coverage", label: "Insurance", icon: ShieldCheck },
                 { key: "transactions", label: "Transactions", icon: ArrowLeftRight },
                 { key: "payment", label: "Payment", icon: CreditCard },
             ],

@@ -139,6 +139,51 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         fetchRecords(page);
     }, [fetchRecords, page]);
 
+    // Resolve reference Display fields (e.g. Practitioner names) if missing
+    useEffect(() => {
+        if (!fieldConfig || Object.keys(formData).length === 0) return;
+        const refFields: { key: string; endpoint: string; value: string }[] = [];
+        for (const section of fieldConfig.sections || []) {
+            for (const field of section.fields || []) {
+                if (field.fhirMapping?.type === "reference" || field.type === "lookup") {
+                    const val = formData[field.key];
+                    const displayKey = field.key + "Display";
+                    if (val && !formData[displayKey]) {
+                        const endpoint = field.lookupConfig?.endpoint || (
+                            field.fhirMapping?.resource === "Practitioner" ? "/api/providers" : ""
+                        );
+                        if (endpoint) {
+                            refFields.push({ key: field.key, endpoint, value: String(val) });
+                        }
+                    }
+                }
+            }
+        }
+        if (refFields.length === 0) return;
+        // Resolve references
+        (async () => {
+            const updates: Record<string, string> = {};
+            for (const ref of refFields) {
+                try {
+                    const rawId = ref.value.includes("/") ? ref.value.split("/").pop() : ref.value;
+                    const res = await fetchWithAuth(`${API_BASE()}${ref.endpoint}/${rawId}`);
+                    if (res.ok) {
+                        const json = await res.json();
+                        const data = json.data || json;
+                        const name = data.name || data.display ||
+                            [data.firstName, data.lastName].filter(Boolean).join(" ") ||
+                            [data.identification?.firstName, data.identification?.lastName].filter(Boolean).join(" ") ||
+                            data.fullName || "";
+                        if (name) updates[ref.key + "Display"] = name;
+                    }
+                } catch { /* silent */ }
+            }
+            if (Object.keys(updates).length > 0) {
+                setFormData((prev) => ({ ...prev, ...updates }));
+            }
+        })();
+    }, [fieldConfig, formData.id]); // only re-run when record changes (by id)
+
     const handleFieldChange = (key: string, value: any) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
     };

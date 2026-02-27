@@ -5,13 +5,7 @@ import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
-type Coverage = {
-    id: number;
-    provider?: string;
-    planName?: string;
-    coverageType?: string;
-    patientId?: number;
-};
+type Coverage = Record<string, any>;
 
 type ApiResponse<T> = {
     success?: boolean;
@@ -45,8 +39,9 @@ export default function InsuranceSummary({
                     }
                 }
 
+                // Use the patient-specific FHIR resource endpoint for insurance coverage data
                 const res = await fetchWithAuth(
-                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/coverages?patientId=${patientId}&size=50`,
+                    `${getEnv("NEXT_PUBLIC_API_URL")}/api/fhir-resource/insurance-coverage/patient/${patientId}?page=0&size=50`,
                     { headers }
                 );
 
@@ -54,13 +49,13 @@ export default function InsuranceSummary({
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
 
-                const body: ApiResponse<Coverage[] | { content?: Coverage[] }> = await res.json();
+                const body: ApiResponse<any> = await res.json();
 
                 // Handle paginated, wrapped, or plain array response structures
                 let coverages: Coverage[] = [];
 
                 if (body.success && body.data) {
-                    const d = body.data as any;
+                    const d = body.data;
                     if (Array.isArray(d)) {
                         coverages = d;
                     } else if (Array.isArray(d.content)) {
@@ -70,12 +65,7 @@ export default function InsuranceSummary({
                     coverages = body as unknown as Coverage[];
                 }
 
-                // Filter by patientId as a safety net
-                const patientCoverages = coverages.filter(
-                    (c: any) => !c.patientId || Number(c.patientId) === patientId
-                );
-
-                setRows(patientCoverages);
+                setRows(coverages);
             } catch (error) {
                 console.error("Failed to load insurance:", error);
                 setRows([]);
@@ -112,14 +102,29 @@ export default function InsuranceSummary({
                 <p className="text-gray-500 text-sm">No insurance on file</p>
             ) : (
                 <ul className="space-y-1 text-sm">
-                    {rows.slice(0, 3).map((c) => (
-                        <li key={c.id}>
-                            <strong>{c.provider}</strong> — {c.planName}{" "}
-                            <span className="ml-1 text-gray-500">
-                                ({c.coverageType || "—"})
-                            </span>
-                        </li>
-                    ))}
+                    {rows.slice(0, 3).map((c: any, idx: number) => {
+                        // Try multiple possible field names from tab_field_config mappings
+                        const prov = c.payerName || c.provider || c.insurerName || c.companyName || c.payor || c.insurer || "";
+                        const plan = c.planName || c.plan || c.coveragePlan || c.planDisplay || c.groupName || c.groupId || "";
+                        const ctype = c.coverageType || c.type || c.level || c.kind || c.relationship || "";
+                        const status = c.status || "";
+
+                        // Build a meaningful display line from whatever fields are available
+                        const allValues = Object.values(c).filter(
+                            (v) => v != null && typeof v === "string" && v.trim() !== "" && v !== "Coverage" && !String(v).startsWith("Patient/")
+                        );
+                        const label = prov || plan || (allValues.length > 0 ? String(allValues[0]) : "Insurance Record");
+
+                        return (
+                            <li key={c.id || c.fhirId || idx}>
+                                <strong>{label}</strong>
+                                {plan && prov ? ` — ${plan}` : ""}
+                                {" "}
+                                {ctype && <span className="ml-1 text-gray-500">({ctype})</span>}
+                                {status && <span className="ml-1 text-xs text-green-600">{status}</span>}
+                            </li>
+                        );
+                    })}
                     {rows.length > 3 && (
                         <li className="text-xs text-gray-500">
                             +{rows.length - 3} more...

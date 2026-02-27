@@ -128,7 +128,7 @@ export default function PatientListPage() {
                 const params = new URLSearchParams();
                 params.set("page", String(Math.max(0, page - 1)));
                 params.set("size", String(size));
-                params.set("sort", "id,asc");
+                params.set("sort", "id,desc");
                 if (search) params.set("search", search);
                 if (status && status !== "all") params.set("status", status);
                 if (gender && gender !== "all") params.set("gender", gender);

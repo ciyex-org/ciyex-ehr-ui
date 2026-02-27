@@ -136,6 +136,7 @@ const DeniedClaims: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 py-2 text-left font-medium text-gray-600">Claim ID</th>
+                <th className="px-3 py-2 text-left font-medium text-gray-600">Original Claim</th>
                 <th className="px-3 py-2 text-left font-medium text-gray-600">Patient</th>
                 <th className="px-3 py-2 text-left font-medium text-gray-600">Provider</th>
                 <th className="px-3 py-2 text-left font-medium text-gray-600">Type</th>
@@ -148,6 +149,7 @@ const DeniedClaims: React.FC = () => {
               {filteredClaims.map((claim: any) => (
                 <tr key={claim.id} className="hover:bg-gray-50">
                   <td className="px-3 py-2 font-mono text-xs">{claim.id}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{claim.originalClaimId || claim.originalClaimNumber || claim.parentClaimId || '--'}</td>
                   <td className="px-3 py-2">{claim.patientName || '--'}</td>
                   <td className="px-3 py-2">{claim.provider || '--'}</td>
                   <td className="px-3 py-2">{claim.type || '--'}</td>

@@ -298,7 +298,16 @@ export default function LedgerTab({ showToast }: Props) {
                 </div>
                 <div>
                   <label className={labelCls}>Reference Type</label>
-                  <input className={inputCls} value={chargeForm.referenceType} onChange={(e) => setChargeForm((prev) => ({ ...prev, referenceType: e.target.value }))} placeholder="encounter" />
+                  <select className={inputCls} value={chargeForm.referenceType} onChange={(e) => setChargeForm((prev) => ({ ...prev, referenceType: e.target.value }))}>
+                    <option value="">Select...</option>
+                    <option value="encounter">Encounter</option>
+                    <option value="claim">Claim</option>
+                    <option value="invoice">Invoice</option>
+                    <option value="copay">Copay</option>
+                    <option value="deductible">Deductible</option>
+                    <option value="self_pay">Self Pay</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
               </div>
               <div className="flex justify-end gap-3 mt-5">

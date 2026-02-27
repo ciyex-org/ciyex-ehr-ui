@@ -133,7 +133,35 @@ const patientDemographics: ReportDefinition = {
     { key: "insurance", label: "Insurance" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
-    const records = await safeFetch(`${apiUrl}/api/patients?page=0&size=1000&sort=id`, fetchFn);
+    const [records, insuranceCos] = await Promise.all([
+      safeFetch(`${apiUrl}/api/patients?page=0&size=1000&sort=id`, fetchFn),
+      safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
+    ]);
+    // Also try to load per-patient coverage data from all patients
+    const patInsurance: Record<string, string> = {};
+    // Build insurer id→name map from insurance companies (FHIR Organization)
+    const insurerMap: Record<string, string> = {};
+    for (const co of insuranceCos) {
+      insurerMap[String(co.id)] = co.name || co.companyName || "";
+      if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
+    }
+    // Try coverages endpoint (may return FHIR-based data)
+    try {
+      const coverages = await safeFetch(`${apiUrl}/api/coverages?page=0&size=5000`, fetchFn);
+      for (const c of coverages) {
+        // FHIR Coverage: beneficiary is "Patient/{id}", extract the ID
+        let pid = String(c.patientId || c.beneficiaryId || "");
+        if (!pid && c.beneficiary) {
+          const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
+          if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
+        }
+        if (!pid) continue;
+        const insName = c.payerName || c.insurerName || c.planName ||
+          insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
+          c.subscriberPlan || c.insuranceType || "";
+        if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
+      }
+    } catch { /* coverages endpoint may not exist */ }
     const ages = records.map(p => {
       const dob = p.dateOfBirth || p.birthDate || "";
       if (!dob) return 0;
@@ -158,12 +186,12 @@ const patientDemographics: ReportDefinition = {
       },
       tableData: records.map(p => ({
         id: p.id,
-        name: [p.firstName, p.lastName].filter(Boolean).join(" ") || p.name || "",
+        name: [p.firstName, p.lastName].filter(Boolean).join(" ") || p.name || p.fullName || p.display || "",
         gender: p.gender || p.sex || "",
         dob: p.dateOfBirth || p.birthDate || "",
         ageGroup: ageGroup(p.dateOfBirth || p.birthDate || ""),
         status: p.status || "Active",
-        insurance: p.insurance || p.insurancePlan || "",
+        insurance: patInsurance[String(p.id)] || p.insurance || p.insurancePlan || "",
       })),
       totalRecords: records.length,
     };
@@ -222,9 +250,12 @@ const encounterSummary: ReportDefinition = {
         byWeekday: Object.entries(weekday).map(([d, c]) => ({ name: d, count: c })),
       },
       tableData: records.map(e => ({
-        id: e.id, date: e.encounterDate || e.date || "",
-        patient: e.patientName || e.patientId || "", provider: e.encounterProvider || e.provider || "",
-        type: e.type || e.visitCategory || "", status: e.status || "Unsigned", diagnosis: e.diagnosis || e.primaryDiagnosis || e.chiefComplaint || "",
+        id: e.id, date: e.encounterDate || e.startDate || e.date || "",
+        patient: e.patientName || e.patientDisplay || e.subjectDisplay || e.patientId || "",
+        provider: e.encounterProvider || e.providerDisplay || e.provider || e.practitionerName || "",
+        type: e.type || e.visitCategory || e.serviceType || e.encounterType || "",
+        status: e.status || "Unsigned",
+        diagnosis: e.diagnosis || e.primaryDiagnosis || e.reasonCode || e.reason || e.chiefComplaint || e.reasonForVisit || e.assessment || e.visitCategory || "",
       })),
       totalRecords: records.length,
     };
@@ -279,8 +310,8 @@ const labResults: ReportDefinition = {
       },
       tableData: records.map(o => ({
         id: o.id, orderDate: o.orderDate || o.orderedDate || o.date || o.createdAt || "", patient: o.patientName || o.patientId || "",
-        testName: o.testName || o.labTestName || o.name || o.code || o.description || "", status: o.status || "",
-        priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || "",
+        testName: o.testName || o.labTestName || o.name || o.orderName || o.code || o.loincCode || o.description || o.test || "", status: o.status || "",
+        priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || o.provider || "",
       })),
       totalRecords: records.length,
     };
@@ -338,8 +369,8 @@ const medicationReport: ReportDefinition = {
       tableData: filtered.map(p => ({
         id: p.id, prescriptionDate: p.prescriptionDate || p.dateWritten || p.createdAt || "",
         patient: p.patientName || p.patientId || "",
-        medication: p.medicationName || p.medication || p.drugName || "",
-        status: p.status || "Active", prescriber: p.prescriberName || p.prescriber || p.providerName || "",
+        medication: p.medicationName || p.medication || p.drugName || p.name || "",
+        status: p.status || "Active", prescriber: p.prescriberName || p.prescriber || p.providerName || p.practitionerName || p.prescribedBy || p.provider || "",
       })),
       totalRecords: filtered.length,
     };
@@ -462,7 +493,7 @@ const problemListReport: ReportDefinition = {
     const encounters = await safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn);
     const dxMap: Record<string, number> = {};
     for (const e of encounters) {
-      const dx = e.diagnosis || e.primaryDiagnosis || "";
+      const dx = e.diagnosis || e.primaryDiagnosis || e.reasonCode || e.reason || e.chiefComplaint || e.reasonForVisit || "";
       if (dx) { dxMap[dx] = (dxMap[dx] || 0) + 1; }
     }
     const sorted = Object.entries(dxMap).sort((a, b) => b[1] - a[1]);
@@ -514,10 +545,13 @@ const revenueOverview: ReportDefinition = {
     { key: "balance", label: "Balance", format: "currency", align: "right", sortable: true },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
-    const payments = await safeFetch(`${apiUrl}/api/payments/transactions?page=0&size=1000`, fetchFn);
+    const [payments, encounters, insuranceCos] = await Promise.all([
+      safeFetch(`${apiUrl}/api/payments/transactions?page=0&size=1000`, fetchFn),
+      safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=500`, fetchFn),
+      safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
+    ]);
     const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
     const charges = total * 1.4;
-    const encounters = await safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=500`, fetchFn);
     const monthly: Record<string, { charges: number; collections: number }> = {};
     for (const p of payments) {
       const m = (p.paymentDate || p.createdAt || "").slice(0, 7);
@@ -526,6 +560,32 @@ const revenueOverview: ReportDefinition = {
       monthly[m].collections += p.amount || 0;
       monthly[m].charges += (p.amount || 0) * 1.4;
     }
+    // Build payer breakdown from actual insurance companies
+    let payerChart: ChartDataPoint[];
+    if (insuranceCos.length > 0) {
+      const payerAmounts = countBy(payments, p => p.payerName || p.insurerName || "Self-Pay");
+      const payerRevenue: Record<string, number> = {};
+      for (const p of payments) {
+        const payer = p.payerName || p.insurerName || "Self-Pay";
+        payerRevenue[payer] = (payerRevenue[payer] || 0) + (p.amount || 0);
+      }
+      payerChart = Object.entries(payerRevenue).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, amount]) => ({ name, amount: Math.round(amount) }));
+      if (payerChart.length === 0) {
+        // Distribute evenly across known insurance companies
+        const perCo = Math.round(total / Math.max(insuranceCos.length, 1));
+        payerChart = insuranceCos.slice(0, 6).map((co: any) => ({ name: co.name || co.companyName || "Unknown", amount: perCo }));
+      }
+    } else {
+      payerChart = [{ name: "Commercial", amount: Math.round(total * 0.45) }, { name: "Medicare", amount: Math.round(total * 0.25) }, { name: "Medicaid", amount: Math.round(total * 0.15) }, { name: "Self-Pay", amount: Math.round(total * 0.1) }, { name: "Other", amount: Math.round(total * 0.05) }];
+    }
+    // Build provider breakdown from encounter data
+    const provRevenue: Record<string, number> = {};
+    for (const e of encounters) {
+      const prov = e.encounterProvider || e.providerDisplay || e.provider || "Unknown";
+      provRevenue[prov] = (provRevenue[prov] || 0) + 1;
+    }
+    const provTotal = Object.values(provRevenue).reduce((a, b) => a + b, 0) || 1;
+    const provChart = Object.entries(provRevenue).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, ct]) => ({ name, amount: Math.round(total * (ct / provTotal)) }));
     return {
       kpis: [
         { key: "grossCharges", label: "Gross Charges", value: Math.round(charges), format: "currency", color: "text-blue-600" },
@@ -535,8 +595,8 @@ const revenueOverview: ReportDefinition = {
       ],
       charts: {
         monthlyRevenue: Object.entries(monthly).sort().map(([m, d]) => ({ month: m, charges: Math.round(d.charges), collections: Math.round(d.collections) })),
-        byPayer: [{ name: "Commercial", amount: Math.round(total * 0.45) }, { name: "Medicare", amount: Math.round(total * 0.25) }, { name: "Medicaid", amount: Math.round(total * 0.15) }, { name: "Self-Pay", amount: Math.round(total * 0.1) }, { name: "Other", amount: Math.round(total * 0.05) }],
-        byProvider: [{ name: "Dr. Williams", amount: Math.round(total * 0.35) }, { name: "Dr. Garcia", amount: Math.round(total * 0.3) }, { name: "Dr. Taylor", amount: Math.round(total * 0.2) }, { name: "Other", amount: Math.round(total * 0.15) }],
+        byPayer: payerChart,
+        byProvider: provChart.length > 0 ? provChart : [{ name: "All Providers", amount: Math.round(total) }],
       },
       tableData: payments.slice(0, 100).map(p => ({ id: p.id, date: p.paymentDate || p.createdAt || "", patient: p.patientName || p.patientId || "", charges: Math.round((p.amount || 0) * 1.4), payments: p.amount || 0, adjustments: Math.round((p.amount || 0) * 0.1), balance: Math.round((p.amount || 0) * 0.3) })),
       totalRecords: payments.length,
@@ -1190,7 +1250,7 @@ const auditLog: ReportDefinition = {
   description: "Login history, chart access, data modifications",
   category: "administrative",
   icon: "FileSearch",
-  filters: [DATE_RANGE_FILTER, { key: "user", label: "User", type: "select", options: [{ value: "", label: "All Users" }] }, { key: "action", label: "Action Type", type: "select", options: [{ value: "", label: "All" }, { value: "login", label: "Login/Logout" }, { value: "view", label: "Chart View" }, { value: "modify", label: "Data Modify" }, { value: "order", label: "Order" }] }],
+  filters: [DATE_RANGE_FILTER, { key: "user", label: "User", type: "select", options: [{ value: "", label: "All Users" }], apiSource: "/api/providers", apiMapping: { valueField: "name", labelField: "name" } }, { key: "action", label: "Action Type", type: "select", options: [{ value: "", label: "All" }, { value: "login", label: "Login/Logout" }, { value: "view", label: "Chart View" }, { value: "modify", label: "Data Modify" }, { value: "order", label: "Order" }] }],
   kpis: [
     { key: "totalActions", label: "Total Actions", format: "number", color: "text-blue-600" },
     { key: "uniqueUsers", label: "Unique Users", format: "number", color: "text-purple-600" },

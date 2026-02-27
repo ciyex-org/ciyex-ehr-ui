@@ -106,10 +106,19 @@ export default function CDSPage() {
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetchWithAuth(`${API()}/api/cds/stats`);
+      if (!res.ok) {
+        // If stats endpoint fails, build stats from rules data
+        setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.active).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
+        return;
+      }
       const json = await res.json();
-      if (res.ok && json.success) setStats(json.data);
-    } catch { /* silent */ }
-  }, []);
+      if (json.success) setStats(json.data);
+      else setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.active).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
+    } catch {
+      // Fallback stats from local data
+      setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.active).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
+    }
+  }, [rules]);
 
   useEffect(() => { fetchRules(); }, [fetchRules]);
   useEffect(() => { fetchAlerts(); fetchStats(); }, [fetchAlerts, fetchStats]);

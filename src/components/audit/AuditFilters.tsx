@@ -89,7 +89,7 @@ export default function AuditFilters({
           className="px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
         >
           <option value="ALL">All Resources</option>
-          {resourceTypes.map((rt) => (
+          {resourceTypes.filter((rt) => rt !== "ALL").map((rt) => (
             <option key={rt} value={rt}>
               {rt}
             </option>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -203,6 +203,49 @@ function FilterBar({
 }) {
   const hasDateRange = report.filters.some(f => f.type === "dateRange");
 
+  // Dynamic options fetched from apiSource endpoints
+  const [dynamicOptions, setDynamicOptions] = useState<Record<string, { value: string; label: string }[]>>({});
+
+  useEffect(() => {
+    const filtersWithApi = report.filters.filter(f => f.apiSource);
+    if (filtersWithApi.length === 0) return;
+
+    let cancelled = false;
+
+    (async () => {
+      const results: Record<string, { value: string; label: string }[]> = {};
+
+      await Promise.all(filtersWithApi.map(async (f) => {
+        try {
+          const res = await fetchWithAuth(`${API()}${f.apiSource}`);
+          if (!res.ok || cancelled) return;
+          const json = await res.json();
+
+          // Normalize API response to array
+          const raw = json?.data ?? json;
+          const items: any[] = Array.isArray(raw)
+            ? raw
+            : raw?.content ?? raw?.data?.content ?? raw?.data ?? [];
+
+          // Map to {value, label} using apiMapping or sensible defaults
+          const vf = f.apiMapping?.valueField || "name";
+          const lf = f.apiMapping?.labelField || "name";
+
+          results[f.key] = items.map(item => ({
+            value: String(item[vf] ?? item.id ?? ""),
+            label: String(item[lf] ?? item.name ?? item[vf] ?? ""),
+          }));
+        } catch (err) {
+          console.warn(`Failed to fetch options for filter "${f.key}":`, err);
+        }
+      }));
+
+      if (!cancelled) setDynamicOptions(results);
+    })();
+
+    return () => { cancelled = true; };
+  }, [report.key]); // re-fetch when report changes
+
   return (
     <div className="flex flex-wrap items-end gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
       <Filter className="w-4 h-4 text-slate-400 self-center" />
@@ -218,14 +261,20 @@ function FilterBar({
           </div>
         </>
       )}
-      {report.filters.filter(f => f.type !== "dateRange").map(f => (
-        <div key={f.key} className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-slate-500">{f.label}</label>
-          <select value={(filters[f.key] as string) || ""} onChange={e => onChange({ ...filters, [f.key]: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px]">
-            {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-        </div>
-      ))}
+      {report.filters.filter(f => f.type !== "dateRange").map(f => {
+        const allOptions = [
+          ...(f.options || []),
+          ...(dynamicOptions[f.key] || []),
+        ];
+        return (
+          <div key={f.key} className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-500">{f.label}</label>
+            <select value={(filters[f.key] as string) || ""} onChange={e => onChange({ ...filters, [f.key]: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px]">
+              {allOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        );
+      })}
       <button onClick={onGenerate} disabled={loading} className="px-5 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
         {loading ? "Loading..." : "Generate"}
       </button>

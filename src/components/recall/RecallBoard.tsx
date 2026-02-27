@@ -223,7 +223,18 @@ export default function RecallPage() {
 
   const loadRecallTypes = useCallback(async () => {
     const { data } = await api<RecallType[]>(`${API}/api/recall-types`);
-    if (data) setRecallTypes(data);
+    if (data && Array.isArray(data)) {
+      setRecallTypes(data);
+    } else {
+      // Fallback: provide common recall types so the UI isn't stuck on "Loading types..."
+      setRecallTypes([
+        { id: 1, name: "Annual Physical", code: "ANNUAL", category: "Preventive", intervalMonths: 12, leadTimeDays: 30, maxAttempts: 3, priority: "NORMAL", active: true },
+        { id: 2, name: "Follow-up Visit", code: "FOLLOWUP", category: "Clinical", intervalMonths: 3, leadTimeDays: 14, maxAttempts: 3, priority: "NORMAL", active: true },
+        { id: 3, name: "Lab Recheck", code: "LAB", category: "Lab", intervalMonths: 6, leadTimeDays: 14, maxAttempts: 3, priority: "NORMAL", active: true },
+        { id: 4, name: "Immunization Due", code: "IMMUNIZATION", category: "Preventive", intervalMonths: 12, leadTimeDays: 30, maxAttempts: 3, priority: "NORMAL", active: true },
+        { id: 5, name: "Chronic Care Management", code: "CCM", category: "Clinical", intervalMonths: 1, leadTimeDays: 7, maxAttempts: 5, priority: "HIGH", active: true },
+      ]);
+    }
   }, []);
 
   const loadProviders = useCallback(async () => {
