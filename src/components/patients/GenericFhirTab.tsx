@@ -294,7 +294,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 setSuccessMsg(`Record ${label} successfully`);
                 setTimeout(() => setSuccessMsg(null), 3000);
                 // Brief delay for FHIR server search indexing after create/update
-                if (!isEdit) await new Promise(r => setTimeout(r, 1500));
+                if (!isEdit) await new Promise(r => setTimeout(r, 3000));
                 await fetchRecords(0);
             } else {
                 const err = await res.json().catch(() => null);
