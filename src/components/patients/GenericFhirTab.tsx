@@ -234,9 +234,18 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             if (res.ok) {
                 setRecords((prev) => prev.filter((r) => (r.id || r.fhirId) !== resourceId));
                 setTotalElements((prev) => Math.max(0, prev - 1));
+                setSuccessMsg("Record deleted successfully");
+                setTimeout(() => setSuccessMsg(null), 3000);
+                // Brief delay for FHIR server search indexing after delete
+                await new Promise(r => setTimeout(r, 2000));
+                await fetchRecords(page);
+            } else {
+                const err = await res.json().catch(() => null);
+                setError(err?.message || "Failed to delete record");
             }
         } catch (err) {
             console.error("Error deleting record", err);
+            setError("Failed to delete record");
         }
     };
 

@@ -71,12 +71,20 @@ export default function CredentialingPanel() {
             if (res.ok) {
                 const data = await res.json();
                 setProviders(data.providers || data || []);
+            } else if (res.status === 404) {
+                // App not installed or not configured
+                setProviders([]);
+                setError("Credentialing service is not yet configured. Please contact your administrator.");
+            } else if (res.status === 502) {
+                // Upstream service unavailable
+                setProviders([]);
+                setError("Credentialing service is currently unavailable. Please try again later.");
             } else {
-                // No data available yet
                 setProviders([]);
             }
         } catch {
             setProviders([]);
+            setError("Unable to connect to credentialing service.");
         } finally {
             setLoading(false);
         }
@@ -117,6 +125,13 @@ export default function CredentialingPanel() {
 
     return (
         <div className="space-y-4">
+            {/* Error Banner */}
+            {error && (
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-700 dark:text-amber-400">{error}</p>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>

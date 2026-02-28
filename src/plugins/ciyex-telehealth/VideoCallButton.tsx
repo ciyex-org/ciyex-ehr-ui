@@ -19,18 +19,24 @@ export default function VideoCallButton({ patientId }: VideoCallButtonProps) {
         setError(null);
 
         try {
-            const res = await fetchWithAuth("/api/app-proxy/ciyex-telehealth/api/sessions", {
+            const res = await fetchWithAuth("/api/telehealth/sessions", {
                 method: "POST",
-                body: JSON.stringify({ patientId }),
+                body: JSON.stringify({
+                    patientId,
+                    roomName: `patient-${patientId}-${Date.now()}`,
+                    type: "on-demand",
+                }),
             });
 
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.message || `Failed to create session (${res.status})`);
+                const msg = errData.message || errData.error || `Failed to create session (${res.status})`;
+                throw new Error(msg);
             }
 
-            const data = await res.json();
-            const sessionUrl = data.sessionUrl || data.url || data.joinUrl;
+            const json = await res.json();
+            const data = json.data || json;
+            const sessionUrl = data.meetingUrl || data.sessionUrl || data.url || data.joinUrl;
 
             if (sessionUrl) {
                 window.open(sessionUrl, "_blank", "noopener,noreferrer");

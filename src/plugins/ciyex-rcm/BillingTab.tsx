@@ -57,14 +57,17 @@ export default function BillingTab({ patientId }: BillingTabProps) {
             setError(null);
 
             const res = await fetchWithAuth(
-                `/api/app-proxy/ciyex-rcm/api/claims?patientId=${patientId}`
+                `/api/app-proxy/ciyex-rcm/api/rcm/claims/patient/${patientId}`
             );
 
             if (res.ok) {
                 const data = await res.json();
-                setClaims(data.claims || data || []);
+                // RCM returns ApiResponse with data field containing a Page object
+                const pageData = data.data || data;
+                const content = pageData.content || pageData.claims || (Array.isArray(pageData) ? pageData : []);
+                setClaims(content);
             } else {
-                // No claims data available yet
+                // No claims data available yet or service not configured
                 setClaims([]);
             }
         } catch {
