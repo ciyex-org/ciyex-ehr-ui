@@ -75,12 +75,10 @@ export default function CredentialingPanel() {
                 // App not installed or not configured
                 setProviders([]);
                 setError("Credentialing service is not yet configured. Please contact your administrator.");
-            } else if (res.status === 502) {
-                // Upstream service unavailable
+            } else {
+                // Service unavailable or endpoint not found
                 setProviders([]);
                 setError("Credentialing service is currently unavailable. Please try again later.");
-            } else {
-                setProviders([]);
             }
         } catch {
             setProviders([]);
