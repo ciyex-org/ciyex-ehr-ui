@@ -1,191 +1,375 @@
 "use client";
-import Checkbox from "@/components/form/input/Checkbox";
-import Input from "@/components/form/input/InputField";
-import Label from "@/components/form/Label";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
-import Link from "next/link";
+import { getEnv } from "@/utils/env";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { getAccessibleTenants, setSelectedTenant } from "@/utils/tenantService";
+
+type Step = "org" | "admin" | "submitting";
 
 export default function SignUpForm() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [isChecked, setIsChecked] = useState(false);
-  return (
-    <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
-      <div className="w-full max-w-md sm:pt-10 mx-auto mb-5">
-        <Link
-          href="/"
-          className="inline-flex items-center text-sm text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-        >
-          <ChevronLeftIcon />
-          Back to dashboard
-        </Link>
-      </div>
-      <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
-        <div>
-          <div className="mb-5 sm:mb-8">
-            <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Sign Up
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your email and password to sign up!
-            </p>
-          </div>
-          <div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-5">
-              <button className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M18.7511 10.1944C18.7511 9.47495 18.6915 8.94995 18.5626 8.40552H10.1797V11.6527H15.1003C15.0011 12.4597 14.4654 13.675 13.2749 14.4916L13.2582 14.6003L15.9087 16.6126L16.0924 16.6305C17.7788 15.1041 18.7511 12.8583 18.7511 10.1944Z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M10.1788 18.75C12.5895 18.75 14.6133 17.9722 16.0915 16.6305L13.274 14.4916C12.5201 15.0068 11.5081 15.3666 10.1788 15.3666C7.81773 15.3666 5.81379 13.8402 5.09944 11.7305L4.99473 11.7392L2.23868 13.8295L2.20264 13.9277C3.67087 16.786 6.68674 18.75 10.1788 18.75Z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.10014 11.7305C4.91165 11.186 4.80257 10.6027 4.80257 9.99992C4.80257 9.3971 4.91165 8.81379 5.09022 8.26935L5.08523 8.1534L2.29464 6.02954L2.20333 6.0721C1.5982 7.25823 1.25098 8.5902 1.25098 9.99992C1.25098 11.4096 1.5982 12.7415 2.20333 13.9277L5.10014 11.7305Z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M10.1789 4.63331C11.8554 4.63331 12.9864 5.34303 13.6312 5.93612L16.1511 3.525C14.6035 2.11528 12.5895 1.25 10.1789 1.25C6.68676 1.25 3.67088 3.21387 2.20264 6.07218L5.08953 8.26943C5.81381 6.15972 7.81776 4.63331 10.1789 4.63331Z"
-                    fill="#EB4335"
-                  />
-                </svg>
-                Sign up with Google
-              </button>
-              <button className="inline-flex items-center justify-center gap-3 py-3 text-sm font-normal text-gray-700 transition-colors bg-gray-100 rounded-lg px-7 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10">
-                <svg
-                  width="21"
-                  className="fill-current"
-                  height="20"
-                  viewBox="0 0 21 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M15.6705 1.875H18.4272L12.4047 8.75833L19.4897 18.125H13.9422L9.59717 12.4442L4.62554 18.125H1.86721L8.30887 10.7625L1.51221 1.875H7.20054L11.128 7.0675L15.6705 1.875ZM14.703 16.475H16.2305L6.37054 3.43833H4.73137L14.703 16.475Z" />
-                </svg>
-                Sign up with X
-              </button>
-            </div>
-            <div className="relative py-3 sm:py-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="p-2 text-gray-400 bg-white dark:bg-gray-900 sm:px-5 sm:py-2">
-                  Or
-                </span>
-              </div>
-            </div>
-            <form>
-              <div className="space-y-5">
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  {/* <!-- First Name --> */}
-                  <div className="sm:col-span-1">
-                    <Label>
-                      First Name<span className="text-error-500">*</span>
-                    </Label>
-                    <Input
-                      type="text"
-                      id="fname"
-                      name="fname"
-                      placeholder="Enter your first name"
-                    />
-                  </div>
-                  {/* <!-- Last Name --> */}
-                  <div className="sm:col-span-1">
-                    <Label>
-                      Last Name<span className="text-error-500">*</span>
-                    </Label>
-                    <Input
-                      type="text"
-                      id="lname"
-                      name="lname"
-                      placeholder="Enter your last name"
-                    />
-                  </div>
-                </div>
-                {/* <!-- Email --> */}
-                <div>
-                  <Label>
-                    Email<span className="text-error-500">*</span>
-                  </Label>
-                  <Input
-                    type="email"
-                    id="email"
-                    name="email"
-                    placeholder="Enter your email"
-                  />
-                </div>
-                {/* <!-- Password --> */}
-                <div>
-                  <Label>
-                    Password<span className="text-error-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      placeholder="Enter your password"
-                      type={showPassword ? "text" : "password"}
-                    />
-                    <span
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
-                    >
-                      {showPassword ? (
-                        <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
-                      ) : (
-                        <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
-                      )}
-                    </span>
-                  </div>
-                </div>
-                {/* <!-- Checkbox --> */}
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    className="w-5 h-5"
-                    checked={isChecked}
-                    onChange={setIsChecked}
-                  />
-                  <p className="inline-block font-normal text-gray-500 dark:text-gray-400">
-                    By creating an account means you agree to the{" "}
-                    <span className="text-gray-800 dark:text-white/90">
-                      Terms and Conditions,
-                    </span>{" "}
-                    and our{" "}
-                    <span className="text-gray-800 dark:text-white">
-                      Privacy Policy
-                    </span>
-                  </p>
-                </div>
-                {/* <!-- Button --> */}
-                <div>
-                  <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600">
-                    Sign Up
-                  </button>
-                </div>
-              </div>
-            </form>
+    const router = useRouter();
+    const [step, setStep] = useState<Step>("org");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
 
-            <div className="mt-5">
-              <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-                Already have an account?
-                <Link
-                  href="/signin"
-                  className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
-                >
-                  Sign In
-                </Link>
-              </p>
+    // Org fields
+    const [orgName, setOrgName] = useState("");
+    const [orgAlias, setOrgAlias] = useState("");
+    const [specialty, setSpecialty] = useState("");
+
+    // Admin fields
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+
+    const apiUrl = getEnv("NEXT_PUBLIC_API_URL") || "";
+
+    const generateAlias = (name: string) => {
+        return name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "");
+    };
+
+    const handleOrgNameChange = (value: string) => {
+        setOrgName(value);
+        setOrgAlias(generateAlias(value));
+    };
+
+    const handleOrgSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!orgName.trim() || !orgAlias.trim()) return;
+        setError("");
+        setStep("admin");
+    };
+
+    const handleSignup = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) return;
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
+
+        if (password.length < 8) {
+            setError("Password must be at least 8 characters");
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        try {
+            const res = await fetch(`${apiUrl}/api/auth/signup`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    orgName: orgName.trim(),
+                    orgAlias: orgAlias.trim(),
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    email: email.trim(),
+                    password,
+                    specialty: specialty.trim(),
+                }),
+            });
+
+            const data = await res.json();
+
+            if (data.success && data.data?.token) {
+                // Store auth data (same as callback flow)
+                const d = data.data;
+                const fullName = `${d.firstName || ""} ${d.lastName || ""}`.trim();
+
+                localStorage.setItem("token", d.token);
+                if (d.refreshToken) localStorage.setItem("refreshToken", d.refreshToken);
+                localStorage.setItem("userEmail", d.email || "");
+                localStorage.setItem("userFullName", fullName);
+                localStorage.setItem("userId", String(d.userId || ""));
+                localStorage.setItem("groups", JSON.stringify(d.groups || []));
+                localStorage.setItem("authMethod", "keycloak");
+                localStorage.setItem("user", JSON.stringify(d));
+                if (d.groups?.length > 0) localStorage.setItem("primaryGroup", d.groups[0]);
+
+                // Handle tenant selection
+                try {
+                    const tenantsData = await getAccessibleTenants(d.token);
+                    if (tenantsData.tenants?.length === 1) {
+                        setSelectedTenant(tenantsData.tenants[0]);
+                    }
+                } catch {
+                    // If org just created, tenant API may not have it yet — set manually
+                    if (d.orgAlias) {
+                        setSelectedTenant(d.orgAlias);
+                    }
+                }
+
+                router.replace("/calendar");
+            } else if (data.requiresLogin) {
+                // Account created but auto-login failed
+                router.replace("/signin");
+            } else {
+                setError(data.error || "Signup failed. Please try again.");
+                setLoading(false);
+            }
+        } catch {
+            setError("Unable to connect to the server. Please try again.");
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 dark:bg-gray-900">
+            {/* Left Column: Branding */}
+            <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-purple-700 p-12 text-white relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-full bg-black opacity-20"></div>
+                <div className="z-10 flex flex-col items-center">
+                    <div className="mb-8">
+                        <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <h1 className="text-5xl font-bold mb-4 text-center tracking-tight">Ciyex EHR</h1>
+                    <p className="text-lg text-blue-100 max-w-md text-center font-light">
+                        Get started in minutes. Set up your practice and start managing patients right away.
+                    </p>
+                </div>
             </div>
-          </div>
+
+            {/* Right Column: Sign-Up Form */}
+            <div className="flex items-center justify-center p-6 sm:p-12 w-full bg-gray-50 dark:bg-gray-900">
+                <div className="w-full max-w-md">
+                    <div className="lg:hidden text-center mb-8">
+                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg mb-4">
+                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                        </div>
+                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Ciyex EHR</h1>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8">
+                        {/* Step indicator */}
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className={`flex-1 h-1 rounded-full ${step === "org" || step === "admin" ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"}`} />
+                            <div className={`flex-1 h-1 rounded-full ${step === "admin" ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"}`} />
+                        </div>
+
+                        {step === "org" && (
+                            <>
+                                <div className="mb-6">
+                                    <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Create your practice</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Step 1 of 2 — Practice information
+                                    </p>
+                                </div>
+
+                                <form onSubmit={handleOrgSubmit} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Practice Name <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g., Sunrise Family Medicine"
+                                            value={orgName}
+                                            onChange={(e) => handleOrgNameChange(e.target.value)}
+                                            autoFocus
+                                            required
+                                            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Organization ID <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="sunrise-family-medicine"
+                                            value={orgAlias}
+                                            onChange={(e) => setOrgAlias(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+                                            required
+                                            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                                        />
+                                        <p className="text-xs text-gray-400 mt-1">This will be your unique identifier</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Specialty
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g., Family Medicine, Cardiology"
+                                            value={specialty}
+                                            onChange={(e) => setSpecialty(e.target.value)}
+                                            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={!orgName.trim() || !orgAlias.trim()}
+                                        className="w-full py-2.5 text-sm font-semibold shadow-md bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-all duration-200"
+                                    >
+                                        Continue
+                                    </button>
+                                </form>
+                            </>
+                        )}
+
+                        {step === "admin" && (
+                            <>
+                                <div className="mb-6">
+                                    <button
+                                        onClick={() => { setStep("org"); setError(""); }}
+                                        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                        Back
+                                    </button>
+                                    <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">Admin account</h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                        Step 2 of 2 — Your admin credentials for <span className="font-medium text-gray-700 dark:text-gray-300">{orgName}</span>
+                                    </p>
+                                </div>
+
+                                <form onSubmit={handleSignup} className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                                First Name <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="John"
+                                                value={firstName}
+                                                onChange={(e) => setFirstName(e.target.value)}
+                                                autoFocus
+                                                required
+                                                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                                Last Name <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="Doe"
+                                                value={lastName}
+                                                onChange={(e) => setLastName(e.target.value)}
+                                                required
+                                                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Email <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="email"
+                                            placeholder="john@example.com"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Password <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="At least 8 characters"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required
+                                                minLength={8}
+                                                className="w-full px-3.5 py-2.5 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                                tabIndex={-1}
+                                            >
+                                                {showPassword ? (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                                                ) : (
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Confirm Password <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="password"
+                                            placeholder="Confirm your password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            required
+                                            className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm"
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+                                            {error}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        type="submit"
+                                        disabled={loading || !firstName.trim() || !lastName.trim() || !email.trim() || !password || !confirmPassword}
+                                        className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold shadow-md bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-all duration-200"
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                </svg>
+                                                Creating your practice...
+                                            </>
+                                        ) : (
+                                            "Create Account"
+                                        )}
+                                    </button>
+                                </form>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Already have an account?{" "}
+                            <Link href="/signin" className="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                                Sign in
+                            </Link>
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
