@@ -94,8 +94,8 @@ export default function SignInForm() {
             localStorage.setItem("primaryGroup", data.groups[0]);
         }
 
-        // PATIENT → redirect to portal
-        if (isPatient) {
+        // PATIENT (without staff role) → redirect to portal
+        if (isPatient && !hasStaffRole) {
             const portalUrl = getEnv("NEXT_PUBLIC_PORTAL_URL") || "https://portal-dev.ciyex.org";
             window.location.href = portalUrl;
             return;

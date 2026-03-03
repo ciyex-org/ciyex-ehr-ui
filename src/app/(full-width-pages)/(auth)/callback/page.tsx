@@ -142,8 +142,8 @@ function AuthCallbackContent() {
                     // Clean up PKCE code verifier
                     sessionStorage.removeItem('pkce_code_verifier');
 
-                    // If the user is a PATIENT, they should use the portal, not the EHR
-                    if (isPatient) {
+                    // If the user is a PATIENT (without staff role), they should use the portal, not the EHR
+                    if (isPatient && !hasStaffRole) {
                         const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-dev.ciyex.org";
                         console.log("👤 Patient user detected — redirecting to portal:", portalUrl);
                         window.location.href = portalUrl;
