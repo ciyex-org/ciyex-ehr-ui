@@ -9,6 +9,7 @@ import { ResetPasswordResponse } from "@/components/user-management/types";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
+/** Card shown on patient chart dashboard — manages Keycloak portal account */
 interface PatientAccountCardProps {
   patientId: number;
 }
