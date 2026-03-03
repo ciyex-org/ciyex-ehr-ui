@@ -78,6 +78,8 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     if (permissions.length > 0 || role) return;
 
+    const handleAuthToken = () => fetchPermissions();
+
     let retryCount = 0;
     const maxRetries = 20;
     const interval = setInterval(() => {
@@ -91,7 +93,12 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
     }, 500);
 
-    return () => clearInterval(interval);
+    window.addEventListener("auth-token-set", handleAuthToken);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("auth-token-set", handleAuthToken);
+    };
   }, [fetchPermissions, permissions.length, role]);
 
   const hasPermission = useCallback(
