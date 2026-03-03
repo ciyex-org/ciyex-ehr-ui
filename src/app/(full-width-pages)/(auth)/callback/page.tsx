@@ -82,9 +82,33 @@ function AuthCallbackContent() {
                         lastName,
                         groups,
                         userId,
+                        practitionerFhirId,
+                        patientFhirId,
                     } = data.data;
 
                     console.log("📦 Extracted data - groups:", groups);
+
+                    // Enforce FHIR link for PROVIDER and PATIENT roles
+                    const rolesUpper = Array.isArray(groups)
+                        ? groups.map((g: string) => g?.toUpperCase())
+                        : [];
+                    const isProvider = rolesUpper.includes("PROVIDER");
+                    const isPatient = rolesUpper.includes("PATIENT");
+
+                    if (isProvider && !practitionerFhirId) {
+                        setError(
+                            "Your account is not linked to a provider record. Please contact your administrator to link your account."
+                        );
+                        processingRef.current = false;
+                        return;
+                    }
+                    if (isPatient && !patientFhirId) {
+                        setError(
+                            "Your account is not linked to a patient record. Please contact your administrator to link your account."
+                        );
+                        processingRef.current = false;
+                        return;
+                    }
 
                     const fullName = `${firstName || ""} ${lastName || ""}`.trim() || username || "";
 
@@ -102,6 +126,8 @@ function AuthCallbackContent() {
                     localStorage.setItem("groups", JSON.stringify(groups || []));
                     localStorage.setItem("authMethod", "keycloak");
                     localStorage.setItem("user", JSON.stringify(data.data));
+                    if (practitionerFhirId) localStorage.setItem("practitionerFhirId", practitionerFhirId);
+                    if (patientFhirId) localStorage.setItem("patientFhirId", patientFhirId);
 
                     if (groups && groups.length > 0) {
                         localStorage.setItem("primaryGroup", groups[0]);
@@ -109,13 +135,11 @@ function AuthCallbackContent() {
 
                     // Mark this code as processed
                     sessionStorage.setItem('processed_auth_code', code);
-                    
+
                     // Clean up PKCE code verifier
                     sessionStorage.removeItem('pkce_code_verifier');
 
                     // If the user is a PATIENT, they should use the portal, not the EHR
-                    const isPatient = Array.isArray(groups) &&
-                        groups.some((g: string) => g?.toUpperCase() === "PATIENT");
                     if (isPatient) {
                         const portalUrl = process.env.NEXT_PUBLIC_PORTAL_URL || "https://portal-dev.ciyex.org";
                         console.log("👤 Patient user detected — redirecting to portal:", portalUrl);

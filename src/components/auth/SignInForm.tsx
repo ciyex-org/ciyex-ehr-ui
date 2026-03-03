@@ -53,7 +53,27 @@ export default function SignInForm() {
         lastName: string;
         groups: string[];
         userId: string;
+        practitionerFhirId?: string;
+        patientFhirId?: string;
     }) => {
+        // Enforce FHIR link for PROVIDER and PATIENT roles
+        const rolesUpper = Array.isArray(data.groups)
+            ? data.groups.map((g: string) => g?.toUpperCase())
+            : [];
+        const isProvider = rolesUpper.includes("PROVIDER");
+        const isPatient = rolesUpper.includes("PATIENT");
+
+        if (isProvider && !data.practitionerFhirId) {
+            setError("Your account is not linked to a provider record. Please contact your administrator.");
+            setLoading(false);
+            return;
+        }
+        if (isPatient && !data.patientFhirId) {
+            setError("Your account is not linked to a patient record. Please contact your administrator.");
+            setLoading(false);
+            return;
+        }
+
         const fullName = `${data.firstName || ""} ${data.lastName || ""}`.trim() || data.username || "";
 
         localStorage.setItem("token", data.token);
@@ -64,14 +84,14 @@ export default function SignInForm() {
         localStorage.setItem("groups", JSON.stringify(data.groups || []));
         localStorage.setItem("authMethod", "keycloak");
         localStorage.setItem("user", JSON.stringify(data));
+        if (data.practitionerFhirId) localStorage.setItem("practitionerFhirId", data.practitionerFhirId);
+        if (data.patientFhirId) localStorage.setItem("patientFhirId", data.patientFhirId);
 
         if (data.groups && data.groups.length > 0) {
             localStorage.setItem("primaryGroup", data.groups[0]);
         }
 
-        // Check if PATIENT → redirect to portal
-        const isPatient = Array.isArray(data.groups) &&
-            data.groups.some((g: string) => g?.toUpperCase() === "PATIENT");
+        // PATIENT → redirect to portal
         if (isPatient) {
             const portalUrl = getEnv("NEXT_PUBLIC_PORTAL_URL") || "https://portal-dev.ciyex.org";
             window.location.href = portalUrl;
