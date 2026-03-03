@@ -11,6 +11,8 @@ export interface UserResponse {
   groups: string[];
   createdTimestamp?: number;
   temporaryPassword?: string;
+  practitionerFhirId?: string;
+  npi?: string;
 }
 
 export interface CreateUserRequest {

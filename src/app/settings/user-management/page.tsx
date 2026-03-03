@@ -10,6 +10,7 @@ import { UserResponse, CreateUserRequest, UpdateUserRequest, ResetPasswordRespon
 import UserTable from "@/components/user-management/UserTable";
 import UserFormPanel from "@/components/user-management/UserFormPanel";
 import ResetPasswordModal from "@/components/user-management/ResetPasswordModal";
+import LinkPractitionerModal from "@/components/user-management/LinkPractitionerModal";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
@@ -23,6 +24,8 @@ export default function UserManagementPage() {
   const [editUser, setEditUser] = useState<UserResponse | null>(null);
   const [resetData, setResetData] = useState<ResetPasswordResponse | null>(null);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [linkUser, setLinkUser] = useState<UserResponse | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
@@ -97,6 +100,26 @@ export default function UserManagementPage() {
       }
     } catch {
       setToast({ type: "error", text: "Failed to send email" });
+    }
+  };
+
+  const handleLinkPractitioner = async (userId: string, practitionerFhirId: string, npi: string) => {
+    try {
+      const res = await fetchWithAuth(`${API()}/api/admin/users/${userId}/link-practitioner`, {
+        method: "PUT",
+        body: JSON.stringify({ practitionerFhirId, npi }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setToast({ type: "success", text: "Practitioner linked successfully" });
+        setShowLinkModal(false);
+        setLinkUser(null);
+        fetchUsers();
+      } else {
+        setToast({ type: "error", text: json.message || "Failed to link practitioner" });
+      }
+    } catch {
+      setToast({ type: "error", text: "Failed to link practitioner" });
     }
   };
 
@@ -180,6 +203,7 @@ export default function UserManagementPage() {
               onResetPassword={handleResetPassword}
               onSendResetEmail={handleSendResetEmail}
               onDeactivate={handleDeactivate}
+              onLinkPractitioner={(u) => { setLinkUser(u); setShowLinkModal(true); }}
             />
           )}
         </div>
@@ -197,6 +221,14 @@ export default function UserManagementPage() {
           open={showResetModal}
           data={resetData}
           onClose={() => { setShowResetModal(false); setResetData(null); }}
+        />
+
+        {/* Link practitioner modal */}
+        <LinkPractitionerModal
+          open={showLinkModal}
+          user={linkUser}
+          onClose={() => { setShowLinkModal(false); setLinkUser(null); }}
+          onSave={handleLinkPractitioner}
         />
       </div>
   );

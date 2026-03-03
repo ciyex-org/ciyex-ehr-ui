@@ -2,7 +2,7 @@
 
 import React from "react";
 import { UserResponse, ROLE_BADGE_COLORS } from "./types";
-import { Edit3, KeyRound, UserX, MoreVertical, Mail } from "lucide-react";
+import { Edit3, KeyRound, UserX, MoreVertical, Mail, Link2, LinkIcon } from "lucide-react";
 
 interface Props {
   users: UserResponse[];
@@ -10,9 +10,10 @@ interface Props {
   onResetPassword: (user: UserResponse) => void;
   onSendResetEmail: (user: UserResponse) => void;
   onDeactivate: (user: UserResponse) => void;
+  onLinkPractitioner?: (user: UserResponse) => void;
 }
 
-export default function UserTable({ users, onEdit, onResetPassword, onSendResetEmail, onDeactivate }: Props) {
+export default function UserTable({ users, onEdit, onResetPassword, onSendResetEmail, onDeactivate, onLinkPractitioner }: Props) {
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
 
   const primaryRole = (u: UserResponse) => {
@@ -30,6 +31,7 @@ export default function UserTable({ users, onEdit, onResetPassword, onSendResetE
             <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Name</th>
             <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Email</th>
             <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Role</th>
+            <th className="text-center px-4 py-3 font-medium text-slate-500 dark:text-slate-400">FHIR</th>
             <th className="text-center px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Status</th>
             <th className="text-right px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Actions</th>
           </tr>
@@ -51,6 +53,16 @@ export default function UserTable({ users, onEdit, onResetPassword, onSendResetE
                   <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${badgeClass}`}>
                     {role}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {u.practitionerFhirId ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400" title={`FHIR: ${u.practitionerFhirId}${u.npi ? ` | NPI: ${u.npi}` : ""}`}>
+                      <Link2 className="w-3.5 h-3.5" />
+                      Linked
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center">
                   {u.enabled ? (
@@ -82,6 +94,14 @@ export default function UserTable({ users, onEdit, onResetPassword, onSendResetE
                         >
                           <Edit3 className="w-3.5 h-3.5" /> Edit User
                         </button>
+                        {onLinkPractitioner && (
+                          <button
+                            onClick={() => { onLinkPractitioner(u); setOpenMenu(null); }}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+                          >
+                            <LinkIcon className="w-3.5 h-3.5" /> {u.practitionerFhirId ? "Update FHIR Link" : "Link Practitioner"}
+                          </button>
+                        )}
                         <button
                           onClick={() => { onResetPassword(u); setOpenMenu(null); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
