@@ -254,10 +254,25 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
         setMode("create");
     };
 
-    const handleEdit = (record: Record<string, any>) => {
+    const handleEdit = async (record: Record<string, any>) => {
+        // Start with list data immediately so the form opens fast
         setFormData({ ...record, ...flattenObject(record) });
         setSelectedRecord(record);
         setMode("edit");
+        // Then fetch the full individual record (includes extension-stored fields
+        // like systemAccess.email/role that are not in the list response)
+        const resourceId = record.id || record.fhirId;
+        if (resourceId) {
+            try {
+                const res = await fetchWithAuth(fhirUrl(`/${resourceId}`));
+                if (res.ok) {
+                    const json = await res.json();
+                    const full = json.data || json;
+                    setFormData({ ...full, ...flattenObject(full) });
+                    setSelectedRecord(full);
+                }
+            } catch { /* list data is already loaded as fallback */ }
+        }
     };
 
     const handleView = (record: Record<string, any>) => {
