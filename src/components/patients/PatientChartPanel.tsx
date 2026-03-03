@@ -8,6 +8,7 @@ import GenericFhirTab from "@/components/patients/GenericFhirTab";
 import AllergiesSummary from "@/components/patients/AllergiesSummary";
 import MedicalProblemsSummary from "@/components/patients/MedicalProblemsSummary";
 import InsuranceSummary from "@/components/patients/InsuranceSummary";
+import PatientAccountCard from "@/components/patients/PatientAccountCard";
 import {
   LayoutDashboard, Stethoscope, HeartPulse, ShieldAlert, Pill,
   Activity, FlaskConical, Syringe, Clock, UserRound, CalendarDays,
@@ -183,10 +184,11 @@ export default function PatientChartPanel({ patientId }: PatientChartPanelProps)
     if (viewMode === "dashboard") {
       return (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <AllergiesSummary patientId={patientId} />
             <MedicalProblemsSummary patientId={patientId} />
             <InsuranceSummary patientId={patientId} />
+            <PatientAccountCard patientId={patientId} />
           </div>
         </div>
       );

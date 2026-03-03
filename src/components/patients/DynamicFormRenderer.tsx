@@ -14,6 +14,7 @@ import { ChevronDown, ChevronRight, Upload, FileText, X as XIcon } from "lucide-
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import ProviderAvailabilityEditor from "@/components/settings/ProviderAvailabilityEditor";
+import SystemAccessEditor from "@/components/settings/SystemAccessEditor";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -2138,15 +2139,23 @@ export default function DynamicFormRenderer({
                 />
               </div>
             ) : !isCollapsed && (
-              <div
-                className="p-4"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                  gap: "1rem",
-                }}
-              >
-                {section.fields.map((field) => renderField(field))}
+              <div className="p-4 space-y-4">
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                    gap: "1rem",
+                  }}
+                >
+                  {section.fields.map((field) => renderField(field))}
+                </div>
+                {section.key === "system-access" && formData?.fhirId && (
+                  <SystemAccessEditor
+                    providerId={formData.fhirId}
+                    systemAccess={(formData?.systemAccess as Record<string, unknown>) || {}}
+                    readOnly={readOnly}
+                  />
+                )}
               </div>
             )}
           </div>
