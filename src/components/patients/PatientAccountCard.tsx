@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
-import { ShieldCheck, ShieldOff, UserPlus, KeyRound, Mail, Loader2 } from "lucide-react";
+import { ShieldCheck, ShieldOff, UserPlus, KeyRound, Mail, Loader2, Ban, CheckCircle } from "lucide-react";
 import ResetPasswordModal from "@/components/user-management/ResetPasswordModal";
 import { ResetPasswordResponse } from "@/components/user-management/types";
 
@@ -104,6 +104,28 @@ export default function PatientAccountCard({ patientId }: PatientAccountCardProp
     }
   };
 
+  const handleToggleAccount = async () => {
+    const newEnabled = !status?.accountEnabled;
+    setActionLoading("toggle");
+    try {
+      const res = await fetchWithAuth(`${API()}/api/patients/${patientId}/toggle-account`, {
+        method: "PUT",
+        body: JSON.stringify({ enabled: newEnabled }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setStatus(prev => prev ? { ...prev, accountEnabled: newEnabled } : prev);
+        showMsg("success", newEnabled ? "Account unblocked" : "Account blocked");
+      } else {
+        showMsg("error", json.message || "Failed to toggle account");
+      }
+    } catch {
+      showMsg("error", "Failed to toggle account");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
@@ -115,12 +137,18 @@ export default function PatientAccountCard({ patientId }: PatientAccountCardProp
     );
   }
 
+  const isEnabled = status?.accountEnabled;
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
       <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
           {status?.hasAccount ? (
-            <ShieldCheck className="w-4 h-4 text-green-500" />
+            isEnabled ? (
+              <ShieldCheck className="w-4 h-4 text-green-500" />
+            ) : (
+              <Ban className="w-4 h-4 text-red-500" />
+            )
           ) : (
             <ShieldOff className="w-4 h-4 text-slate-400" />
           )}
@@ -132,10 +160,13 @@ export default function PatientAccountCard({ patientId }: PatientAccountCardProp
         {status?.hasAccount ? (
           <>
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className={`w-2 h-2 rounded-full ${isEnabled ? "bg-green-500" : "bg-red-500"}`} />
               <span className="text-sm text-slate-700 dark:text-slate-300">
                 {status.email}
               </span>
+              {!isEnabled && (
+                <span className="text-xs text-red-600 dark:text-red-400 font-medium">(Blocked)</span>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <button
@@ -152,7 +183,22 @@ export default function PatientAccountCard({ patientId }: PatientAccountCardProp
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
               >
                 <Mail className="w-3 h-3" />
-                {actionLoading === "email" ? "..." : "Send Reset Email"}
+                {actionLoading === "email" ? "..." : "Email Reset"}
+              </button>
+              <button
+                onClick={handleToggleAccount}
+                disabled={!!actionLoading}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md border disabled:opacity-50 ${
+                  isEnabled
+                    ? "border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
+                    : "border-green-300 dark:border-green-700 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30"
+                }`}
+              >
+                {isEnabled ? (
+                  <><Ban className="w-3 h-3" /> {actionLoading === "toggle" ? "..." : "Block"}</>
+                ) : (
+                  <><CheckCircle className="w-3 h-3" /> {actionLoading === "toggle" ? "..." : "Unblock"}</>
+                )}
               </button>
             </div>
           </>
