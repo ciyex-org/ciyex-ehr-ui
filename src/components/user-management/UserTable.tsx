@@ -99,7 +99,7 @@ export default function UserTable({ users, onEdit, onResetPassword, onSendResetE
                             onClick={() => { onLinkPractitioner(u); setOpenMenu(null); }}
                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
                           >
-                            <LinkIcon className="w-3.5 h-3.5" /> {u.practitionerFhirId ? "Update FHIR Link" : "Link Practitioner"}
+                            <LinkIcon className="w-3.5 h-3.5" /> {u.practitionerFhirId ? "Update Link" : `Link ${role === "PATIENT" ? "Patient" : "Provider"}`}
                           </button>
                         )}
                         <button
