@@ -24,6 +24,7 @@ export interface CreateUserRequest {
   temporaryPassword?: string;
   sendWelcomeEmail: boolean;
   generatePrintCredentials: boolean;
+  linkedFhirId?: string;
 }
 
 export interface UpdateUserRequest {
