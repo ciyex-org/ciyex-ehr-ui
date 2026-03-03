@@ -89,20 +89,23 @@ function AuthCallbackContent() {
                     console.log("📦 Extracted data - groups:", groups);
 
                     // Enforce FHIR link for PROVIDER and PATIENT roles
+                    // Staff/admin roles override — they don't need FHIR links
                     const rolesUpper = Array.isArray(groups)
                         ? groups.map((g: string) => g?.toUpperCase())
                         : [];
+                    const staffRoles = ["ADMIN", "SUPER_ADMIN", "NURSE", "MA", "FRONT_DESK", "BILLING"];
+                    const hasStaffRole = rolesUpper.some((r) => staffRoles.includes(r));
                     const isProvider = rolesUpper.includes("PROVIDER");
                     const isPatient = rolesUpper.includes("PATIENT");
 
-                    if (isProvider && !practitionerFhirId) {
+                    if (!hasStaffRole && isProvider && !practitionerFhirId) {
                         setError(
                             "Your account is not linked to a provider record. Please contact your administrator to link your account."
                         );
                         processingRef.current = false;
                         return;
                     }
-                    if (isPatient && !patientFhirId) {
+                    if (!hasStaffRole && isPatient && !patientFhirId) {
                         setError(
                             "Your account is not linked to a patient record. Please contact your administrator to link your account."
                         );

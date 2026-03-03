@@ -57,18 +57,21 @@ export default function SignInForm() {
         patientFhirId?: string;
     }) => {
         // Enforce FHIR link for PROVIDER and PATIENT roles
+        // Staff/admin roles override — they don't need FHIR links
         const rolesUpper = Array.isArray(data.groups)
             ? data.groups.map((g: string) => g?.toUpperCase())
             : [];
+        const staffRoles = ["ADMIN", "SUPER_ADMIN", "NURSE", "MA", "FRONT_DESK", "BILLING"];
+        const hasStaffRole = rolesUpper.some((r) => staffRoles.includes(r));
         const isProvider = rolesUpper.includes("PROVIDER");
         const isPatient = rolesUpper.includes("PATIENT");
 
-        if (isProvider && !data.practitionerFhirId) {
+        if (!hasStaffRole && isProvider && !data.practitionerFhirId) {
             setError("Your account is not linked to a provider record. Please contact your administrator.");
             setLoading(false);
             return;
         }
-        if (isPatient && !data.patientFhirId) {
+        if (!hasStaffRole && isPatient && !data.patientFhirId) {
             setError("Your account is not linked to a patient record. Please contact your administrator.");
             setLoading(false);
             return;
