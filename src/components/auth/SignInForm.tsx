@@ -90,6 +90,9 @@ export default function SignInForm() {
         if (data.practitionerFhirId) localStorage.setItem("practitionerFhirId", data.practitionerFhirId);
         if (data.patientFhirId) localStorage.setItem("patientFhirId", data.patientFhirId);
 
+        // Notify MenuContext that token is available (same-tab storage events don't fire)
+        window.dispatchEvent(new CustomEvent("auth-token-set", { detail: { key: "token" } }));
+
         if (data.groups && data.groups.length > 0) {
             localStorage.setItem("primaryGroup", data.groups[0]);
         }

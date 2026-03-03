@@ -153,7 +153,7 @@ export const MenuProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // If we already have menu items, no need to retry
     if (menuItems.length > 0) return;
 
-    // Listen for localStorage changes (works across tabs, and custom event for same tab)
+    // Listen for localStorage changes (cross-tab) and custom auth event (same-tab)
     const handleStorageChange = (e: StorageEvent | CustomEvent) => {
       const key = e instanceof StorageEvent ? e.key : (e as CustomEvent).detail?.key;
       if (key === "token" || key === "authToken") {
@@ -176,10 +176,12 @@ export const MenuProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, 500);
 
     window.addEventListener("storage", handleStorageChange as EventListener);
+    window.addEventListener("auth-token-set", handleStorageChange as EventListener);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener("storage", handleStorageChange as EventListener);
+      window.removeEventListener("auth-token-set", handleStorageChange as EventListener);
     };
   }, [fetchMenu, menuItems.length]);
 

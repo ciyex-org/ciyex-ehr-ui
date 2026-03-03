@@ -136,6 +136,9 @@ function AuthCallbackContent() {
                         localStorage.setItem("primaryGroup", groups[0]);
                     }
 
+                    // Notify MenuContext that token is available (same-tab storage events don't fire)
+                    window.dispatchEvent(new CustomEvent("auth-token-set", { detail: { key: "token" } }));
+
                     // Mark this code as processed
                     sessionStorage.setItem('processed_auth_code', code);
 
