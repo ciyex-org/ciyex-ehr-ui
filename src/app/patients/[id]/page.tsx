@@ -9,6 +9,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
+import PatientAccountCard from "@/components/patients/PatientAccountCard";
 
 import Link from "next/link";
 import GenericFhirTab from "@/components/patients/GenericFhirTab";
@@ -523,10 +524,11 @@ export default function PatientDashboardPage() {
                     </div>
 
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <AllergiesSummary patientId={Number(patient.id)} />
                         <MedicalProblemsSummary patientId={Number(patient.id)} />
                         <InsuranceSummary patientId={Number(patient.id)} />
+                        <PatientAccountCard patientId={Number(patient.id)} />
                     </div>
 
                     {/* Plugin summary cards (e.g., RPM Summary, Risk Score) */}
