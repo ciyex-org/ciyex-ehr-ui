@@ -15,6 +15,7 @@ import Link from "next/link";
 import GenericFhirTab from "@/components/patients/GenericFhirTab";
 import VitalsFlowsheet from "@/components/patients/VitalsFlowsheet";
 import PaymentPostingTab from "@/components/patients/PaymentPostingTab";
+import StatementsTab from "@/components/patients/StatementsTab";
 import PluginSlot from "@/components/plugins/PluginSlot";
 import { usePluginRegistry } from "@/context/PluginRegistryContext";
 import { PluginContextProvider } from "@/context/PluginContextProvider";
@@ -556,6 +557,11 @@ export default function PatientDashboardPage() {
         // Payment tab uses a dedicated posting view with claim lookup
         if (tabKey === "payment") {
             return <PaymentPostingTab patientId={Number(patient.id)} />;
+        }
+
+        // Statements tab uses a dedicated statement generator
+        if (tabKey === "statements") {
+            return <StatementsTab patientId={Number(patient.id)} />;
         }
 
         // All FHIR-resource-backed tabs render dynamically via GenericFhirTab
