@@ -759,14 +759,15 @@ const AppointmentModal: React.FC = () => {
                             Appointment Start date
                         </label>
                         <input
-                            type="text"
-                            placeholder="MM/DD/YYYY"
-                            value={startDateInput}
-                            maxLength={10}
+                            type="date"
+                            value={startDate}
                             onChange={(e) => {
-                                const formatted = formatInputToMMDDYYYY(e.target.value);
-                                setStartDateInput(formatted);
-                                setStartDate(toISODateFromMMDDYYYY(formatted));
+                                setStartDate(e.target.value);
+                                setStartDateInput(e.target.value);
+                                if (!endDate) {
+                                    setEndDate(e.target.value);
+                                    setEndDateInput(e.target.value);
+                                }
                             }}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         />
@@ -776,14 +777,11 @@ const AppointmentModal: React.FC = () => {
                             Appointment End date
                         </label>
                         <input
-                            type="text"
-                            placeholder="MM/DD/YYYY"
-                            value={endDateInput}
-                            maxLength={10}
+                            type="date"
+                            value={endDate}
                             onChange={(e) => {
-                                const formatted = formatInputToMMDDYYYY(e.target.value);
-                                setEndDateInput(formatted);
-                                setEndDate(toISODateFromMMDDYYYY(formatted));
+                                setEndDate(e.target.value);
+                                setEndDateInput(e.target.value);
                             }}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         />
