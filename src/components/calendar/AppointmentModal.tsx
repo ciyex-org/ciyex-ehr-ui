@@ -105,6 +105,31 @@ const toISODateFromMMDDYYYY = (val: string): string => {
 // join yyyy-mm-dd + HH:mm into local string
 const combineLocal = (ymd: string, hm: string) => (ymd && hm ? `${ymd}T${hm}` : "");
 
+// Generate 15-min interval time slots for dropdowns (6:00 AM – 9:00 PM)
+const TIME_SLOTS: { value: string; label: string }[] = (() => {
+    const slots: { value: string; label: string }[] = [];
+    for (let h = 6; h <= 21; h++) {
+        for (let m = 0; m < 60; m += 15) {
+            const hh = String(h).padStart(2, "0");
+            const mm = String(m).padStart(2, "0");
+            const value = `${hh}:${mm}`;
+            const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+            const ampm = h < 12 ? "AM" : "PM";
+            const label = `${h12}:${mm} ${ampm}`;
+            slots.push({ value, label });
+        }
+    }
+    return slots;
+})();
+
+const addMinutes = (hm: string, mins: number): string => {
+    const [h, m] = hm.split(":").map(Number);
+    const total = h * 60 + m + mins;
+    const nh = Math.floor(total / 60) % 24;
+    const nm = total % 60;
+    return `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
+};
+
 // math helpers
 const daysBetween = (aYmd: string, bYmd: string) => {
     const a = new Date(`${aYmd}T00:00:00`);
@@ -217,12 +242,8 @@ const AppointmentModal: React.FC = () => {
 
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
-    const startTimeRef = useRef<HTMLInputElement>(null);
-    const endTimeRef = useRef<HTMLInputElement>(null);
     const fpStartRef = useRef<flatpickr.Instance | null>(null);
     const fpEndRef = useRef<flatpickr.Instance | null>(null);
-    const fpStartTimeRef = useRef<flatpickr.Instance | null>(null);
-    const fpEndTimeRef = useRef<flatpickr.Instance | null>(null);
 
     const [priority, setPriority] = useState<Priority>("Routine");
     const [status, setStatus] = useState<AppointmentStatus>("Scheduled");
@@ -259,12 +280,8 @@ const AppointmentModal: React.FC = () => {
         if (!open) {
             fpStartRef.current?.destroy();
             fpEndRef.current?.destroy();
-            fpStartTimeRef.current?.destroy();
-            fpEndTimeRef.current?.destroy();
             fpStartRef.current = null;
             fpEndRef.current = null;
-            fpStartTimeRef.current = null;
-            fpEndTimeRef.current = null;
             return;
         }
         // Small delay so DOM refs are mounted inside the dialog
@@ -291,36 +308,6 @@ const AppointmentModal: React.FC = () => {
                         const iso = d.toISOString().slice(0, 10);
                         setEndDate(iso);
                         setEndDateInput(iso);
-                    },
-                });
-            }
-            if (startTimeRef.current && !fpStartTimeRef.current) {
-                fpStartTimeRef.current = flatpickr(startTimeRef.current, {
-                    enableTime: true,
-                    noCalendar: true,
-                    dateFormat: "h:i K",
-                    time_24hr: false,
-                    minuteIncrement: 15,
-                    onChange: ([d]) => {
-                        if (!d) return;
-                        const hh = String(d.getHours()).padStart(2, "0");
-                        const mm = String(d.getMinutes()).padStart(2, "0");
-                        setStartTime(`${hh}:${mm}`);
-                    },
-                });
-            }
-            if (endTimeRef.current && !fpEndTimeRef.current) {
-                fpEndTimeRef.current = flatpickr(endTimeRef.current, {
-                    enableTime: true,
-                    noCalendar: true,
-                    dateFormat: "h:i K",
-                    time_24hr: false,
-                    minuteIncrement: 15,
-                    onChange: ([d]) => {
-                        if (!d) return;
-                        const hh = String(d.getHours()).padStart(2, "0");
-                        const mm = String(d.getMinutes()).padStart(2, "0");
-                        setEndTime(`${hh}:${mm}`);
                     },
                 });
             }
@@ -886,37 +873,37 @@ const AppointmentModal: React.FC = () => {
                     {/* Times */}
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Appointment start time
+                            Start time
                         </label>
-                        <div className="relative">
-                            <input
-                                ref={startTimeRef}
-                                type="text"
-                                placeholder="Select time"
-                                readOnly
-                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </span>
-                        </div>
+                        <select
+                            value={startTime}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setStartTime(val);
+                                if (val) setEndTime(addMinutes(val, 15));
+                            }}
+                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                        >
+                            <option value="">Select time</option>
+                            {TIME_SLOTS.map((t) => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                        </select>
                     </div>
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Appointment end time
+                            End time
                         </label>
-                        <div className="relative">
-                            <input
-                                ref={endTimeRef}
-                                type="text"
-                                placeholder="Select time"
-                                readOnly
-                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </span>
-                        </div>
+                        <select
+                            value={endTime}
+                            onChange={(e) => setEndTime(e.target.value)}
+                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                        >
+                            <option value="">Select time</option>
+                            {TIME_SLOTS.map((t) => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Priority */}
