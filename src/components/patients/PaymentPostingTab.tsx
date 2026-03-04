@@ -321,8 +321,25 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
             });
 
             if (res.ok) {
+                // Update claim status in RCM based on payment
+                if (selectedClaim) {
+                    const claimBalance = Number(selectedClaim.totalCharges || 0) - Number(selectedClaim.totalPaid || 0) - totalPayment;
+                    const newStatus = claimBalance <= 0 ? "CLOSED" : "PARTIALLY_PAID";
+                    try {
+                        await fetchWithAuth(
+                            `/api/app-proxy/ciyex-rcm/api/rcm/claims/${selectedClaim.id}/status`,
+                            {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ status: newStatus }),
+                            }
+                        );
+                    } catch {
+                        // Non-blocking — payment saved even if status update fails
+                    }
+                }
                 resetForm();
-                await fetchPayments();
+                await Promise.all([fetchPayments(), fetchClaims()]);
             } else {
                 const json = await res.json().catch(() => null);
                 setSaveError(json?.message || "Failed to save payment");
