@@ -91,8 +91,8 @@ function formatDate(d: string): string {
     }
 }
 
-function formatCurrency(n: number | undefined): string {
-    return "$" + (n ?? 0).toFixed(2);
+function formatCurrency(n: number | string | undefined): string {
+    return "$" + Number(n ?? 0).toFixed(2);
 }
 
 export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps) {
@@ -262,7 +262,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
 
     // Summary totals from existing payments
     const paymentList = Array.isArray(payments) ? payments : [];
-    const totalPaid = paymentList.reduce((s, p) => s + (p.amount || 0), 0);
+    const totalPaid = paymentList.reduce((s, p) => s + Number(p.amount || 0), 0);
 
     return (
         <div className="space-y-4">
