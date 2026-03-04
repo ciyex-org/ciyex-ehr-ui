@@ -63,8 +63,8 @@ export default function TelehealthSettings() {
     };
 
     const toggle = (s: string) => setExpanded(p => ({ ...p, [s]: !p[s] }));
-    const isConfigured = config.vendor_name || config.vendor_id || true; // Built-in mediasoup SFU is always available
-    const providerName = config.vendor_name || "Ciyex Telehealth (mediasoup)";
+    const isConfigured = config.vendor_name || config.vendor_id || true; // Built-in SFU is always available
+    const providerName = config.vendor_name || "Qiaben Telehealth";
 
     const Section = ({ id, icon: Icon, title, children }: { id: string; icon: React.ElementType; title: string; children: React.ReactNode }) => (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
