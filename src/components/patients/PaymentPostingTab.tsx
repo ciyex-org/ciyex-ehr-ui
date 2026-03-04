@@ -135,7 +135,8 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
             );
             if (res.ok) {
                 const data = await res.json();
-                const records = data.data || data.content || (Array.isArray(data) ? data : []);
+                const pageData = data.data ?? data;
+                const records = Array.isArray(pageData) ? pageData : pageData.content ?? [];
                 setPayments(records);
             }
         } catch {
@@ -260,7 +261,8 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     }
 
     // Summary totals from existing payments
-    const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0);
+    const paymentList = Array.isArray(payments) ? payments : [];
+    const totalPaid = paymentList.reduce((s, p) => s + (p.amount || 0), 0);
 
     return (
         <div className="space-y-4">
@@ -273,7 +275,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                             Total Paid: <span className="font-semibold text-green-700">{formatCurrency(totalPaid)}</span>
                         </span>
                     </div>
-                    <span className="text-xs text-gray-400">{payments.length} payment{payments.length !== 1 ? "s" : ""}</span>
+                    <span className="text-xs text-gray-400">{paymentList.length} payment{paymentList.length !== 1 ? "s" : ""}</span>
                 </div>
                 {!showForm && (
                     <button
@@ -477,7 +479,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                 <div className="px-4 py-3 border-b border-gray-100">
                     <h3 className="text-sm font-semibold text-gray-800">Payment History</h3>
                 </div>
-                {payments.length === 0 ? (
+                {paymentList.length === 0 ? (
                     <div className="text-center py-12 px-4">
                         <CreditCard className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                         <p className="text-sm text-gray-500 font-medium">No payments recorded</p>
@@ -487,7 +489,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-100">
-                        {payments.map((p) => {
+                        {paymentList.map((p) => {
                             const statusColor = STATUS_COLORS[p.status] || STATUS_COLORS.draft;
                             const statusLabel = STATUS_LABELS[p.status] || p.status;
                             const typeLabel = PAYMENT_TYPES.find((pt) => pt.value === p.paymentType)?.label || p.paymentType;
