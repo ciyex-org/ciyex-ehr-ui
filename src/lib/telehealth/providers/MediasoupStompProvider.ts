@@ -7,8 +7,14 @@
  */
 
 import { Client } from "@stomp/stompjs";
-import type { Transport, Producer, Consumer } from "mediasoup-client/lib/types";
 import type { VideoCallProvider, VideoCallSession, VideoCallState } from "../VideoCallProvider";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Transport = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Producer = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Consumer = any;
 
 export class MediasoupStompProvider implements VideoCallProvider {
     readonly type = "mediasoup";
