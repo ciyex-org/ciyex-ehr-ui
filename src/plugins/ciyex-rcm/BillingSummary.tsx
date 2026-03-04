@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Receipt, ChevronDown, ChevronUp } from "lucide-react";
+import { Receipt, ChevronDown, ChevronUp, Loader2, CheckCircle, Send } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 interface BillingSummaryProps {
@@ -16,10 +16,46 @@ interface SuggestedCode {
     charge?: number;
 }
 
+interface ExistingClaim {
+    id: string;
+    claimNumber: string;
+    claimStatus: string;
+    totalCharges: number;
+    payerName: string;
+}
+
 export default function BillingSummary({ patientId, encounterId }: BillingSummaryProps) {
     const [expanded, setExpanded] = useState(false);
     const [codes, setCodes] = useState<SuggestedCode[]>([]);
     const [loading, setLoading] = useState(true);
+    const [existingClaim, setExistingClaim] = useState<ExistingClaim | null>(null);
+    const [creating, setCreating] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
+
+    // Check if a claim already exists for this encounter
+    const checkExistingClaim = useCallback(async () => {
+        if (!encounterId) return;
+        try {
+            const res = await fetchWithAuth(
+                `/api/app-proxy/ciyex-rcm/api/rcm/claims/by-encounters`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ encounterIds: [encounterId] }),
+                }
+            );
+            if (res.ok) {
+                const json = await res.json();
+                const grouped = json?.data ?? json ?? {};
+                const claims = grouped[encounterId];
+                if (Array.isArray(claims) && claims.length > 0) {
+                    setExistingClaim(claims[0] as ExistingClaim);
+                }
+            }
+        } catch {
+            // ignore — just means we can't check
+        }
+    }, [encounterId]);
 
     const fetchSuggestions = useCallback(async () => {
         if (!encounterId) {
@@ -35,11 +71,9 @@ export default function BillingSummary({ patientId, encounterId }: BillingSummar
 
             if (res.ok) {
                 const json = await res.json();
-                // Handle ApiResponse wrapper: {success, message, data: {suggestions: [...]}}
                 const raw = json?.data?.suggestions ?? json?.suggestions ?? json?.data ?? json ?? [];
                 setCodes(Array.isArray(raw) ? raw : []);
             } else {
-                // API not available — show empty state, never hardcoded data
                 setCodes([]);
             }
         } catch {
@@ -51,7 +85,42 @@ export default function BillingSummary({ patientId, encounterId }: BillingSummar
 
     useEffect(() => {
         fetchSuggestions();
-    }, [fetchSuggestions]);
+        checkExistingClaim();
+    }, [fetchSuggestions, checkExistingClaim]);
+
+    const handleCreateClaim = async () => {
+        if (!encounterId) return;
+        setCreating(true);
+        setCreateError(null);
+        try {
+            const res = await fetchWithAuth(
+                `/api/app-proxy/ciyex-rcm/api/rcm/claims/from-encounter`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ encounterId }),
+                }
+            );
+            if (res.ok) {
+                const json = await res.json();
+                const claim = json?.data ?? json;
+                setExistingClaim({
+                    id: claim.id,
+                    claimNumber: claim.claimNumber || "",
+                    claimStatus: claim.claimStatus || "DRAFT",
+                    totalCharges: claim.totalCharges || 0,
+                    payerName: claim.payerName || "",
+                });
+            } else {
+                const json = await res.json().catch(() => null);
+                setCreateError(json?.message || "Failed to create claim");
+            }
+        } catch {
+            setCreateError("Network error creating claim");
+        } finally {
+            setCreating(false);
+        }
+    };
 
     const cptCodes = codes.filter((c) => c.type === "CPT");
     const icdCodes = codes.filter((c) => c.type === "ICD-10");
@@ -83,6 +152,12 @@ export default function BillingSummary({ patientId, encounterId }: BillingSummar
                     <span className="text-xs text-gray-400">
                         {cptCodes.length} CPT · {icdCodes.length} ICD-10
                     </span>
+                    {existingClaim && (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 font-medium">
+                            <CheckCircle className="w-2.5 h-2.5" />
+                            Claim {existingClaim.claimNumber || "created"}
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-3">
                     {totalCharges > 0 && (
@@ -151,6 +226,44 @@ export default function BillingSummary({ patientId, encounterId }: BillingSummar
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+
+                    {/* Create Claim button */}
+                    {!existingClaim ? (
+                        <div className="pt-1">
+                            {createError && (
+                                <p className="text-[11px] text-red-600 dark:text-red-400 mb-1">{createError}</p>
+                            )}
+                            <button
+                                onClick={handleCreateClaim}
+                                disabled={creating}
+                                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-medium rounded-md transition-colors"
+                            >
+                                {creating ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                    <Send className="w-3.5 h-3.5" />
+                                )}
+                                {creating ? "Creating Claim..." : "Create Claim from Encounter"}
+                            </button>
+                            <p className="text-[10px] text-gray-400 text-center mt-1">
+                                Auto-fills CPT, ICD-10, provider, DOS & insurance from this encounter
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="pt-1 flex items-center justify-between text-xs bg-green-50 dark:bg-green-900/20 rounded-md px-3 py-2 border border-green-100 dark:border-green-800">
+                            <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                <span className="font-medium">Claim {existingClaim.claimNumber}</span>
+                                <span className="text-green-600/70 dark:text-green-500/70">·</span>
+                                <span className="text-green-600/70 dark:text-green-500/70">{existingClaim.claimStatus}</span>
+                            </div>
+                            {existingClaim.totalCharges > 0 && (
+                                <span className="font-medium text-green-700 dark:text-green-400">
+                                    ${Number(existingClaim.totalCharges).toFixed(2)}
+                                </span>
+                            )}
                         </div>
                     )}
 
