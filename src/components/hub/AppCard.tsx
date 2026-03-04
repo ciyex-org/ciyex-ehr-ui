@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Star, CheckCircle2, GitCompareArrows } from "lucide-react";
+import { getAppIcon, getAppColorClass } from "./appIcons";
 
 export interface AppCardProps {
     slug: string;
@@ -31,6 +32,9 @@ export default function AppCard({
     comparing,
     onToggleCompare,
 }: AppCardProps) {
+    const IconComponent = getAppIcon(slug);
+    const colorClass = getAppColorClass(slug);
+
     return (
         <div className="relative h-full">
             <Link href={`/hub/${slug}`}>
@@ -49,14 +53,8 @@ export default function AppCard({
 
                     {/* Icon + Name */}
                     <div className="flex items-start gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center shrink-0 overflow-hidden">
-                            {iconUrl ? (
-                                <img src={iconUrl} alt={name} className="w-8 h-8 object-contain" />
-                            ) : (
-                                <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                                    {name.charAt(0)}
-                                </span>
-                            )}
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClass} flex items-center justify-center shrink-0`}>
+                            <IconComponent className="w-6 h-6" />
                         </div>
                         <div className="min-w-0">
                             <h3 className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">

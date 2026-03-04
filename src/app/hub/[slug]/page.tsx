@@ -11,6 +11,7 @@ import {
     CheckCircle2, Shield, ExternalLink, Settings, Play,
 } from "lucide-react";
 import Link from "next/link";
+import { getAppIcon, getAppColorClass } from "@/components/hub/appIcons";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 const MARKETPLACE_BASE = () => (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
@@ -223,15 +224,15 @@ export default function AppDetailPage() {
                 {/* App Header */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-6">
                     <div className="flex items-start gap-5">
-                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center shrink-0 overflow-hidden">
-                            {app.iconUrl ? (
-                                <img src={app.iconUrl} alt={app.name} className="w-14 h-14 object-contain" />
-                            ) : (
-                                <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                                    {app.name.charAt(0)}
-                                </span>
-                            )}
-                        </div>
+                        {(() => {
+                            const Icon = getAppIcon(app.slug);
+                            const colorCls = getAppColorClass(app.slug);
+                            return (
+                                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${colorCls} flex items-center justify-center shrink-0`}>
+                                    <Icon className="w-10 h-10" />
+                                </div>
+                            );
+                        })()}
                         <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
