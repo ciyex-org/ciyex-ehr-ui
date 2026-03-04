@@ -1,3 +1,4 @@
+/** Configuration for Payment Gateway marketplace app */
 export interface PaymentGatewayConfig {
     active_processor: "stripe" | "gps" | "square" | "none";
     stripe_mode: "TEST" | "LIVE";
