@@ -50,9 +50,15 @@ export class MediasoupStompProvider implements VideoCallProvider {
             throw new Error("Session missing joinInfo.wsUrl — check that the telehealth vendor is configured in the marketplace");
         }
 
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        this.localStream = stream;
-        if (localVideoEl) localVideoEl.srcObject = stream;
+        // Try to get camera/mic — gracefully degrade if not available
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            this.localStream = stream;
+            if (localVideoEl) localVideoEl.srcObject = stream;
+        } catch (mediaErr: any) {
+            console.warn("[telehealth] Media devices unavailable, joining as viewer:", mediaErr.message);
+            onStateChange({ videoEnabled: false, audioEnabled: false });
+        }
 
         await this.connectSignaling(wsUrl, displayName);
     }
