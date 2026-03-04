@@ -41,6 +41,8 @@ interface AppDetail {
         name: string;
         model: string;
         amount?: number;
+        perUnit?: number;
+        unit?: string;
         currency?: string;
         interval?: string;
         trialDays?: number;
@@ -395,6 +397,13 @@ export default function AppDetailPage() {
                                     <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                                         {plan.model === "FREE" ? (
                                             "Free"
+                                        ) : plan.model === "PER_UNIT" ? (
+                                            <>
+                                                ${plan.perUnit}
+                                                <span className="text-sm font-normal text-gray-500">
+                                                    /{plan.unit}/{plan.interval === "YEARLY" ? "yr" : "mo"}
+                                                </span>
+                                            </>
                                         ) : (
                                             <>
                                                 ${plan.amount}
