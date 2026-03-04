@@ -217,8 +217,12 @@ const AppointmentModal: React.FC = () => {
 
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
+    const startTimeRef = useRef<HTMLInputElement>(null);
+    const endTimeRef = useRef<HTMLInputElement>(null);
     const fpStartRef = useRef<flatpickr.Instance | null>(null);
     const fpEndRef = useRef<flatpickr.Instance | null>(null);
+    const fpStartTimeRef = useRef<flatpickr.Instance | null>(null);
+    const fpEndTimeRef = useRef<flatpickr.Instance | null>(null);
 
     const [priority, setPriority] = useState<Priority>("Routine");
     const [status, setStatus] = useState<AppointmentStatus>("Scheduled");
@@ -255,8 +259,12 @@ const AppointmentModal: React.FC = () => {
         if (!open) {
             fpStartRef.current?.destroy();
             fpEndRef.current?.destroy();
+            fpStartTimeRef.current?.destroy();
+            fpEndTimeRef.current?.destroy();
             fpStartRef.current = null;
             fpEndRef.current = null;
+            fpStartTimeRef.current = null;
+            fpEndTimeRef.current = null;
             return;
         }
         // Small delay so DOM refs are mounted inside the dialog
@@ -283,6 +291,36 @@ const AppointmentModal: React.FC = () => {
                         const iso = d.toISOString().slice(0, 10);
                         setEndDate(iso);
                         setEndDateInput(iso);
+                    },
+                });
+            }
+            if (startTimeRef.current && !fpStartTimeRef.current) {
+                fpStartTimeRef.current = flatpickr(startTimeRef.current, {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: "h:i K",
+                    time_24hr: false,
+                    minuteIncrement: 15,
+                    onChange: ([d]) => {
+                        if (!d) return;
+                        const hh = String(d.getHours()).padStart(2, "0");
+                        const mm = String(d.getMinutes()).padStart(2, "0");
+                        setStartTime(`${hh}:${mm}`);
+                    },
+                });
+            }
+            if (endTimeRef.current && !fpEndTimeRef.current) {
+                fpEndTimeRef.current = flatpickr(endTimeRef.current, {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: "h:i K",
+                    time_24hr: false,
+                    minuteIncrement: 15,
+                    onChange: ([d]) => {
+                        if (!d) return;
+                        const hh = String(d.getHours()).padStart(2, "0");
+                        const mm = String(d.getMinutes()).padStart(2, "0");
+                        setEndTime(`${hh}:${mm}`);
                     },
                 });
             }
@@ -410,8 +448,8 @@ const AppointmentModal: React.FC = () => {
      * Provider availability for chosen slot
      * ======================= */
     useEffect(() => {
-        // Only compute when date/time are selected
-        if (!open || !combinedStart || !combinedEnd) {
+        // Load providers when at least a start date is selected
+        if (!open || !startDate) {
             setProvidersForDate([]);
             return;
         }
@@ -430,8 +468,17 @@ const AppointmentModal: React.FC = () => {
 
                 const providerIds = new Set<number>();
                 for (const s of schedules) {
-                    if (String(s.status).toLowerCase() === "active" && hasOccurrenceCoveringSlot(s, combinedStart, combinedEnd)) {
-                        providerIds.add(Number(s.providerId));
+                    if (String(s.status).toLowerCase() !== "active") continue;
+                    // If full date+time is available, check exact slot coverage
+                    if (combinedStart && combinedEnd) {
+                        if (hasOccurrenceCoveringSlot(s, combinedStart, combinedEnd)) {
+                            providerIds.add(Number(s.providerId));
+                        }
+                    } else {
+                        // Otherwise just check if provider has a schedule on this date
+                        if (hasOccurrenceOnDate(s, startDate)) {
+                            providerIds.add(Number(s.providerId));
+                        }
                     }
                 }
 
@@ -444,7 +491,7 @@ const AppointmentModal: React.FC = () => {
                 setLoadingProvidersForDate(false);
             }
         })();
-    }, [open, combinedStart, combinedEnd, allProviders, apiUrl]);
+    }, [open, startDate, combinedStart, combinedEnd, allProviders, apiUrl]);
 
     /* =========================
      * Provider → valid locations for slot
@@ -841,23 +888,35 @@ const AppointmentModal: React.FC = () => {
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Appointment start time
                         </label>
-                        <input
-                            type="time"
-                            value={startTime}
-                            onChange={(e) => setStartTime(e.target.value)}
-                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                        />
+                        <div className="relative">
+                            <input
+                                ref={startTimeRef}
+                                type="text"
+                                placeholder="Select time"
+                                readOnly
+                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </span>
+                        </div>
                     </div>
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Appointment end time
                         </label>
-                        <input
-                            type="time"
-                            value={endTime}
-                            onChange={(e) => setEndTime(e.target.value)}
-                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                        />
+                        <div className="relative">
+                            <input
+                                ref={endTimeRef}
+                                type="text"
+                                placeholder="Select time"
+                                readOnly
+                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </span>
+                        </div>
                     </div>
 
                     {/* Priority */}
@@ -882,16 +941,16 @@ const AppointmentModal: React.FC = () => {
                         <select
                             value={providerId}
                             onChange={(e) => setProviderId(e.target.value)}
-                            disabled={!combinedStart || !combinedEnd || loadingProvidersForDate || providersForDate.length === 0}
+                            disabled={!startDate || loadingProvidersForDate || providersForDate.length === 0}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100 disabled:opacity-60"
                         >
                             <option value="">
-                                {!combinedStart || !combinedEnd
-                                    ? "Pick date & time first"
+                                {!startDate
+                                    ? "Pick a date first"
                                     : loadingProvidersForDate
                                         ? "Loading available providers…"
                                         : providersForDate.length === 0
-                                            ? "No providers scheduled for this slot"
+                                            ? "No providers scheduled for this date"
                                             : "Select a provider..."}
                             </option>
                             {providersForDate.map((p) => (
