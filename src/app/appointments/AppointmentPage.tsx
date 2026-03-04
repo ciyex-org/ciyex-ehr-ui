@@ -97,10 +97,13 @@ function parseMMDDYYYY(s: string): string | null {
   return `${yyyy}-${pad(mm)}-${pad(dd)}`;
 }
 
-function timeFromMMDDYYYY(s: string, fallback: number): number {
+function timeFromMMDDYYYY(s: string, fallback: number, endOfDay = false): number {
   const iso = parseMMDDYYYY(s);
-  // Use local time (T00:00:00) to match appointment date parsing which also uses local time
-  return iso ? new Date(iso + "T00:00:00").getTime() : fallback;
+  if (!iso) return fallback;
+  // Use local time to match appointment date parsing which also uses local time
+  return endOfDay
+    ? new Date(iso + "T23:59:59.999").getTime()
+    : new Date(iso + "T00:00:00").getTime();
 }
 
 /** Format elapsed wait time with color */
@@ -498,7 +501,7 @@ export default function AppointmentPage() {
   const filtered = useMemo(() => {
     if (!Array.isArray(rows)) return [];
     const fromTime = from ? timeFromMMDDYYYY(from, -Infinity) : -Infinity;
-    const toTime = to ? timeFromMMDDYYYY(to, Infinity) : Infinity;
+    const toTime = to ? timeFromMMDDYYYY(to, Infinity, true) : Infinity;
 
     return rows.filter((r) => {
       const d = new Date(r.appointmentStartDate?.includes("T") ? r.appointmentStartDate : r.appointmentStartDate + "T00:00:00").getTime();
