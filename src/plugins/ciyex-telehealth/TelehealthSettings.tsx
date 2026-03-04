@@ -63,7 +63,8 @@ export default function TelehealthSettings() {
     };
 
     const toggle = (s: string) => setExpanded(p => ({ ...p, [s]: !p[s] }));
-    const isConfigured = config.vendor_name || config.vendor_id;
+    const isConfigured = config.vendor_name || config.vendor_id || true; // Built-in mediasoup SFU is always available
+    const providerName = config.vendor_name || "Ciyex Telehealth (mediasoup)";
 
     const Section = ({ id, icon: Icon, title, children }: { id: string; icon: React.ElementType; title: string; children: React.ReactNode }) => (
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
@@ -98,7 +99,7 @@ export default function TelehealthSettings() {
                 <Section id="provider" icon={Video} title="Video Provider">
                     {isConfigured ? (
                         <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-green-600" /><div><p className="font-medium text-sm">{config.vendor_name || "Video Provider"}</p></div></div>
+                            <div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-green-600" /><div><p className="font-medium text-sm">{providerName}</p></div></div>
                             <a href="/hub" className="px-3 py-1.5 text-xs bg-white dark:bg-gray-800 border rounded-md hover:bg-gray-50 flex items-center gap-1.5"><ExternalLink className="h-3 w-3" /> Change</a>
                         </div>
                     ) : (
