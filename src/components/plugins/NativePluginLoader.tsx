@@ -71,6 +71,20 @@ const NATIVE_PLUGIN_LOADERS: Record<string, () => Promise<PluginModule>> = {
     "ciyex-credentialing": () => import("@/plugins/ciyex-credentialing"),
     // Payment Gateway — multi-processor patient payment collection
     "payment-gateway": () => import("@/plugins/payment-gateway"),
+    // Ciyex Telehealth — video visits and virtual care
+    "ciyex-telehealth": () => import("@/plugins/ciyex-telehealth"),
+    // Ciyex Eligibility — insurance verification and coverage discovery
+    "ciyex-eligibility": () => import("@/plugins/ciyex-eligibility"),
+    // Ciyex eRx — electronic prescribing and medication management
+    "ciyex-erx": () => import("@/plugins/ciyex-erx"),
+    // Ciyex Lab — lab orders and results integration
+    "ciyex-lab": () => import("@/plugins/ciyex-lab"),
+    // Ciyex Fax — cloud fax send/receive
+    "ciyex-fax": () => import("@/plugins/ciyex-fax"),
+    // Ciyex Notifications — SMS, email, and patient messaging
+    "ciyex-notifications": () => import("@/plugins/ciyex-notifications"),
+    // Ciyex RPM — remote patient monitoring devices and alerts
+    "ciyex-rpm": () => import("@/plugins/ciyex-rpm"),
 };
 
 /**

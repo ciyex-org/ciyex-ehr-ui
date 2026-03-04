@@ -1,6 +1,7 @@
 import {
     BookOpen, MessageSquare, ShieldCheck, FolderOpen, CreditCard,
     Video, Receipt, LayoutGrid, Bot, HeartPulse, Package,
+    Pill, FlaskConical, Printer, Bell, Activity,
     type LucideIcon,
 } from "lucide-react";
 
@@ -16,6 +17,13 @@ export const SLUG_ICONS: Record<string, LucideIcon> = {
     "ask-ciya": Bot,
     "demo-care-gaps": HeartPulse,
     "payment-gateway": CreditCard,
+    "ciyex-eligibility": ShieldCheck,
+    "ciyex-erx": Pill,
+    "ciyex-lab": FlaskConical,
+    "ciyex-fax": Printer,
+    "ciyex-notifications": Bell,
+    "ciyex-rpm": Activity,
+    "vaultik": FolderOpen,
 };
 
 export const SLUG_COLORS: Record<string, string> = {
@@ -30,6 +38,13 @@ export const SLUG_COLORS: Record<string, string> = {
     "ask-ciya": "from-fuchsia-50 to-pink-100 dark:from-fuchsia-900/30 dark:to-pink-900/30 text-fuchsia-600 dark:text-fuchsia-400",
     "demo-care-gaps": "from-red-50 to-rose-100 dark:from-red-900/30 dark:to-rose-900/30 text-red-600 dark:text-red-400",
     "payment-gateway": "from-green-50 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-600 dark:text-green-400",
+    "ciyex-eligibility": "from-blue-50 to-sky-100 dark:from-blue-900/30 dark:to-sky-900/30 text-blue-600 dark:text-blue-400",
+    "ciyex-erx": "from-purple-50 to-violet-100 dark:from-purple-900/30 dark:to-violet-900/30 text-purple-600 dark:text-purple-400",
+    "ciyex-lab": "from-teal-50 to-cyan-100 dark:from-teal-900/30 dark:to-cyan-900/30 text-teal-600 dark:text-teal-400",
+    "ciyex-fax": "from-orange-50 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 text-orange-600 dark:text-orange-400",
+    "ciyex-notifications": "from-indigo-50 to-blue-100 dark:from-indigo-900/30 dark:to-blue-900/30 text-indigo-600 dark:text-indigo-400",
+    "ciyex-rpm": "from-rose-50 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30 text-rose-600 dark:text-rose-400",
+    "vaultik": "from-amber-50 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 text-amber-600 dark:text-amber-400",
 };
 
 const DEFAULT_COLOR = "from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-600 dark:text-blue-400";

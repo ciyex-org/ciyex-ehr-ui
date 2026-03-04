@@ -3,15 +3,25 @@
 import type { PluginAPI } from "@/components/plugins/NativePluginLoader";
 import BillingSummary from "./BillingSummary";
 import BillingTab from "./BillingTab";
+import RcmSettings from "./RcmSettings";
 
 /**
  * Ciyex RCM (Revenue Cycle Management) -- Billing & claims plugin.
  *
  * Contributes:
- * 1. A billing summary panel at the bottom of encounter forms
- * 2. A "Billing & Claims" tab in the patient chart
+ * 1. Settings page for configuring RCM engine and clearinghouse
+ * 2. A billing summary panel at the bottom of encounter forms
+ * 3. A "Billing & Claims" tab in the patient chart
  */
 export function register(api: PluginAPI) {
+    api.contribute({
+        slotName: "settings:nav-item",
+        component: RcmSettings,
+        label: "Revenue Cycle",
+        icon: "Receipt",
+        priority: 48,
+    });
+
     api.contribute({
         slotName: "encounter:form-footer",
         component: BillingSummary,
