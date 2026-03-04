@@ -25,6 +25,7 @@ interface LookupResult {
   lastName: string;
   email?: string;
   npi?: string;
+  hasAccount?: boolean;
 }
 
 /* ──────── Lookup Panel (search providers or patients, then create user) ──────── */
@@ -37,7 +38,7 @@ function AddUserLookupPanel({
   open: boolean;
   tab: Tab;
   onClose: () => void;
-  onCreated: (msg: string, resetData?: ResetPasswordResponse) => void;
+  onCreated: (msg: string, resetData?: ResetPasswordResponse, isError?: boolean) => void;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LookupResult[]>([]);
@@ -84,6 +85,7 @@ function AddUserLookupPanel({
           lastName: r.lastName || r.identification?.lastName || r.name?.family || (typeof r.name === "string" ? r.name.split(" ").slice(1).join(" ") : "") || "",
           email: r.email || r.systemAccess?.email || r.telecom?.find((t: any) => t.system === "email")?.value || "",
           npi: r.npi || "",
+          hasAccount: r.systemAccess?.hasAccount || false,
         }));
         setResults(mapped);
       } catch {
@@ -129,7 +131,7 @@ function AddUserLookupPanel({
         }
         onClose();
       } else {
-        onCreated("");  // signal error but don't close
+        onCreated(json.message || "Failed to create user", undefined, true);
       }
     } finally {
       setSaving(false);
@@ -184,11 +186,21 @@ function AddUserLookupPanel({
                   results.map((r) => (
                     <button
                       key={r.id}
-                      onClick={() => { setSelected(r); setResults([]); }}
-                      className="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 border-b last:border-b-0 border-slate-100 dark:border-slate-700"
+                      onClick={() => { if (!r.hasAccount) { setSelected(r); setResults([]); } }}
+                      disabled={r.hasAccount}
+                      className={`w-full text-left px-3 py-2.5 border-b last:border-b-0 border-slate-100 dark:border-slate-700 ${
+                        r.hasAccount ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50 dark:hover:bg-slate-700"
+                      }`}
                     >
-                      <div className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                        {r.firstName} {r.lastName}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                          {r.firstName} {r.lastName}
+                        </span>
+                        {r.hasAccount && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 font-medium">
+                            Has login
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-slate-500 dark:text-slate-400">
                         {r.email}{r.npi ? ` · NPI: ${r.npi}` : ""}
@@ -425,10 +437,10 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleLookupCreated = (msg: string, rd?: ResetPasswordResponse) => {
-    if (msg) setToast({ type: "success", text: msg });
+  const handleLookupCreated = (msg: string, rd?: ResetPasswordResponse, isError?: boolean) => {
+    if (msg) setToast({ type: isError ? "error" : "success", text: msg });
     if (rd) { setResetData(rd); setShowResetModal(true); }
-    fetchUsers();
+    if (!isError) fetchUsers();
   };
 
   const staffCount = users.filter((u) => {
@@ -462,7 +474,7 @@ export default function UserManagementPage() {
             <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">User Management</h1>
+            <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">Users</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">Manage staff and patient login accounts</p>
           </div>
         </div>

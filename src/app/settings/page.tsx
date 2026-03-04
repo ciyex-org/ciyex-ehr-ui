@@ -9,9 +9,11 @@ import DisplaySettings from "@/components/settings/DisplaySettings";
 import CalendarColorSettings from "@/components/settings/CalendarColorSettings";
 import PracticeLogoUpload from "@/components/settings/PracticeLogoUpload";
 import { ICONS } from "@/components/settings/IconPicker";
-import { Settings, Loader2, FileText, SlidersHorizontal, Monitor, Palette } from "lucide-react";
+import { Settings, Loader2, FileText, SlidersHorizontal, Monitor, Palette, Users, Shield } from "lucide-react";
 import { usePluginRegistry } from "@/context/PluginRegistryContext";
 import PluginErrorBoundary from "@/components/plugins/PluginErrorBoundary";
+import UserManagementPage from "@/app/settings/user-management/page";
+import RolesPermissionsPage from "@/app/settings/roles-permissions/page";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -20,6 +22,11 @@ interface SettingsItem {
     label: string;
     icon: string;
 }
+
+const ADMIN_PAGES = [
+    { tabKey: "__users__", label: "Users", icon: "Users" },
+    { tabKey: "__roles__", label: "Roles & Permissions", icon: "Shield" },
+];
 
 const BUILTIN_PAGES = [
     { tabKey: "__form-options__", label: "Form Options", icon: "SlidersHorizontal" },
@@ -77,6 +84,8 @@ export default function SettingsPage() {
         if (iconName === "SlidersHorizontal") return SlidersHorizontal;
         if (iconName === "Monitor") return Monitor;
         if (iconName === "Palette") return Palette;
+        if (iconName === "Users") return Users;
+        if (iconName === "Shield") return Shield;
         return ICONS[iconName] || FileText;
     };
 
@@ -114,10 +123,33 @@ export default function SettingsPage() {
                         );
                     })}
 
-                    {/* Divider before built-in pages */}
-                    {items.length > 0 && BUILTIN_PAGES.length > 0 && (
+                    {/* Divider before admin pages */}
+                    {items.length > 0 && (
                         <div className="border-t border-gray-200 my-2" />
                     )}
+
+                    {/* Admin pages */}
+                    {ADMIN_PAGES.map((item) => {
+                        const Icon = getIcon(item.icon);
+                        const isActive = activeKey === item.tabKey;
+                        return (
+                            <button
+                                key={item.tabKey}
+                                onClick={() => setActiveKey(item.tabKey)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                                    isActive
+                                        ? "bg-blue-600 text-white"
+                                        : "text-gray-700 hover:bg-gray-100"
+                                }`}
+                            >
+                                <Icon className="w-4 h-4 shrink-0" />
+                                <span className="truncate">{item.label}</span>
+                            </button>
+                        );
+                    })}
+
+                    {/* Divider before built-in pages */}
+                    <div className="border-t border-gray-200 my-2" />
 
                     {/* Built-in pages */}
                     {BUILTIN_PAGES.map((item) => {
@@ -180,6 +212,10 @@ export default function SettingsPage() {
                     >
                         <activePlugin.component />
                     </PluginErrorBoundary>
+                ) : activeKey === "__users__" ? (
+                    <div className="p-6 h-full"><UserManagementPage /></div>
+                ) : activeKey === "__roles__" ? (
+                    <div className="p-6 h-full"><RolesPermissionsPage /></div>
                 ) : activeKey === "__form-options__" ? (
                     <FormOptionsEditor />
                 ) : activeKey === "__display__" ? (
