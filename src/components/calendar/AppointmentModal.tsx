@@ -104,23 +104,6 @@ const toISODateFromMMDDYYYY = (val: string): string => {
 // join yyyy-mm-dd + HH:mm into local string
 const combineLocal = (ymd: string, hm: string) => (ymd && hm ? `${ymd}T${hm}` : "");
 
-// Generate 15-min interval time slots for dropdowns (6:00 AM – 9:00 PM)
-const TIME_SLOTS: { value: string; label: string }[] = (() => {
-    const slots: { value: string; label: string }[] = [];
-    for (let h = 6; h <= 21; h++) {
-        for (let m = 0; m < 60; m += 15) {
-            const hh = String(h).padStart(2, "0");
-            const mm = String(m).padStart(2, "0");
-            const value = `${hh}:${mm}`;
-            const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-            const ampm = h < 12 ? "AM" : "PM";
-            const label = `${h12}:${mm} ${ampm}`;
-            slots.push({ value, label });
-        }
-    }
-    return slots;
-})();
-
 const addMinutes = (hm: string, mins: number): string => {
     const [h, m] = hm.split(":").map(Number);
     const total = h * 60 + m + mins;
@@ -851,7 +834,9 @@ const AppointmentModal: React.FC = () => {
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Start time
                         </label>
-                        <select
+                        <input
+                            type="time"
+                            step="60"
                             value={startTime}
                             onChange={(e) => {
                                 const val = e.target.value;
@@ -859,27 +844,19 @@ const AppointmentModal: React.FC = () => {
                                 if (val) setEndTime(addMinutes(val, 15));
                             }}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                        >
-                            <option value="">Select time</option>
-                            {TIME_SLOTS.map((t) => (
-                                <option key={t.value} value={t.value}>{t.label}</option>
-                            ))}
-                        </select>
+                        />
                     </div>
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             End time
                         </label>
-                        <select
+                        <input
+                            type="time"
+                            step="60"
                             value={endTime}
                             onChange={(e) => setEndTime(e.target.value)}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                        >
-                            <option value="">Select time</option>
-                            {TIME_SLOTS.map((t) => (
-                                <option key={t.value} value={t.value}>{t.label}</option>
-                            ))}
-                        </select>
+                        />
                     </div>
 
                     {/* Priority */}
