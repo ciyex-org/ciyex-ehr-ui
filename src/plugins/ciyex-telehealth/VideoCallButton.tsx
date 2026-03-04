@@ -36,12 +36,12 @@ export default function VideoCallButton({ patientId }: VideoCallButtonProps) {
 
             const json = await res.json();
             const data = json.data || json;
-            const sessionUrl = data.meetingUrl || data.sessionUrl || data.url || data.joinUrl;
+            const sessionId = data.id;
 
-            if (sessionUrl) {
-                window.open(sessionUrl, "_blank", "noopener,noreferrer");
+            if (sessionId) {
+                window.open(`/telehealth/session/${sessionId}`, "_blank", "noopener,noreferrer");
             } else {
-                throw new Error("No session URL returned");
+                throw new Error("No session ID returned");
             }
         } catch (err: any) {
             console.error("[ciyex-telehealth] Failed to start video call:", err);
