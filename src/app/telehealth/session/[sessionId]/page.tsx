@@ -78,6 +78,10 @@ export default function TelehealthSessionPage() {
 
     const handleEndCall = async () => {
         await endCall(role === "provider"); // provider ends session, patient just leaves
+        // Call backend to end session (triggers billing/encounter creation)
+        if (role === "provider") {
+            fetchWithAuth(`/api/telehealth/sessions/${sessionId}/end`, { method: "POST" }).catch(() => {});
+        }
         setTimeout(() => router.push(backPath), 1200);
     };
 
