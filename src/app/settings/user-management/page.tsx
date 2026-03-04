@@ -80,9 +80,9 @@ function AddUserLookupPanel({
         const mapped: LookupResult[] = (Array.isArray(list) ? list : []).slice(0, 10).map((r: any) => ({
           id: r.id,
           fhirId: r.fhirId || r.id?.toString(),
-          firstName: r.firstName || r.name?.given?.[0] || "",
-          lastName: r.lastName || r.name?.family || "",
-          email: r.email || r.telecom?.find((t: any) => t.system === "email")?.value || "",
+          firstName: r.firstName || r.identification?.firstName || r.name?.given?.[0] || (typeof r.name === "string" ? r.name.split(" ")[0] : "") || "",
+          lastName: r.lastName || r.identification?.lastName || r.name?.family || (typeof r.name === "string" ? r.name.split(" ").slice(1).join(" ") : "") || "",
+          email: r.email || r.systemAccess?.email || r.telecom?.find((t: any) => t.system === "email")?.value || "",
           npi: r.npi || "",
         }));
         setResults(mapped);
