@@ -107,6 +107,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     const [paymentType, setPaymentType] = useState("insurance");
     const [reference, setReference] = useState("");
     const [notes, setNotes] = useState("");
+    const [lumpSumAmount, setLumpSumAmount] = useState("");
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -148,23 +149,51 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
         Promise.all([fetchClaims(), fetchPayments()]).finally(() => setLoading(false));
     }, [fetchClaims, fetchPayments]);
 
-    // When a claim is selected, populate line payments
-    const handleClaimSelect = (claimId: string) => {
+    // When a claim is selected, fetch detail and populate line payments
+    const handleClaimSelect = async (claimId: string) => {
         setSelectedClaimId(claimId);
-        const claim = claims.find((c) => c.id === claimId);
-        if (!claim) {
+        if (!claimId) {
             setLinePayments([]);
             return;
         }
-        const lines = (claim.lines || []).map((l) => ({
-            cptCode: l.cptCode,
-            description: l.description,
-            chargeAmount: l.chargeAmount || 0,
-            alreadyPaid: l.paidAmount || 0,
-            paymentAmount: "",
-            adjustmentAmount: "",
-        }));
-        setLinePayments(lines);
+
+        // Try to fetch full claim detail with lines
+        try {
+            const res = await fetchWithAuth(
+                `/api/app-proxy/ciyex-rcm/api/rcm/claims/${claimId}`
+            );
+            if (res.ok) {
+                const json = await res.json();
+                const detail = json.data ?? json;
+                const lines = (detail.lines || []).map((l: any) => ({
+                    cptCode: l.cptCode || "",
+                    description: l.description || "",
+                    chargeAmount: Number(l.chargeAmount || 0),
+                    alreadyPaid: Number(l.paidAmount || 0),
+                    paymentAmount: "",
+                    adjustmentAmount: "",
+                }));
+                setLinePayments(lines);
+                return;
+            }
+        } catch {
+            // Fall through to summary-only mode
+        }
+
+        // Fallback: use summary data from list
+        const claim = claims.find((c) => c.id === claimId);
+        if (claim && claim.lines?.length) {
+            setLinePayments(claim.lines.map((l) => ({
+                cptCode: l.cptCode,
+                description: l.description,
+                chargeAmount: Number(l.chargeAmount || 0),
+                alreadyPaid: Number(l.paidAmount || 0),
+                paymentAmount: "",
+                adjustmentAmount: "",
+            })));
+        } else {
+            setLinePayments([]);
+        }
     };
 
     const updateLinePayment = (idx: number, field: "paymentAmount" | "adjustmentAmount", value: string) => {
@@ -173,10 +202,9 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
         );
     };
 
-    const totalPayment = linePayments.reduce(
-        (sum, lp) => sum + (parseFloat(lp.paymentAmount) || 0),
-        0
-    );
+    const totalPayment = linePayments.length > 0
+        ? linePayments.reduce((sum, lp) => sum + (parseFloat(lp.paymentAmount) || 0), 0)
+        : parseFloat(lumpSumAmount) || 0;
     const totalAdjustment = linePayments.reduce(
         (sum, lp) => sum + (parseFloat(lp.adjustmentAmount) || 0),
         0
@@ -224,6 +252,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                 setPaymentType("insurance");
                 setReference("");
                 setNotes("");
+                setLumpSumAmount("");
                 // Refresh payments list
                 await fetchPayments();
             } else {
@@ -405,6 +434,30 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                                 </tr>
                                             </tfoot>
                                         </table>
+                                    </div>
+                                )}
+
+                                {/* Lump-sum amount when no line items */}
+                                {linePayments.length === 0 && (
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Payment Amount</label>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={lumpSumAmount}
+                                                onChange={(e) => setLumpSumAmount(e.target.value)}
+                                                placeholder="0.00"
+                                                className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div className="flex items-end">
+                                            <span className="text-xs text-gray-500 pb-2">
+                                                Total Charges: {formatCurrency(selectedClaim.totalCharges)} |
+                                                Balance: {formatCurrency(Number(selectedClaim.totalCharges || 0) - Number(selectedClaim.totalPaid || 0) - totalPayment)}
+                                            </span>
+                                        </div>
                                     </div>
                                 )}
 
