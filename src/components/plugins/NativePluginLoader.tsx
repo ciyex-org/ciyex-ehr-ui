@@ -69,6 +69,8 @@ const NATIVE_PLUGIN_LOADERS: Record<string, () => Promise<PluginModule>> = {
     "ciyex-rcm": () => import("@/plugins/ciyex-rcm"),
     // Ciyex Credentialing — provider credentialing management
     "ciyex-credentialing": () => import("@/plugins/ciyex-credentialing"),
+    // Payment Gateway — multi-processor patient payment collection
+    "payment-gateway": () => import("@/plugins/payment-gateway"),
 };
 
 /**

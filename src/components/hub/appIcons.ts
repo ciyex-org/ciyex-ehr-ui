@@ -15,6 +15,7 @@ export const SLUG_ICONS: Record<string, LucideIcon> = {
     "ciyex-metadata": LayoutGrid,
     "ask-ciya": Bot,
     "demo-care-gaps": HeartPulse,
+    "payment-gateway": CreditCard,
 };
 
 export const SLUG_COLORS: Record<string, string> = {
@@ -28,6 +29,7 @@ export const SLUG_COLORS: Record<string, string> = {
     "ciyex-metadata": "from-indigo-50 to-blue-100 dark:from-indigo-900/30 dark:to-blue-900/30 text-indigo-600 dark:text-indigo-400",
     "ask-ciya": "from-fuchsia-50 to-pink-100 dark:from-fuchsia-900/30 dark:to-pink-900/30 text-fuchsia-600 dark:text-fuchsia-400",
     "demo-care-gaps": "from-red-50 to-rose-100 dark:from-red-900/30 dark:to-rose-900/30 text-red-600 dark:text-red-400",
+    "payment-gateway": "from-green-50 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-600 dark:text-green-400",
 };
 
 const DEFAULT_COLOR = "from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-600 dark:text-blue-400";
