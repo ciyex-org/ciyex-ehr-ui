@@ -481,7 +481,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          fetch-tags: true
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch all tags
+        run: git fetch --tags --force origin
 
       - name: Get base version from package.json
         id: base
@@ -495,7 +499,7 @@ jobs:
         run: |
           BASE_RAW="${{ steps.base.outputs.base_version }}"
           BASE=$(echo "$BASE_RAW" | sed -E 's/-(alpha|rc).*$//')
-          
+
           if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/v}"
             ENV="prod"
@@ -503,7 +507,7 @@ jobs:
           elif [[ "${{ github.ref }}" == refs/heads/release-* ]]; then
             RELEASE_MAJOR="${GITHUB_REF#refs/heads/release-}"
             RELEASE_MAJOR="${RELEASE_MAJOR%.x}"
-            
+
             LAST_RC=$(git tag -l "${RELEASE_MAJOR}.*.*-rc.*" --sort=-v:refname | head -n1)
             if [ -n "$LAST_RC" ]; then
               LAST_RC_NUM=$(echo "$LAST_RC" | sed -E "s/.*-rc\.([0-9]+)/\1/")
@@ -522,7 +526,7 @@ jobs:
             OVERLAY="stage"
           elif [[ "${{ github.ref }}" == refs/heads/hotfix-* ]]; then
             HOTFIX_BASE="${GITHUB_REF#refs/heads/hotfix-}"
-            
+
             LAST_HOTFIX=$(git tag -l "${HOTFIX_BASE}-hotfix.*" --sort=-v:refname | head -n1)
             if [ -n "$LAST_HOTFIX" ]; then
               LAST_NUM=$(echo "$LAST_HOTFIX" | sed -E "s/.*-hotfix\.([0-9]+)/\1/")
@@ -530,12 +534,23 @@ jobs:
             else
               HOTFIX_NUM=1
             fi
-            
+
             VERSION="${HOTFIX_BASE}-hotfix.${HOTFIX_NUM}"
             ENV="prod"
             OVERLAY="prod"
           else
             LAST_TAG=$(git tag -l "${BASE}-alpha.*" --sort=-v:refname | head -n1)
+            echo "🔍 Local LAST_TAG: '${LAST_TAG}'"
+
+            # Fallback: if local tags are empty, query remote
+            if [ -z "$LAST_TAG" ]; then
+              echo "⚠️ No local tags found, querying remote..."
+              LAST_TAG=$(git ls-remote --tags origin "${BASE}-alpha.*" | \
+                sed 's|.*refs/tags/||' | grep -v '\^{}' | \
+                sort -t. -k4 -n -r | head -n1)
+              echo "🔍 Remote LAST_TAG: '${LAST_TAG}'"
+            fi
+
             if [ -n "$LAST_TAG" ]; then
               LAST_NUM=$(echo "$LAST_TAG" | sed "s/${BASE}-alpha.//")
               ALPHA_NUM=$((LAST_NUM + 1))
