@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
     DollarSign, Plus, X, CreditCard,
-    Check, Loader2
+    Check, Loader2, Pencil, Trash2
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -114,6 +114,8 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     const [lumpSumAmount, setLumpSumAmount] = useState("");
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Fetch claims from RCM
     const fetchClaims = useCallback(async () => {
@@ -235,31 +237,82 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
 
     const selectedClaim = claims.find((c) => c.id === selectedClaimId);
 
+    const resetForm = () => {
+        setShowForm(false);
+        setSelectedClaimId("");
+        setLinePayments([]);
+        setPaymentType("insurance");
+        setReference("");
+        setNotes("");
+        setLumpSumAmount("");
+        setEditingPaymentId(null);
+        setSaveError(null);
+    };
+
+    const handleEdit = (p: ExistingPayment) => {
+        setEditingPaymentId(p.id);
+        setShowForm(true);
+        // Find matching claim to select
+        const matchingClaim = claims.find((c) => c.claimNumber === p.claimNumber);
+        if (matchingClaim) {
+            setSelectedClaimId(matchingClaim.id);
+            handleClaimSelect(matchingClaim.id);
+        } else {
+            setSelectedClaimId("");
+            setLinePayments([]);
+        }
+        setPaymentType(p.paymentType || "insurance");
+        setReference(p.reference || "");
+        setNotes(p.notes || "");
+        setLumpSumAmount(String(Number(p.amount || 0)));
+    };
+
+    const handleDelete = async (paymentId: string) => {
+        if (!confirm("Delete this payment?")) return;
+        setDeletingId(paymentId);
+        try {
+            const res = await fetchWithAuth(`/api/fhir-resource/payment/${paymentId}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                await fetchPayments();
+            }
+        } catch {
+            // ignore
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     const handleSave = async () => {
-        if (!selectedClaim) return;
+        if (!selectedClaim && !editingPaymentId) return;
         setSaving(true);
         setSaveError(null);
 
         const today = new Date().toISOString().slice(0, 10);
 
         try {
-            // Save as FHIR Invoice resource via generic API
             const payload: Record<string, any> = {
-                claimNumber: selectedClaim.claimNumber,
-                dateOfService: selectedClaim.dateOfService
+                claimNumber: selectedClaim?.claimNumber || "",
+                dateOfService: selectedClaim?.dateOfService
                     ? selectedClaim.dateOfService.substring(0, 10)
                     : "",
-                chargeAmount: selectedClaim.totalCharges || 0,
+                chargeAmount: selectedClaim?.totalCharges || 0,
                 date: today,
                 amount: totalPayment,
                 paymentType,
                 reference,
-                status: "issued", // Posted
+                status: "issued",
                 notes: notes || buildAutoNotes(),
             };
 
-            const res = await fetchWithAuth(`/api/fhir-resource/payment`, {
-                method: "POST",
+            const isEdit = !!editingPaymentId;
+            const url = isEdit
+                ? `/api/fhir-resource/payment/${editingPaymentId}`
+                : `/api/fhir-resource/payment`;
+
+            const res = await fetchWithAuth(url, {
+                method: isEdit ? "PUT" : "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     patientId: String(patientId),
@@ -268,15 +321,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
             });
 
             if (res.ok) {
-                // Reset form
-                setShowForm(false);
-                setSelectedClaimId("");
-                setLinePayments([]);
-                setPaymentType("insurance");
-                setReference("");
-                setNotes("");
-                setLumpSumAmount("");
-                // Refresh payments list
+                resetForm();
                 await fetchPayments();
             } else {
                 const json = await res.json().catch(() => null);
@@ -344,8 +389,8 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
             {showForm && (
                 <div className="bg-white border border-blue-200 rounded-lg shadow-sm">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-blue-50/50 rounded-t-lg">
-                        <h3 className="text-sm font-semibold text-gray-800">Post Payment</h3>
-                        <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+                        <h3 className="text-sm font-semibold text-gray-800">{editingPaymentId ? "Edit Payment" : "Post Payment"}</h3>
+                        <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
@@ -533,7 +578,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
 
                                 <div className="flex justify-end gap-2">
                                     <button
-                                        onClick={() => setShowForm(false)}
+                                        onClick={resetForm}
                                         className="px-4 py-2 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                                     >
                                         Cancel
@@ -548,7 +593,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                         ) : (
                                             <Check className="w-3.5 h-3.5" />
                                         )}
-                                        {saving ? "Saving..." : `Post ${formatCurrency(totalPayment)}`}
+                                        {saving ? "Saving..." : `${editingPaymentId ? "Update" : "Post"} ${formatCurrency(totalPayment)}`}
                                     </button>
                                 </div>
                             </>
@@ -577,7 +622,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                             const statusLabel = STATUS_LABELS[p.status] || p.status;
                             const typeLabel = PAYMENT_TYPES.find((pt) => pt.value === p.paymentType)?.label || p.paymentType;
                             return (
-                                <div key={p.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                                <div key={p.id} className="px-4 py-3 hover:bg-gray-50 transition-colors group">
                                     <div className="flex items-center justify-between mb-1">
                                         <div className="flex items-center gap-2">
                                             {p.claimNumber && (
@@ -590,9 +635,32 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                                 {statusLabel}
                                             </span>
                                         </div>
-                                        <span className="text-sm font-semibold text-green-700">
-                                            {formatCurrency(p.amount)}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <div className="hidden group-hover:flex items-center gap-1">
+                                                <button
+                                                    onClick={() => handleEdit(p)}
+                                                    className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                    title="Edit payment"
+                                                >
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(p.id)}
+                                                    disabled={deletingId === p.id}
+                                                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    title="Delete payment"
+                                                >
+                                                    {deletingId === p.id ? (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                            <span className="text-sm font-semibold text-green-700">
+                                                {formatCurrency(p.amount)}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-3 text-xs text-gray-500">
                                         {p.dateOfService && <span>DOS: {formatDate(p.dateOfService)}</span>}
