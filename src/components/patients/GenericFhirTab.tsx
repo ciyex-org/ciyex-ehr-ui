@@ -189,7 +189,19 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     };
 
     const handleCreate = () => {
-        setFormData({});
+        // Pre-fill date fields that have defaultToday: true
+        const defaults: Record<string, any> = {};
+        if (fieldConfig?.sections) {
+            const today = new Date().toISOString().slice(0, 10);
+            for (const section of fieldConfig.sections) {
+                for (const field of section.fields || []) {
+                    if (field.type === "date" && (field as any).defaultToday) {
+                        defaults[field.key] = today;
+                    }
+                }
+            }
+        }
+        setFormData(defaults);
         setSelectedRecord(null);
         setValidationErrors({});
         setError(null);
