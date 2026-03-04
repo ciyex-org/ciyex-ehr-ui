@@ -271,7 +271,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
         if (!confirm("Delete this payment?")) return;
         setDeletingId(paymentId);
         try {
-            const res = await fetchWithAuth(`/api/fhir-resource/payment/${paymentId}`, {
+            const res = await fetchWithAuth(`/api/fhir-resource/payment/patient/${patientId}/${paymentId}`, {
                 method: "DELETE",
             });
             if (res.ok) {
@@ -308,16 +308,13 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
 
             const isEdit = !!editingPaymentId;
             const url = isEdit
-                ? `/api/fhir-resource/payment/${editingPaymentId}`
-                : `/api/fhir-resource/payment`;
+                ? `/api/fhir-resource/payment/patient/${patientId}/${editingPaymentId}`
+                : `/api/fhir-resource/payment/patient/${patientId}`;
 
             const res = await fetchWithAuth(url, {
                 method: isEdit ? "PUT" : "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    patientId: String(patientId),
-                    formData: payload,
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (res.ok) {
