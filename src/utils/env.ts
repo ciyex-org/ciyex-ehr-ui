@@ -11,6 +11,7 @@ type EnvConfig = {
   NEXT_PUBLIC_MARKETPLACE_URL: string;
   NEXT_PUBLIC_METADATA_URL: string;
   NEXT_PUBLIC_DEBUG: string;
+  NEXT_PUBLIC_TELEHEALTH_WS_URL: string;
 };
 
 let cachedConfig: EnvConfig | null = null;
@@ -36,6 +37,7 @@ async function fetchConfig(): Promise<EnvConfig> {
       NEXT_PUBLIC_MARKETPLACE_URL: "",
       NEXT_PUBLIC_METADATA_URL: "",
       NEXT_PUBLIC_DEBUG: "",
+      NEXT_PUBLIC_TELEHEALTH_WS_URL: "",
     };
   }
 }

@@ -160,8 +160,8 @@ export default function AppointmentPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [location, setLocation] = useState<string>("All Locations");
   const [locations, setLocations] = useState<Location[]>([]);
-  const [from, setFrom] = useState<string>("");
-  const [to, setTo] = useState<string>("");
+  const [from, setFrom] = useState<string>(() => typeof window !== "undefined" ? todayFormatted() : "");
+  const [to, setTo] = useState<string>(() => typeof window !== "undefined" ? todayFormatted() : "");
   const [patientName, setPatientName] = useState("");
   const [rows, setRows] = useState<AppointmentDTO[]>([]);
 
@@ -306,14 +306,7 @@ export default function AppointmentPage() {
     })();
   }, []);
 
-  // Default date range: today
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const t = todayFormatted();
-      setFrom(t);
-      setTo(t);
-    }
-  }, []);
+  // from/to are initialized with todayFormatted() in useState — no extra effect needed
 
   // Appointments loader — silent=true skips loading spinner (used by auto-refresh)
   const loadAppointments = useCallback(async (silent = false) => {
