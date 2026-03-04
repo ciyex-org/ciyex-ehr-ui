@@ -1000,19 +1000,22 @@ function CodeLookup({
   value,
   onChange,
   readOnly,
+  diagnoses,
 }: {
   field: FieldDef;
   value: any;
   onChange: (val: any) => void;
   readOnly?: boolean;
+  diagnoses?: Array<{ code: string; description: string; priority?: string; status?: string }>;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const config = field.codeLookupConfig;
   const codeSystem = config?.codeSystem || "CPT";
-  const items: Array<{ code: string; description: string; fee?: number; modifier?: string; units?: number }> =
+  const items: Array<{ code: string; description: string; fee?: number; modifier?: string; units?: number; diagnosisPointers?: string[] }> =
     Array.isArray(value) ? value : [];
+  const availableDiagnoses = Array.isArray(diagnoses) ? diagnoses : [];
 
   const searchCodes = useCallback(
     async (q: string) => {
@@ -1094,42 +1097,83 @@ function CodeLookup({
         <p className="text-xs text-gray-400">No {codeSystem} codes added</p>
       ) : (
         <div className="space-y-2">
-          {items.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <span className="font-mono text-xs font-semibold text-green-600 dark:text-green-400 whitespace-nowrap min-w-[60px]">
-                {item.code}
-              </span>
-              <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">{item.description}</span>
-              {!readOnly ? (
-                <>
-                  <input
-                    type="text"
-                    value={item.modifier || ""}
-                    onChange={(e) => updateCode(idx, { modifier: e.target.value })}
-                    placeholder="Mod"
-                    className="w-16 px-1.5 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white text-center"
-                  />
-                  <input
-                    type="number"
-                    value={item.units ?? 1}
-                    onChange={(e) => updateCode(idx, { units: Number(e.target.value) || 1 })}
-                    min={1}
-                    className="w-14 px-1.5 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white text-center"
-                  />
-                  {item.fee && <span className="text-xs text-gray-500 whitespace-nowrap">${Number(item.fee).toFixed(2)}</span>}
-                  <button type="button" onClick={() => removeCode(idx)} className="p-1 text-gray-400 hover:text-red-500">
-                    <XIcon className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  {item.modifier && <span className="text-xs bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded">Mod: {item.modifier}</span>}
-                  <span className="text-xs text-gray-500">×{item.units || 1}</span>
-                  {item.fee && <span className="text-xs text-gray-500">${Number(item.fee).toFixed(2)}</span>}
-                </>
-              )}
-            </div>
-          ))}
+          {items.map((item, idx) => {
+            const pointers = item.diagnosisPointers || [];
+            const togglePointer = (dxCode: string) => {
+              const next = pointers.includes(dxCode)
+                ? pointers.filter((p) => p !== dxCode)
+                : [...pointers, dxCode];
+              updateCode(idx, { diagnosisPointers: next });
+            };
+            return (
+              <div key={idx} className="p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-semibold text-green-600 dark:text-green-400 whitespace-nowrap min-w-[60px]">
+                    {item.code}
+                  </span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">{item.description}</span>
+                  {!readOnly ? (
+                    <>
+                      <input
+                        type="text"
+                        value={item.modifier || ""}
+                        onChange={(e) => updateCode(idx, { modifier: e.target.value })}
+                        placeholder="Mod"
+                        className="w-16 px-1.5 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white text-center"
+                      />
+                      <input
+                        type="number"
+                        value={item.units ?? 1}
+                        onChange={(e) => updateCode(idx, { units: Number(e.target.value) || 1 })}
+                        min={1}
+                        className="w-14 px-1.5 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white text-center"
+                      />
+                      {item.fee && <span className="text-xs text-gray-500 whitespace-nowrap">${Number(item.fee).toFixed(2)}</span>}
+                      <button type="button" onClick={() => removeCode(idx)} className="p-1 text-gray-400 hover:text-red-500">
+                        <XIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {item.modifier && <span className="text-xs bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded">Mod: {item.modifier}</span>}
+                      <span className="text-xs text-gray-500">×{item.units || 1}</span>
+                      {item.fee && <span className="text-xs text-gray-500">${Number(item.fee).toFixed(2)}</span>}
+                    </>
+                  )}
+                </div>
+                {availableDiagnoses.length > 0 && (
+                  <div className="flex items-center gap-1.5 pl-1">
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">Dx:</span>
+                    {availableDiagnoses.map((dx, dxIdx) => {
+                      const selected = pointers.includes(dx.code);
+                      const label = String.fromCharCode(65 + dxIdx); // A, B, C, D...
+                      return readOnly ? (
+                        selected && (
+                          <span key={dx.code} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" title={`${dx.code} - ${dx.description}`}>
+                            {label}
+                          </span>
+                        )
+                      ) : (
+                        <button
+                          key={dx.code}
+                          type="button"
+                          onClick={() => togglePointer(dx.code)}
+                          className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                            selected
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 ring-1 ring-blue-300 dark:ring-blue-700"
+                              : "bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          }`}
+                          title={`${dx.code} - ${dx.description}`}
+                        >
+                          {label}: {dx.code}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -1763,12 +1807,13 @@ export default function DynamicFormRenderer({
     }
 
     if (field.type === "code-lookup") {
+      const dxList = formData["assessment_diagnoses"];
       return (
         <div key={field.key} className="col-span-full">
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
             {field.label} {field.required && <span className="text-red-500">*</span>}
           </label>
-          <CodeLookup field={field} value={value} onChange={(v) => onChange(field.key, v)} readOnly={readOnly} />
+          <CodeLookup field={field} value={value} onChange={(v) => onChange(field.key, v)} readOnly={readOnly} diagnoses={Array.isArray(dxList) ? dxList : undefined} />
         </div>
       );
     }
