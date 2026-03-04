@@ -38,7 +38,7 @@ interface PatientInfo {
     lastName: string;
     dateOfBirth: string;
     gender: string;
-    phone: string;
+    phoneNumber: string;
     email: string;
     address?: { line1?: string; line2?: string; city?: string; state?: string; zip?: string };
 }
@@ -92,7 +92,7 @@ export default function StatementsTab({ patientId }: StatementsTabProps) {
             const [claimsRes, paymentsRes, patientRes] = await Promise.all([
                 fetchWithAuth(`/api/app-proxy/ciyex-rcm/api/rcm/claims/patient/${patientId}`),
                 fetchWithAuth(`/api/fhir-resource/payment/patient/${patientId}?page=0&size=100`),
-                fetchWithAuth(`/api/fhir-resource/demographics/patient/${patientId}`),
+                fetchWithAuth(`/api/patients/${patientId}`),
             ]);
 
             if (claimsRes.ok) {
@@ -110,13 +110,12 @@ export default function StatementsTab({ patientId }: StatementsTabProps) {
             if (patientRes.ok) {
                 const data = await patientRes.json();
                 const patData = data.data ?? data;
-                const record = patData.content?.[0] ?? patData;
-                setPatient(record);
+                setPatient(patData);
             }
 
-            // Load practice info from first location
+            // Load practice info from first facility/location
             try {
-                const locRes = await fetchWithAuth(`/api/fhir-resource/locations?page=0&size=1`);
+                const locRes = await fetchWithAuth(`/api/fhir-resource/facilities?page=0&size=1`);
                 if (locRes.ok) {
                     const locData = await locRes.json();
                     const loc = (locData.data?.content || locData.content || [])[0];
@@ -440,7 +439,7 @@ export default function StatementsTab({ patientId }: StatementsTabProps) {
                                     {patient?.firstName} {patient?.lastName}
                                 </div>
                                 {patient?.dateOfBirth && <div>DOB: {formatDate(patient.dateOfBirth)} &bull; {patient.gender}</div>}
-                                {patient?.phone && <div>Phone: {patient.phone}</div>}
+                                {patient?.phoneNumber && <div>Phone: {patient.phoneNumber}</div>}
                                 {patient?.email && <div>Email: {patient.email}</div>}
                             </div>
                         </div>
