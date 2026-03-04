@@ -23,17 +23,21 @@ interface MarketplaceApp {
     averageRating?: number;
     reviewCount?: number;
     featured?: boolean;
-    pricingPlans?: { model: string; amount?: number; currency?: string; interval?: string }[];
+    pricingPlans?: { model: string; amount?: number; perUnit?: number; unit?: string; currency?: string; interval?: string }[];
 }
 
 function getPricingLabel(app: MarketplaceApp): string {
     if (!app.pricingPlans || app.pricingPlans.length === 0) return "Free";
-    const plan = app.pricingPlans[0];
-    if (plan.model === "FREE" || !plan.amount || plan.amount === 0) return "Free";
-    const currency = plan.currency || "USD";
+    const defaultPlan = app.pricingPlans.find(p => p.model !== "FREE") || app.pricingPlans[0];
+    if (defaultPlan.model === "FREE") return "Free";
+    const currency = defaultPlan.currency || "USD";
     const symbol = currency === "USD" ? "$" : currency;
-    if (plan.interval === "YEARLY") return `${symbol}${plan.amount}/yr`;
-    return `${symbol}${plan.amount}/mo`;
+    if (defaultPlan.model === "PER_UNIT" && defaultPlan.perUnit) {
+        const interval = defaultPlan.interval === "YEARLY" ? "yr" : "mo";
+        return `From ${symbol}${defaultPlan.perUnit}/${defaultPlan.unit}/${interval}`;
+    }
+    if (defaultPlan.interval === "YEARLY") return `${symbol}${defaultPlan.amount}/yr`;
+    return `${symbol}${defaultPlan.amount}/mo`;
 }
 
 export default function HubBrowsePage() {
