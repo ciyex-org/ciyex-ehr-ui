@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
     DollarSign, Plus, X, CreditCard,
-    Check, Loader2, Pencil, Trash2
+    Check, Loader2, Pencil, Trash2, Wallet
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
@@ -116,6 +116,20 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     const [saveError, setSaveError] = useState<string | null>(null);
     const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    // Collect patient payment state
+    const [showCollect, setShowCollect] = useState(false);
+    const [collectAmount, setCollectAmount] = useState("");
+    const [collectMethod, setCollectMethod] = useState("credit_card");
+    const [collectRef, setCollectRef] = useState("");
+    const [collectNotes, setCollectNotes] = useState("");
+    const [collectClaimId, setCollectClaimId] = useState("");
+    const [collectSaving, setCollectSaving] = useState(false);
+    const [collectError, setCollectError] = useState<string | null>(null);
+    const [collectSuccess, setCollectSuccess] = useState(false);
+    const [cardNumber, setCardNumber] = useState("");
+    const [cardExpiry, setCardExpiry] = useState("");
+    const [cardCvc, setCardCvc] = useState("");
 
     // Fetch claims from RCM
     const fetchClaims = useCallback(async () => {
@@ -348,6 +362,115 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
         }
     };
 
+    const resetCollectForm = () => {
+        setShowCollect(false);
+        setCollectAmount("");
+        setCollectMethod("credit_card");
+        setCollectRef("");
+        setCollectNotes("");
+        setCollectClaimId("");
+        setCollectError(null);
+        setCollectSuccess(false);
+        setCardNumber("");
+        setCardExpiry("");
+        setCardCvc("");
+    };
+
+    const handleCollectPayment = async () => {
+        const amount = parseFloat(collectAmount);
+        if (!amount || amount <= 0) return;
+        setCollectSaving(true);
+        setCollectError(null);
+
+        try {
+            // Step 1: Create payment intent (real Stripe or demo)
+            const intentRes = await fetchWithAuth(`/api/payments/create-intent`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    amount,
+                    description: `Patient payment for ${collectClaimId ? claims.find(c => c.id === collectClaimId)?.claimNumber : "account balance"}`,
+                }),
+            });
+
+            let intentData: any = {};
+            if (intentRes.ok) {
+                const json = await intentRes.json();
+                intentData = json.data ?? json;
+            }
+
+            // Step 2: Record the transaction
+            const claim = claims.find(c => c.id === collectClaimId);
+            const txnRes = await fetchWithAuth(`/api/payments/collect`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    patientId,
+                    patientName: "",
+                    amount,
+                    currency: "USD",
+                    paymentMethodType: collectMethod,
+                    cardBrand: collectMethod === "credit_card" ? "Visa" : undefined,
+                    lastFour: cardNumber ? cardNumber.slice(-4) : undefined,
+                    description: `Patient payment${claim ? ` - ${claim.claimNumber}` : ""}`,
+                    referenceType: claim ? "claim" : "self_pay",
+                    referenceId: null,
+                    invoiceNumber: claim?.claimNumber || null,
+                    stripePaymentIntentId: intentData.paymentIntentId || null,
+                    receiptEmail: null,
+                    notes: collectNotes || `${intentData.mode === "demo" ? "[DEMO] " : ""}Card ending ${cardNumber.slice(-4) || "****"}`,
+                }),
+            });
+
+            if (!txnRes.ok) {
+                const json = await txnRes.json().catch(() => null);
+                throw new Error(json?.message || "Failed to record transaction");
+            }
+
+            // Step 3: Also record as FHIR payment (so it shows in payment list)
+            const today = new Date().toISOString().slice(0, 10);
+            await fetchWithAuth(`/api/fhir-resource/payment/patient/${patientId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    claimNumber: claim?.claimNumber || "",
+                    dateOfService: claim?.dateOfService?.substring(0, 10) || "",
+                    chargeAmount: claim?.totalCharges || 0,
+                    date: today,
+                    amount,
+                    paymentType: `patient_${collectMethod === "credit_card" ? "self_pay" : collectMethod}`,
+                    reference: collectRef || `${intentData.mode === "demo" ? "DEMO-" : ""}${intentData.paymentIntentId || ""}`,
+                    status: "issued",
+                    notes: collectNotes || `Patient card payment${intentData.mode === "demo" ? " (demo mode)" : ""}`,
+                }),
+            });
+
+            // Step 4: Update claim status if applicable
+            if (claim) {
+                const claimBalance = Number(claim.totalCharges || 0) - Number(claim.totalPaid || 0) - amount;
+                const newStatus = claimBalance <= 0 ? "CLOSED" : "PARTIALLY_PAID";
+                try {
+                    await fetchWithAuth(
+                        `/api/app-proxy/ciyex-rcm/api/rcm/claims/${claim.id}/status`,
+                        {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: newStatus }),
+                        }
+                    );
+                } catch { /* non-blocking */ }
+            }
+
+            setCollectSuccess(true);
+            await Promise.all([fetchPayments(), fetchClaims()]);
+            setTimeout(() => resetCollectForm(), 2000);
+        } catch (e: any) {
+            setCollectError(e.message || "Payment failed");
+        } finally {
+            setCollectSaving(false);
+        }
+    };
+
     const buildAutoNotes = () => {
         const parts: string[] = [];
         for (const lp of linePayments) {
@@ -388,16 +511,206 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                     </div>
                     <span className="text-xs text-gray-400">{paymentList.length} payment{paymentList.length !== 1 ? "s" : ""}</span>
                 </div>
-                {!showForm && (
-                    <button
-                        onClick={() => setShowForm(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
-                    >
-                        <Plus className="w-3.5 h-3.5" />
-                        Post Payment
-                    </button>
+                {!showForm && !showCollect && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowCollect(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors"
+                        >
+                            <Wallet className="w-3.5 h-3.5" />
+                            Collect Payment
+                        </button>
+                        <button
+                            onClick={() => setShowForm(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+                        >
+                            <Plus className="w-3.5 h-3.5" />
+                            Post Insurance
+                        </button>
+                    </div>
                 )}
             </div>
+
+            {/* Collect Patient Payment */}
+            {showCollect && (
+                <div className="bg-white border border-green-200 rounded-lg shadow-sm">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-green-50/50 rounded-t-lg">
+                        <h3 className="text-sm font-semibold text-gray-800">
+                            {collectSuccess ? "Payment Successful" : "Collect Patient Payment"}
+                        </h3>
+                        <button onClick={resetCollectForm} className="text-gray-400 hover:text-gray-600">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {collectSuccess ? (
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <Check className="w-6 h-6 text-green-600" />
+                            </div>
+                            <p className="text-sm font-medium text-green-800">Payment of {formatCurrency(parseFloat(collectAmount))} collected successfully!</p>
+                            <p className="text-xs text-gray-500 mt-1">Transaction recorded and FHIR payment created.</p>
+                        </div>
+                    ) : (
+                        <div className="p-4 space-y-4">
+                            {/* Claim selector */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Apply to Claim (optional)</label>
+                                <select
+                                    value={collectClaimId}
+                                    onChange={(e) => {
+                                        setCollectClaimId(e.target.value);
+                                        // Pre-fill balance as amount
+                                        const cl = claims.find((c) => c.id === e.target.value);
+                                        if (cl) {
+                                            const bal = Number(cl.totalCharges || 0) - Number(cl.totalPaid || 0);
+                                            // Find existing patient payments for this claim
+                                            const existingPtPmts = paymentList
+                                                .filter(p => p.claimNumber === cl.claimNumber && (p.paymentType || "").startsWith("patient"))
+                                                .reduce((s, p) => s + Number(p.amount || 0), 0);
+                                            const ptBalance = bal - existingPtPmts;
+                                            if (ptBalance > 0) setCollectAmount(ptBalance.toFixed(2));
+                                        }
+                                    }}
+                                    className="w-full text-sm bg-white border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="">-- No claim (general payment) --</option>
+                                    {claims.map((c) => {
+                                        const bal = Number(c.totalCharges || 0) - Number(c.totalPaid || 0);
+                                        return (
+                                            <option key={c.id} value={c.id}>
+                                                {c.claimNumber} &bull; Balance: {formatCurrency(bal)}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+
+                            {/* Amount + Method */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Amount ($)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={collectAmount}
+                                        onChange={(e) => setCollectAmount(e.target.value)}
+                                        placeholder="0.00"
+                                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
+                                    <select
+                                        value={collectMethod}
+                                        onChange={(e) => setCollectMethod(e.target.value)}
+                                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                    >
+                                        <option value="credit_card">Credit Card</option>
+                                        <option value="debit_card">Debit Card</option>
+                                        <option value="cash">Cash</option>
+                                        <option value="check">Check</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Card entry (demo Stripe-like form) */}
+                            {(collectMethod === "credit_card" || collectMethod === "debit_card") && (
+                                <div className="bg-gray-50 border border-gray-200 rounded-md p-3 space-y-2">
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Card Details</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="col-span-3">
+                                            <input
+                                                type="text"
+                                                value={cardNumber}
+                                                onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
+                                                placeholder="4242 4242 4242 4242"
+                                                className="w-full text-sm font-mono border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="text"
+                                                value={cardExpiry}
+                                                onChange={(e) => {
+                                                    let v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                                                    if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
+                                                    setCardExpiry(v);
+                                                }}
+                                                placeholder="MM/YY"
+                                                className="w-full text-sm font-mono border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <input
+                                                type="text"
+                                                value={cardCvc}
+                                                onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                                placeholder="CVC"
+                                                className="w-full text-sm font-mono border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                            />
+                                        </div>
+                                        <div className="flex items-center text-[10px] text-gray-400">
+                                            <CreditCard className="w-3 h-3 mr-1" />
+                                            Stripe Test Mode
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Reference + Notes */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Reference #</label>
+                                    <input
+                                        type="text"
+                                        value={collectRef}
+                                        onChange={(e) => setCollectRef(e.target.value)}
+                                        placeholder="Receipt #, Check #"
+                                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                                    <input
+                                        type="text"
+                                        value={collectNotes}
+                                        onChange={(e) => setCollectNotes(e.target.value)}
+                                        placeholder="Optional"
+                                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                    />
+                                </div>
+                            </div>
+
+                            {collectError && (
+                                <p className="text-xs text-red-600">{collectError}</p>
+                            )}
+
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={resetCollectForm}
+                                    className="px-4 py-2 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCollectPayment}
+                                    disabled={collectSaving || !collectAmount || parseFloat(collectAmount) <= 0}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors"
+                                >
+                                    {collectSaving ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <CreditCard className="w-3.5 h-3.5" />
+                                    )}
+                                    {collectSaving ? "Processing..." : `Charge ${formatCurrency(parseFloat(collectAmount) || 0)}`}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* New Payment Form */}
             {showForm && (
