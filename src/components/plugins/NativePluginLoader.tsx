@@ -79,10 +79,10 @@ const NATIVE_PLUGIN_LOADERS: Record<string, () => Promise<PluginModule>> = {
     "ciyex-erx": () => import("@/plugins/ciyex-erx"),
     // Ciyex Lab — lab orders and results integration
     "ciyex-lab": () => import("@/plugins/ciyex-lab"),
-    // Ciyex Fax — cloud fax send/receive
-    "ciyex-fax": () => import("@/plugins/ciyex-fax"),
-    // Ciyex Notifications — SMS, email, and patient messaging
-    "ciyex-notifications": () => import("@/plugins/ciyex-notifications"),
+    // Twilio SMS — HIPAA-eligible SMS messaging
+    "twilio-sms": () => import("@/plugins/twilio-sms"),
+    // eFax — HIPAA-compliant fax send/receive
+    "efax": () => import("@/plugins/efax"),
     // Ciyex RPM — remote patient monitoring devices and alerts
     "ciyex-rpm": () => import("@/plugins/ciyex-rpm"),
 };
