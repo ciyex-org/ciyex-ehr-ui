@@ -18,8 +18,8 @@ import type { VideoCallProvider } from "@/lib/telehealth/VideoCallProvider";
 interface UseVideoCallOptions {
     session: VideoCallSession | null;
     displayName: string;
-    localVideoRef: RefObject<HTMLVideoElement>;
-    remoteVideoRef: RefObject<HTMLVideoElement>;
+    localVideoRef: RefObject<HTMLVideoElement | null>;
+    remoteVideoRef: RefObject<HTMLVideoElement | null>;
 }
 
 interface UseVideoCallReturn {
