@@ -51,8 +51,12 @@ interface LinePayment {
     description: string;
     chargeAmount: number;
     alreadyPaid: number;
-    paymentAmount: string; // string for input binding
-    adjustmentAmount: string;
+    allowedAmount: string;
+    paymentAmount: string;
+    adjustmentAmount: string; // contractual write-off
+    deductible: string;
+    copay: string;
+    coinsurance: string;
 }
 
 const PAYMENT_TYPES = [
@@ -170,8 +174,12 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                     description: l.description || "",
                     chargeAmount: Number(l.chargeAmount || 0),
                     alreadyPaid: Number(l.paidAmount || 0),
+                    allowedAmount: "",
                     paymentAmount: "",
                     adjustmentAmount: "",
+                    deductible: "",
+                    copay: "",
+                    coinsurance: "",
                 }));
                 setLinePayments(lines);
                 return;
@@ -188,17 +196,32 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                 description: l.description,
                 chargeAmount: Number(l.chargeAmount || 0),
                 alreadyPaid: Number(l.paidAmount || 0),
+                allowedAmount: "",
                 paymentAmount: "",
                 adjustmentAmount: "",
+                deductible: "",
+                copay: "",
+                coinsurance: "",
             })));
         } else {
             setLinePayments([]);
         }
     };
 
-    const updateLinePayment = (idx: number, field: "paymentAmount" | "adjustmentAmount", value: string) => {
+    type LineField = "allowedAmount" | "paymentAmount" | "adjustmentAmount" | "deductible" | "copay" | "coinsurance";
+    const updateLinePayment = (idx: number, field: LineField, value: string) => {
         setLinePayments((prev) =>
-            prev.map((lp, i) => (i === idx ? { ...lp, [field]: value } : lp))
+            prev.map((lp, i) => {
+                if (i !== idx) return lp;
+                const updated = { ...lp, [field]: value };
+                // Auto-calculate write-off when allowed amount is entered
+                if (field === "allowedAmount") {
+                    const allowed = parseFloat(value) || 0;
+                    const writeOff = lp.chargeAmount - allowed;
+                    updated.adjustmentAmount = writeOff > 0 ? writeOff.toFixed(2) : "0";
+                }
+                return updated;
+            })
         );
     };
 
@@ -348,92 +371,99 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                         {/* Claim details + line items */}
                         {selectedClaim && (
                             <>
-                                <div className="flex items-center gap-4 text-xs text-gray-500 bg-gray-50 rounded-md px-3 py-2">
-                                    <span><span className="font-medium text-gray-700">Provider:</span> {selectedClaim.providerName || "-"}</span>
-                                    <span><span className="font-medium text-gray-700">Payer:</span> {selectedClaim.payerName || "-"}</span>
-                                    <span><span className="font-medium text-gray-700">DOS:</span> {formatDate(selectedClaim.dateOfService)}</span>
-                                    <span><span className="font-medium text-gray-700">Status:</span> {selectedClaim.claimStatus}</span>
+                                <div className="bg-gray-50 rounded-md px-3 py-2 space-y-1">
+                                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                                        <span><span className="font-medium text-gray-700">Provider:</span> {selectedClaim.providerName || "-"}</span>
+                                        <span><span className="font-medium text-gray-700">Payer:</span> {selectedClaim.payerName || "-"}</span>
+                                        <span><span className="font-medium text-gray-700">DOS:</span> {formatDate(selectedClaim.dateOfService)}</span>
+                                        <span><span className="font-medium text-gray-700">Status:</span> {selectedClaim.claimStatus}</span>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs">
+                                        <span><span className="font-medium text-gray-700">Submitted:</span> <span className="text-green-700 font-semibold">{formatCurrency(selectedClaim.totalCharges)}</span></span>
+                                        <span><span className="font-medium text-gray-700">Paid:</span> <span className="text-blue-700 font-semibold">{formatCurrency(selectedClaim.totalPaid)}</span></span>
+                                        <span><span className="font-medium text-gray-700">Balance:</span> <span className={`font-semibold ${Number(selectedClaim.totalCharges || 0) - Number(selectedClaim.totalPaid || 0) > 0 ? "text-red-600" : "text-green-600"}`}>{formatCurrency(Number(selectedClaim.totalCharges || 0) - Number(selectedClaim.totalPaid || 0))}</span></span>
+                                    </div>
                                 </div>
 
-                                {/* CPT Line Items Table */}
+                                {/* CPT Line Items — ERA/EOB Posting */}
                                 {linePayments.length > 0 && (
-                                    <div className="border border-gray-200 rounded-md overflow-hidden">
-                                        <table className="w-full text-xs">
+                                    <div className="border border-gray-200 rounded-md overflow-x-auto">
+                                        <table className="w-full text-xs min-w-[800px]">
                                             <thead className="bg-gray-50">
                                                 <tr>
-                                                    <th className="text-left px-3 py-2 font-medium text-gray-600">CPT</th>
-                                                    <th className="text-left px-3 py-2 font-medium text-gray-600">Description</th>
-                                                    <th className="text-right px-3 py-2 font-medium text-gray-600">Charges</th>
-                                                    <th className="text-right px-3 py-2 font-medium text-gray-600">Already Paid</th>
-                                                    <th className="text-right px-3 py-2 font-medium text-gray-600 w-24">Payment</th>
-                                                    <th className="text-right px-3 py-2 font-medium text-gray-600 w-24">Adjustment</th>
-                                                    <th className="text-right px-3 py-2 font-medium text-gray-600">Balance</th>
+                                                    <th className="text-left px-2 py-2 font-medium text-gray-600">CPT</th>
+                                                    <th className="text-right px-2 py-2 font-medium text-gray-600">Billed</th>
+                                                    <th className="text-right px-2 py-2 font-medium text-gray-600 w-20">Allowed</th>
+                                                    <th className="text-right px-2 py-2 font-medium text-gray-600 w-20">Ins Paid</th>
+                                                    <th className="text-right px-2 py-2 font-medium text-gray-600">Write-off</th>
+                                                    <th className="text-right px-2 py-2 font-medium text-gray-600 w-20">Deductible</th>
+                                                    <th className="text-right px-2 py-2 font-medium text-gray-600 w-20">Copay</th>
+                                                    <th className="text-right px-2 py-2 font-medium text-gray-600 w-20">CoIns</th>
+                                                    <th className="text-right px-2 py-2 font-medium text-gray-600">Pt Resp</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
                                                 {linePayments.map((lp, idx) => {
                                                     const pay = parseFloat(lp.paymentAmount) || 0;
                                                     const adj = parseFloat(lp.adjustmentAmount) || 0;
-                                                    const balance = lp.chargeAmount - lp.alreadyPaid - pay - adj;
+                                                    const ded = parseFloat(lp.deductible) || 0;
+                                                    const cop = parseFloat(lp.copay) || 0;
+                                                    const coins = parseFloat(lp.coinsurance) || 0;
+                                                    const ptResp = ded + cop + coins;
+                                                    const numInput = (field: LineField, val: string, placeholder?: string) => (
+                                                        <input
+                                                            type="number"
+                                                            step="0.01"
+                                                            min="0"
+                                                            value={val}
+                                                            onChange={(e) => updateLinePayment(idx, field, e.target.value)}
+                                                            placeholder={placeholder || "0.00"}
+                                                            className="w-full text-right text-xs border border-gray-300 rounded px-1.5 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+                                                        />
+                                                    );
                                                     return (
                                                         <tr key={idx} className="hover:bg-gray-50">
-                                                            <td className="px-3 py-2 font-mono font-medium text-blue-600">
+                                                            <td className="px-2 py-2 font-mono font-medium text-blue-600 whitespace-nowrap">
                                                                 {lp.cptCode}
+                                                                <span className="text-gray-400 font-normal ml-1 hidden lg:inline">{lp.description}</span>
                                                             </td>
-                                                            <td className="px-3 py-2 text-gray-600 truncate max-w-[200px]">
-                                                                {lp.description}
-                                                            </td>
-                                                            <td className="px-3 py-2 text-right text-gray-700">
-                                                                {formatCurrency(lp.chargeAmount)}
-                                                            </td>
-                                                            <td className="px-3 py-2 text-right text-gray-500">
-                                                                {formatCurrency(lp.alreadyPaid)}
-                                                            </td>
-                                                            <td className="px-3 py-1">
-                                                                <input
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    min="0"
-                                                                    value={lp.paymentAmount}
-                                                                    onChange={(e) => updateLinePayment(idx, "paymentAmount", e.target.value)}
-                                                                    placeholder="0.00"
-                                                                    className="w-full text-right text-xs border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
-                                                                />
-                                                            </td>
-                                                            <td className="px-3 py-1">
-                                                                <input
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    min="0"
-                                                                    value={lp.adjustmentAmount}
-                                                                    onChange={(e) => updateLinePayment(idx, "adjustmentAmount", e.target.value)}
-                                                                    placeholder="0.00"
-                                                                    className="w-full text-right text-xs border border-gray-300 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
-                                                                />
-                                                            </td>
-                                                            <td className={`px-3 py-2 text-right font-medium ${balance > 0 ? "text-red-600" : balance === 0 ? "text-green-600" : "text-gray-600"}`}>
-                                                                {formatCurrency(balance)}
+                                                            <td className="px-2 py-2 text-right text-gray-700">{formatCurrency(lp.chargeAmount)}</td>
+                                                            <td className="px-2 py-1">{numInput("allowedAmount", lp.allowedAmount)}</td>
+                                                            <td className="px-2 py-1">{numInput("paymentAmount", lp.paymentAmount)}</td>
+                                                            <td className="px-2 py-2 text-right text-orange-600">{formatCurrency(adj)}</td>
+                                                            <td className="px-2 py-1">{numInput("deductible", lp.deductible)}</td>
+                                                            <td className="px-2 py-1">{numInput("copay", lp.copay)}</td>
+                                                            <td className="px-2 py-1">{numInput("coinsurance", lp.coinsurance)}</td>
+                                                            <td className={`px-2 py-2 text-right font-medium ${ptResp > 0 ? "text-red-600" : "text-green-600"}`}>
+                                                                {formatCurrency(ptResp)}
                                                             </td>
                                                         </tr>
                                                     );
                                                 })}
                                             </tbody>
-                                            <tfoot className="bg-gray-50 font-medium">
+                                            <tfoot className="bg-gray-50 font-medium text-xs">
                                                 <tr>
-                                                    <td colSpan={4} className="px-3 py-2 text-right text-gray-700">Totals:</td>
-                                                    <td className="px-3 py-2 text-right text-green-700">{formatCurrency(totalPayment)}</td>
-                                                    <td className="px-3 py-2 text-right text-orange-600">{formatCurrency(totalAdjustment)}</td>
-                                                    <td className="px-3 py-2 text-right text-gray-700">
+                                                    <td className="px-2 py-2 text-right text-gray-700">Totals:</td>
+                                                    <td className="px-2 py-2 text-right">{formatCurrency(linePayments.reduce((s, l) => s + l.chargeAmount, 0))}</td>
+                                                    <td className="px-2 py-2 text-right">{formatCurrency(linePayments.reduce((s, l) => s + (parseFloat(l.allowedAmount) || 0), 0))}</td>
+                                                    <td className="px-2 py-2 text-right text-green-700">{formatCurrency(totalPayment)}</td>
+                                                    <td className="px-2 py-2 text-right text-orange-600">{formatCurrency(totalAdjustment)}</td>
+                                                    <td colSpan={3} className="px-2 py-2 text-right text-gray-500">
+                                                        Ded: {formatCurrency(linePayments.reduce((s, l) => s + (parseFloat(l.deductible) || 0), 0))} |
+                                                        Copay: {formatCurrency(linePayments.reduce((s, l) => s + (parseFloat(l.copay) || 0), 0))} |
+                                                        CoIns: {formatCurrency(linePayments.reduce((s, l) => s + (parseFloat(l.coinsurance) || 0), 0))}
+                                                    </td>
+                                                    <td className="px-2 py-2 text-right text-red-600">
                                                         {formatCurrency(
-                                                            (selectedClaim.totalCharges || 0) -
-                                                            (selectedClaim.totalPaid || 0) -
-                                                            totalPayment -
-                                                            totalAdjustment
+                                                            linePayments.reduce((s, l) => s + (parseFloat(l.deductible) || 0) + (parseFloat(l.copay) || 0) + (parseFloat(l.coinsurance) || 0), 0)
                                                         )}
                                                     </td>
                                                 </tr>
                                             </tfoot>
                                         </table>
+                                        <div className="px-3 py-1.5 bg-blue-50 border-t border-blue-100 text-[10px] text-blue-600">
+                                            Enter Allowed Amount → Write-off auto-calculates. Ins Paid = insurance payment. Deductible/Copay/CoIns = patient responsibility.
+                                        </div>
                                     </div>
                                 )}
 
