@@ -199,6 +199,7 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
 
   const handleSave = async () => {
     if (!form.patientName.trim()) { showToast({ type: "error", text: "Patient name is required" }); return; }
+    if (!form.patientId?.toString().trim()) { showToast({ type: "error", text: "Patient ID is required" }); return; }
     setSaving(true);
     try {
       const isEdit = !!form.id;
@@ -236,7 +237,7 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
               <input className={inputCls} value={form.patientName} onChange={(e) => set("patientName", e.target.value)} placeholder="Enter patient name" />
             </div>
             <div>
-              <label className={labelCls}>Patient ID</label>
+              <label className={labelCls}>Patient ID *</label>
               <input className={inputCls} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="Enter patient ID" />
             </div>
             <div>

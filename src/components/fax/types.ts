@@ -79,6 +79,7 @@ export interface SendFaxForm {
   recipientName: string;
   faxNumber: string;
   subject: string;
+  pageCount?: number;
   patientName: string;
   category: FaxCategory | "";
   notes: string;

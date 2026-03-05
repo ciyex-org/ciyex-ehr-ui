@@ -143,6 +143,7 @@ export default function FaxQueuePage() {
         subject: data.subject,
         direction: "outbound",
       };
+      if (data.pageCount) body.pageCount = data.pageCount;
       if (data.patientName) body.patientName = data.patientName;
       if (data.category) body.category = data.category;
       if (data.notes) body.notes = data.notes;

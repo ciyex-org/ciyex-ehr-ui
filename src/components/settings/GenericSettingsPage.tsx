@@ -366,7 +366,13 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                     setMode("list");
                     setFormData({});
                     setSelectedRecord(null);
-                    await fetchRecords(page);
+                    setSearchTerm("");
+                    if (mode === "create") {
+                        setPage(0);
+                        await fetchRecords(0);
+                    } else {
+                        await fetchRecords(page);
+                    }
                 }
             } else {
                 const err = await res.json().catch(() => null);
