@@ -47,7 +47,8 @@ export default function NotificationTemplates() {
     try {
       const res = await fetchWithAuth("/api/notifications/config/templates");
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data ?? json;
         setTemplates(Array.isArray(data) ? data : data.content || []);
       }
     } catch {

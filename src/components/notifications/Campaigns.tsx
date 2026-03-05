@@ -59,11 +59,13 @@ export default function Campaigns() {
         fetchWithAuth("/api/notifications/config/templates"),
       ]);
       if (campRes.ok) {
-        const data = await campRes.json();
+        const json = await campRes.json();
+        const data = json.data ?? json;
         setCampaigns(Array.isArray(data) ? data : data.content || []);
       }
       if (tplRes.ok) {
-        const tplData = await tplRes.json();
+        const tplJson = await tplRes.json();
+        const tplData = tplJson.data ?? tplJson;
         setTemplates(Array.isArray(tplData) ? tplData : tplData.content || []);
       }
     } catch {

@@ -50,7 +50,8 @@ export default function EventPreferences() {
       ]);
 
       if (prefRes.ok) {
-        const data = await prefRes.json();
+        const json = await prefRes.json();
+        const data = json.data ?? json;
         const arr: NotificationPreference[] = Array.isArray(data) ? data : data.content || [];
         // Ensure all event types present
         const existing = new Set(arr.map((p) => p.eventType));
@@ -73,7 +74,8 @@ export default function EventPreferences() {
       }
 
       if (tplRes.ok) {
-        const tplData = await tplRes.json();
+        const tplJson = await tplRes.json();
+        const tplData = tplJson.data ?? tplJson;
         setTemplates(Array.isArray(tplData) ? tplData : tplData.content || []);
       }
     } catch {
