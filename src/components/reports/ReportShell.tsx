@@ -7,7 +7,7 @@ import {
 } from "recharts";
 import {
   Download, FileText, Loader2, ChevronDown, ChevronUp, ArrowUpDown,
-  TrendingUp, TrendingDown, Minus, Filter,
+  TrendingUp, TrendingDown, Minus, Filter, X,
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
@@ -18,6 +18,78 @@ import type {
 import { CHART_COLORS } from "./types";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
+
+/* ── helpers: detect column types from data ── */
+const SKIP_KEYS = new Set(["id", "key", "uuid", "fhirId", "patientId", "encounterId"]);
+const MAX_UNIQUE_FOR_FILTER = 30; // don't show filter if > 30 unique vals
+
+function isDateLike(v: unknown): boolean {
+  if (typeof v !== "string") return false;
+  return /^\d{4}-\d{2}/.test(v);
+}
+
+function isNumeric(v: unknown): boolean {
+  return typeof v === "number" || (typeof v === "string" && /^\d+(\.\d+)?$/.test(v));
+}
+
+interface DynamicFilterInfo {
+  key: string;
+  label: string;
+  uniqueValues: string[];
+}
+
+/** Scan tableData and return filterable categorical columns */
+function detectDynamicFilters(columns: ColumnConfig[], data: Record<string, unknown>[]): DynamicFilterInfo[] {
+  if (data.length === 0) return [];
+  const filters: DynamicFilterInfo[] = [];
+
+  for (const col of columns) {
+    if (SKIP_KEYS.has(col.key)) continue;
+    // Skip numeric/currency/percent/date columns — not good for dropdown filters
+    if (col.format === "currency" || col.format === "number" || col.format === "percent" || col.format === "date") continue;
+
+    // Collect unique non-empty string values
+    const vals = new Set<string>();
+    let allNumeric = true;
+    let allDate = true;
+    for (const row of data) {
+      const v = row[col.key];
+      if (v == null || v === "") continue;
+      const s = String(v);
+      vals.add(s);
+      if (!isNumeric(v)) allNumeric = false;
+      if (!isDateLike(v)) allDate = false;
+    }
+
+    // Skip if all numeric, all dates, too many unique values, or only 1 value
+    if (allNumeric || allDate || vals.size > MAX_UNIQUE_FOR_FILTER || vals.size <= 1) continue;
+
+    filters.push({
+      key: col.key,
+      label: col.label,
+      uniqueValues: Array.from(vals).sort(),
+    });
+  }
+  return filters;
+}
+
+/** Count occurrences of each value for a given key */
+function countBy(data: Record<string, unknown>[], key: string): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const row of data) {
+    const v = String(row[key] ?? "Unknown");
+    counts[v] = (counts[v] || 0) + 1;
+  }
+  return counts;
+}
+
+/** Build pie chart data from a categorical column */
+function toPieData(counts: Record<string, number>): ChartDataPoint[] {
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([name, count]) => ({ name, count }));
+}
 
 /* ── KPI Cards ── */
 function KpiCards({ kpis }: { kpis: KpiValue[] }) {
@@ -158,10 +230,8 @@ function ChartRenderer({ config, data }: { config: ChartConfig; data: ChartDataP
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip {...tooltipStyle} />
             <Legend />
-            {config.series?.map((s, i) =>
-              i === 0
-                ? <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />
-                : <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />
+            {config.series?.map((s) =>
+              <Bar key={s.key} dataKey={s.key} name={s.label} fill={s.color} radius={[4, 4, 0, 0]} />
             )}
           </BarChart>
         </ResponsiveContainer>
@@ -195,42 +265,31 @@ function ChartRenderer({ config, data }: { config: ChartConfig; data: ChartDataP
   }
 }
 
-/* ── Filter Bar ── */
-function FilterBar({
+/* ── API Filter Bar (date range + report-defined filters for API fetch) ── */
+function ApiFilterBar({
   report, filters, onChange, onGenerate, loading,
 }: {
   report: ReportDefinition; filters: FilterValues; onChange: (f: FilterValues) => void; onGenerate: () => void; loading: boolean;
 }) {
   const hasDateRange = report.filters.some(f => f.type === "dateRange");
 
-  // Dynamic options fetched from apiSource endpoints
   const [dynamicOptions, setDynamicOptions] = useState<Record<string, { value: string; label: string }[]>>({});
 
   useEffect(() => {
     const filtersWithApi = report.filters.filter(f => f.apiSource);
     if (filtersWithApi.length === 0) return;
-
     let cancelled = false;
-
     (async () => {
       const results: Record<string, { value: string; label: string }[]> = {};
-
       await Promise.all(filtersWithApi.map(async (f) => {
         try {
           const res = await fetchWithAuth(`${API()}${f.apiSource}`);
           if (!res.ok || cancelled) return;
           const json = await res.json();
-
-          // Normalize API response to array
           const raw = json?.data ?? json;
-          const items: any[] = Array.isArray(raw)
-            ? raw
-            : raw?.content ?? raw?.data?.content ?? raw?.data ?? [];
-
-          // Map to {value, label} using apiMapping or sensible defaults
+          const items: any[] = Array.isArray(raw) ? raw : raw?.content ?? raw?.data?.content ?? raw?.data ?? [];
           const vf = f.apiMapping?.valueField || "name";
           const lf = f.apiMapping?.labelField || "name";
-
           results[f.key] = items.map(item => ({
             value: String(item[vf] ?? item.id ?? ""),
             label: String(item[lf] ?? item.name ?? item[vf] ?? ""),
@@ -239,12 +298,10 @@ function FilterBar({
           console.warn(`Failed to fetch options for filter "${f.key}":`, err);
         }
       }));
-
       if (!cancelled) setDynamicOptions(results);
     })();
-
     return () => { cancelled = true; };
-  }, [report.key]); // re-fetch when report changes
+  }, [report.key]);
 
   return (
     <div className="flex flex-wrap items-end gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
@@ -262,10 +319,7 @@ function FilterBar({
         </>
       )}
       {report.filters.filter(f => f.type !== "dateRange").map(f => {
-        const allOptions = [
-          ...(f.options || []),
-          ...(dynamicOptions[f.key] || []),
-        ];
+        const allOptions = [...(f.options || []), ...(dynamicOptions[f.key] || [])];
         return (
           <div key={f.key} className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">{f.label}</label>
@@ -282,12 +336,54 @@ function FilterBar({
   );
 }
 
+/* ── Dynamic Data Filters (generated from actual data) ── */
+function DynamicDataFilters({
+  dynamicFilters, dataFilters, onChange, onClear,
+}: {
+  dynamicFilters: DynamicFilterInfo[]; dataFilters: Record<string, string>; onChange: (key: string, val: string) => void; onClear: () => void;
+}) {
+  if (dynamicFilters.length === 0) return null;
+  const activeCount = Object.values(dataFilters).filter(v => v !== "").length;
+
+  return (
+    <div className="flex flex-wrap items-end gap-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+      <div className="flex items-center gap-2 self-center">
+        <Filter className="w-4 h-4 text-blue-500" />
+        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Data Filters</span>
+      </div>
+      {dynamicFilters.map(f => (
+        <div key={f.key} className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-slate-500">{f.label}</label>
+          <select
+            value={dataFilters[f.key] || ""}
+            onChange={e => onChange(f.key, e.target.value)}
+            className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] ${
+              dataFilters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
+            }`}
+          >
+            <option value="">All {f.label}</option>
+            {f.uniqueValues.map(v => <option key={v} value={v}>{v}</option>)}
+          </select>
+        </div>
+      ))}
+      {activeCount > 0 && (
+        <button onClick={onClear} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+          <X className="w-3 h-3" /> Clear ({activeCount})
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ── Data Table ── */
 function DataTable({ columns, data, totalRecords }: { columns: ColumnConfig[]; data: Record<string, unknown>[]; totalRecords: number }) {
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(0);
   const pageSize = 25;
+
+  // Reset page when data changes
+  useEffect(() => { setPage(0); }, [data]);
 
   const sorted = useMemo(() => {
     if (!sortCol) return data;
@@ -330,7 +426,10 @@ function DataTable({ columns, data, totalRecords }: { columns: ColumnConfig[]; d
     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
         <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-          Showing {page * pageSize + 1}–{Math.min((page + 1) * pageSize, data.length)} of {totalRecords.toLocaleString()} records
+          {data.length > 0
+            ? `Showing ${page * pageSize + 1}–${Math.min((page + 1) * pageSize, data.length)} of ${totalRecords.toLocaleString()} records`
+            : "No records match filters"
+          }
         </span>
         {totalPages > 1 && (
           <div className="flex items-center gap-2">
@@ -406,9 +505,13 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Dynamic data filters (client-side, after data loads)
+  const [dataFilters, setDataFilters] = useState<Record<string, string>>({});
+
   const generate = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setDataFilters({}); // reset data filters on new generation
     try {
       const data = await report.fetchData(filters, API(), (url: string, opts?: RequestInit) => fetchWithAuth(url, opts) as Promise<Response>);
       setResult(data);
@@ -421,15 +524,111 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
   }, [report, filters]);
 
   // Auto-generate on first render
-  React.useEffect(() => {
+  useEffect(() => {
     generate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [report.key]);
 
+  // Detect dynamic filters from table data
+  const dynamicFilters = useMemo(() => {
+    if (!result || result.tableData.length === 0) return [];
+    return detectDynamicFilters(report.columns, result.tableData);
+  }, [result, report.columns]);
+
+  // Apply data filters to table data
+  const filteredTableData = useMemo(() => {
+    if (!result) return [];
+    let data = result.tableData;
+    for (const [key, val] of Object.entries(dataFilters)) {
+      if (!val) continue;
+      data = data.filter(row => String(row[key] ?? "") === val);
+    }
+    return data;
+  }, [result, dataFilters]);
+
+  // Recompute KPIs based on filtered data
+  const filteredKpis = useMemo((): KpiValue[] => {
+    if (!result) return [];
+    const hasActiveFilter = Object.values(dataFilters).some(v => v !== "");
+    if (!hasActiveFilter) return result.kpis;
+
+    // Simple recalculation: total records + proportional adjustment
+    const ratio = result.tableData.length > 0 ? filteredTableData.length / result.tableData.length : 0;
+    return result.kpis.map(kpi => {
+      if (typeof kpi.value === "number") {
+        // For percent/rate KPIs, keep original; for counts/currency, scale
+        if (kpi.format === "percent" || kpi.format === "days") return kpi;
+        return { ...kpi, value: Math.round(kpi.value * ratio) };
+      }
+      return kpi;
+    });
+  }, [result, dataFilters, filteredTableData]);
+
+  // Recompute chart data based on filtered data
+  const filteredCharts = useMemo((): Record<string, ChartDataPoint[]> => {
+    if (!result) return {};
+    const hasActiveFilter = Object.values(dataFilters).some(v => v !== "");
+    if (!hasActiveFilter) return result.charts;
+
+    // Re-aggregate chart data from filtered table data
+    const newCharts: Record<string, ChartDataPoint[]> = {};
+    for (const chart of report.charts) {
+      // For charts backed by table data columns, re-aggregate
+      const col = report.columns.find(c => c.key === chart.categoryKey || c.label.toLowerCase().includes(chart.key.toLowerCase().replace("by", "")));
+      if (col && (chart.type === "pie" || chart.type === "donut" || chart.type === "bar" || chart.type === "horizontalBar")) {
+        const counts = countBy(filteredTableData, col.key);
+        if (Object.keys(counts).length > 0) {
+          newCharts[chart.key] = toPieData(counts);
+          continue;
+        }
+      }
+      // Fallback: keep original chart data
+      newCharts[chart.key] = result.charts[chart.key] || [];
+    }
+    return newCharts;
+  }, [result, dataFilters, filteredTableData, report.charts, report.columns]);
+
+  // Auto-generate pie charts for categorical columns that don't already have a chart
+  const autoPieCharts = useMemo((): { config: ChartConfig; data: ChartDataPoint[] }[] => {
+    if (!result || filteredTableData.length === 0) return [];
+    const existingChartKeys = new Set(report.charts.map(c => c.categoryKey || ""));
+    const pies: { config: ChartConfig; data: ChartDataPoint[] }[] = [];
+
+    for (const df of dynamicFilters) {
+      // Skip if this column already has a dedicated chart
+      if (existingChartKeys.has(df.key)) continue;
+      // Skip if chart already exists for this key
+      if (report.charts.some(c => c.key === `auto_${df.key}` || c.key.toLowerCase().includes(df.key.toLowerCase()))) continue;
+
+      const counts = countBy(filteredTableData, df.key);
+      const data = toPieData(counts);
+      if (data.length >= 2 && data.length <= 12) {
+        pies.push({
+          config: {
+            key: `auto_${df.key}`,
+            title: `By ${df.label}`,
+            type: "pie",
+            dataKey: "count",
+            categoryKey: "name",
+          },
+          data,
+        });
+      }
+    }
+    return pies;
+  }, [dynamicFilters, filteredTableData, report.charts, result]);
+
+  const handleDataFilterChange = (key: string, val: string) => {
+    setDataFilters(prev => ({ ...prev, [key]: val }));
+  };
+
+  const allCharts = report.charts;
+  const totalChartCount = allCharts.length + autoPieCharts.length;
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Filter bar */}
-      <FilterBar report={report} filters={filters} onChange={setFilters} onGenerate={generate} loading={loading} />
+      {/* API Filter bar */}
+      <ApiFilterBar report={report} filters={filters} onChange={setFilters} onGenerate={generate} loading={loading} />
 
       {/* Error */}
       {error && (
@@ -448,14 +647,22 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
       {/* Results */}
       {!loading && result && (
         <>
-          {/* KPIs */}
-          <KpiCards kpis={result.kpis} />
+          {/* Dynamic data filters (auto-detected from data) */}
+          <DynamicDataFilters
+            dynamicFilters={dynamicFilters}
+            dataFilters={dataFilters}
+            onChange={handleDataFilterChange}
+            onClear={() => setDataFilters({})}
+          />
 
-          {/* Charts grid */}
-          {report.charts.length > 0 && (
-            <div className={`grid gap-4 ${report.charts.length === 1 ? "grid-cols-1" : report.charts.length === 2 ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 lg:grid-cols-2"}`}>
-              {report.charts.map(chart => {
-                const chartData = result.charts[chart.key];
+          {/* KPIs */}
+          <KpiCards kpis={filteredKpis} />
+
+          {/* Charts grid: report-defined + auto-generated pie charts */}
+          {totalChartCount > 0 && (
+            <div className={`grid gap-4 ${totalChartCount === 1 ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"}`}>
+              {allCharts.map(chart => {
+                const chartData = filteredCharts[chart.key];
                 if (!chartData || chartData.length === 0) return null;
                 return (
                   <div key={chart.key} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
@@ -464,19 +671,37 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
                   </div>
                 );
               })}
+              {autoPieCharts.map(({ config, data }) => (
+                <div key={config.key} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
+                    {config.title}
+                    <span className="ml-2 text-[10px] font-normal text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">auto</span>
+                  </h4>
+                  <ChartRenderer config={config} data={data} />
+                </div>
+              ))}
             </div>
           )}
 
           {/* Export + Data Table */}
-          {result.tableData.length > 0 && (
+          {filteredTableData.length > 0 && (
             <>
               <div className="flex justify-end">
-                <button onClick={() => downloadCSV(report, result.tableData)} className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                <button onClick={() => downloadCSV(report, filteredTableData)} className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
                   <Download className="w-4 h-4" /> Export CSV
                 </button>
               </div>
-              <DataTable columns={report.columns} data={result.tableData} totalRecords={result.totalRecords} />
+              <DataTable columns={report.columns} data={filteredTableData} totalRecords={filteredTableData.length} />
             </>
+          )}
+
+          {/* No data after filter */}
+          {filteredTableData.length === 0 && result.tableData.length > 0 && (
+            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+              <Filter className="w-12 h-12 mb-3 opacity-40" />
+              <p className="text-sm font-medium">No records match the selected filters</p>
+              <button onClick={() => setDataFilters({})} className="mt-2 text-xs text-blue-600 hover:underline">Clear all filters</button>
+            </div>
           )}
         </>
       )}
