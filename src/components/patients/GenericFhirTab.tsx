@@ -505,6 +505,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         {mode === "create" ? "New Record" : mode === "edit" ? "Edit Record" : "View Record"}
                     </h4>
                     <div className="flex items-center gap-2">
+                        {mode === "view" && selectedRecord && (
+                            <button
+                                onClick={() => handleEdit(selectedRecord)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                            >
+                                <Pencil className="w-4 h-4" />
+                                Edit
+                            </button>
+                        )}
                         {mode !== "view" && (
                             <button
                                 onClick={handleSave}
