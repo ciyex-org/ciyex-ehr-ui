@@ -265,6 +265,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
 
     const handleEdit = (p: ExistingPayment) => {
         setEditingPaymentId(p.id);
+        setShowCollect(false);
         setShowForm(true);
         // Find matching claim to select
         const matchingClaim = claims.find((c) => c.claimNumber === p.claimNumber);
