@@ -79,7 +79,8 @@ export default function MessageLog() {
       if (statusFilter) url += `&status=${statusFilter}`;
       const res = await fetchWithAuth(url);
       if (res.ok) {
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data ?? json;
         setLogs(Array.isArray(data) ? data : data.content || []);
         setTotalPages(data.totalPages || 1);
       }
@@ -94,7 +95,10 @@ export default function MessageLog() {
   const loadStats = useCallback(async () => {
     try {
       const res = await fetchWithAuth("/api/notifications/log/stats");
-      if (res.ok) setStats(await res.json());
+      if (res.ok) {
+        const json = await res.json();
+        setStats(json.data ?? json);
+      }
     } catch {
       /* ignore */
     }
