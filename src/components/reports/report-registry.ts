@@ -112,11 +112,7 @@ const patientDemographics: ReportDefinition = {
   description: "Population breakdown by age, gender, status, and insurance",
   category: "clinical",
   icon: "Users",
-  filters: [
-    { key: "gender", label: "Gender", type: "select", options: [{ value: "", label: "All Genders" }, { value: "male", label: "Male" }, { value: "female", label: "Female" }, { value: "other", label: "Other" }] },
-    { key: "ageGroup", label: "Age Group", type: "select", options: [{ value: "", label: "All Ages" }, { value: "0-17", label: "0-17" }, { value: "18-29", label: "18-29" }, { value: "30-44", label: "30-44" }, { value: "45-59", label: "45-59" }, { value: "60-74", label: "60-74" }, { value: "75+", label: "75+" }] },
-    { key: "status", label: "Status", type: "select", options: [{ value: "", label: "All" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }] },
-  ],
+  filters: [PROVIDER_FILTER, { key: "status", label: "Status", type: "select", options: [{ value: "", label: "All" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }] }],
   kpis: [
     { key: "total", label: "Total Patients", format: "number", color: "text-blue-600" },
     { key: "active", label: "Active", format: "number", color: "text-emerald-600" },
@@ -127,7 +123,6 @@ const patientDemographics: ReportDefinition = {
     { key: "ageDistribution", title: "Age Distribution", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#3b82f6"] },
     { key: "genderDistribution", title: "Gender Distribution", type: "pie", dataKey: "count", categoryKey: "name", colors: ["#3b82f6", "#ec4899", "#8b5cf6", "#94a3b8"] },
     { key: "statusDistribution", title: "Patient Status", type: "donut", dataKey: "count", categoryKey: "name", colors: ["#10b981", "#ef4444", "#f59e0b"] },
-    { key: "insuranceDistribution", title: "Insurance Distribution", type: "pie", dataKey: "count", categoryKey: "name" },
   ],
   columns: [
     { key: "name", label: "Name", sortable: true },
@@ -138,20 +133,23 @@ const patientDemographics: ReportDefinition = {
     { key: "insurance", label: "Insurance" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
-    const [allRecords, insuranceCos] = await Promise.all([
+    const [records, insuranceCos] = await Promise.all([
       safeFetch(`${apiUrl}/api/patients?page=0&size=1000&sort=id`, fetchFn),
       safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
     ]);
-    // Build insurance map
+    // Also try to load per-patient coverage data from all patients
     const patInsurance: Record<string, string> = {};
+    // Build insurer id→name map from insurance companies (FHIR Organization)
     const insurerMap: Record<string, string> = {};
     for (const co of insuranceCos) {
       insurerMap[String(co.id)] = co.name || co.companyName || "";
       if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
     }
+    // Try coverages endpoint (may return FHIR-based data)
     try {
       const coverages = await safeFetch(`${apiUrl}/api/coverages?page=0&size=5000`, fetchFn);
       for (const c of coverages) {
+        // FHIR Coverage: beneficiary is "Patient/{id}", extract the ID
         let pid = String(c.patientId || c.beneficiaryId || "");
         if (!pid && c.beneficiary) {
           const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
@@ -164,22 +162,6 @@ const patientDemographics: ReportDefinition = {
         if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
       }
     } catch { /* coverages endpoint may not exist */ }
-
-    // Apply filters: gender, ageGroup, status
-    let records = allRecords;
-    const genderFilter = (filters.gender as string) || "";
-    if (genderFilter) {
-      records = records.filter(p => (p.gender || p.sex || "").toLowerCase() === genderFilter.toLowerCase());
-    }
-    const ageGroupFilter = (filters.ageGroup as string) || "";
-    if (ageGroupFilter) {
-      records = records.filter(p => ageGroup(p.dateOfBirth || p.birthDate || "") === ageGroupFilter);
-    }
-    const statusFilter = (filters.status as string) || "";
-    if (statusFilter) {
-      records = records.filter(p => (p.status || "Active").toLowerCase() === statusFilter.toLowerCase());
-    }
-
     const ages = records.map(p => {
       const dob = p.dateOfBirth || p.birthDate || "";
       if (!dob) return 0;
@@ -189,7 +171,6 @@ const patientDemographics: ReportDefinition = {
     const ageCounts = countBy(records, p => ageGroup(p.dateOfBirth || p.birthDate || ""));
     const genderCounts = countBy(records, p => (p.gender || p.sex || "Unknown").toString());
     const statusCounts = countBy(records, p => (p.status || "Active").toString());
-    const insuranceCounts = countBy(records, p => patInsurance[String(p.id)] || p.insurance || p.insurancePlan || "Uninsured");
 
     return {
       kpis: [
@@ -202,7 +183,6 @@ const patientDemographics: ReportDefinition = {
         ageDistribution: toChartData(ageCounts, "name", "count"),
         genderDistribution: toChartData(genderCounts, "name", "count"),
         statusDistribution: toChartData(statusCounts, "name", "count"),
-        insuranceDistribution: toChartData(insuranceCounts, "name", "count"),
       },
       tableData: records.map(p => ({
         id: p.id,
@@ -224,7 +204,7 @@ const encounterSummary: ReportDefinition = {
   description: "Encounters by type, provider, status, and trends",
   category: "clinical",
   icon: "ClipboardList",
-  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "visitType", label: "Visit Type", type: "select", options: [{ value: "", label: "All Types" }] }, STATUS_FILTER],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, STATUS_FILTER],
   kpis: [
     { key: "total", label: "Total Encounters", format: "number", color: "text-blue-600" },
     { key: "completed", label: "Completed", format: "number", color: "text-emerald-600" },
@@ -233,10 +213,9 @@ const encounterSummary: ReportDefinition = {
   ],
   charts: [
     { key: "monthlyTrend", title: "Monthly Volume", type: "area", dataKey: "count", categoryKey: "month", colors: ["#3b82f6"] },
-    { key: "byType", title: "By Visit Type", type: "pie", dataKey: "count", categoryKey: "name" },
-    { key: "byStatus", title: "By Status", type: "donut", dataKey: "count", categoryKey: "name", colors: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"] },
+    { key: "byType", title: "By Visit Type", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#8b5cf6"] },
+    { key: "byStatus", title: "By Status", type: "pie", dataKey: "count", categoryKey: "name", colors: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"] },
     { key: "byWeekday", title: "By Day of Week", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#06b6d4"] },
-    { key: "byProvider", title: "By Provider", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#8b5cf6"] },
   ],
   columns: [
     { key: "date", label: "Date", format: "date", sortable: true },
@@ -250,16 +229,9 @@ const encounterSummary: ReportDefinition = {
     const { from, to } = getDateRange(filters);
     const all = await safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn);
     const byDate = filterByDateRange(all, "encounterDate", from, to);
-    let records = filterByProvider(byDate, filters.provider as string | undefined);
-    // Apply visit type filter
-    const vtFilter = (filters.visitType as string) || "";
-    if (vtFilter) records = records.filter(e => (e.type || e.visitCategory || "").toLowerCase().includes(vtFilter.toLowerCase()));
-    // Apply status filter
-    const stFilter = (filters.status as string) || "";
-    if (stFilter) records = records.filter(e => (e.status || "").toLowerCase() === stFilter.toLowerCase());
+    const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, e => (e.status || "Unsigned").toString());
     const typeCounts = countBy(records, e => (e.type || e.visitCategory || "Unknown").toString());
-    const providerCounts = countBy(records, e => (e.encounterProvider || e.providerDisplay || e.provider || "Unknown").toString());
     const monthly = groupByMonth(records, "encounterDate");
     const weekday = groupByWeekday(records, "encounterDate");
     const dayCount = new Set(records.map(e => (e.encounterDate || "").slice(0, 10)).filter(Boolean)).size;
@@ -276,7 +248,6 @@ const encounterSummary: ReportDefinition = {
         byType: toChartData(typeCounts, "name", "count"),
         byStatus: toChartData(statusCounts, "name", "count"),
         byWeekday: Object.entries(weekday).map(([d, c]) => ({ name: d, count: c })),
-        byProvider: toChartData(providerCounts, "name", "count").slice(0, 10),
       },
       tableData: records.map(e => ({
         id: e.id, date: e.encounterDate || e.startDate || e.date || "",
@@ -297,7 +268,7 @@ const labResults: ReportDefinition = {
   description: "Lab order volume, status tracking, and turnaround times",
   category: "clinical",
   icon: "FlaskConical",
-  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "status", label: "Status", type: "select", options: [{ value: "", label: "All Statuses" }, { value: "pending", label: "Pending" }, { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" }] }, { key: "priority", label: "Priority", type: "select", options: [{ value: "", label: "All" }, { value: "routine", label: "Routine" }, { value: "stat", label: "STAT" }, { value: "urgent", label: "Urgent" }] }],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "priority", label: "Priority", type: "select", options: [{ value: "", label: "All" }, { value: "routine", label: "Routine" }, { value: "stat", label: "STAT" }, { value: "urgent", label: "Urgent" }] }],
   kpis: [
     { key: "total", label: "Total Orders", format: "number", color: "text-blue-600" },
     { key: "pending", label: "Pending Results", format: "number", color: "text-amber-600" },
@@ -306,9 +277,8 @@ const labResults: ReportDefinition = {
   ],
   charts: [
     { key: "byStatus", title: "By Status", type: "pie", dataKey: "count", categoryKey: "name", colors: ["#10b981", "#f59e0b", "#3b82f6", "#ef4444"] },
-    { key: "byPriority", title: "By Priority", type: "donut", dataKey: "count", categoryKey: "name", colors: ["#8b5cf6", "#3b82f6", "#ef4444"] },
+    { key: "byPriority", title: "By Priority", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#8b5cf6"] },
     { key: "monthlyTrend", title: "Monthly Volume", type: "line", dataKey: "count", categoryKey: "month", colors: ["#3b82f6"] },
-    { key: "byProvider", title: "By Ordering Provider", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#06b6d4"] },
   ],
   columns: [
     { key: "orderDate", label: "Order Date", format: "date", sortable: true },
@@ -322,16 +292,9 @@ const labResults: ReportDefinition = {
     const { from, to } = getDateRange(filters);
     const all = await safeFetch(`${apiUrl}/api/lab-order/search?q=`, fetchFn);
     const byDate = filterByDateRange(all, "orderDate", from, to);
-    let records = filterByProvider(byDate, filters.provider as string | undefined);
-    // Apply status filter
-    const stFilter = (filters.status as string) || "";
-    if (stFilter) records = records.filter(o => (o.status || "").toLowerCase() === stFilter.toLowerCase());
-    // Apply priority filter
-    const prFilter = (filters.priority as string) || "";
-    if (prFilter) records = records.filter(o => (o.priority || "").toLowerCase() === prFilter.toLowerCase());
+    const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, o => (o.status || "Unknown").toString());
     const priorityCounts = countBy(records, o => (o.priority || "Routine").toString());
-    const providerCounts = countBy(records, o => (o.providerName || o.orderingProvider || o.orderedBy || o.provider || "Unknown").toString());
     const monthly = groupByMonth(records, "orderDate");
     return {
       kpis: [
@@ -344,7 +307,6 @@ const labResults: ReportDefinition = {
         byStatus: toChartData(statusCounts, "name", "count"),
         byPriority: toChartData(priorityCounts, "name", "count"),
         monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })),
-        byProvider: toChartData(providerCounts, "name", "count").slice(0, 10),
       },
       tableData: records.map(o => ({
         id: o.id, orderDate: o.orderDate || o.orderedDate || o.date || o.createdAt || "", patient: o.patientName || o.patientId || "",
@@ -362,7 +324,7 @@ const medicationReport: ReportDefinition = {
   description: "Prescribing patterns, drug classes, and refill tracking",
   category: "clinical",
   icon: "Pill",
-  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "status", label: "Status", type: "select", options: [{ value: "", label: "All Statuses" }, { value: "active", label: "Active" }, { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" }] }],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER],
   kpis: [
     { key: "total", label: "Total Prescriptions", format: "number", color: "text-blue-600" },
     { key: "active", label: "Active", format: "number", color: "text-emerald-600" },
@@ -373,7 +335,6 @@ const medicationReport: ReportDefinition = {
     { key: "byStatus", title: "By Status", type: "donut", dataKey: "count", categoryKey: "name", colors: ["#10b981", "#3b82f6", "#ef4444", "#f59e0b"] },
     { key: "monthlyTrend", title: "Monthly Prescribing Volume", type: "area", dataKey: "count", categoryKey: "month", colors: ["#8b5cf6"] },
     { key: "topMedications", title: "Top Medications", type: "horizontalBar", dataKey: "count", categoryKey: "name", colors: ["#06b6d4"] },
-    { key: "byPrescriber", title: "By Prescriber", type: "pie", dataKey: "count", categoryKey: "name" },
   ],
   columns: [
     { key: "prescriptionDate", label: "Date", format: "date", sortable: true },
@@ -386,16 +347,12 @@ const medicationReport: ReportDefinition = {
     const { from, to } = getDateRange(filters);
     const all = await safeFetch(`${apiUrl}/api/prescriptions?page=0&size=1000`, fetchFn);
     const byDate = filterByDateRange(all, "prescriptionDate", from, to);
-    let filtered = filterByProvider(byDate, filters.provider as string | undefined);
-    // Apply status filter
-    const stFilter = (filters.status as string) || "";
-    if (stFilter) filtered = filtered.filter(p => (p.status || "Active").toLowerCase() === stFilter.toLowerCase());
+    const filtered = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(filtered, p => (p.status || "Active").toString());
     const monthly = groupByMonth(filtered, "prescriptionDate");
     const medCounts = countBy(filtered, p => (p.medicationName || p.medication || p.drugName || "Unknown").toString());
     const topMeds: Record<string, number> = {};
     Object.entries(medCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).forEach(([k, v]) => { topMeds[k] = v; });
-    const prescriberCounts = countBy(filtered, p => (p.prescriberName || p.prescriber || p.providerName || p.provider || "Unknown").toString());
 
     return {
       kpis: [
@@ -408,7 +365,6 @@ const medicationReport: ReportDefinition = {
         byStatus: toChartData(statusCounts, "name", "count"),
         monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })),
         topMedications: toChartData(topMeds, "name", "count"),
-        byPrescriber: toChartData(prescriberCounts, "name", "count").slice(0, 8),
       },
       tableData: filtered.map(p => ({
         id: p.id, prescriptionDate: p.prescriptionDate || p.dateWritten || p.createdAt || "",
@@ -427,7 +383,7 @@ const referralReport: ReportDefinition = {
   description: "Outgoing/incoming referrals, completion rates, turnaround",
   category: "clinical",
   icon: "ArrowRightLeft",
-  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "referralStatus", label: "Status", type: "select", options: [{ value: "", label: "All" }, { value: "sent", label: "Sent" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "no_response", label: "No Response" }] }, { key: "urgency", label: "Urgency", type: "select", options: [{ value: "", label: "All" }, { value: "routine", label: "Routine" }, { value: "urgent", label: "Urgent" }, { value: "stat", label: "STAT" }] }],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "referralStatus", label: "Status", type: "select", options: [{ value: "", label: "All" }, { value: "sent", label: "Sent" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "no_response", label: "No Response" }] }],
   kpis: [
     { key: "total", label: "Total Referrals", format: "number", color: "text-blue-600" },
     { key: "completed", label: "Completed", format: "number", color: "text-emerald-600" },
@@ -438,7 +394,6 @@ const referralReport: ReportDefinition = {
     { key: "byStatus", title: "By Status", type: "pie", dataKey: "count", categoryKey: "name" },
     { key: "bySpecialty", title: "By Specialty", type: "horizontalBar", dataKey: "count", categoryKey: "name", colors: ["#8b5cf6"] },
     { key: "monthlyTrend", title: "Monthly Volume", type: "line", dataKey: "count", categoryKey: "month", colors: ["#3b82f6"] },
-    { key: "byUrgency", title: "By Urgency", type: "donut", dataKey: "count", categoryKey: "name", colors: ["#10b981", "#f59e0b", "#ef4444"] },
   ],
   columns: [
     { key: "date", label: "Date", format: "date", sortable: true },
@@ -449,17 +404,9 @@ const referralReport: ReportDefinition = {
     { key: "urgency", label: "Urgency" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
-    const allRecords = await safeFetch(`${apiUrl}/api/referrals?page=0&size=1000`, fetchFn);
-    let records = filterByProvider(allRecords, filters.provider as string | undefined);
-    // Apply status filter
-    const stFilter = (filters.referralStatus as string) || "";
-    if (stFilter) records = records.filter(r => (r.status || "").toLowerCase() === stFilter.toLowerCase());
-    // Apply urgency filter
-    const urgFilter = (filters.urgency as string) || "";
-    if (urgFilter) records = records.filter(r => (r.urgency || "Routine").toLowerCase() === urgFilter.toLowerCase());
+    const records = await safeFetch(`${apiUrl}/api/referrals?page=0&size=1000`, fetchFn);
     const statusCounts = countBy(records, r => (r.status || "Unknown").toString());
     const specCounts = countBy(records, r => (r.specialty || "Unknown").toString());
-    const urgencyCounts = countBy(records, r => (r.urgency || "Routine").toString());
     const monthly = groupByMonth(records, "referralDate");
     const total = records.length || 1;
     return {
@@ -469,7 +416,7 @@ const referralReport: ReportDefinition = {
         { key: "pending", label: "Pending", value: statusCounts["pending"] || statusCounts["sent"] || 0, format: "number", color: "text-amber-600" },
         { key: "completionRate", label: "Completion Rate", value: Math.round(((statusCounts["completed"] || statusCounts["Completed"] || 0) / total) * 100), format: "percent", color: "text-purple-600" },
       ],
-      charts: { byStatus: toChartData(statusCounts, "name", "count"), bySpecialty: toChartData(specCounts, "name", "count").slice(0, 10), monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })), byUrgency: toChartData(urgencyCounts, "name", "count") },
+      charts: { byStatus: toChartData(statusCounts, "name", "count"), bySpecialty: toChartData(specCounts, "name", "count").slice(0, 10), monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })) },
       tableData: records.map(r => ({ id: r.id, date: r.referralDate || r.createdAt || "", patient: r.patientName || r.patientId || "", referTo: r.specialistName || r.referredToName || r.referredTo || r.facilityName || "", specialty: r.specialty || "", status: r.status || "", urgency: r.urgency || "Routine" })),
       totalRecords: records.length,
     };
@@ -490,9 +437,8 @@ const immunizationReport: ReportDefinition = {
     { key: "thisMonth", label: "This Month", format: "number", color: "text-purple-600" },
   ],
   charts: [
-    { key: "byVaccine", title: "By Vaccine Type", type: "pie", dataKey: "count", categoryKey: "name" },
+    { key: "byVaccine", title: "By Vaccine Type", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#3b82f6"] },
     { key: "monthlyTrend", title: "Monthly Administered", type: "area", dataKey: "count", categoryKey: "month", colors: ["#10b981"] },
-    { key: "byProvider", title: "By Provider", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#3b82f6"] },
   ],
   columns: [
     { key: "date", label: "Date", format: "date", sortable: true },
@@ -513,7 +459,7 @@ const immunizationReport: ReportDefinition = {
         { key: "rate", label: "Up-to-Date Rate", value: records.length > 0 ? 85 : 0, format: "percent", color: "text-emerald-600" },
         { key: "thisMonth", label: "This Month", value: records.filter(i => { const d = i.administeredDate; if (!d) return false; return new Date(d) >= new Date(daysAgo(30)); }).length, format: "number", color: "text-purple-600" },
       ],
-      charts: { byVaccine: toChartData(vaccineCounts, "name", "count"), monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })), byProvider: toChartData(countBy(records, i => (i.administeredBy || i.performedBy || i.providerName || i.provider || "Unknown").toString()), "name", "count").slice(0, 10) },
+      charts: { byVaccine: toChartData(vaccineCounts, "name", "count"), monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })) },
       tableData: records.map(i => ({ id: i.id, date: i.administeredDate || i.occurrenceDateTime || i.date || i.createdAt || "", patient: i.patientName || "", vaccine: i.vaccineName || i.vaccineCode || i.vaccine || "", dose: i.doseNumber || i.doseQuantity || "", site: i.site || i.bodySite || "", provider: i.administeredBy || i.performedBy || i.providerName || i.provider || "" })),
       totalRecords: records.length,
     };
@@ -526,7 +472,7 @@ const problemListReport: ReportDefinition = {
   description: "Most common diagnoses, disease prevalence, comorbidity patterns",
   category: "clinical",
   icon: "FileWarning",
-  filters: [DATE_RANGE_FILTER, { key: "category", label: "ICD-10 Chapter", type: "select", options: [{ value: "", label: "All Categories" }, { value: "A-B", label: "Infectious Diseases" }, { value: "C-D", label: "Neoplasms" }, { value: "E", label: "Endocrine/Metabolic" }, { value: "F", label: "Mental/Behavioral" }, { value: "G", label: "Nervous System" }, { value: "I", label: "Circulatory System" }, { value: "J", label: "Respiratory System" }, { value: "K", label: "Digestive System" }, { value: "M", label: "Musculoskeletal" }, { value: "R", label: "Symptoms/Signs" }, { value: "Z", label: "Factors Influencing Health" }] }],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER],
   kpis: [
     { key: "totalDx", label: "Total Diagnoses", format: "number", color: "text-blue-600" },
     { key: "uniqueDx", label: "Unique Conditions", format: "number", color: "text-purple-600" },
@@ -664,7 +610,7 @@ const arAging: ReportDefinition = {
   description: "Outstanding balances by aging bucket (0-30, 31-60, 61-90, 90+)",
   category: "financial",
   icon: "Clock",
-  filters: [PAYER_FILTER],
+  filters: [PAYER_FILTER, PROVIDER_FILTER],
   kpis: [
     { key: "totalAR", label: "Total A/R", format: "currency", color: "text-blue-600" },
     { key: "daysInAR", label: "Days in A/R", format: "days", color: "text-amber-600" },
@@ -673,7 +619,7 @@ const arAging: ReportDefinition = {
   ],
   charts: [
     { key: "agingBuckets", title: "A/R Aging Buckets", type: "bar", dataKey: "amount", categoryKey: "bucket", colors: ["#10b981", "#f59e0b", "#f97316", "#ef4444", "#991b1b"] },
-    { key: "byPayer", title: "A/R by Payer", type: "pie", dataKey: "amount", categoryKey: "name" },
+    { key: "byPayer", title: "A/R by Payer", type: "horizontalBar", dataKey: "amount", categoryKey: "name", colors: ["#3b82f6"] },
     { key: "trend", title: "Days in A/R Trend", type: "line", dataKey: "days", categoryKey: "month", colors: ["#ef4444"] },
   ],
   columns: [
@@ -725,7 +671,7 @@ const denialManagement: ReportDefinition = {
   description: "Denied claims by reason, recovery rates, appeal tracking",
   category: "financial",
   icon: "ShieldAlert",
-  filters: [DATE_RANGE_FILTER, PAYER_FILTER, { key: "reason", label: "Denial Reason", type: "select", options: [{ value: "", label: "All Reasons" }, { value: "authorization", label: "Missing Authorization" }, { value: "duplicate", label: "Duplicate Claim" }, { value: "coding", label: "Coding Error" }, { value: "timely", label: "Timely Filing" }, { value: "eligibility", label: "Patient Eligibility" }] }],
+  filters: [DATE_RANGE_FILTER, PAYER_FILTER],
   kpis: [
     { key: "denialRate", label: "Denial Rate", format: "percent", color: "text-red-600" },
     { key: "totalDenied", label: "Total Denied", format: "currency", color: "text-amber-600" },
@@ -735,7 +681,7 @@ const denialManagement: ReportDefinition = {
   charts: [
     { key: "byReason", title: "Top Denial Reasons", type: "horizontalBar", dataKey: "count", categoryKey: "name", colors: ["#ef4444"] },
     { key: "trend", title: "Denial Rate Trend", type: "line", dataKey: "rate", categoryKey: "month", colors: ["#ef4444"] },
-    { key: "byPayer", title: "Denials by Payer", type: "pie", dataKey: "count", categoryKey: "name" },
+    { key: "byPayer", title: "Denials by Payer", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#f59e0b"] },
   ],
   columns: [
     { key: "reason", label: "Denial Reason", sortable: true },
@@ -779,7 +725,7 @@ const payerMix: ReportDefinition = {
   description: "Patient and revenue distribution across insurance payers",
   category: "financial",
   icon: "PieChart",
-  filters: [DATE_RANGE_FILTER],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER],
   kpis: [
     { key: "totalPayers", label: "Active Payers", format: "number", color: "text-blue-600" },
     { key: "topPayer", label: "Top Payer %", format: "percent", color: "text-emerald-600" },
@@ -833,7 +779,7 @@ const cptUtilization: ReportDefinition = {
   description: "Most-billed procedures, E&M distribution, RVU analysis",
   category: "financial",
   icon: "BarChart3",
-  filters: [DATE_RANGE_FILTER],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER],
   kpis: [
     { key: "totalProcedures", label: "Total Procedures", format: "number", color: "text-blue-600" },
     { key: "uniqueCPT", label: "Unique CPT Codes", format: "number", color: "text-purple-600" },
@@ -842,7 +788,7 @@ const cptUtilization: ReportDefinition = {
   ],
   charts: [
     { key: "topCPT", title: "Top 10 CPT Codes", type: "horizontalBar", dataKey: "count", categoryKey: "name", colors: ["#8b5cf6"] },
-    { key: "emDistribution", title: "E&M Level Distribution", type: "pie", dataKey: "count", categoryKey: "name" },
+    { key: "emDistribution", title: "E&M Level Distribution", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#3b82f6"] },
   ],
   columns: [
     { key: "cptCode", label: "CPT Code", sortable: true },
@@ -892,7 +838,7 @@ const appointmentVolume: ReportDefinition = {
   description: "Scheduling volume, completion rates, busiest times",
   category: "operational",
   icon: "CalendarDays",
-  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "visitType", label: "Visit Type", type: "select", options: [{ value: "", label: "All Types" }] }, { key: "status", label: "Status", type: "select", options: [{ value: "", label: "All Statuses" }, { value: "scheduled", label: "Scheduled" }, { value: "completed", label: "Completed" }, { value: "cancelled", label: "Cancelled" }, { value: "no-show", label: "No-Show" }] }],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "visitType", label: "Visit Type", type: "select", options: [{ value: "", label: "All Types" }] }],
   kpis: [
     { key: "total", label: "Total Scheduled", format: "number", color: "text-blue-600" },
     { key: "completed", label: "Completed", format: "number", color: "text-emerald-600" },
@@ -917,13 +863,7 @@ const appointmentVolume: ReportDefinition = {
     const { from, to } = getDateRange(filters);
     const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
     const all = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
-    let records = filterByProvider(all, filters.provider as string | undefined);
-    // Apply visit type filter
-    const vtFilter = (filters.visitType as string) || "";
-    if (vtFilter) records = records.filter(a => (a.visitType || a.type || "").toLowerCase().includes(vtFilter.toLowerCase()));
-    // Apply status filter
-    const stFilter = (filters.status as string) || "";
-    if (stFilter) records = records.filter(a => (a.status || "").toLowerCase() === stFilter.toLowerCase());
+    const records = filterByProvider(all, filters.provider as string | undefined);
     const statusCounts = countBy(records, a => (a.status || "Unknown").toString());
     const typeCounts = countBy(records, a => (a.visitType || a.type || "Unknown").toString());
     const weekday = groupByWeekday(records, "appointmentStartDate");
@@ -1016,7 +956,7 @@ const providerProductivity: ReportDefinition = {
     { key: "avgRevenue", label: "Avg Revenue/Provider", format: "currency", color: "text-amber-600" },
   ],
   charts: [
-    { key: "encountersByProvider", title: "Encounters by Provider", type: "pie", dataKey: "encounters", categoryKey: "name" },
+    { key: "encountersByProvider", title: "Encounters by Provider", type: "bar", dataKey: "encounters", categoryKey: "name", colors: ["#3b82f6"] },
     { key: "rvuByProvider", title: "wRVU by Provider", type: "bar", dataKey: "rvu", categoryKey: "name", colors: ["#10b981"] },
     { key: "revenueByProvider", title: "Revenue by Provider", type: "bar", dataKey: "revenue", categoryKey: "name", colors: ["#8b5cf6"] },
   ],
@@ -1067,7 +1007,6 @@ const schedulingUtilization: ReportDefinition = {
     { key: "utilizationByProvider", title: "Utilization by Provider", type: "bar", dataKey: "rate", categoryKey: "name", colors: ["#3b82f6"] },
     { key: "utilizationByDay", title: "Utilization by Day", type: "bar", dataKey: "rate", categoryKey: "name", colors: ["#8b5cf6"] },
     { key: "trend", title: "Utilization Trend", type: "line", dataKey: "rate", categoryKey: "month", colors: ["#10b981"] },
-    { key: "slotDistribution", title: "Slot Status", type: "pie", dataKey: "count", categoryKey: "name", colors: ["#10b981", "#f59e0b", "#ef4444"] },
   ],
   columns: [
     { key: "provider", label: "Provider", sortable: true },
@@ -1088,7 +1027,6 @@ const schedulingUtilization: ReportDefinition = {
       utilizationByProvider: [{ name: "Dr. Williams", rate: 88 }, { name: "Dr. Garcia", rate: 82 }, { name: "Dr. Taylor", rate: 76 }],
       utilizationByDay: [{ name: "Mon", rate: 90 }, { name: "Tue", rate: 85 }, { name: "Wed", rate: 82 }, { name: "Thu", rate: 78 }, { name: "Fri", rate: 70 }],
       trend: [{ month: "2025-09", rate: 78 }, { month: "2025-10", rate: 80 }, { month: "2025-11", rate: 79 }, { month: "2025-12", rate: 75 }, { month: "2026-01", rate: 83 }, { month: "2026-02", rate: 82 }],
-      slotDistribution: [{ name: "Booked", count: 492 }, { name: "Open", count: 45 }, { name: "Cancelled", count: 63 }],
     },
     tableData: [
       { provider: "Dr. Sarah Williams", available: 200, booked: 176, completed: 168, utilization: 88, revenue: 30240 },
@@ -1109,7 +1047,7 @@ const qualityMeasures: ReportDefinition = {
   description: "CQM performance, MIPS scores, measure tracking",
   category: "compliance",
   icon: "Target",
-  filters: [{ key: "reportYear", label: "Year", type: "select", options: [{ value: "2026", label: "2026" }, { value: "2025", label: "2025" }] }, { key: "status", label: "Status", type: "select", options: [{ value: "", label: "All" }, { value: "above", label: "Meeting Benchmark" }, { value: "below", label: "Below Benchmark" }] }],
+  filters: [{ key: "reportYear", label: "Year", type: "select", options: [{ value: "2026", label: "2026" }, { value: "2025", label: "2025" }] }, PROVIDER_FILTER],
   kpis: [
     { key: "mipsScore", label: "MIPS Score", format: "number", color: "text-blue-600" },
     { key: "measuresTracked", label: "Measures Tracked", format: "number", color: "text-purple-600" },
@@ -1119,7 +1057,6 @@ const qualityMeasures: ReportDefinition = {
   charts: [
     { key: "measurePerformance", title: "Measure Performance vs. Benchmark", type: "bar", dataKey: "performance", categoryKey: "name", series: [{ key: "performance", label: "Performance", color: "#3b82f6" }, { key: "benchmark", label: "Benchmark", color: "#94a3b8" }] },
     { key: "mipsTrend", title: "MIPS Score Trend", type: "line", dataKey: "score", categoryKey: "quarter", colors: ["#3b82f6"] },
-    { key: "benchmarkStatus", title: "Benchmark Status", type: "pie", dataKey: "count", categoryKey: "name", colors: ["#10b981", "#ef4444"] },
   ],
   columns: [
     { key: "measure", label: "Measure", sortable: true },
@@ -1151,7 +1088,6 @@ const qualityMeasures: ReportDefinition = {
       charts: {
         measurePerformance: measures.map(m => ({ name: m.measure.split(":")[0].slice(0, 25), performance: m.performance, benchmark: m.benchmark })),
         mipsTrend: [{ quarter: "Q1 2025", score: 74 }, { quarter: "Q2 2025", score: 76 }, { quarter: "Q3 2025", score: 79 }, { quarter: "Q4 2025", score: 80 }, { quarter: "Q1 2026", score: 82 }],
-        benchmarkStatus: [{ name: "Meeting Benchmark", count: measures.filter(m => m.status === "above").length }, { name: "Below Benchmark", count: measures.filter(m => m.status === "below").length }],
       },
       tableData: measures,
       totalRecords: measures.length,
@@ -1165,7 +1101,7 @@ const careGaps: ReportDefinition = {
   description: "Overdue screenings, follow-ups, and preventive care",
   category: "compliance",
   icon: "AlertCircle",
-  filters: [{ key: "gapType", label: "Gap Type", type: "select", options: [{ value: "", label: "All" }, { value: "screening", label: "Screenings" }, { value: "immunization", label: "Immunizations" }, { value: "followup", label: "Follow-ups" }] }],
+  filters: [PROVIDER_FILTER, { key: "gapType", label: "Gap Type", type: "select", options: [{ value: "", label: "All" }, { value: "screening", label: "Screenings" }, { value: "immunization", label: "Immunizations" }, { value: "followup", label: "Follow-ups" }] }],
   kpis: [
     { key: "totalGaps", label: "Total Open Gaps", format: "number", color: "text-red-600" },
     { key: "closedThisMonth", label: "Closed This Month", format: "number", color: "text-emerald-600" },
@@ -1173,7 +1109,7 @@ const careGaps: ReportDefinition = {
     { key: "revenueOpportunity", label: "Revenue Opportunity", format: "currency", color: "text-purple-600" },
   ],
   charts: [
-    { key: "byType", title: "Gaps by Type", type: "pie", dataKey: "count", categoryKey: "name" },
+    { key: "byType", title: "Gaps by Type", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#ef4444"] },
     { key: "closureTrend", title: "Gap Closure Trend", type: "area", dataKey: "closed", categoryKey: "month", colors: ["#10b981"] },
     { key: "byProvider", title: "Open Gaps by Provider", type: "horizontalBar", dataKey: "gaps", categoryKey: "name", colors: ["#f59e0b"] },
   ],
@@ -1212,7 +1148,7 @@ const diseaseRegistry: ReportDefinition = {
   description: "Chronic disease panels with outcomes tracking",
   category: "population",
   icon: "HeartPulse",
-  filters: [{ key: "condition", label: "Condition", type: "select", options: [{ value: "", label: "All" }, { value: "diabetes", label: "Diabetes" }, { value: "hypertension", label: "Hypertension" }, { value: "asthma", label: "Asthma" }, { value: "copd", label: "COPD" }, { value: "chf", label: "CHF" }] }],
+  filters: [{ key: "condition", label: "Condition", type: "select", options: [{ value: "", label: "All" }, { value: "diabetes", label: "Diabetes" }, { value: "hypertension", label: "Hypertension" }, { value: "asthma", label: "Asthma" }, { value: "copd", label: "COPD" }, { value: "chf", label: "CHF" }] }, PROVIDER_FILTER],
   kpis: [
     { key: "registeredPatients", label: "Registry Patients", format: "number", color: "text-blue-600" },
     { key: "controlled", label: "Controlled", format: "percent", color: "text-emerald-600" },
@@ -1220,7 +1156,7 @@ const diseaseRegistry: ReportDefinition = {
     { key: "overdue", label: "Overdue for Visit", format: "number", color: "text-amber-600" },
   ],
   charts: [
-    { key: "byCondition", title: "Patients by Condition", type: "pie", dataKey: "count", categoryKey: "name" },
+    { key: "byCondition", title: "Patients by Condition", type: "bar", dataKey: "count", categoryKey: "name", colors: ["#ef4444"] },
     { key: "controlRate", title: "Control Rates", type: "bar", dataKey: "controlled", categoryKey: "name", series: [{ key: "controlled", label: "Controlled %", color: "#10b981" }, { key: "uncontrolled", label: "Uncontrolled %", color: "#ef4444" }] },
     { key: "trend", title: "Control Rate Trend", type: "line", dataKey: "rate", categoryKey: "quarter", colors: ["#10b981"] },
   ],
@@ -1267,7 +1203,7 @@ const riskStratification: ReportDefinition = {
   description: "Patient risk tiers, key risk factors, predicted utilization",
   category: "population",
   icon: "Gauge",
-  filters: [{ key: "riskTier", label: "Risk Tier", type: "select", options: [{ value: "", label: "All" }, { value: "low", label: "Low" }, { value: "moderate", label: "Moderate" }, { value: "high", label: "High" }, { value: "very_high", label: "Very High" }] }],
+  filters: [PROVIDER_FILTER, { key: "riskTier", label: "Risk Tier", type: "select", options: [{ value: "", label: "All" }, { value: "low", label: "Low" }, { value: "moderate", label: "Moderate" }, { value: "high", label: "High" }, { value: "very_high", label: "Very High" }] }],
   kpis: [
     { key: "totalPatients", label: "Total Patients", format: "number", color: "text-blue-600" },
     { key: "highRisk", label: "High Risk", format: "number", color: "text-red-600" },
@@ -1361,7 +1297,7 @@ const portalUsage: ReportDefinition = {
   description: "Portal enrollment, active users, feature utilization",
   category: "administrative",
   icon: "Globe",
-  filters: [DATE_RANGE_FILTER, { key: "feature", label: "Feature", type: "select", options: [{ value: "", label: "All Features" }, { value: "results", label: "View Results" }, { value: "messaging", label: "Messaging" }, { value: "schedule", label: "Scheduling" }, { value: "refill", label: "Refill Rx" }, { value: "billing", label: "Bill Pay" }] }],
+  filters: [DATE_RANGE_FILTER],
   kpis: [
     { key: "enrolled", label: "Enrolled", format: "percent", color: "text-blue-600" },
     { key: "activeUsers", label: "Active Users (30d)", format: "number", color: "text-emerald-600" },
