@@ -256,11 +256,12 @@ export default function StatementsTab({ patientId }: StatementsTabProps) {
                 body: JSON.stringify(payload),
             });
             if (res.ok) {
-                await fetchData();
+                // Print before any await so window.open remains within user gesture context
                 handlePrint();
                 setShowPreview(false);
                 setShowGenerator(false);
                 setSelectedClaimIds(new Set());
+                fetchData();
             }
         } catch { /* ignore */ }
     };

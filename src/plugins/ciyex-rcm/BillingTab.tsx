@@ -82,13 +82,14 @@ export default function BillingTab({ patientId }: BillingTabProps) {
     }, [fetchClaims]);
 
     const filteredClaims = claims.filter((claim) => {
+        const q = searchQuery.toLowerCase();
         const matchesSearch =
             !searchQuery ||
-            claim.claimNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            claim.provider.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            claim.payer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            claim.cptCodes.some((c) => c.includes(searchQuery)) ||
-            claim.icdCodes.some((c) => c.includes(searchQuery));
+            (claim.claimNumber ?? "").toLowerCase().includes(q) ||
+            (claim.provider ?? "").toLowerCase().includes(q) ||
+            (claim.payer ?? "").toLowerCase().includes(q) ||
+            (claim.cptCodes ?? []).some((c) => c.includes(searchQuery)) ||
+            (claim.icdCodes ?? []).some((c) => c.includes(searchQuery));
 
         const matchesStatus = statusFilter === "all" || claim.status === statusFilter;
 

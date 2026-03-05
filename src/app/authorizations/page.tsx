@@ -223,10 +223,10 @@ export default function PriorAuthorizationsPage() {
       const res = await fetchWithAuth(url);
       const json = await res.json();
       if (json.success) {
-        const pd: PageData = json.data;
-        setAuths(pd.content);
-        setTotalPages(pd.totalPages);
-        setTotalElements(pd.totalElements);
+        const pd: PageData = json.data ?? {};
+        setAuths(pd.content ?? []);
+        setTotalPages(pd.totalPages ?? 1);
+        setTotalElements(pd.totalElements ?? 0);
       }
     } catch (err) {
       console.error("Failed to fetch prior authorizations:", err);
