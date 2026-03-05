@@ -364,6 +364,13 @@ export default function AppointmentPage() {
 
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
 
+  // Reload when a new appointment is created via the global AppointmentModal
+  useEffect(() => {
+    const handler = () => loadAppointments(true);
+    window.addEventListener("appointments-changed", handler);
+    return () => window.removeEventListener("appointments-changed", handler);
+  }, [loadAppointments]);
+
   // Auto-refresh (silent — no loading flash)
   useEffect(() => {
     if (!refreshInterval) return;

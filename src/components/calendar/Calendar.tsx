@@ -954,6 +954,13 @@ const Calendar: React.FC = () => {
         loadAppointments();
     }, [loadAppointments]);
 
+    // Reload appointments when a new one is created via the global AppointmentModal
+    useEffect(() => {
+        const handler = () => loadAppointments();
+        window.addEventListener("appointments-changed", handler);
+        return () => window.removeEventListener("appointments-changed", handler);
+    }, [loadAppointments]);
+
 
 
 
