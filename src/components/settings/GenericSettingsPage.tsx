@@ -368,6 +368,8 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                     setSelectedRecord(null);
                     setSearchTerm("");
                     if (mode === "create") {
+                        // Brief delay for FHIR server search indexing after create
+                        await new Promise(r => setTimeout(r, 3000));
                         setPage(0);
                         await fetchRecords(0);
                     } else {

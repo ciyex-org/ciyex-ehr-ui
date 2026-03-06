@@ -8,6 +8,7 @@ import FormOptionsEditor from "@/components/settings/FormOptionsEditor";
 import DisplaySettings from "@/components/settings/DisplaySettings";
 import CalendarColorSettings from "@/components/settings/CalendarColorSettings";
 import PracticeLogoUpload from "@/components/settings/PracticeLogoUpload";
+import CodesPage from "@/components/codes/CodesPage";
 import { ICONS } from "@/components/settings/IconPicker";
 import { Settings, Loader2, FileText, SlidersHorizontal, Monitor, Palette, Users, Shield } from "lucide-react";
 import { usePluginRegistry } from "@/context/PluginRegistryContext";
@@ -222,6 +223,8 @@ export default function SettingsPage() {
                     <DisplaySettings />
                 ) : activeKey === "__calendar-colors__" ? (
                     <CalendarColorSettings />
+                ) : activeKey === "codes" ? (
+                    <div className="p-6"><CodesPage /></div>
                 ) : activeKey ? (
                     <>
                         {activeKey === "practice" && <PracticeLogoUpload />}
