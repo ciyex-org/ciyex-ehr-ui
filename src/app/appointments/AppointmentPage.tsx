@@ -164,7 +164,12 @@ export default function AppointmentPage() {
   const [location, setLocation] = useState<string>("All Locations");
   const [locations, setLocations] = useState<Location[]>([]);
   const [from, setFrom] = useState<string>(() => typeof window !== "undefined" ? todayFormatted() : "");
-  const [to, setTo] = useState<string>(() => typeof window !== "undefined" ? todayFormatted() : "");
+  const [to, setTo] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
+  });
   const [patientName, setPatientName] = useState("");
   const [rows, setRows] = useState<AppointmentDTO[]>([]);
 
