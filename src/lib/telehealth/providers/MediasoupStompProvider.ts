@@ -65,6 +65,13 @@ export class MediasoupStompProvider implements VideoCallProvider {
 
     private connectSignaling(wsUrl: string, displayName: string): Promise<void> {
         return new Promise((resolve) => {
+            // If the server never sends "joined" within 20s, surface an error instead of spinning forever
+            const joinTimeout = setTimeout(() => {
+                console.error("[telehealth] Timed out waiting for 'joined' from signaling server");
+                this.onStateChange?.({ error: "Could not connect to session — the session may have ended. Please try again.", callStatus: "error" });
+                resolve();
+            }, 20000);
+
             const stompClient = new Client({
                 brokerURL: wsUrl,
                 reconnectDelay: 5000,
@@ -74,6 +81,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
             });
 
             stompClient.onConnect = () => {
+                clearTimeout(joinTimeout);
                 const sid = this.sessionId;
                 const uid = this.userId;
 
@@ -116,6 +124,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
             };
 
             stompClient.onStompError = (frame) => {
+                clearTimeout(joinTimeout);
                 console.error("[STOMP] Error:", frame.headers["message"]);
                 this.onStateChange?.({ error: "Signaling connection error — please refresh", callStatus: "error" });
                 resolve();
