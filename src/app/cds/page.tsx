@@ -90,6 +90,13 @@ export default function CDSPage() {
     finally { setLoading(false); }
   }, [page, searchQuery, typeFilter, severityFilter]);
 
+  /* Alert search & filters */
+  const [alertSearchDraft, setAlertSearchDraft] = useState("");
+  const [alertSearchQuery, setAlertSearchQuery] = useState("");
+  const [alertTypeFilter, setAlertTypeFilter] = useState("all");
+  const [alertSeverityFilter, setAlertSeverityFilter] = useState("all");
+  const alertDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   /* ── Fetch Alerts ── */
   const fetchAlerts = useCallback(async () => {
     setAlertsLoading(true);
@@ -129,6 +136,27 @@ export default function CDSPage() {
     debounceRef.current = setTimeout(() => { setSearchQuery(searchDraft.trim()); setPage(0); }, 350);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchDraft]);
+
+  /* Debounced alert search */
+  useEffect(() => {
+    if (alertDebounceRef.current) clearTimeout(alertDebounceRef.current);
+    alertDebounceRef.current = setTimeout(() => { setAlertSearchQuery(alertSearchDraft.trim()); }, 350);
+    return () => { if (alertDebounceRef.current) clearTimeout(alertDebounceRef.current); };
+  }, [alertSearchDraft]);
+
+  /* Client-side filtered alerts */
+  const filteredAlerts = alerts.filter((a) => {
+    if (alertSearchQuery) {
+      const q = alertSearchQuery.toLowerCase();
+      const match = (a.ruleName || "").toLowerCase().includes(q)
+        || (a.message || "").toLowerCase().includes(q)
+        || (a.patientName || "").toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (alertTypeFilter !== "all" && a.alertType !== alertTypeFilter) return false;
+    if (alertSeverityFilter !== "all" && a.severity !== alertSeverityFilter) return false;
+    return true;
+  });
 
   /* ── CRUD ── */
   const handleSave = async (data: Partial<CDSRule>) => {
@@ -292,9 +320,54 @@ export default function CDSPage() {
 
         {/* Tab: Alert History */}
         {activeTab === "alerts" && (
-          <div className="flex-1 overflow-y-auto">
-            <CDSAlertHistory alerts={alerts} loading={alertsLoading} />
-          </div>
+          <>
+            {/* Alert Search + Filters */}
+            <div className="flex flex-wrap items-center gap-3 mb-4 shrink-0">
+              <div className="relative flex-1 min-w-[200px] max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  placeholder="Search alerts..."
+                  value={alertSearchDraft}
+                  onChange={(e) => setAlertSearchDraft(e.target.value)}
+                />
+                {alertSearchDraft && (
+                  <button onClick={() => setAlertSearchDraft("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <X className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                  </button>
+                )}
+              </div>
+              <select
+                value={alertTypeFilter}
+                onChange={(e) => setAlertTypeFilter(e.target.value)}
+                className="text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Types</option>
+                <option value="preventive_screening">Preventive Screening</option>
+                <option value="drug_allergy">Drug-Allergy</option>
+                <option value="drug_drug">Drug-Drug</option>
+                <option value="duplicate_order">Duplicate Order</option>
+                <option value="age_based">Age-Based</option>
+                <option value="condition_based">Condition-Based</option>
+                <option value="lab_value">Lab Value</option>
+                <option value="custom">Custom</option>
+              </select>
+              <select
+                value={alertSeverityFilter}
+                onChange={(e) => setAlertSeverityFilter(e.target.value)}
+                className="text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Severity</option>
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <CDSAlertHistory alerts={filteredAlerts} loading={alertsLoading} />
+            </div>
+          </>
         )}
 
         {/* Form Panel */}

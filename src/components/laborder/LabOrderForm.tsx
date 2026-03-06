@@ -619,7 +619,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   function onProviderSearchChange(q: string) {
     upd("orderingProvider", q);
-    if (!q || q.trim().length < 1) {
+    if (!q || q.trim().length < 2) {
       setProviderMatches([]);
       setShowProviderDropdown(false);
       return;
@@ -627,18 +627,33 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
     if (_searchTimer.current) window.clearTimeout(_searchTimer.current);
     _searchTimer.current = window.setTimeout(async () => {
-      const orders = await searchOrders(q);
-      const qq = q.toLowerCase();
-      const vals = Array.from(new Set((orders || []).map((o) => (o.orderingProvider || "").trim()).filter(Boolean)));
-      const matches = vals.filter((v) => v.toLowerCase().includes(qq)).slice(0, 8);
-      setProviderMatches(matches);
-      setShowProviderDropdown(matches.length > 0);
+      try {
+        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
+        if (!base) return;
+        const res = await fetchWithAuth(`${base}/api/fhir-resource/providers?size=50&search=${encodeURIComponent(q)}`);
+        const json = await res.json().catch(() => null);
+        if (json?.success && json?.data?.content) {
+          const names = (json.data.content as Record<string, string>[])
+            .map((p) => `${p["identification.firstName"] || ""} ${p["identification.lastName"] || ""}`.trim())
+            .filter(Boolean);
+          const unique = Array.from(new Set(names)).slice(0, 8);
+          setProviderMatches(unique);
+          setShowProviderDropdown(unique.length > 0);
+        } else {
+          setProviderMatches([]);
+          setShowProviderDropdown(false);
+        }
+      } catch (e) {
+        console.error("Provider search error", e);
+        setProviderMatches([]);
+        setShowProviderDropdown(false);
+      }
     }, 220) as unknown as number;
   }
 
   function onPhysicianSearchChange(q: string) {
     upd("physicianName", q);
-    if (!q || q.trim().length < 1) {
+    if (!q || q.trim().length < 2) {
       setPhysicianMatches([]);
       setShowPhysicianDropdown(false);
       return;
@@ -646,12 +661,27 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
     if (_searchTimer.current) window.clearTimeout(_searchTimer.current);
     _searchTimer.current = window.setTimeout(async () => {
-      const orders = await searchOrders(q);
-      const qq = q.toLowerCase();
-      const vals = Array.from(new Set((orders || []).map((o) => (o.physicianName || "").trim()).filter(Boolean)));
-      const matches = vals.filter((v) => v.toLowerCase().includes(qq)).slice(0, 8);
-      setPhysicianMatches(matches);
-      setShowPhysicianDropdown(matches.length > 0);
+      try {
+        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
+        if (!base) return;
+        const res = await fetchWithAuth(`${base}/api/fhir-resource/providers?size=50&search=${encodeURIComponent(q)}`);
+        const json = await res.json().catch(() => null);
+        if (json?.success && json?.data?.content) {
+          const names = (json.data.content as Record<string, string>[])
+            .map((p) => `${p["identification.firstName"] || ""} ${p["identification.lastName"] || ""}`.trim())
+            .filter(Boolean);
+          const unique = Array.from(new Set(names)).slice(0, 8);
+          setPhysicianMatches(unique);
+          setShowPhysicianDropdown(unique.length > 0);
+        } else {
+          setPhysicianMatches([]);
+          setShowPhysicianDropdown(false);
+        }
+      } catch (e) {
+        console.error("Physician search error", e);
+        setPhysicianMatches([]);
+        setShowPhysicianDropdown(false);
+      }
     }, 220) as unknown as number;
   }
 

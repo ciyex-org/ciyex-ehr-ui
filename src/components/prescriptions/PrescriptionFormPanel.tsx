@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { X, Pill, User, Building2, FileText, Loader2 } from "lucide-react";
+import { X, Pill, User, Building2, FileText, Loader2, Stethoscope } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Prescription, ToastState } from "./types";
@@ -243,6 +243,20 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
               <div>
                 <label className={labelCls}>Patient ID</label>
                 <input className={inputCls()} value={form.patientId} readOnly placeholder="Auto-filled from search" />
+              </div>
+            </div>
+          </Section>
+
+          {/* Prescriber Info */}
+          <Section title="Prescriber Information" icon={<Stethoscope className="w-4 h-4" />}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelCls}>Prescriber Name</label>
+                <input className={inputCls()} value={form.prescriberName || ""} onChange={(e) => set("prescriberName", e.target.value)} placeholder="Dr. Smith" />
+              </div>
+              <div>
+                <label className={labelCls}>Prescriber NPI</label>
+                <input className={inputCls()} value={form.prescriberNpi || ""} onChange={(e) => set("prescriberNpi", e.target.value)} placeholder="1234567890" />
               </div>
             </div>
           </Section>

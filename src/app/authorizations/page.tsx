@@ -268,11 +268,13 @@ export default function PriorAuthorizationsPage() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Debounced search
+  // Debounced search - update display immediately, debounce API call
+  const [searchDraft, setSearchDraft] = useState("");
   function handleSearchChange(val: string) {
-    setSearchTerm(val);
+    setSearchDraft(val);
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
+      setSearchTerm(val);
       setPage(0);
     }, 400);
   }
@@ -445,7 +447,7 @@ export default function PriorAuthorizationsPage() {
             <input
               type="text"
               placeholder="Search authorizations..."
-              value={searchTerm}
+              value={searchDraft}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

@@ -523,7 +523,7 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                             <select
                                 className="w-full rounded-lg border px-3 py-2 focus:ring"
                                 value={proc.providername}
-                                onChange={(e) => updateProcedure(index, "providername", e.target.value)}
+                                onChange={(e) => { updateProcedure(index, "providername", e.target.value); updateProcedure(index, "performer", e.target.value); }}
                             >
                                 <option value="">Select Provider</option>
                                 {providerOptions.map((p) => (

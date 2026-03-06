@@ -535,8 +535,9 @@ export default function Procedurelist({ patientId, encounterId }: Props) {
                 const top = [p.procedureName, p.procedureCode, p.status].filter(Boolean).map(String).join(" · ");
                 lineItems.push(`<div class="row"><strong>Procedure:</strong> ${escapeHtml(top)}</div>`);
             }
-            if (p.datePerformed || p.performer) {
-                const meta = [p.datePerformed ? "Date: " + p.datePerformed : "", p.performer ? "Performer: " + p.performer : ""].filter(Boolean).join(" · ");
+            const performerDisplay = p.performer || (p as any).providername || "";
+            if (p.datePerformed || performerDisplay) {
+                const meta = [p.datePerformed ? "Date: " + p.datePerformed : "", performerDisplay ? "Performer: " + performerDisplay : ""].filter(Boolean).join(" · ");
                 if (meta) lineItems.push(`<div class="row">${escapeHtml(meta)}</div>`);
             }
             if (p.bodySite || p.laterality || p.modifiers || p.anesthesia) {
@@ -699,10 +700,10 @@ export default function Procedurelist({ patientId, encounterId }: Props) {
                                             </p>
                                         )}
 
-                                        {(p.datePerformed || p.performer) && (
+                                        {(p.datePerformed || p.performer || (p as any).providername) && (
                                             <p className="text-sm text-gray-700">
                                                 {p.datePerformed ? `Date: ${p.datePerformed}` : ""}
-                                                {p.performer ? ` · Performer: ${p.performer}` : ""}
+                                                {(p.performer || (p as any).providername) ? ` · Performer: ${p.performer || (p as any).providername}` : ""}
                                             </p>
                                         )}
                                         {(p.bodySite || p.laterality || p.modifiers || p.anesthesia) && (

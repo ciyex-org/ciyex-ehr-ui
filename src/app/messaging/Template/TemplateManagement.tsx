@@ -103,6 +103,9 @@ const TemplateManagement = () => {
             templateName: tplName.trim(),
             subject: tplSubject.trim(),
             body: tplBody.trim(),
+            description: tplName.trim(),
+            category: tplSubject.trim(),
+            status: "current",
         };
 
         try {
