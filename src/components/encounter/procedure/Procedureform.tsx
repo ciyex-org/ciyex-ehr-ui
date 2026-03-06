@@ -27,6 +27,7 @@ type ProcedureFormData = {
     note: string;
     priceLevelTitle: number | "";
     providername: string;
+    datePerformed: string;
 };
 
 const CODE_TYPES = ["CPT4", "HCPCS", "ICD10", "ICD9", "CVX", "CUSTOM"] as const;
@@ -55,7 +56,8 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
         modifier1: "",
         note: "",
         priceLevelTitle: "",
-        providername: ""
+        providername: "",
+        datePerformed: new Date().toISOString().slice(0, 10),
     }]);
     const [codeType, setCodeType] = useState<string>("CPT4");
     const [codeOptions, setCodeOptions] = useState<CodeOption[]>([]);
@@ -164,7 +166,8 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                 modifier1: data.modifier1 ?? "",
                 note: data.note ?? "",
                 priceLevelTitle: typeof data.priceLevelTitle === "number" ? data.priceLevelTitle : "",
-                providername: data.providername ?? ""
+                providername: data.providername ?? "",
+                datePerformed: (data as any).datePerformed || new Date().toISOString().slice(0, 10)
             }]);
         } else if (editing?.id) {
             const codeItems = (editing as any).codeItems;
@@ -180,7 +183,8 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                     modifier1: item.modifier1 ?? "",
                     note: item.note ?? "",
                     priceLevelTitle: typeof item.priceLevelId === "number" ? item.priceLevelId : "",
-                    providername: item.providername ?? ""
+                    providername: item.providername ?? "",
+                    datePerformed: item.datePerformed || new Date().toISOString().slice(0, 10)
                 })));
             } else {
                 setProcedures([{
@@ -194,7 +198,8 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                     modifier1: editing.modifier1 ?? "",
                     note: editing.note ?? "",
                     priceLevelTitle: typeof (editing as any).priceLevelId === "number" ? (editing as any).priceLevelId : "",
-                    providername: (editing as any).providername ?? ""
+                    providername: (editing as any).providername ?? "",
+                    datePerformed: (editing as any).datePerformed || new Date().toISOString().slice(0, 10)
                 }]);
             }
         }
@@ -267,7 +272,8 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
             modifier1: "",
             note: "",
             priceLevelTitle: "",
-            providername: ""
+            providername: "",
+            datePerformed: new Date().toISOString().slice(0, 10)
         }]);
     };
 
@@ -314,6 +320,7 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                     ...(proc.modifier1 ? { modifier1: proc.modifier1.trim() } : {}),
                     ...(proc.note ? { note: proc.note.trim() } : {}),
                     ...(proc.providername ? { providername: proc.providername.trim() } : {}),
+                    ...(proc.datePerformed ? { datePerformed: proc.datePerformed } : {}),
                     ...(proc.priceLevelTitle !== "" ? { priceLevelTitle: priceLevels.find(pl => pl.id === proc.priceLevelTitle)?.title } : {})
                 }));
 
@@ -339,6 +346,7 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                     ...(proc.modifier1 ? { modifier1: proc.modifier1.trim() } : {}),
                     ...(proc.note ? { note: proc.note.trim() } : {}),
                     ...(proc.providername ? { providername: proc.providername.trim() } : {}),
+                    ...(proc.datePerformed ? { datePerformed: proc.datePerformed } : {}),
                     ...(proc.priceLevelTitle !== "" ? { priceLevelTitle: priceLevels.find(pl => pl.id === proc.priceLevelTitle)?.title } : {})
                 }));
 
@@ -392,7 +400,8 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                     modifier1: "",
                     note: "",
                     priceLevelTitle: "",
-                    providername: ""
+                    providername: "",
+                    datePerformed: new Date().toISOString().slice(0, 10)
                 }]);
             }
         } catch (e: unknown) {
@@ -553,6 +562,16 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                                 value={proc.relatedIcds}
                                 onChange={(e) => updateProcedure(index, "relatedIcds", e.target.value)}
                                 placeholder='e.g., "E0500" or comma-separated'
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Date Performed</label>
+                            <input
+                                type="date"
+                                className="w-full rounded-lg border px-3 py-2 focus:ring"
+                                value={proc.datePerformed}
+                                onChange={(e) => updateProcedure(index, "datePerformed", e.target.value)}
                             />
                         </div>
 

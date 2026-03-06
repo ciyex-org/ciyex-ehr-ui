@@ -338,7 +338,8 @@ export default function FieldConfigEditor({
       if (res.ok) {
         showNotif("success", "Field configuration saved");
       } else {
-        showNotif("error", "Failed to save field configuration");
+        const errJson = await res.json().catch(() => null);
+        showNotif("error", errJson?.message || errJson?.error || `Failed to save field configuration (${res.status})`);
       }
     } catch {
       showNotif("error", "Failed to save field configuration");

@@ -630,11 +630,17 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
       try {
         const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
         if (!base) return;
-        const res = await fetchWithAuth(`${base}/api/fhir-resource/providers?size=50&search=${encodeURIComponent(q)}`);
+        const res = await fetchWithAuth(`${base}/api/providers?search=${encodeURIComponent(q)}&size=50`);
         const json = await res.json().catch(() => null);
-        if (json?.success && json?.data?.content) {
-          const names = (json.data.content as Record<string, string>[])
-            .map((p) => `${p["identification.firstName"] || ""} ${p["identification.lastName"] || ""}`.trim())
+        const content = json?.data?.content || json?.data || (Array.isArray(json) ? json : []);
+        if (Array.isArray(content) && content.length > 0) {
+          const names = (content as any[])
+            .map((p) => {
+              const prefix = p.identification?.prefix || p["identification.prefix"] || "";
+              const firstName = p.identification?.firstName || p["identification.firstName"] || p.firstName || "";
+              const lastName = p.identification?.lastName || p["identification.lastName"] || p.lastName || "";
+              return `${prefix} ${firstName} ${lastName}`.trim();
+            })
             .filter(Boolean);
           const unique = Array.from(new Set(names)).slice(0, 8);
           setProviderMatches(unique);
@@ -664,11 +670,17 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
       try {
         const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
         if (!base) return;
-        const res = await fetchWithAuth(`${base}/api/fhir-resource/providers?size=50&search=${encodeURIComponent(q)}`);
+        const res = await fetchWithAuth(`${base}/api/providers?search=${encodeURIComponent(q)}&size=50`);
         const json = await res.json().catch(() => null);
-        if (json?.success && json?.data?.content) {
-          const names = (json.data.content as Record<string, string>[])
-            .map((p) => `${p["identification.firstName"] || ""} ${p["identification.lastName"] || ""}`.trim())
+        const content = json?.data?.content || json?.data || (Array.isArray(json) ? json : []);
+        if (Array.isArray(content) && content.length > 0) {
+          const names = (content as any[])
+            .map((p) => {
+              const prefix = p.identification?.prefix || p["identification.prefix"] || "";
+              const firstName = p.identification?.firstName || p["identification.firstName"] || p.firstName || "";
+              const lastName = p.identification?.lastName || p["identification.lastName"] || p.lastName || "";
+              return `${prefix} ${firstName} ${lastName}`.trim();
+            })
             .filter(Boolean);
           const unique = Array.from(new Set(names)).slice(0, 8);
           setPhysicianMatches(unique);

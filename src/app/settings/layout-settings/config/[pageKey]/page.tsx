@@ -112,6 +112,9 @@ export default function PageConfigPage() {
             if (res.ok) {
                 setConfigSource("ORG_CUSTOM");
                 showNotif("success", "Tab configuration saved");
+            } else {
+                const errJson = await res.json().catch(() => null);
+                showNotif("error", errJson?.message || errJson?.error || `Failed to save configuration (${res.status})`);
             }
         } catch {
             showNotif("error", "Failed to save configuration");

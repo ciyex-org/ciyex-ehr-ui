@@ -319,7 +319,12 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 await fetchRecords(0);
             } else {
                 const err = await res.json().catch(() => null);
-                setError(err?.message || "Failed to save");
+                const errMsg = err?.message
+                    || err?.issue?.[0]?.diagnostics
+                    || err?.text?.div?.replace(/<[^>]+>/g, "")
+                    || err?.error
+                    || `Failed to save (${res.status})`;
+                setError(errMsg);
             }
         } catch (err) {
             console.error("Error saving record", err);

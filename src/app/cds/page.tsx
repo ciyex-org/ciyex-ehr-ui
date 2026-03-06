@@ -144,6 +144,20 @@ export default function CDSPage() {
     return () => { if (alertDebounceRef.current) clearTimeout(alertDebounceRef.current); };
   }, [alertSearchDraft]);
 
+  /* Client-side filtered rules (fallback if backend ignores filter params) */
+  const filteredRules = rules.filter((r) => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const match = (r.name || "").toLowerCase().includes(q)
+        || (r.description || "").toLowerCase().includes(q)
+        || (r.ruleType || "").toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    if (typeFilter !== "all" && r.ruleType !== typeFilter) return false;
+    if (severityFilter !== "all" && r.severity !== severityFilter) return false;
+    return true;
+  });
+
   /* Client-side filtered alerts */
   const filteredAlerts = alerts.filter((a) => {
     if (alertSearchQuery) {
@@ -304,7 +318,7 @@ export default function CDSPage() {
             </div>
 
             <CDSRuleTable
-              rules={rules}
+              rules={filteredRules}
               loading={loading}
               page={page}
               totalPages={totalPages}

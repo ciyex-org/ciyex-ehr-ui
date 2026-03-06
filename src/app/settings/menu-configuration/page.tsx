@@ -219,7 +219,7 @@ export default function MenuConfigurationPage() {
       const changes: Record<string, string> = {};
       if (editForm.label) changes.label = editForm.label;
       if (editForm.icon) changes.icon = editForm.icon;
-      if (editForm.screenSlug !== undefined) changes.screenSlug = editForm.screenSlug;
+      if (editForm.screenSlug) changes.screenSlug = editForm.screenSlug;
 
       await fetchWithAuth(`${base}/api/menus/ehr-sidebar/items/${itemId}/modify`, {
         method: "PUT",

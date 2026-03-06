@@ -159,7 +159,8 @@ export default function EncounterSettingsPage() {
                 showNotif("success", "Encounter configuration saved");
                 setTimeout(() => setSaveFeedback(false), 1200);
             } else {
-                showNotif("error", "Failed to save configuration");
+                const errJson = await res.json().catch(() => null);
+                showNotif("error", errJson?.message || errJson?.error || `Failed to save configuration (${res.status})`);
             }
         } catch {
             showNotif("error", "Failed to save configuration");
