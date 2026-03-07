@@ -1,4 +1,5 @@
 import { getEnv } from "@/utils/env";
+import { jwtDecode } from "jwt-decode";
 // export function apiBase() {
 //     return getEnv("NEXT_PUBLIC_API_BASE") || "http://localhost:8080";
 // }
@@ -39,7 +40,18 @@ export async function fetchWithOrg(input: RequestInfo, init: RequestInit = {}) {
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
     // X-Tenant-Name header (NEW - replaces orgId)
-    const selectedTenant = typeof window !== "undefined" ? localStorage.getItem("selectedTenant") : null;
+    let selectedTenant = typeof window !== "undefined" ? localStorage.getItem("selectedTenant") : null;
+    // Fallback: extract org from JWT if selectedTenant is missing
+    if (!selectedTenant && token) {
+        try {
+            const decoded: any = jwtDecode(token);
+            const org = decoded.organization;
+            if (typeof org === "string") selectedTenant = org;
+            else if (org && typeof org === "object" && org.name) selectedTenant = String(org.name);
+            if (!selectedTenant && decoded.org_alias) selectedTenant = String(decoded.org_alias);
+            if (selectedTenant && typeof window !== "undefined") localStorage.setItem("selectedTenant", selectedTenant);
+        } catch { /* ignore */ }
+    }
     if (selectedTenant) {
         headers.set("X-Tenant-Name", selectedTenant);
     }

@@ -3,6 +3,7 @@ import { getEnv } from "@/utils/env";
 import { useEffect, useState, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getAccessibleTenants, setSelectedTenant } from "@/utils/tenantService";
+import { jwtDecode } from "jwt-decode";
 
 function AuthCallbackContent() {
     const router = useRouter();
@@ -179,14 +180,30 @@ function AuthCallbackContent() {
                             setSelectedTenant(tenantsData.tenants[0]);
                             router.replace("/calendar");
                         } else {
-                            // No tenants or full access, redirect to calendar
-                            console.log("User has full access or no tenants, redirecting to calendar");
+                            // No tenants or full access — extract org from JWT as fallback
+                            try {
+                                const decoded: any = jwtDecode(token);
+                                const org = decoded.organization;
+                                let tenant: string | null = null;
+                                if (typeof org === "string") tenant = org;
+                                else if (org && typeof org === "object" && org.name) tenant = String(org.name);
+                                if (!tenant && decoded.org_alias) tenant = String(decoded.org_alias);
+                                if (tenant) setSelectedTenant(tenant);
+                            } catch { /* ignore decode errors */ }
                             router.replace("/calendar");
                         }
                     } catch (tenantErr) {
                         console.error("Failed to check tenants:", tenantErr);
-                        // Fallback to calendar - don't block login
-                        console.log("Continuing to calendar despite tenant check failure");
+                        // Extract org from JWT as fallback so API calls have tenant context
+                        try {
+                            const decoded: any = jwtDecode(token);
+                            const org = decoded.organization;
+                            let tenant: string | null = null;
+                            if (typeof org === "string") tenant = org;
+                            else if (org && typeof org === "object" && org.name) tenant = String(org.name);
+                            if (!tenant && decoded.org_alias) tenant = String(decoded.org_alias);
+                            if (tenant) setSelectedTenant(tenant);
+                        } catch { /* ignore decode errors */ }
                         router.replace("/calendar");
                     }
                 } else {

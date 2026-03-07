@@ -1,8 +1,33 @@
 import { getEnv } from "@/utils/env";
 import { refreshAccessToken, clearAuth } from "@/utils/authUtils";
+import { jwtDecode } from "jwt-decode";
 
 // Prevent concurrent 401 redirects — only the first one wins
 let _redirecting = false;
+
+/** Extract tenant/org from JWT token and cache in localStorage */
+function resolveTenant(token: string | null): string | null {
+  if (typeof window === "undefined") return null;
+  const cached = localStorage.getItem("selectedTenant");
+  if (cached) return cached;
+  // Fallback: extract org from JWT
+  if (token) {
+    try {
+      const decoded: any = jwtDecode(token);
+      const org = decoded.organization;
+      let tenant: string | null = null;
+      if (typeof org === "string") tenant = org;
+      else if (org && typeof org === "object" && org.name) tenant = String(org.name);
+      // Also check org_alias claim
+      if (!tenant && decoded.org_alias) tenant = String(decoded.org_alias);
+      if (tenant) {
+        localStorage.setItem("selectedTenant", tenant);
+        return tenant;
+      }
+    } catch { /* ignore decode errors */ }
+  }
+  return null;
+}
 
 export async function fetchWithAuth(
   input: RequestInfo | URL,
@@ -13,7 +38,7 @@ export async function fetchWithAuth(
 
   const token = get("token") || get("authToken");
 
-  const selectedTenant = get("selectedTenant");
+  const selectedTenant = resolveTenant(token);
 
   const authHeaders: Record<string, string> = {
     "Accept": "application/json",

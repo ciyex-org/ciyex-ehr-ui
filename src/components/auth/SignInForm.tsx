@@ -117,9 +117,29 @@ export default function SignInForm() {
                 setSelectedTenant(tenantsData.tenants[0]);
                 router.replace("/calendar");
             } else {
+                // Fallback: extract org from JWT token so API calls include tenant header
+                try {
+                    const decoded: any = jwtDecode(data.token);
+                    const org = decoded.organization;
+                    let tenant: string | null = null;
+                    if (typeof org === "string") tenant = org;
+                    else if (org && typeof org === "object" && org.name) tenant = String(org.name);
+                    if (!tenant && decoded.org_alias) tenant = String(decoded.org_alias);
+                    if (tenant) setSelectedTenant(tenant);
+                } catch { /* ignore decode errors */ }
                 router.replace("/calendar");
             }
         } catch {
+            // Tenants endpoint failed — extract org from JWT as fallback
+            try {
+                const decoded: any = jwtDecode(data.token);
+                const org = decoded.organization;
+                let tenant: string | null = null;
+                if (typeof org === "string") tenant = org;
+                else if (org && typeof org === "object" && org.name) tenant = String(org.name);
+                if (!tenant && decoded.org_alias) tenant = String(decoded.org_alias);
+                if (tenant) setSelectedTenant(tenant);
+            } catch { /* ignore decode errors */ }
             router.replace("/calendar");
         }
     }, [router]);
