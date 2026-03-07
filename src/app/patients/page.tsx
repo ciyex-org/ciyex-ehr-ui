@@ -344,6 +344,7 @@ export default function PatientListPage() {
                             <option value="male">Male</option>
                             <option value="female">Female</option>
                             <option value="other">Other</option>
+                            <option value="unknown">Unknown</option>
                         </select>
                     </div>
 
@@ -729,9 +730,10 @@ export default function PatientListPage() {
                                         className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     >
                                         <option value="">Select gender</option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                        <option value="unknown">Unknown</option>
                                     </select>
                                 </div>
                             </div>
