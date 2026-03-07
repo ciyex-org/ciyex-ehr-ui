@@ -186,6 +186,25 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
     const handleFieldChange = (key: string, value: any) => {
         setFormData((prev) => ({ ...prev, [key]: value }));
+
+        // If a file field with uploadEndpoint received a value, the upload endpoint
+        // already created the record (e.g., DocumentController creates the FHIR resource).
+        // Auto-complete to avoid a duplicate POST from handleSave.
+        if (value && fieldConfig?.features?.fileUpload?.uploadEndpoint) {
+            const fileField = fieldConfig?.sections
+                ?.flatMap((s) => s.fields)
+                .find((f) => f.key === key && f.type === "file");
+            if (fileField) {
+                setSuccessMsg("Document uploaded successfully");
+                setTimeout(() => setSuccessMsg(null), 3000);
+                setTimeout(async () => {
+                    await fetchRecords(0);
+                    setMode("list");
+                    setFormData({});
+                    setSelectedRecord(null);
+                }, 2000);
+            }
+        }
     };
 
     const handleCreate = () => {

@@ -32,6 +32,7 @@ export function useAutoSave({ debounceMs = 2000, onSave, enabled = true }: UseAu
   const formDataRef = useRef(formData);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savingRef = useRef(false);
+  const pendingSaveRef = useRef(false);
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
 
@@ -41,11 +42,16 @@ export function useAutoSave({ debounceMs = 2000, onSave, enabled = true }: UseAu
   }, []);
 
   const doSave = useCallback(async () => {
-    if (savingRef.current) return;
+    if (savingRef.current) {
+      // Mark that a re-save is needed after current save completes
+      pendingSaveRef.current = true;
+      return;
+    }
     const data = formDataRef.current;
     if (!data || Object.keys(data).length === 0) return;
 
     savingRef.current = true;
+    pendingSaveRef.current = false;
     setStatus("saving");
     try {
       await onSaveRef.current(data);
@@ -60,6 +66,11 @@ export function useAutoSave({ debounceMs = 2000, onSave, enabled = true }: UseAu
       setTimeout(() => setStatus((s) => (s === "error" ? "idle" : s)), 5000);
     } finally {
       savingRef.current = false;
+      // If changes were made during save, re-save with latest data
+      if (pendingSaveRef.current) {
+        pendingSaveRef.current = false;
+        doSave();
+      }
     }
   }, []);
 
