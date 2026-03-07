@@ -17,6 +17,7 @@ function resolveTenant(token: string | null): string | null {
       const org = decoded.organization;
       let tenant: string | null = null;
       if (typeof org === "string") tenant = org;
+      else if (Array.isArray(org) && org.length > 0) tenant = String(org[0]);
       else if (org && typeof org === "object" && org.name) tenant = String(org.name);
       // Also check org_alias claim
       if (!tenant && decoded.org_alias) tenant = String(decoded.org_alias);

@@ -39,6 +39,9 @@ export async function fetchWithOrg(input: RequestInfo, init: RequestInit = {}) {
     // only set Content-Type for requests with a body
     if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 
+    // Authorization header — only if the token looks valid (JWT format)
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
     // X-Tenant-Name header (NEW - replaces orgId)
     let selectedTenant = typeof window !== "undefined" ? localStorage.getItem("selectedTenant") : null;
     // Fallback: extract org from JWT if selectedTenant is missing
@@ -47,6 +50,7 @@ export async function fetchWithOrg(input: RequestInfo, init: RequestInit = {}) {
             const decoded: any = jwtDecode(token);
             const org = decoded.organization;
             if (typeof org === "string") selectedTenant = org;
+            else if (Array.isArray(org) && org.length > 0) selectedTenant = String(org[0]);
             else if (org && typeof org === "object" && org.name) selectedTenant = String(org.name);
             if (!selectedTenant && decoded.org_alias) selectedTenant = String(decoded.org_alias);
             if (selectedTenant && typeof window !== "undefined") localStorage.setItem("selectedTenant", selectedTenant);
@@ -59,9 +63,6 @@ export async function fetchWithOrg(input: RequestInfo, init: RequestInit = {}) {
     // orgId header (DEPRECATED - kept for backward compatibility)
     const orgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
     if (orgId) headers.set("orgId", String(orgId));
-
-    // Authorization header — only if the token looks valid (JWT format)
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (token && /\S+\.\S+\.\S+/.test(token)) {
         headers.set("Authorization", `Bearer ${token}`);
     } else {

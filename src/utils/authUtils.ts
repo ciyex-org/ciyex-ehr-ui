@@ -371,6 +371,8 @@ export const getTenantName = (): string | null => {
             let tenantName: string | null = null;
             if (typeof org === 'string') {
                 tenantName = org;
+            } else if (Array.isArray(org) && org.length > 0) {
+                tenantName = String(org[0]);
             } else if (org && typeof org === 'object' && org.name) {
                 tenantName = String(org.name);
             }
