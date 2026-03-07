@@ -500,7 +500,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     const totalPaid = paymentList.reduce((s, p) => s + Number(p.amount || 0), 0);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-hidden">
             {/* Summary bar */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

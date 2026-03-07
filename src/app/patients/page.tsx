@@ -341,9 +341,9 @@ export default function PatientListPage() {
                             className="text-sm border border-gray-300 rounded-md px-2 py-1.5 bg-white focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="all">All</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
 
@@ -424,7 +424,7 @@ export default function PatientListPage() {
                                             </td>
 
                                             <td className="px-3 py-2 text-gray-600 text-sm">{formatDate(patient.dateOfBirth)}</td>
-                                            <td className="px-3 py-2 text-gray-600 text-sm">{patient.gender || "N/A"}</td>
+                                            <td className="px-3 py-2 text-gray-600 text-sm">{patient.gender ? patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1) : "N/A"}</td>
 
                                             {/* Status badge */}
                                             <td className="px-3 py-2">
@@ -603,9 +603,10 @@ export default function PatientListPage() {
                                     className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="">Select gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                    <option value="unknown">Unknown</option>
                                 </select>
                             </div>
                         </div>

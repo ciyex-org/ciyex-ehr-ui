@@ -63,7 +63,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         const cols: { key: string; label: string }[] = [];
         for (const section of fieldConfig.sections) {
             for (const field of section.fields) {
-                if (field.type === "group" || field.type === "computed" || field.type === "textarea" || field.type === "address") continue;
+                if (field.type === "group" || field.type === "computed" || field.type === "textarea" || field.type === "address" || field.type === "hidden") continue;
                 cols.push({ key: field.key, label: field.label });
                 if (cols.length >= 6) return cols;
             }
