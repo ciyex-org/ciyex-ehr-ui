@@ -112,7 +112,7 @@ const patientDemographics: ReportDefinition = {
   description: "Population breakdown by age, gender, status, and insurance",
   category: "clinical",
   icon: "Users",
-  filters: [PROVIDER_FILTER, { key: "status", label: "Status", type: "select", options: [{ value: "", label: "All" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }] }],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, { key: "status", label: "Status", type: "select", options: [{ value: "", label: "All" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }] }],
   kpis: [
     { key: "total", label: "Total Patients", format: "number", color: "text-blue-600" },
     { key: "active", label: "Active", format: "number", color: "text-emerald-600" },
@@ -133,10 +133,12 @@ const patientDemographics: ReportDefinition = {
     { key: "insurance", label: "Insurance" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
-    const [records, insuranceCos] = await Promise.all([
+    const { from, to } = getDateRange(filters);
+    const [allRecords, insuranceCos] = await Promise.all([
       safeFetch(`${apiUrl}/api/patients?page=0&size=1000&sort=id`, fetchFn),
       safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
     ]);
+    const records = filterByDateRange(allRecords, "createdAt", from, to);
     // Also try to load per-patient coverage data from all patients
     const patInsurance: Record<string, string> = {};
     // Build insurer id→name map from insurance companies (FHIR Organization)
@@ -545,11 +547,14 @@ const revenueOverview: ReportDefinition = {
     { key: "balance", label: "Balance", format: "currency", align: "right", sortable: true },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
-    const [payments, encounters, insuranceCos] = await Promise.all([
+    const { from, to } = getDateRange(filters);
+    const [allPayments, allEncounters, insuranceCos] = await Promise.all([
       safeFetch(`${apiUrl}/api/payments/transactions?page=0&size=1000`, fetchFn),
       safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=500`, fetchFn),
       safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
     ]);
+    const payments = filterByDateRange(allPayments, "paymentDate", from, to);
+    const encounters = filterByDateRange(allEncounters, "encounterDate", from, to);
     const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
     const charges = total * 1.4;
     const monthly: Record<string, { charges: number; collections: number }> = {};
@@ -610,7 +615,7 @@ const arAging: ReportDefinition = {
   description: "Outstanding balances by aging bucket (0-30, 31-60, 61-90, 90+)",
   category: "financial",
   icon: "Clock",
-  filters: [PAYER_FILTER, PROVIDER_FILTER],
+  filters: [DATE_RANGE_FILTER, PAYER_FILTER, PROVIDER_FILTER],
   kpis: [
     { key: "totalAR", label: "Total A/R", format: "currency", color: "text-blue-600" },
     { key: "daysInAR", label: "Days in A/R", format: "days", color: "text-amber-600" },
@@ -969,7 +974,9 @@ const providerProductivity: ReportDefinition = {
     { key: "collections", label: "Collections", format: "currency", align: "right", sortable: true },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
-    const encounters = await safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn);
+    const { from, to } = getDateRange(filters);
+    const allEncounters = await safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn);
+    const encounters = filterByDateRange(filterByProvider(allEncounters, filters.provider as string | undefined), "encounterDate", from, to);
     const provCounts = countBy(encounters, e => (e.encounterProvider || e.provider || "Unknown").toString());
     const providers = Object.entries(provCounts).sort((a, b) => b[1] - a[1]);
     return {

@@ -573,17 +573,56 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
     // Re-aggregate chart data from filtered table data
     const newCharts: Record<string, ChartDataPoint[]> = {};
     for (const chart of report.charts) {
-      // For charts backed by table data columns, re-aggregate
-      const col = report.columns.find(c => c.key === chart.categoryKey || c.label.toLowerCase().includes(chart.key.toLowerCase().replace("by", "")));
-      if (col && (chart.type === "pie" || chart.type === "donut" || chart.type === "bar" || chart.type === "horizontalBar")) {
+      const originalData = result.charts[chart.key] || [];
+
+      // Try to find a matching column in table data for this chart's category
+      const catKey = chart.categoryKey || "name";
+      // Direct match: categoryKey matches a column key
+      let col = report.columns.find(c => c.key === catKey);
+      // Fuzzy match: chart key contains column key (e.g. "byStatus" -> "status", "byProvider" -> "provider")
+      if (!col) {
+        const chartKeyLower = chart.key.toLowerCase();
+        col = report.columns.find(c => {
+          const colKeyLower = c.key.toLowerCase();
+          return chartKeyLower.includes(colKeyLower) || chartKeyLower.replace("by", "").includes(colKeyLower);
+        });
+      }
+
+      if (col && filteredTableData.length > 0) {
         const counts = countBy(filteredTableData, col.key);
         if (Object.keys(counts).length > 0) {
-          newCharts[chart.key] = toPieData(counts);
+          const dataKey = chart.dataKey || "count";
+          // For charts with series (composed/stacked), try to sum numeric fields per category
+          if (chart.series && chart.series.length > 0) {
+            const grouped: Record<string, Record<string, number>> = {};
+            for (const row of filteredTableData) {
+              const cat = String(row[col!.key] ?? "Unknown");
+              if (!grouped[cat]) grouped[cat] = {};
+              for (const s of chart.series) {
+                const val = Number(row[s.key] ?? 0);
+                grouped[cat][s.key] = (grouped[cat][s.key] || 0) + val;
+              }
+            }
+            newCharts[chart.key] = Object.entries(grouped).map(([name, vals]) => ({ [catKey]: name, ...vals }));
+          } else {
+            newCharts[chart.key] = Object.entries(counts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 12)
+              .map(([name, count]) => ({ [catKey]: name, [dataKey]: count }));
+          }
           continue;
         }
       }
+
+      // For time-based charts (monthly, daily, trend), filter original data by date range overlap
+      if (catKey === "month" || catKey === "date" || chart.key.toLowerCase().includes("trend") || chart.key.toLowerCase().includes("monthly") || chart.key.toLowerCase().includes("daily")) {
+        // Keep original time-series data since it can't be re-aggregated from filtered table rows
+        newCharts[chart.key] = originalData;
+        continue;
+      }
+
       // Fallback: keep original chart data
-      newCharts[chart.key] = result.charts[chart.key] || [];
+      newCharts[chart.key] = originalData;
     }
     return newCharts;
   }, [result, dataFilters, filteredTableData, report.charts, report.columns]);
