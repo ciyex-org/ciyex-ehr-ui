@@ -60,8 +60,9 @@ export default function UserDropdown() {
     const handleSignOut = () => {
         // Clear all authentication data
         localStorage.clear();
-        // Redirect to signin page
-        router.push("/signin");
+        // Full page reload so React context state (MenuContext, PermissionContext, etc.)
+        // is wiped clean — prevents the next user from inheriting stale state.
+        window.location.href = "/signin";
     };
 
     return (

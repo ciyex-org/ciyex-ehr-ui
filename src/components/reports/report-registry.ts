@@ -292,7 +292,10 @@ const labResults: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const all = await safeFetch(`${apiUrl}/api/lab-order/search?q=`, fetchFn);
+    // Try search endpoint first, then fallback to paginated list
+    let all = await safeFetch(`${apiUrl}/api/lab-order/search?q=`, fetchFn);
+    if (all.length === 0) all = await safeFetch(`${apiUrl}/api/lab-orders?page=0&size=1000`, fetchFn);
+    if (all.length === 0) all = await safeFetch(`${apiUrl}/api/lab-order?page=0&size=1000`, fetchFn);
     const byDate = filterByDateRange(all, "orderDate", from, to);
     const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, o => (o.status || "Unknown").toString());

@@ -104,14 +104,29 @@ export default function SignInForm() {
             return;
         }
 
-        // Check tenants
+        // Check tenants — always clear any stale tenant from a previous session first
+        // so a different user doesn't inherit the wrong practice.
+        localStorage.removeItem("selectedTenant");
+
+        // Always set tenant from JWT organization claim first as a guaranteed baseline.
+        // The tenants API may override this with a more specific selection.
         try {
-            const existingTenant = localStorage.getItem("selectedTenant");
+            const decoded: any = jwtDecode(data.token);
+            const org = decoded.organization;
+            const jwtOrg = Array.isArray(org) && org.length > 0
+                ? org[0]
+                : typeof org === "string" && org ? org : null;
+            if (jwtOrg) {
+                setSelectedTenant(jwtOrg);
+            }
+        } catch {
+            // ignore JWT decode errors
+        }
+
+        try {
             const tenantsData = await getAccessibleTenants(data.token);
 
-            if (existingTenant) {
-                router.replace("/calendar");
-            } else if (tenantsData.requiresSelection && tenantsData.tenants?.length > 1) {
+            if (tenantsData.requiresSelection && tenantsData.tenants?.length > 1) {
                 router.replace("/select-practice");
             } else if (tenantsData.tenants?.length === 1) {
                 setSelectedTenant(tenantsData.tenants[0]);

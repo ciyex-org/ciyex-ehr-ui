@@ -327,9 +327,9 @@ function ApiFilterBar({
           const vf = f.apiMapping?.valueField || "name";
           const lf = f.apiMapping?.labelField || "name";
           results[f.key] = items.map(item => ({
-            value: String(item[vf] ?? item.id ?? ""),
-            label: String(item[lf] ?? item.name ?? item[vf] ?? ""),
-          }));
+            value: String(item[vf] ?? item.companyName ?? item.name ?? item.id ?? ""),
+            label: String(item[lf] ?? item.companyName ?? item.name ?? item[vf] ?? ""),
+          })).filter(o => o.value && o.label);
         } catch (err) {
           console.warn(`Failed to fetch options for filter "${f.key}":`, err);
         }

@@ -74,29 +74,33 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     fetchPermissions();
   }, [fetchPermissions]);
 
-  // Retry when auth token becomes available (same pattern as MenuContext)
+  // Retry when auth token becomes available.
+  // The listener is NOT guarded by existing permission state so a new-user login
+  // after sign-out triggers a fresh fetch even when a previous user's data is loaded.
   useEffect(() => {
-    if (permissions.length > 0 || role) return;
-
     const handleAuthToken = () => fetchPermissions();
 
+    // Poll only when we don't yet have permissions (initial load / after logout).
     let retryCount = 0;
     const maxRetries = 20;
-    const interval = setInterval(() => {
-      retryCount++;
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-      if (token && permissions.length === 0 && !role) {
-        fetchPermissions();
-        clearInterval(interval);
-      } else if (retryCount >= maxRetries) {
-        clearInterval(interval);
-      }
-    }, 500);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (permissions.length === 0 && !role) {
+      interval = setInterval(() => {
+        retryCount++;
+        const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+        if (token && permissions.length === 0 && !role) {
+          fetchPermissions();
+          if (interval) clearInterval(interval);
+        } else if (retryCount >= maxRetries) {
+          if (interval) clearInterval(interval);
+        }
+      }, 500);
+    }
 
     window.addEventListener("auth-token-set", handleAuthToken);
 
     return () => {
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       window.removeEventListener("auth-token-set", handleAuthToken);
     };
   }, [fetchPermissions, permissions.length, role]);

@@ -156,22 +156,18 @@ function AuthCallbackContent() {
 
                     console.log("🔍 About to check if user needs to select practice...");
 
-                    // Check if user already has a selected practice in localStorage
-                    const existingTenant = localStorage.getItem('selectedTenant');
-                    
+                    // Always clear any stale tenant from a previous session so a different
+                    // user doesn't inherit the wrong practice context.
+                    localStorage.removeItem('selectedTenant');
+
                     // Check if user needs to select practice
                     try {
                         console.log("Checking accessible tenants for user...");
                         const tenantsData = await getAccessibleTenants(token);
                         console.log("Tenants data:", tenantsData);
-                        
-                        // If user already has a selected practice, skip selection and go to calendar
-                        if (existingTenant) {
-                            console.log("User already has selected practice:", existingTenant);
-                            console.log("Skipping practice selection, going to calendar");
-                            router.replace("/calendar");
-                        } else if (tenantsData.requiresSelection && tenantsData.tenants?.length > 1) {
-                            // Multi-tenant user without selected practice, redirect to practice selection
+
+                        if (tenantsData.requiresSelection && tenantsData.tenants?.length > 1) {
+                            // Multi-tenant user — redirect to practice selection
                             console.log("User has multiple tenants, redirecting to practice selection");
                             router.replace("/select-practice");
                         } else if (tenantsData.tenants?.length === 1) {

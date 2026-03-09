@@ -80,9 +80,11 @@ export default function CDSPage() {
       const res = await fetchWithAuth(url);
       const json = await res.json();
       if (res.ok && json.success) {
-        setRules(json.data.content || json.data || []);
+        const rawRules: any[] = json.data.content || json.data || [];
+        // Normalize active field: backend may return `active` (Java) or `isActive` (TS interface)
+        setRules(rawRules.map((r: any) => ({ ...r, isActive: r.isActive ?? r.active ?? false })));
         setTotalPages(json.data.totalPages || 1);
-        setTotalElements(json.data.totalElements || (json.data.content || json.data || []).length);
+        setTotalElements(json.data.totalElements || rawRules.length);
       } else {
         setRules([]);
       }
@@ -103,8 +105,15 @@ export default function CDSPage() {
     try {
       const res = await fetchWithAuth(`${API()}/api/cds/alerts?page=0&size=50`);
       const json = await res.json();
-      if (res.ok && json.success) setAlerts(json.data.content || json.data || []);
-      else setAlerts([]);
+      if (res.ok && json.success) {
+        const rawAlerts: any[] = json.data.content || json.data || [];
+        setAlerts(rawAlerts.map((a: any) => ({
+          ...a,
+          createdAt: Array.isArray(a.createdAt)
+            ? new Date(a.createdAt[0], (a.createdAt[1] || 1) - 1, a.createdAt[2] || 1, a.createdAt[3] || 0, a.createdAt[4] || 0).toISOString()
+            : (a.createdAt || new Date().toISOString()),
+        })));
+      } else setAlerts([]);
     } catch { setAlerts([]); }
     finally { setAlertsLoading(false); }
   }, []);
@@ -115,15 +124,15 @@ export default function CDSPage() {
       const res = await fetchWithAuth(`${API()}/api/cds/stats`);
       if (!res.ok) {
         // If stats endpoint fails, build stats from rules data
-        setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.active).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
+        setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
         return;
       }
       const json = await res.json();
       if (json.success) setStats(json.data);
-      else setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.active).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
+      else setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
     } catch {
       // Fallback stats from local data
-      setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.active).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
+      setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
     }
   }, [rules]);
 

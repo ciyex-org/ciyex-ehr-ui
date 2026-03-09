@@ -70,7 +70,14 @@ const ClaimManagementDashboard: React.FC = () => {
       const res = await fetchWithAuth("/api/all-claims");
       if (!res.ok) throw new Error("Failed to load claims");
       const json = await res.json();
-      const data = Array.isArray(json) ? json : json.data ?? [];
+      const raw: any[] = Array.isArray(json) ? json : json.data?.content ?? json.data ?? [];
+      const data: Claim[] = raw.map((item: any) => ({
+        ...item,
+        payerName: item.payerName || item.insurer || item.insurerName || item.insuranceCompany || item.payer || "—",
+        provider: item.provider || item.providerName || item.billingProvider || item.renderingProvider || "—",
+        diagnosisCode: item.diagnosisCode || item.diagnosis || item.icdCode || item.primaryDiagnosis || "—",
+        createdOn: item.createdOn || item.createdDate || item.serviceDate || item.date || "",
+      }));
       setClaims(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load claims");

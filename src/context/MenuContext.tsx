@@ -149,11 +149,12 @@ export const MenuProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Retry menu fetch when auth token becomes available after initial mount
   // This handles the race condition where MenuProvider mounts before the
   // auth callback stores the token in localStorage.
+  // Also handles new-user login after sign-out (when existing menu items belong
+  // to the previous user and must be replaced with the new user's menu).
   useEffect(() => {
-    // If we already have menu items, no need to retry
-    if (menuItems.length > 0) return;
-
-    // Listen for localStorage changes (cross-tab) and custom auth event (same-tab)
+    // Listen for localStorage changes (cross-tab) and custom auth event (same-tab).
+    // NOTE: This listener is NOT guarded by menuItems.length so it fires for any
+    // new login, even if a previous user's menu is already loaded.
     const handleStorageChange = (e: StorageEvent | CustomEvent) => {
       const key = e instanceof StorageEvent ? e.key : (e as CustomEvent).detail?.key;
       if (key === "token" || key === "authToken") {
@@ -161,25 +162,29 @@ export const MenuProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    // Poll briefly for token availability (handles same-tab navigation from callback)
+    // Poll briefly for token availability (handles same-tab navigation from callback).
+    // Only run the poll if we don't yet have menu items (initial load / after logout).
     let retryCount = 0;
     const maxRetries = 20; // 20 * 500ms = 10 seconds
-    const interval = setInterval(() => {
-      retryCount++;
-      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
-      if (token && menuItems.length === 0) {
-        fetchMenu();
-        clearInterval(interval);
-      } else if (retryCount >= maxRetries) {
-        clearInterval(interval);
-      }
-    }, 500);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (menuItems.length === 0) {
+      interval = setInterval(() => {
+        retryCount++;
+        const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+        if (token && menuItems.length === 0) {
+          fetchMenu();
+          if (interval) clearInterval(interval);
+        } else if (retryCount >= maxRetries) {
+          if (interval) clearInterval(interval);
+        }
+      }, 500);
+    }
 
     window.addEventListener("storage", handleStorageChange as EventListener);
     window.addEventListener("auth-token-set", handleStorageChange as EventListener);
 
     return () => {
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       window.removeEventListener("storage", handleStorageChange as EventListener);
       window.removeEventListener("auth-token-set", handleStorageChange as EventListener);
     };
