@@ -452,10 +452,11 @@ const AppointmentModal: React.FC = () => {
                 }
 
                 const allowed = allProviders.filter((p) => providerIds.has(Number(p.value)));
-                setProvidersForDate(allowed);
+                // Fallback to all active providers when no schedule-specific providers found
+                setProvidersForDate(allowed.length > 0 ? allowed : allProviders);
             } catch (e) {
                 console.error("Failed to load schedules", e);
-                setProvidersForDate([]);
+                setProvidersForDate(allProviders);
             } finally {
                 setLoadingProvidersForDate(false);
             }
@@ -509,14 +510,16 @@ const AppointmentModal: React.FC = () => {
                 const byId: Record<string, Option<string>> = {};
                 allLocations.forEach((l) => (byId[l.value] = l));
                 const filtered = Array.from(locIds).map((id) => byId[id]).filter(Boolean) as Option<string>[];
+                // Fallback to all locations when no schedule-linked locations found
+                const finalLocations = filtered.length > 0 ? filtered : allLocations;
 
                 if (!cancelled) {
-                    setProviderLocationOptions(filtered);
+                    setProviderLocationOptions(finalLocations);
 
                     // Auto-select if exactly one
-                    if (filtered.length === 1) {
-                        setLocationId(filtered[0].value);
-                    } else if (locationId && !filtered.some((l) => l.value === locationId)) {
+                    if (finalLocations.length === 1) {
+                        setLocationId(finalLocations[0].value);
+                    } else if (locationId && !finalLocations.some((l) => l.value === locationId)) {
                         // Clear if previous location no longer valid
                         setLocationId("");
                     }
@@ -524,8 +527,7 @@ const AppointmentModal: React.FC = () => {
             } catch (e) {
                 if (!cancelled) {
                     console.error("Failed to load provider locations", e);
-                    setProviderLocationOptions([]);
-                    setLocationId("");
+                    setProviderLocationOptions(allLocations);
                 }
             }
         })();

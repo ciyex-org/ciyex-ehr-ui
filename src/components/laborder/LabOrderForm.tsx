@@ -554,8 +554,8 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     setCodePickerMode(type);
     setCodePickerRowIndex(rowIndex);
     setCodePickerQuery("");
-    // Default to CPT for procedure codes, ICD10 for diagnosis codes
-    const defaultCodeType = type === "procedure" ? "CPT" : "ICD10";
+    // Default to CPT4 for procedure codes, ICD10 for diagnosis codes
+    const defaultCodeType = type === "procedure" ? "CPT4" : "ICD10";
     setCodePickerCodeType(defaultCodeType);
     setCodePickerOpen(true);
     loadCodesForPicker("", defaultCodeType);

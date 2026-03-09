@@ -107,9 +107,18 @@ export default function MessageLog() {
   useEffect(() => { loadLogs(); }, [loadLogs]);
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  const fmtDate = (d?: string) => {
+  const fmtDate = (d?: string | number[]) => {
     if (!d) return "-";
-    return new Date(d).toLocaleString("en-US", {
+    let dateStr: string;
+    if (Array.isArray(d)) {
+      const [y, mo, day, h = 0, mi = 0] = d as number[];
+      dateStr = `${y}-${String(mo).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(h).padStart(2,"0")}:${String(mi).padStart(2,"0")}:00`;
+    } else {
+      dateStr = d;
+    }
+    const dt = new Date(dateStr);
+    if (isNaN(dt.getTime())) return String(d).slice(0, 16);
+    return dt.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -257,13 +266,13 @@ export default function MessageLog() {
                 <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Status</th>
                 <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Trigger</th>
                 <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300">Patient</th>
-                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">View</th>
+                <th className="px-4 py-3 font-medium text-slate-600 dark:text-slate-300 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
-              {logs.map((log) => (
+              {logs.map((log, idx) => (
                 <tr
-                  key={log.id}
+                  key={log.id ?? idx}
                   className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
@@ -286,7 +295,7 @@ export default function MessageLog() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                    {log.recipientName || log.recipient}
+                    {log.recipientName || log.recipient || "-"}
                   </td>
                   <td className="px-4 py-3 text-slate-700 dark:text-slate-200 max-w-[200px] truncate">
                     {log.subject || "-"}
@@ -299,12 +308,29 @@ export default function MessageLog() {
                     {log.patientName || "-"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => setDetail(log)}
-                      className="rounded-md p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        onClick={() => setDetail(log)}
+                        title="View"
+                        className="rounded-md p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      {log.status === "failed" && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await fetchWithAuth(`/api/notifications/log/${log.id}/retry`, { method: "POST" });
+                              loadLogs();
+                            } catch { /* ignore */ }
+                          }}
+                          title="Retry"
+                          className="rounded-md p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
+                        >
+                          <Send className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

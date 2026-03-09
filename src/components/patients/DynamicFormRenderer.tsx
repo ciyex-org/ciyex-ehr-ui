@@ -1026,8 +1026,12 @@ function CodeLookup({
         const res = await fetchWithAuth(url);
         if (res.ok) {
           const json = await res.json();
-          setSearchResults(json.content || []);
+          const results = json.content || json.data || [];
+          if (results.length > 0) { setSearchResults(results); return; }
         }
+        // Fallback: global_codes search endpoint
+        const fb = await fetchWithAuth(`${base}/api/global_codes/search?q=${encodeURIComponent(q)}&codeType=${codeSystem}`);
+        if (fb.ok) { const fj = await fb.json(); setSearchResults(fj.data || fj.content || []); }
       } catch { setSearchResults([]); }
     },
     [codeSystem]
@@ -1283,7 +1287,13 @@ function CodedField({
         ).slice(0, 15);
         setSearchResults(fallback);
       } else {
-        setSearchResults([]);
+        // Fallback: try global_codes search endpoint for non-CVX code systems
+        try {
+          const base = API_BASE();
+          const fb = await fetchWithAuth(`${base}/api/global_codes/search?q=${encodeURIComponent(q)}&codeType=${codeSystem}`);
+          if (fb.ok) { const fj = await fb.json(); setSearchResults(fj.data || fj.content || []); }
+          else setSearchResults([]);
+        } catch { setSearchResults([]); }
       }
     },
     [codeSystem]

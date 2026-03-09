@@ -118,10 +118,21 @@ export default function MaterialLibrary({
     };
   }, [searchDraft]);
 
-  // client-side content type filter
-  const filtered = contentTypeFilter === "all"
-    ? materials
-    : materials.filter((m) => m.contentType === contentTypeFilter);
+  // client-side filter (content type + search query fallback)
+  const filtered = materials.filter((m) => {
+    if (contentTypeFilter !== "all" && m.contentType !== contentTypeFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (
+        m.title?.toLowerCase().includes(q) ||
+        m.description?.toLowerCase().includes(q) ||
+        m.category?.toLowerCase().includes(q) ||
+        (Array.isArray(m.tags) ? m.tags.join(" ") : (m.tags || "")).toLowerCase().includes(q) ||
+        m.source?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   const handleDelete = async (id: number) => {
     setDeletingId(id);

@@ -89,6 +89,28 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
     }, [tabKey]);
 
+    // Normalize common FHIR field name mismatches so columns display correctly
+    const normalizeRecord = useCallback((rec: Record<string, any>): Record<string, any> => {
+        const r = { ...rec };
+        // AllergyIntolerance: FHIR uses "criticality", config may use "severity"
+        if (r.criticality != null && r.severity == null) r.severity = r.criticality;
+        // AllergyIntolerance onset
+        if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
+        if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
+        // Encounter period
+        if (r.period != null) {
+            if (r.period.start != null && r.startDate == null) r.startDate = r.period.start;
+            if (r.period.end != null && r.endDate == null) r.endDate = r.period.end;
+        }
+        if (r.actualPeriod != null) {
+            if (r.actualPeriod.start != null && r.startDate == null) r.startDate = r.actualPeriod.start;
+            if (r.actualPeriod.end != null && r.endDate == null) r.endDate = r.actualPeriod.end;
+        }
+        if (r.start != null && r.startDate == null) r.startDate = r.start;
+        if (r.end != null && r.endDate == null) r.endDate = r.end;
+        return r;
+    }, []);
+
     // Fetch records with pagination
     const fetchRecords = useCallback(async (p = page) => {
         setLoading(true);
@@ -100,7 +122,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             if (res.ok) {
                 const json = await res.json();
                 const data = json.data || {};
-                const content = data.content || [];
+                const content = (data.content || []).map(normalizeRecord);
                 const isSingle = data.singleRecord === true;
                 setSingleRecord(isSingle);
                 setRecords(content);
@@ -129,7 +151,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         } finally {
             setLoading(false);
         }
-    }, [tabKey, patientId, pageSize]);
+    }, [tabKey, patientId, pageSize, normalizeRecord]);
 
     useEffect(() => {
         fetchConfig();

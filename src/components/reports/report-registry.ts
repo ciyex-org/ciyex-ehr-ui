@@ -10,6 +10,17 @@ import {
 
 /* ── helpers ── */
 
+/** Convert Java date arrays [year, month, day, ...] or ISO strings to "YYYY-MM-DD" */
+function normDate(v: unknown): string {
+  if (!v) return "";
+  if (Array.isArray(v) && v.length >= 3) {
+    const [y, m, d] = v as number[];
+    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  if (typeof v === "string") return v.includes("T") ? v.split("T")[0] : v;
+  return String(v);
+}
+
 function getDateRange(filters: FilterValues): { from: string; to: string } {
   const today = new Date();
   const past = new Date(today);
@@ -46,9 +57,11 @@ function toChartData(counts: Record<string, number>, nameKey = "name", valueKey 
 
 function filterByDateRange(records: any[], dateField: string, from: string, to: string): any[] {
   return records.filter(r => {
-    const d = r[dateField];
-    if (!d) return true;
+    const raw = r[dateField];
+    if (!raw) return true;
+    const d = normDate(raw);
     const dt = new Date(d);
+    if (isNaN(dt.getTime())) return true;
     return dt >= new Date(from) && dt <= new Date(to + "T23:59:59");
   });
 }
@@ -158,7 +171,13 @@ const patientDemographics: ReportDefinition = {
           if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
         }
         if (!pid) continue;
-        const insName = c.payerName || c.insurerName || c.planName ||
+        // Handle FHIR payor array: payor[0].display or payor[0].reference
+        let fhirPayorName = "";
+        if (Array.isArray(c.payor) && c.payor.length > 0) {
+          const p = c.payor[0];
+          fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
+        }
+        const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
           insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
           c.subscriberPlan || c.insuranceType || "";
         if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
@@ -186,15 +205,18 @@ const patientDemographics: ReportDefinition = {
         genderDistribution: toChartData(genderCounts, "name", "count"),
         statusDistribution: toChartData(statusCounts, "name", "count"),
       },
-      tableData: records.map(p => ({
-        id: p.id,
-        name: [p.firstName, p.lastName].filter(Boolean).join(" ") || p.name || p.fullName || p.display || "",
-        gender: p.gender || p.sex || "",
-        dob: p.dateOfBirth || p.birthDate || "",
-        ageGroup: ageGroup(p.dateOfBirth || p.birthDate || ""),
-        status: p.status || "Active",
-        insurance: patInsurance[String(p.id)] || p.insurance || p.insurancePlan || "",
-      })),
+      tableData: records.map(p => {
+        const dob = normDate(p.dateOfBirth || p.birthDate || p.dob || "");
+        return {
+          id: p.id,
+          name: [p.firstName, p.lastName].filter(Boolean).join(" ") || p.name || p.fullName || p.display || "",
+          gender: p.gender || p.sex || "",
+          dob,
+          ageGroup: ageGroup(dob),
+          status: p.status || "Active",
+          insurance: patInsurance[String(p.id)] || p.insurance || p.insurancePlan || "",
+        };
+      }),
       totalRecords: records.length,
     };
   },
