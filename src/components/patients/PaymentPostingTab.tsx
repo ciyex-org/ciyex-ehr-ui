@@ -500,9 +500,9 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     const totalPaid = paymentList.reduce((s, p) => s + Number(p.amount || 0), 0);
 
     return (
-        <div className="space-y-4 overflow-hidden">
+        <div className="space-y-4">
             {/* Summary bar */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-green-600" />
@@ -513,7 +513,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                     <span className="text-xs text-gray-400">{paymentList.length} payment{paymentList.length !== 1 ? "s" : ""}</span>
                 </div>
                 {!showForm && !showCollect && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                         <button
                             onClick={() => setShowCollect(true)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors"

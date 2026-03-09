@@ -835,7 +835,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
   }
 
   return (
-  <div className="p-8 max-w-[1180px] mx-auto bg-[#f7f8fa] min-h-screen">
+  <div className="p-8 max-w-[1180px] mx-auto bg-[#f7f8fa] min-h-screen overflow-y-auto">
       {message && message.type === 'success' && (
         <div className="mb-6 px-4 py-3 rounded-lg shadow-sm border text-sm font-medium bg-green-50 text-green-800 border-green-200">
           {message.text}

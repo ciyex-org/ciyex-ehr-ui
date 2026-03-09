@@ -280,7 +280,7 @@ export default function StatementsTab({ patientId }: StatementsTabProps) {
     return (
         <div className="space-y-4">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-blue-600" />
                     <span className="text-sm text-gray-600">
@@ -290,7 +290,7 @@ export default function StatementsTab({ patientId }: StatementsTabProps) {
                 {!showGenerator && !showPreview && (
                     <button
                         onClick={() => setShowGenerator(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors shrink-0"
                     >
                         <FileText className="w-3.5 h-3.5" />
                         Generate Statement

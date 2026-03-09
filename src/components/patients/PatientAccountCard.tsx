@@ -61,7 +61,15 @@ export default function PatientAccountCard({ patientId }: PatientAccountCardProp
         showMsg("success", "Patient account created");
         fetchStatus();
       } else {
-        showMsg("error", json.message || "Failed to create account");
+        const msg = json.message || "Failed to create account";
+        // Handle Keycloak "user exists" error gracefully
+        if (msg.includes("409") || msg.toLowerCase().includes("exists with same email") || msg.toLowerCase().includes("user exists")) {
+          showMsg("error", "A portal account with this email already exists. The patient may already have an account in another practice.");
+          // Refresh status in case account was linked
+          fetchStatus();
+        } else {
+          showMsg("error", msg);
+        }
       }
     } catch {
       showMsg("error", "Failed to create account");

@@ -378,9 +378,55 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         return undefined;
     };
 
+    // Try to format a raw string as a readable date
+    const tryFormatDate = (val: string): string | null => {
+        if (!val) return null;
+        // Already a date-like string: 2026-03-09, 2026-03-09T10:00:00Z, etc.
+        const dateOnly = val.includes("T") ? val.split("T")[0] : val;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+            try {
+                const d = new Date(dateOnly + "T00:00:00");
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                }
+            } catch { /* ignore */ }
+        }
+        return null;
+    };
+
+    const tryFormatDatetime = (val: string): string | null => {
+        if (!val) return null;
+        try {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+            }
+        } catch { /* ignore */ }
+        return val.replace(/(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/, "").replace("T", " ");
+    };
+
     // Format display value for list table
     const formatValue = (value: any, colKey?: string, record?: Record<string, any>): React.ReactNode => {
-        if (value == null) return "-";
+        if (value == null) {
+            // For date/datetime fields, try fallback to _lastUpdated for "created date" columns
+            const fieldDef = colKey ? findFieldDef(colKey) : undefined;
+            if (fieldDef && (fieldDef.type === "date" || fieldDef.type === "datetime") && record) {
+                // Check common alternate key patterns: camelCase, snake_case, etc.
+                const altKeys = [
+                    colKey + "Date", colKey + "DateTime",
+                    colKey?.replace(/Date$/, ""), colKey?.replace(/date$/i, ""),
+                ];
+                for (const alt of altKeys) {
+                    if (alt && record[alt] && typeof record[alt] === "string") {
+                        const formatted = fieldDef.type === "date"
+                            ? tryFormatDate(record[alt])
+                            : tryFormatDatetime(record[alt]);
+                        if (formatted) return formatted;
+                    }
+                }
+            }
+            return "-";
+        }
         if (typeof value === "boolean") return value ? "Yes" : "No";
 
         const fieldDef = colKey ? findFieldDef(colKey) : undefined;
@@ -406,19 +452,22 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
         // Date fields: format as readable date
         if (fieldDef?.type === "date" && typeof value === "string") {
-            const dateOnly = value.includes("T") ? value.split("T")[0] : value;
-            return dateOnly;
+            return tryFormatDate(value) || value;
         }
 
         // Datetime fields: format as readable datetime
         if (fieldDef?.type === "datetime" && typeof value === "string") {
-            try {
-                const d = new Date(value);
-                if (!isNaN(d.getTime())) {
-                    return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-                }
-            } catch { /* fall through */ }
-            return value.replace(/(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/, "").replace("T", " ");
+            return tryFormatDatetime(value) || value;
+        }
+
+        // Auto-detect date-like strings even without field def
+        if (typeof value === "string" && !fieldDef) {
+            if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                return tryFormatDatetime(value) || value;
+            }
+            if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return tryFormatDate(value) || value;
+            }
         }
 
         // File field: show file icon
