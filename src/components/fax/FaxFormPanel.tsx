@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Loader2, Send } from "lucide-react";
 import { SendFaxForm, FaxCategory, CATEGORY_LABELS, FaxMessage } from "./types";
+import { isValidFax } from "@/utils/validation";
 
 interface Props {
   open: boolean;
@@ -37,6 +38,7 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
     return { ...EMPTY_FORM };
   });
   const [saving, setSaving] = useState(false);
+  const [faxError, setFaxError] = useState("");
 
   // Reset form when panel opens with a new resendFax or fresh
   React.useEffect(() => {
@@ -59,6 +61,11 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.faxNumber && !isValidFax(form.faxNumber)) {
+      setFaxError("Please enter a valid fax number (digits, spaces, dashes, parentheses only)");
+      return;
+    }
+    setFaxError("");
     setSaving(true);
     try {
       await onSubmit(form);
@@ -123,10 +130,11 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
               type="tel"
               required
               value={form.faxNumber}
-              onChange={(e) => update("faxNumber", e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => { update("faxNumber", e.target.value); if (faxError) setFaxError(""); }}
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${faxError ? "border-red-400 ring-1 ring-red-300" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="+1 (555) 123-4567"
             />
+            {faxError && <p className="text-xs text-red-500 mt-1">{faxError}</p>}
           </div>
 
           {/* Subject */}

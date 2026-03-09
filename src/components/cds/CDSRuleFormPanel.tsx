@@ -12,6 +12,7 @@ import {
   RULE_TYPE_LABELS,
   CATEGORY_LABELS,
 } from "./types";
+import { isValidUrl } from "@/utils/validation";
 
 interface Props {
   rule: CDSRule | null;
@@ -37,6 +38,7 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
     appliesTo: "all", snoozeDays: 0, conditions: {},
   });
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (rule) {
@@ -55,6 +57,12 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (form.referenceUrl && !isValidUrl(form.referenceUrl)) errs.referenceUrl = "Must be a valid URL (https://...)";
+    if (!form.name?.trim()) errs.name = "Name is required";
+    if (!form.message?.trim()) errs.message = "Alert message is required";
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     setSaving(true);
     try {
       await onSave(form);
@@ -215,10 +223,11 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Reference URL</label>
               <input
                 type="url" value={form.referenceUrl || ""}
-                onChange={(e) => set("referenceUrl", e.target.value)}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => { set("referenceUrl", e.target.value); if (errors.referenceUrl) setErrors(prev => { const n = {...prev}; delete n.referenceUrl; return n; }); }}
+                className={`w-full rounded-lg border ${errors.referenceUrl ? "border-red-400 ring-1 ring-red-300" : "border-slate-300 dark:border-slate-600"} bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
                 placeholder="https://guidelines.example.com"
               />
+              {errors.referenceUrl && <p className="text-xs text-red-500 mt-1">{errors.referenceUrl}</p>}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Snooze (days)</label>

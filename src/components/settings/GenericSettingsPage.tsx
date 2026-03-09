@@ -9,6 +9,7 @@ import {
     Plus, Pencil, Trash2, X, Save, Loader2, Search,
     ChevronLeft, ChevronRight, LayoutGrid,
 } from "lucide-react";
+import { isValidEmail, isValidPhone, isValidFax, isValidUrl } from "@/utils/validation";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -311,9 +312,21 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                     }
                 }
             }
+            // Format validation for typed fields
+            for (const section of fieldConfig.sections) {
+                for (const field of section.fields) {
+                    const val = formData[field.key];
+                    if (typeof val === "string" && val.trim()) {
+                        if (field.type === "email" && !isValidEmail(val)) errors[field.key] = "Invalid email format";
+                        if (field.type === "phone" && !isValidPhone(val)) errors[field.key] = "Invalid phone number";
+                        if ((field.key.toLowerCase().includes("fax")) && !isValidFax(val)) errors[field.key] = "Invalid fax number";
+                        if ((field.key.toLowerCase().includes("website") || field.key.toLowerCase().includes("url")) && !isValidUrl(val)) errors[field.key] = "Invalid URL (must start with http:// or https://)";
+                    }
+                }
+            }
             if (Object.keys(errors).length > 0) {
                 setValidationErrors(errors);
-                setError("Please fill in all required fields");
+                setError("Please correct the highlighted fields");
                 return;
             }
         }

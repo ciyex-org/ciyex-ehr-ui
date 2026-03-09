@@ -6,6 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Prescription, ToastState } from "./types";
 import DrugInteractionCheck from "./DrugInteractionCheck";
+import DatePicker from "@/components/form/date-picker";
 
 const apiBase = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
@@ -371,14 +372,42 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
           <Section title="Dates & Notes" icon={<FileText className="w-4 h-4" />}>
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={labelCls}>Start Date</label>
-                  <input type="date" className={inputCls()} value={form.startDate || ""} onChange={(e) => set("startDate", e.target.value)} />
-                </div>
-                <div>
-                  <label className={labelCls}>End Date</label>
-                  <input type="date" className={inputCls()} value={form.endDate || ""} onChange={(e) => set("endDate", e.target.value)} />
-                </div>
+                <DatePicker
+                  id="rx-start-date"
+                  label="Start Date"
+                  mode="single"
+                  defaultDate={form.startDate || undefined}
+                  placeholder="Select start date"
+                  onChange={(dates) => {
+                    if (dates.length > 0) {
+                      const d = dates[0];
+                      const yyyy = d.getFullYear();
+                      const mm = String(d.getMonth() + 1).padStart(2, "0");
+                      const dd = String(d.getDate()).padStart(2, "0");
+                      set("startDate", `${yyyy}-${mm}-${dd}`);
+                    } else {
+                      set("startDate", "");
+                    }
+                  }}
+                />
+                <DatePicker
+                  id="rx-end-date"
+                  label="End Date"
+                  mode="single"
+                  defaultDate={form.endDate || undefined}
+                  placeholder="Select end date"
+                  onChange={(dates) => {
+                    if (dates.length > 0) {
+                      const d = dates[0];
+                      const yyyy = d.getFullYear();
+                      const mm = String(d.getMonth() + 1).padStart(2, "0");
+                      const dd = String(d.getDate()).padStart(2, "0");
+                      set("endDate", `${yyyy}-${mm}-${dd}`);
+                    } else {
+                      set("endDate", "");
+                    }
+                  }}
+                />
               </div>
               <div>
                 <label className={labelCls}>Notes</label>

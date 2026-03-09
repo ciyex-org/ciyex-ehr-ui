@@ -347,8 +347,8 @@ export default function RecallPage() {
     if (ok) {
       setAlert({ variant: "success", title: editRecall ? "Updated" : "Created", message: `Recall ${editRecall ? "updated" : "created"} successfully.` });
       setShowCreateModal(false);
-      loadRecalls();
-      loadKpis();
+      setPage(0);
+      setTimeout(() => { loadRecalls(); loadKpis(); }, 200);
     } else {
       setAlert({ variant: "error", title: "Error", message: "Failed to save recall." });
     }

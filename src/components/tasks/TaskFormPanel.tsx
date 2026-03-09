@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { X, Save, Loader2 } from "lucide-react";
+import DatePicker from "@/components/form/date-picker";
 import {
   TASK_TYPE_LABELS,
   TASK_STATUS_LABELS,
@@ -166,28 +167,41 @@ export default function TaskFormPanel({
 
           {/* Row: Due Date + Due Time */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={form.dueDate}
-                onChange={(e) => set("dueDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                Due Time
-              </label>
-              <input
-                type="time"
-                value={form.dueTime}
-                onChange={(e) => set("dueTime", e.target.value)}
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
-              />
-            </div>
+            <DatePicker
+              id="task-due-date"
+              label="Due Date"
+              mode="single"
+              defaultDate={form.dueDate || undefined}
+              placeholder="Select date"
+              onChange={(dates) => {
+                if (dates.length > 0) {
+                  const d = dates[0];
+                  const yyyy = d.getFullYear();
+                  const mm = String(d.getMonth() + 1).padStart(2, "0");
+                  const dd = String(d.getDate()).padStart(2, "0");
+                  set("dueDate", `${yyyy}-${mm}-${dd}`);
+                } else {
+                  set("dueDate", "");
+                }
+              }}
+            />
+            <DatePicker
+              id="task-due-time"
+              label="Due Time"
+              mode="time"
+              defaultDate={form.dueTime || undefined}
+              placeholder="Select time"
+              onChange={(dates) => {
+                if (dates.length > 0) {
+                  const d = dates[0];
+                  const hh = String(d.getHours()).padStart(2, "0");
+                  const min = String(d.getMinutes()).padStart(2, "0");
+                  set("dueTime", `${hh}:${min}`);
+                } else {
+                  set("dueTime", "");
+                }
+              }}
+            />
           </div>
 
           {/* Row: Assigned To + Assigned By */}

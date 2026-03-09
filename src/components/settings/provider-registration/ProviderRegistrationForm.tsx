@@ -8,6 +8,7 @@ import ProfessionalInfo from "@/components/settings/provider-registration/Profes
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Modal } from "@/components/ui/modal";
+import { isValidEmail, isValidPhone, isValidNpi } from "@/utils/validation";
 
 interface ProviderRequestData {
     npi: string;
@@ -85,9 +86,13 @@ const ProviderRegistrationForm = () => {
         }
         if (!formData.phone?.trim()) {
             newErrors.phone = "Please fill out this field";
+        } else if (!isValidPhone(formData.phone)) {
+            newErrors.phone = "Please enter a valid phone number";
         }
         if (!formData.email?.trim()) {
             newErrors.email = "Please fill out this field";
+        } else if (!isValidEmail(formData.email)) {
+            newErrors.email = "Please enter a valid email address";
         }
         if (!formData.specialty?.trim()) {
             newErrors.specialty = "Please fill out this field";
@@ -97,6 +102,8 @@ const ProviderRegistrationForm = () => {
         }
         if (!formData.npiNumber?.trim()) {
             newErrors.npiNumber = "Please fill out this field";
+        } else if (!isValidNpi(formData.npiNumber)) {
+            newErrors.npiNumber = "NPI must be exactly 10 digits";
         }
         if (!formData.licenseNumber?.trim()) {
             newErrors.licenseNumber = "Please fill out this field";

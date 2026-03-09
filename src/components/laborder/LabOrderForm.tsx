@@ -841,6 +841,11 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
           {message.text}
         </div>
       )}
+      {message && message.type === 'error' && (
+        <div className="mb-6 px-4 py-3 rounded-lg shadow-sm border text-sm font-medium bg-red-50 text-red-800 border-red-200">
+          {message.text}
+        </div>
+      )}
 
       {/* <h1 className="text-2xl font-semibold tracking-tight text-slate-800 mb-8">Create Lab Order</h1> */}
 

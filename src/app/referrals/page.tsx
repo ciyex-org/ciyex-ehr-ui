@@ -31,6 +31,7 @@ import {
   Loader2,
   Inbox,
 } from "lucide-react";
+import { isValidPhone, isValidFax, isValidNpi } from "@/utils/validation";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -301,6 +302,9 @@ function ReferralFormPanel({
     const e: Record<string, string> = {};
     if (!form.reason.trim()) e.reason = "Reason is required";
     if (!form.patientName.trim()) e.patientName = "Patient name is required";
+    if (form.facilityPhone.trim() && !isValidPhone(form.facilityPhone)) e.facilityPhone = "Invalid phone number";
+    if (form.facilityFax.trim() && !isValidFax(form.facilityFax)) e.facilityFax = "Invalid fax number";
+    if (form.specialistNpi.trim() && !isValidNpi(form.specialistNpi)) e.specialistNpi = "NPI must be exactly 10 digits";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -386,7 +390,8 @@ function ReferralFormPanel({
               </div>
               <div>
                 <label className={labelCls}>NPI</label>
-                <input className={inputCls()} value={form.specialistNpi} onChange={(e) => set("specialistNpi", e.target.value)} placeholder="1234567890" />
+                <input className={inputCls("specialistNpi")} value={form.specialistNpi} onChange={(e) => set("specialistNpi", e.target.value)} placeholder="1234567890" />
+                {errors.specialistNpi && <p className="text-xs text-red-500 mt-1">{errors.specialistNpi}</p>}
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls}>Specialty</label>
@@ -408,11 +413,13 @@ function ReferralFormPanel({
               </div>
               <div>
                 <label className={labelCls}>Phone</label>
-                <input className={inputCls()} value={form.facilityPhone} onChange={(e) => set("facilityPhone", e.target.value)} placeholder="(555) 123-4567" />
+                <input className={inputCls("facilityPhone")} value={form.facilityPhone} onChange={(e) => set("facilityPhone", e.target.value)} placeholder="(555) 123-4567" />
+                {errors.facilityPhone && <p className="text-xs text-red-500 mt-1">{errors.facilityPhone}</p>}
               </div>
               <div>
                 <label className={labelCls}>Fax</label>
-                <input className={inputCls()} value={form.facilityFax} onChange={(e) => set("facilityFax", e.target.value)} placeholder="(555) 123-4568" />
+                <input className={inputCls("facilityFax")} value={form.facilityFax} onChange={(e) => set("facilityFax", e.target.value)} placeholder="(555) 123-4568" />
+                {errors.facilityFax && <p className="text-xs text-red-500 mt-1">{errors.facilityFax}</p>}
               </div>
             </div>
           </Section>
