@@ -287,6 +287,7 @@ export default function PrescriptionsPage() {
       let url = `${base}/api/prescriptions?page=${page}&size=${pageSize}`;
       if (searchQuery) url += `&q=${encodeURIComponent(searchQuery)}`;
       if (statusFilter !== "all") url += `&status=${statusFilter}`;
+      if (priorityFilter !== "all") url += `&priority=${priorityFilter}`;
       const res = await fetchWithAuth(url);
       const json = await res.json();
       if (res.ok && json.success) {
@@ -301,7 +302,7 @@ export default function PrescriptionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, searchQuery, statusFilter]);
+  }, [page, pageSize, searchQuery, statusFilter, priorityFilter]);
 
   const fetchStats = useCallback(async () => {
     try {

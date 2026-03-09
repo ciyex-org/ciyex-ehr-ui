@@ -461,7 +461,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
 
         // Auto-detect date-like strings even without field def
-        if (typeof value === "string" && !fieldDef) {
+        if (typeof value === "string") {
             if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
                 return tryFormatDatetime(value) || value;
             }

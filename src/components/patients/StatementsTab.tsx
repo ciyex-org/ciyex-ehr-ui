@@ -279,23 +279,29 @@ export default function StatementsTab({ patientId }: StatementsTabProps) {
 
     return (
         <div className="space-y-4">
-            {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-gray-600">
-                        {statements.length} statement{statements.length !== 1 ? "s" : ""} generated
-                    </span>
+            {/* Page Header */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <FileText className="w-5 h-5 text-blue-600" />
+                            <h3 className="text-sm font-semibold text-gray-800">Statements</h3>
+                        </div>
+                        <span className="text-xs text-gray-400">|</span>
+                        <span className="text-sm text-gray-600">
+                            {statements.length} statement{statements.length !== 1 ? "s" : ""} generated
+                        </span>
+                    </div>
+                    {!showGenerator && !showPreview && (
+                        <button
+                            onClick={() => setShowGenerator(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+                        >
+                            <FileText className="w-3.5 h-3.5" />
+                            Generate Statement
+                        </button>
+                    )}
                 </div>
-                {!showGenerator && !showPreview && (
-                    <button
-                        onClick={() => setShowGenerator(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors shrink-0"
-                    >
-                        <FileText className="w-3.5 h-3.5" />
-                        Generate Statement
-                    </button>
-                )}
             </div>
 
             {/* Claim Selector */}

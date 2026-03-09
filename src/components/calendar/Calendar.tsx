@@ -1630,7 +1630,7 @@ const Calendar: React.FC = () => {
                                         views={{ timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } } }}
                                         datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
                                         events={events.filter((e) => {
-                                            const matchProv = !e.extendedProps.providerId || e.extendedProps.providerId === p.value;
+                                            const matchProv = e.extendedProps.providerId === p.value;
                                             const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
                                             return matchProv && matchLoc;
                                         })}
@@ -1676,7 +1676,7 @@ const Calendar: React.FC = () => {
                                         }}
                                         datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
                                         events={events.filter((e) => {
-                                            const matchProv = !e.extendedProps.providerId || e.extendedProps.providerId === p.value;
+                                            const matchProv = e.extendedProps.providerId === p.value;
                                             const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
                                             return matchProv && matchLoc;
                                         })}
@@ -1726,7 +1726,7 @@ const Calendar: React.FC = () => {
                                     datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
                                     events={events.filter((e) => {
                                         const matchProv = singleProviderId
-                                            ? (!e.extendedProps.providerId || e.extendedProps.providerId === singleProviderId)
+                                            ? (e.extendedProps.providerId === singleProviderId)
                                             : true;
                                         const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
                                         return matchProv && matchLoc;

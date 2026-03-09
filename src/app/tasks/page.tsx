@@ -78,10 +78,12 @@ export default function TasksPage() {
 
   // Debounced search
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useCallback((q: string) => {
-    setSearchQuery(q);
+    setSearchInput(q);
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
+      setSearchQuery(q);
       setPage(0);
     }, 300);
   }, []);
@@ -277,7 +279,7 @@ export default function TasksPage() {
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm">
             <div className="px-4 py-4">
               <TaskFilters
-                searchQuery={searchQuery}
+                searchQuery={searchInput}
                 onSearchChange={debouncedSearch}
                 activeTab={activeTab}
                 onTabChange={handleTabChange}

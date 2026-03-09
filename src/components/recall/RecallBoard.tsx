@@ -1,7 +1,7 @@
 "use client";
 
 import { getEnv } from "@/utils/env";
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Label from "../form/Label";
@@ -151,7 +151,9 @@ export default function RecallPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [typeFilter, setTypeFilter] = useState("");
   const [providerFilter, setProviderFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -486,8 +488,12 @@ export default function RecallPage() {
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input type="text" placeholder="Search patient..." value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setPage(0); }}
+              <input type="text" placeholder="Search patient..." value={searchInput}
+                onChange={e => {
+                  setSearchInput(e.target.value);
+                  if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+                  searchTimerRef.current = setTimeout(() => { setSearchQuery(e.target.value); setPage(0); }, 300);
+                }}
                 className="h-8 pl-7 pr-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-xs w-44" />
             </div>
           </div>

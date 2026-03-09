@@ -20,7 +20,7 @@ export default function LabsPage() {
 
   return (
     <AdminLayout>
-      <div className="flex h-full overflow-hidden">
+      <div className="flex h-full min-h-0 overflow-hidden">
         {/* ── Sidebar ── */}
         <div className="w-56 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col overflow-hidden">
           {/* Header */}

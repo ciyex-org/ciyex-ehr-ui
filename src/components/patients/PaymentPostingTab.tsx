@@ -501,35 +501,39 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
 
     return (
         <div className="space-y-4">
-            {/* Summary bar */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-green-600" />
+            {/* Page Header */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm px-4 py-3">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                            <DollarSign className="w-5 h-5 text-green-600" />
+                            <h3 className="text-sm font-semibold text-gray-800">Payments</h3>
+                        </div>
+                        <span className="text-xs text-gray-400">|</span>
                         <span className="text-sm text-gray-600">
-                            Total Paid: <span className="font-semibold text-green-700">{formatCurrency(totalPaid)}</span>
+                            Total: <span className="font-semibold text-green-700">{formatCurrency(totalPaid)}</span>
                         </span>
+                        <span className="text-xs text-gray-400">{paymentList.length} payment{paymentList.length !== 1 ? "s" : ""}</span>
                     </div>
-                    <span className="text-xs text-gray-400">{paymentList.length} payment{paymentList.length !== 1 ? "s" : ""}</span>
+                    {!showForm && !showCollect && (
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setShowCollect(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors"
+                            >
+                                <Wallet className="w-3.5 h-3.5" />
+                                Collect Payment
+                            </button>
+                            <button
+                                onClick={() => setShowForm(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                Post Insurance
+                            </button>
+                        </div>
+                    )}
                 </div>
-                {!showForm && !showCollect && (
-                    <div className="flex items-center gap-2 shrink-0">
-                        <button
-                            onClick={() => setShowCollect(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors"
-                        >
-                            <Wallet className="w-3.5 h-3.5" />
-                            Collect Payment
-                        </button>
-                        <button
-                            onClick={() => setShowForm(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            Post Insurance
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Collect Patient Payment */}
