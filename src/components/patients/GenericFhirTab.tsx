@@ -90,9 +90,28 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
     }, [tabKey]);
 
+    // Convert Java date arrays [year, month, day, h, min, s, ns] to ISO strings
+    const mapDateArray = (v: any): string | null => {
+        if (!v) return null;
+        if (Array.isArray(v) && v.length >= 3 && typeof v[0] === "number" && v[0] > 1900) {
+            const [y, m, d, hh = 0, mm = 0, ss = 0, ns = 0] = v;
+            const ms = Math.floor((ns || 0) / 1e6);
+            return new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, ss || 0, ms).toISOString();
+        }
+        return typeof v === "string" ? v : null;
+    };
+
     // Normalize common FHIR field name mismatches so columns display correctly
     const normalizeRecord = useCallback((rec: Record<string, any>): Record<string, any> => {
         const r = { ...rec };
+
+        // Java date array normalization: convert [year, month, day, ...] to ISO strings
+        for (const key of Object.keys(r)) {
+            if (Array.isArray(r[key]) && r[key].length >= 3 && typeof r[key][0] === "number" && r[key][0] > 1900) {
+                r[key] = mapDateArray(r[key]) || r[key];
+            }
+        }
+
         // AllergyIntolerance: FHIR uses "criticality", config may use "severity"
         if (r.criticality != null && r.severity == null) r.severity = r.criticality;
         // AllergyIntolerance onset
@@ -109,6 +128,59 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
         if (r.start != null && r.startDate == null) r.startDate = r.start;
         if (r.end != null && r.endDate == null) r.endDate = r.end;
+
+        // Clinical-alerts: identifiedDate
+        if (r.dateIdentified != null && r.identifiedDate == null) r.identifiedDate = r.dateIdentified;
+        if (r.identified != null && r.identifiedDate == null) r.identifiedDate = r.identified;
+        if (r.recordedDate != null && r.identifiedDate == null) r.identifiedDate = r.recordedDate;
+        if (r.onsetDate != null && r.identifiedDate == null) r.identifiedDate = r.onsetDate;
+
+        // Documents: documentDate
+        if (r.date != null && r.documentDate == null) r.documentDate = r.date;
+        if (r.createdDate != null && r.documentDate == null) r.documentDate = r.createdDate;
+        if (r.authored != null && r.documentDate == null) r.documentDate = r.authored;
+        if (r.indexed != null && r.documentDate == null) r.documentDate = r.indexed;
+
+        // Education: dateProvided
+        if (r.providedDate != null && r.dateProvided == null) r.dateProvided = r.providedDate;
+        if (r.assignedDate != null && r.dateProvided == null) r.dateProvided = r.assignedDate;
+        if (r.date != null && r.dateProvided == null) r.dateProvided = r.date;
+        if (r.createdDate != null && r.dateProvided == null) r.dateProvided = r.createdDate;
+
+        // Messaging: from, to, patient
+        if (r.sender != null && r.from == null) r.from = r.sender;
+        if (r.senderName != null && r.from == null) r.from = r.senderName;
+        if (r.fromName != null && r.from == null) r.from = r.fromName;
+        if (r.recipient != null && r.to == null) r.to = r.recipient;
+        if (r.recipientName != null && r.to == null) r.to = r.recipientName;
+        if (r.toName != null && r.to == null) r.to = r.toName;
+        if (r.patientName != null && r.patient == null) r.patient = r.patientName;
+        if (r.subject != null && r.patient == null && typeof r.subject === "string") r.patient = r.subject;
+
+        // Visit-notes: date, noteType, author
+        if (r.noteDate != null && r.date == null) r.date = r.noteDate;
+        if (r.encounterDate != null && r.date == null) r.date = r.encounterDate;
+        if (r.created != null && r.date == null) r.date = r.created;
+        if (r.createdDate != null && r.date == null) r.date = r.createdDate;
+        if (r.authored != null && r.date == null) r.date = r.authored;
+        if (r.type != null && r.noteType == null && typeof r.type === "string") r.noteType = r.type;
+        if (r.category != null && r.noteType == null && typeof r.category === "string") r.noteType = r.category;
+        if (r.authorName != null && r.author == null) r.author = r.authorName;
+        if (r.practitioner != null && r.author == null) r.author = r.practitioner;
+        if (r.practitionerName != null && r.author == null) r.author = r.practitionerName;
+        if (r.recorder != null && r.author == null) r.author = r.recorder;
+
+        // Medications: prescriber
+        if (r.prescribingDoctor != null && r.prescriber == null) r.prescriber = r.prescribingDoctor;
+        if (r.prescriberName != null && r.prescriber == null) r.prescriber = r.prescriberName;
+        if (r.orderedBy != null && r.prescriber == null) r.prescriber = r.orderedBy;
+        if (r.requester != null && r.prescriber == null) r.prescriber = r.requester;
+
+        // Demographics: middleName, maritalStatus
+        if (r.middle_name != null && r.middleName == null) r.middleName = r.middle_name;
+        if (r.marital_status != null && r.maritalStatus == null) r.maritalStatus = r.marital_status;
+        if (r.maritalStatusCode != null && r.maritalStatus == null) r.maritalStatus = r.maritalStatusCode;
+
         return r;
     }, []);
 
@@ -240,7 +312,20 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     if (field.type === "date" && (field as any).defaultToday) {
                         defaults[field.key] = today;
                     }
+                    // Auto-fill defaultValue from field config
+                    if ((field as any).defaultValue != null && defaults[field.key] == null) {
+                        defaults[field.key] = (field as any).defaultValue;
+                    }
                 }
+            }
+        }
+        // For messaging tab: auto-fill patientId so backend can resolve patient name
+        if (tabKey === "messaging") {
+            defaults.patientId = defaults.patientId || patientId;
+            // Auto-fill date if not already set
+            if (!defaults.date && !defaults.sentDate) {
+                defaults.date = new Date().toISOString().slice(0, 10);
+                defaults.sentDate = new Date().toISOString().slice(0, 10);
             }
         }
         setFormData(defaults);
@@ -357,7 +442,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (singleRecord) {
                     // Stay in view mode for single-record tabs
                     const json = await res.json();
-                    const savedData = json.data || formData;
+                    const savedData = normalizeRecord(json.data || formData);
                     setFormData({ ...savedData });
                     setSelectedRecord(savedData);
                     setMode("view");
@@ -442,21 +527,41 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
     // Format display value for list table
     const formatValue = (value: any, colKey?: string, record?: Record<string, any>): React.ReactNode => {
+        // Handle Java date arrays inline
+        if (Array.isArray(value) && value.length >= 3 && typeof value[0] === "number" && value[0] > 1900) {
+            const converted = mapDateArray(value);
+            if (converted) return tryFormatDatetime(converted) || converted;
+        }
+
+        // Reference fields: check {key}Display BEFORE null check (Display may exist even when raw ref is missing)
+        if (colKey && record && record[colKey + "Display"]) {
+            return record[colKey + "Display"];
+        }
+
         if (value == null) {
-            // For date/datetime fields, try fallback to _lastUpdated for "created date" columns
+            // For date/datetime fields, try fallback to alternate key patterns
             const fieldDef = colKey ? findFieldDef(colKey) : undefined;
             if (fieldDef && (fieldDef.type === "date" || fieldDef.type === "datetime") && record) {
-                // Check common alternate key patterns: camelCase, snake_case, etc.
                 const altKeys = [
                     colKey + "Date", colKey + "DateTime",
                     colKey?.replace(/Date$/, ""), colKey?.replace(/date$/i, ""),
                 ];
                 for (const alt of altKeys) {
-                    if (alt && record[alt] && typeof record[alt] === "string") {
-                        const formatted = fieldDef.type === "date"
-                            ? tryFormatDate(record[alt])
-                            : tryFormatDatetime(record[alt]);
-                        if (formatted) return formatted;
+                    if (alt && record[alt]) {
+                        const altVal = record[alt];
+                        if (Array.isArray(altVal)) {
+                            const converted = mapDateArray(altVal);
+                            if (converted) {
+                                const formatted = fieldDef.type === "date"
+                                    ? tryFormatDate(converted) : tryFormatDatetime(converted);
+                                if (formatted) return formatted;
+                            }
+                        } else if (typeof altVal === "string") {
+                            const formatted = fieldDef.type === "date"
+                                ? tryFormatDate(altVal)
+                                : tryFormatDatetime(altVal);
+                            if (formatted) return formatted;
+                        }
                     }
                 }
             }
@@ -465,11 +570,6 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (typeof value === "boolean") return value ? "Yes" : "No";
 
         const fieldDef = colKey ? findFieldDef(colKey) : undefined;
-
-        // Reference fields: use {key}Display if available
-        if (colKey && record && record[colKey + "Display"]) {
-            return record[colKey + "Display"];
-        }
 
         // Status badge rendering
         if (fieldDef?.badgeColors && typeof value === "string") {
@@ -525,13 +625,22 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         return str.length > 50 ? str.substring(0, 50) + "..." : str;
     };
 
-    // Filter records by search term
+    // Filter records by search term (flatten nested objects for deep search)
     const filteredRecords = searchTerm
-        ? records.filter((r) =>
-            Object.values(r).some((v) =>
-                v != null && String(v).toLowerCase().includes(searchTerm.toLowerCase())
-            )
-        )
+        ? records.filter((r) => {
+            const term = searchTerm.toLowerCase();
+            return Object.entries(r).some(([, v]) => {
+                if (v == null) return false;
+                if (typeof v === "string") return v.toLowerCase().includes(term);
+                if (typeof v === "number" || typeof v === "boolean") return String(v).toLowerCase().includes(term);
+                if (typeof v === "object" && !Array.isArray(v)) {
+                    return Object.values(v).some((nested) =>
+                        nested != null && String(nested).toLowerCase().includes(term)
+                    );
+                }
+                return String(v).toLowerCase().includes(term);
+            });
+        })
         : records;
 
     // ---- Loading ----
@@ -584,6 +693,12 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     </div>
                 </div>
                 <div className="p-4">
+                    {successMsg && (
+                        <div className="mb-4 flex items-center gap-2 p-2.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm rounded-lg">
+                            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                            {successMsg}
+                        </div>
+                    )}
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded-lg">
                             {error}

@@ -289,7 +289,7 @@ export default function AppointmentPage() {
         const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
         if (!res.ok) throw new Error();
         const data = await res.json();
-        const providerList = data?.data || data?.content || data || [];
+        const providerList = data?.data?.content || data?.data || data?.content || data || [];
         setProviders((Array.isArray(providerList) ? providerList : []).map((p: any) => ({
           id: p.id || p.fhirId || "",
           name: p.identification
@@ -308,11 +308,10 @@ export default function AppointmentPage() {
         const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/locations`);
         if (!res.ok) throw new Error();
         const data = await res.json();
-        if (data?.success && data?.data) {
-          const ld = data.data.content || data.data;
-          const locs = Array.isArray(ld) ? ld.map((l: any) => ({ id: l.id, name: l.name })) : [];
-          setLocations(locs);
-        }
+        const payload = data?.data || data;
+        const ld = payload?.content || (Array.isArray(payload) ? payload : []);
+        const locs = Array.isArray(ld) ? ld.map((l: any) => ({ id: l.id, name: l.name })) : [];
+        setLocations(locs);
       } catch { setLocations([]); }
       finally { setLoadingLocations(false); }
     })();

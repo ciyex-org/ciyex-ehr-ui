@@ -199,11 +199,14 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                 // Generic FHIR endpoint wraps in ApiResponse { data: { content, totalElements, ... } }
                 const payload = json.data || json;
                 if (payload.content) {
-                    setRecords(payload.content);
+                    // Merge flattened values so nested fields (e.g. systemAccess.email) are accessible by dot-notation keys
+                    const enriched = payload.content.map((r: Record<string, any>) => ({ ...r, ...flattenObject(r) }));
+                    setRecords(enriched);
                     setTotalElements(payload.totalElements || payload.content.length);
                     setTotalPages(payload.totalPages || 1);
                 } else if (Array.isArray(payload)) {
-                    setRecords(payload);
+                    const enriched = payload.map((r: Record<string, any>) => ({ ...r, ...flattenObject(r) }));
+                    setRecords(enriched);
                     setTotalElements(payload.length);
                     setTotalPages(1);
                 } else {
@@ -411,11 +414,32 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     const formatValue = (value: any): React.ReactNode => {
         if (value == null) return "-";
         if (typeof value === "boolean") return value ? "Yes" : "No";
+        // Handle Java date arrays
+        if (Array.isArray(value) && value.length >= 3 && typeof value[0] === "number" && value[0] > 1900) {
+            try {
+                const [y, m, d, hh = 0, mm = 0, ss = 0] = value;
+                const dt = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, ss || 0);
+                if (!isNaN(dt.getTime())) return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            } catch { /* fallthrough */ }
+        }
         if (typeof value === "object") {
             if (value.line1) return [value.line1, value.city, value.state].filter(Boolean).join(", ");
             return JSON.stringify(value);
         }
+        // Auto-detect date-like strings
         const str = String(value);
+        if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+            try {
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+            } catch { /* fallthrough */ }
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+            try {
+                const d = new Date(str + "T00:00:00");
+                if (!isNaN(d.getTime())) return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            } catch { /* fallthrough */ }
+        }
         return str.length > 60 ? str.substring(0, 60) + "..." : str;
     };
 

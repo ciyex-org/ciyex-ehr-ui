@@ -3,7 +3,7 @@
 import { getEnv } from "@/utils/env";
 import { useEffect, useState, useMemo } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { Activity, Plus, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Activity, Plus, TrendingUp, TrendingDown, Minus, Save, X, Loader2 } from "lucide-react";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -75,27 +75,57 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
     const [records, setRecords] = useState<VitalsRecord[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [addForm, setAddForm] = useState<Record<string, string>>({});
 
-    useEffect(() => {
-        async function load() {
-            try {
-                setLoading(true);
-                const res = await fetchWithAuth(
-                    `${API_BASE()}/api/fhir-resource/vitals/patient/${patientId}?page=0&size=50`
-                );
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const body = await res.json();
-                const content = body.data?.content || [];
-                setRecords(content);
-            } catch (err) {
-                console.error("Failed to load vitals:", err);
-                setError("Failed to load vitals");
-            } finally {
-                setLoading(false);
-            }
+    const loadVitals = async () => {
+        try {
+            setLoading(true);
+            const res = await fetchWithAuth(
+                `${API_BASE()}/api/fhir-resource/vitals/patient/${patientId}?page=0&size=50`
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const body = await res.json();
+            const content = body.data?.content || [];
+            setRecords(content);
+        } catch (err) {
+            console.error("Failed to load vitals:", err);
+            setError("Failed to load vitals");
+        } finally {
+            setLoading(false);
         }
-        load();
-    }, [patientId]);
+    };
+
+    useEffect(() => { loadVitals(); }, [patientId]);
+
+    const handleAddVitals = async () => {
+        setSaving(true);
+        try {
+            const payload: Record<string, any> = { recordedAt: new Date().toISOString() };
+            for (const row of VITAL_ROWS) {
+                if (addForm[row.key]) payload[row.key] = parseFloat(addForm[row.key]);
+            }
+            if (addForm.notes) payload.notes = addForm.notes;
+            const res = await fetchWithAuth(
+                `${API_BASE()}/api/fhir-resource/vitals/patient/${patientId}`,
+                { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }
+            );
+            if (res.ok) {
+                setShowAddForm(false);
+                setAddForm({});
+                await new Promise(r => setTimeout(r, 2000));
+                await loadVitals();
+            } else {
+                setError("Failed to save vitals");
+            }
+        } catch (err) {
+            console.error("Failed to save vitals:", err);
+            setError("Failed to save vitals");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     // Deduplicate by date — group records that share the same date, take latest per date
     const columns = useMemo(() => {
@@ -152,8 +182,67 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                         </span>
                     )}
                 </div>
-                {/* Add button placeholder — creates via GenericFhirTab add flow */}
+                <button
+                    onClick={() => setShowAddForm(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                >
+                    <Plus className="w-4 h-4" />
+                    Add Vitals
+                </button>
             </div>
+
+            {/* Add Vitals Form */}
+            {showAddForm && (
+                <div className="mb-4 p-4 bg-white border rounded-lg shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-gray-700">New Vital Signs</h4>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleAddVitals}
+                                disabled={saving}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                            >
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                Save
+                            </button>
+                            <button
+                                onClick={() => { setShowAddForm(false); setAddForm({}); }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200"
+                            >
+                                <X className="w-4 h-4" />
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                        {VITAL_ROWS.map((row) => (
+                            <div key={row.key}>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    {row.icon} {row.label} ({row.unit})
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={addForm[row.key] || ""}
+                                    onChange={(e) => setAddForm(prev => ({ ...prev, [row.key]: e.target.value }))}
+                                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="—"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                        <input
+                            type="text"
+                            value={addForm.notes || ""}
+                            onChange={(e) => setAddForm(prev => ({ ...prev, notes: e.target.value }))}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Optional notes"
+                        />
+                    </div>
+                </div>
+            )}
 
             {columns.length === 0 ? (
                 <div className="flex flex-col items-center justify-center flex-1 text-gray-400">

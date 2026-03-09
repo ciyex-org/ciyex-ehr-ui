@@ -687,8 +687,9 @@ const Calendar: React.FC = () => {
             try {
                 const res = await fetchWithAuth(`${apiUrl}/api/providers`);
                 const json = await res.json();
-                const providerList = json?.data || json?.content || [];
-                if (Array.isArray(providerList)) {
+                const raw = json?.data?.content || json?.data || json?.content || [];
+                const providerList = Array.isArray(raw) ? raw : [];
+                if (providerList.length > 0) {
                     const active = providerList
                         .filter((p: any) => {
                             // Facade endpoint returns nested structure with systemAccess.status
@@ -699,9 +700,9 @@ const Calendar: React.FC = () => {
                             value: String(p.id || p.fhirId || ''),
                             label: p.identification
                                 ? `${p.identification.firstName || ''} ${p.identification.lastName || ''}`.trim()
-                                : (p.name || `${p['identification.firstName'] || ''} ${p['identification.lastName'] || ''}`.trim() || 'Unknown'),
+                                : (p.name || p.fullName || `${p['identification.firstName'] || p.firstName || ''} ${p['identification.lastName'] || p.lastName || ''}`.trim() || 'Unknown'),
                         }))
-                        .filter((p: any) => p.value && p.label);
+                        .filter((p: any) => p.value && p.label && p.label !== 'Unknown');
 
                     setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
                 }
@@ -726,11 +727,13 @@ const Calendar: React.FC = () => {
             try {
                 const res = await fetchWithAuth(`${apiUrl}/api/fhir-resource/facilities?size=100`);
                 const json = await res.json();
-                if (json?.success && json?.data?.content) {
-                    const list = json.data.content as FhirLocation[];
+                // Handle multiple response formats: { success, data: { content } } or { data: [...] } or { content: [...] }
+                const content = json?.data?.content || json?.data || json?.content || [];
+                const list = Array.isArray(content) ? content as FhirLocation[] : [];
+                if (list.length > 0) {
                     const opts = list.map((l) => ({
                         value: String(l.id),
-                        label: `${l.name || ''}${l['address.line1'] ? ` - ${l['address.line1']}` : ''}`,
+                        label: `${l.name || ''}${l['address.line1'] || l.address?.line1 ? ` - ${l['address.line1'] || l.address?.line1}` : ''}`,
                     }));
                     setLocations([{ value: 'all', label: 'All Locations' }, ...opts]);
                 }
