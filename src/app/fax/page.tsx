@@ -50,6 +50,7 @@ export default function FaxQueuePage() {
   const [showSendForm, setShowSendForm] = useState(false);
   const [assignFax, setAssignFax] = useState<FaxMessage | null>(null);
   const [resendFax, setResendFax] = useState<FaxMessage | null>(null);
+  const [editFax, setEditFax] = useState<FaxMessage | null>(null);
   const [detailFax, setDetailFax] = useState<FaxMessage | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -225,6 +226,13 @@ export default function FaxQueuePage() {
     setShowSendForm(true);
   }
 
+  // --- Edit fax ---
+  function handleEdit(fax: FaxMessage) {
+    setEditFax(fax);
+    setResendFax(fax);
+    setShowSendForm(true);
+  }
+
   // --- View details (simple modal) ---
   function handleViewDetails(fax: FaxMessage) {
     setDetailFax(fax);
@@ -330,6 +338,7 @@ export default function FaxQueuePage() {
           onAssignPatient={(fax) => setAssignFax(fax)}
           onMarkProcessed={handleMarkProcessed}
           onResend={handleResend}
+          onEdit={handleEdit}
         />
 
         {/* Send Fax Form Panel */}
@@ -338,6 +347,7 @@ export default function FaxQueuePage() {
           onClose={() => {
             setShowSendForm(false);
             setResendFax(null);
+            setEditFax(null);
           }}
           onSubmit={handleSendFax}
           resendFax={resendFax}

@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { FlaskConical, Search, CheckCircle2, X, Send, Printer, AlertTriangle } from "lucide-react";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 
 interface LabTest { code: string; name: string; loinc: string; specimen: string; fasting: boolean; }
 
@@ -15,13 +17,15 @@ const TEST_DB: LabTest[] = [
     { code: "BMP", name: "Basic Metabolic Panel", loinc: "51990-0", specimen: "Serum", fasting: true },
 ];
 
-export default function LabOrderWidget({ encounterId }: { encounterId?: string }) {
+export default function LabOrderWidget({ encounterId, patientId }: { encounterId?: string; patientId?: string }) {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
     const [selected, setSelected] = useState<(LabTest & { icd: string })[]>([]);
     const [lab, setLab] = useState("Quest Diagnostics — Main St PSC");
     const [priority, setPriority] = useState("Routine");
     const [sent, setSent] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
 
     const results = search.length >= 2 ? TEST_DB.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.code.toLowerCase().includes(search.toLowerCase())) : [];
 
@@ -33,7 +37,36 @@ export default function LabOrderWidget({ encounterId }: { encounterId?: string }
     const removeTest = (code: string) => setSelected(p => p.filter(s => s.code !== code));
     const updateIcd = (code: string, icd: string) => setSelected(p => p.map(s => s.code === code ? { ...s, icd } : s));
 
-    const submit = () => { setSent(true); setTimeout(() => { setSent(false); setIsOpen(false); setSelected([]); }, 2000); };
+    const submit = async () => {
+        setSaving(true);
+        setSaveError(null);
+        try {
+            const API = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
+            const payload = {
+                encounterId: encounterId || null,
+                patientId: patientId || null,
+                lab,
+                priority,
+                tests: selected.map(t => ({ code: t.code, name: t.name, loinc: t.loinc, icdCode: t.icd })),
+            };
+            const res = await fetchWithAuth(`${API}/api/lab-orders`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (res.ok) {
+                setSent(true);
+                setTimeout(() => { setSent(false); setIsOpen(false); setSelected([]); }, 2000);
+            } else {
+                const err = await res.json().catch(() => null);
+                setSaveError(err?.message || `Failed to submit order (${res.status})`);
+            }
+        } catch (e) {
+            setSaveError(e instanceof Error ? e.message : "Network error");
+        } finally {
+            setSaving(false);
+        }
+    };
 
     if (!isOpen) {
         return (
@@ -99,8 +132,15 @@ export default function LabOrderWidget({ encounterId }: { encounterId?: string }
                             </div>
                         )}
 
+                        {saveError && (
+                            <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded text-xs text-red-700 dark:text-red-400">
+                                {saveError}
+                            </div>
+                        )}
                         <div className="flex gap-2">
-                            <button onClick={submit} disabled={!selected.length} className="px-4 py-2 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 flex items-center gap-1.5"><Send className="h-3 w-3" /> Submit Order</button>
+                            <button onClick={submit} disabled={!selected.length || saving} className="px-4 py-2 bg-teal-600 text-white rounded text-xs font-medium hover:bg-teal-700 disabled:opacity-50 flex items-center gap-1.5">
+                                <Send className="h-3 w-3" /> {saving ? "Saving..." : "Submit Order"}
+                            </button>
                             <button className="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-xs hover:bg-gray-200 flex items-center gap-1.5"><Printer className="h-3 w-3" /> Print Requisition</button>
                         </div>
                     </>

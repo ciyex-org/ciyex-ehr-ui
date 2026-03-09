@@ -43,7 +43,7 @@ export default function AuditLogPage() {
   const [sortField, setSortField] = useState("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  // Fetch stats once
+  // Fetch stats and resource types once on mount
   useEffect(() => {
     (async () => {
       try {
@@ -60,6 +60,35 @@ export default function AuditLogPage() {
       } catch (err) {
         console.error("Failed to load audit stats:", err);
       }
+    })();
+
+    // Try to load all distinct resource types from a dedicated endpoint or first large page
+    (async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl("/api/audit-log/resource-types"));
+        if (res.ok) {
+          const json = await res.json();
+          const types: string[] = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+          if (types.length > 0) {
+            setResourceTypes(types.filter(Boolean).sort());
+            return;
+          }
+        }
+      } catch { /* ignore, fall through to page-based collection */ }
+      // Fallback: fetch a larger page to seed the resource type list
+      try {
+        const res = await fetchWithAuth(apiUrl("/api/audit-log?page=0&size=200"));
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            const content: AuditLogEntry[] = json.data.content ?? [];
+            const types = content.map((e) => e.resourceType).filter((rt): rt is string => Boolean(rt));
+            if (types.length > 0) {
+              setResourceTypes(Array.from(new Set(types)).sort());
+            }
+          }
+        }
+      } catch { /* ignore */ }
     })();
   }, []);
 

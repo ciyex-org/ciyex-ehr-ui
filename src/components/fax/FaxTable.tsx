@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Pencil,
 } from "lucide-react";
 import { FaxMessage, CATEGORY_LABELS, FaxCategory } from "./types";
 
@@ -29,6 +30,7 @@ interface Props {
   onAssignPatient: (fax: FaxMessage) => void;
   onMarkProcessed: (fax: FaxMessage) => void;
   onResend: (fax: FaxMessage) => void;
+  onEdit?: (fax: FaxMessage) => void;
 }
 
 function statusBadge(status: string) {
@@ -79,6 +81,7 @@ export default function FaxTable({
   onAssignPatient,
   onMarkProcessed,
   onResend,
+  onEdit,
 }: Props) {
   return (
     <div className="flex-1 overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl flex flex-col">
@@ -243,6 +246,16 @@ export default function FaxTable({
                         >
                           <Eye className="w-4 h-4" />
                         </button>
+
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(fax)}
+                            title="Edit fax"
+                            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
 
                         {isInbound && !fax.patientId && (
                           <button

@@ -380,11 +380,15 @@ export default function DocumentScanningPage() {
                               <ScanLine className="w-4 h-4" />
                             </button>
                           )}
-                          {doc.fileUrl && (
-                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600" title="Download">
-                              <Download className="w-4 h-4" />
-                            </a>
-                          )}
+                          <a
+                            href={doc.fileUrl || `${API()}/api/document-scanning/${doc.id}/download`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600"
+                            title="Download"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
                           <button onClick={() => handleDelete(doc)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-600" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
