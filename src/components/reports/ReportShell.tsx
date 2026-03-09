@@ -620,24 +620,57 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
       if (col && filteredTableData.length > 0) {
         const dataKey = chart.dataKey || "count";
 
-        // For charts with series (composed/stacked), sum numeric fields per category
+        // For charts with series (composed/stacked), sum or average numeric fields per category
         if (chart.series && chart.series.length > 0) {
-          const grouped: Record<string, Record<string, number>> = {};
+          const grouped: Record<string, { sums: Record<string, number>; count: number }> = {};
           for (const row of filteredTableData) {
             const cat = String(row[col.key] ?? "Unknown");
-            if (!grouped[cat]) grouped[cat] = {};
+            if (!grouped[cat]) grouped[cat] = { sums: {}, count: 0 };
+            grouped[cat].count += 1;
             for (const s of chart.series) {
               const val = Number(row[s.key] ?? 0);
-              grouped[cat][s.key] = (grouped[cat][s.key] || 0) + val;
+              grouped[cat].sums[s.key] = (grouped[cat].sums[s.key] || 0) + val;
             }
           }
-          newCharts[chart.key] = Object.entries(grouped).map(([name, vals]) => ({ [catKey]: name, ...vals }));
+          // For rate/percent series, use average instead of sum
+          newCharts[chart.key] = Object.entries(grouped).map(([name, { sums, count }]) => {
+            const point: ChartDataPoint = { [catKey]: name };
+            for (const s of chart.series!) {
+              const isRate = s.key.toLowerCase().includes("rate") || s.key.toLowerCase().includes("pct") || s.key.toLowerCase().includes("percent");
+              point[s.key] = isRate ? Math.round(sums[s.key] / count) : Math.round(sums[s.key]);
+            }
+            return point;
+          });
         } else {
-          const counts = countBy(filteredTableData, col.key);
-          newCharts[chart.key] = Object.entries(counts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 12)
-            .map(([name, count]) => ({ [catKey]: name, [dataKey]: count }));
+          // Check if the dataKey field exists in table rows (value-based chart vs count-based)
+          const hasDataKeyInRows = filteredTableData.some(row => row[dataKey] !== undefined && row[dataKey] !== null);
+
+          if (hasDataKeyInRows && dataKey !== "count") {
+            // Group by column and aggregate the actual values
+            const grouped: Record<string, { sum: number; count: number }> = {};
+            for (const row of filteredTableData) {
+              const cat = String(row[col.key] ?? "Unknown");
+              if (!grouped[cat]) grouped[cat] = { sum: 0, count: 0 };
+              grouped[cat].sum += Number(row[dataKey] ?? 0);
+              grouped[cat].count += 1;
+            }
+            // For rate/percent/pct fields, use average; for others, use sum
+            const isRate = dataKey.toLowerCase().includes("rate") || dataKey.toLowerCase().includes("pct") || dataKey.toLowerCase().includes("percent");
+            newCharts[chart.key] = Object.entries(grouped)
+              .sort((a, b) => b[1].sum - a[1].sum)
+              .slice(0, 12)
+              .map(([name, { sum, count }]) => ({
+                [catKey]: name,
+                [dataKey]: isRate ? Math.round(sum / count) : Math.round(sum),
+              }));
+          } else {
+            // Fall back to counting occurrences
+            const counts = countBy(filteredTableData, col.key);
+            newCharts[chart.key] = Object.entries(counts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 12)
+              .map(([name, count]) => ({ [catKey]: name, [dataKey]: count }));
+          }
         }
         continue;
       }
