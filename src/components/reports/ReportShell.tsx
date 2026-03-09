@@ -23,6 +23,25 @@ const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 const SKIP_KEYS = new Set(["id", "key", "uuid", "fhirId", "patientId", "encounterId"]);
 const MAX_UNIQUE_FOR_FILTER = 30; // don't show filter if > 30 unique vals
 
+/** Known default options for common categorical columns (shown even when no data exists) */
+const DEFAULT_FILTER_OPTIONS: Record<string, string[]> = {
+  gender: ["Male", "Female", "Other", "Unknown"],
+  status: ["Active", "Inactive", "Completed", "Cancelled", "Pending", "Unsigned", "Signed", "Draft"],
+  ageGroup: ["0-17", "18-29", "30-44", "45-59", "60-74", "75+"],
+  priority: ["Routine", "STAT", "Urgent"],
+  urgency: ["Routine", "Urgent", "STAT"],
+  tier: ["Low", "Moderate", "High", "Very High"],
+  gapType: ["AWV", "A1C Lab", "Screening", "Depression", "Immunization"],
+};
+
+/** Column keys that are likely unique per row and should NOT become filters */
+const UNIQUE_PER_ROW_KEYS = new Set([
+  "name", "patient", "description", "details", "diagnosis", "medication",
+  "testName", "code", "cptCode", "ipAddress", "timestamp", "date", "time",
+  "feature", "measure", "condition", "referTo", "resource", "vaccine",
+  "site", "dose", "prescriber", "reason", "insurance",
+]);
+
 function isDateLike(v: unknown): boolean {
   if (typeof v !== "string") return false;
   return /^\d{4}-\d{2}/.test(v);
@@ -38,10 +57,25 @@ interface DynamicFilterInfo {
   uniqueValues: string[];
 }
 
-/** Scan tableData and return filterable categorical columns */
+/** Scan tableData and return filterable categorical columns. When no data, create filters from column definitions. */
 function detectDynamicFilters(columns: ColumnConfig[], data: Record<string, unknown>[]): DynamicFilterInfo[] {
-  if (data.length === 0) return [];
   const filters: DynamicFilterInfo[] = [];
+
+  // When no data exists, create filters from column definitions with known defaults
+  if (data.length === 0) {
+    for (const col of columns) {
+      if (SKIP_KEYS.has(col.key)) continue;
+      if (col.format === "currency" || col.format === "number" || col.format === "percent" || col.format === "date") continue;
+      if (UNIQUE_PER_ROW_KEYS.has(col.key)) continue;
+
+      const defaults = DEFAULT_FILTER_OPTIONS[col.key] || [];
+      // Only show filter if we have known default options for this column
+      if (defaults.length > 0) {
+        filters.push({ key: col.key, label: col.label, uniqueValues: defaults });
+      }
+    }
+    return filters;
+  }
 
   for (const col of columns) {
     if (SKIP_KEYS.has(col.key)) continue;
@@ -59,6 +93,12 @@ function detectDynamicFilters(columns: ColumnConfig[], data: Record<string, unkn
       vals.add(s);
       if (!isNumeric(v)) allNumeric = false;
       if (!isDateLike(v)) allDate = false;
+    }
+
+    // Merge in known defaults for this column so common options always appear
+    const defaults = DEFAULT_FILTER_OPTIONS[col.key];
+    if (defaults) {
+      for (const d of defaults) vals.add(d);
     }
 
     // Skip if all numeric, all dates, too many unique values, or no values at all
@@ -529,9 +569,9 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [report.key]);
 
-  // Detect dynamic filters from table data
+  // Detect dynamic filters from table data (or from column definitions when no data)
   const dynamicFilters = useMemo(() => {
-    if (!result || result.tableData.length === 0) return [];
+    if (!result) return [];
     return detectDynamicFilters(report.columns, result.tableData);
   }, [result, report.columns]);
 
@@ -794,6 +834,15 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
               <Filter className="w-12 h-12 mb-3 opacity-40" />
               <p className="text-sm font-medium">No records match the selected filters</p>
               <button onClick={() => setDataFilters({})} className="mt-2 text-xs text-blue-600 hover:underline">Clear all filters</button>
+            </div>
+          )}
+
+          {/* No data for this practice yet */}
+          {result.tableData.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+              <FileText className="w-12 h-12 mb-3 opacity-40" />
+              <p className="text-sm font-medium">No data available yet for this report</p>
+              <p className="text-xs mt-1">Data will appear here once records are added to this practice</p>
             </div>
           )}
         </>
