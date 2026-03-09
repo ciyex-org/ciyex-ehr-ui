@@ -112,42 +112,62 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
         }
 
-        // AllergyIntolerance: FHIR uses "criticality", config may use "severity"
+        // --- AllergyIntolerance ---
         if (r.criticality != null && r.severity == null) r.severity = r.criticality;
-        // AllergyIntolerance onset
+        if (r.severity == null && Array.isArray(r.reaction) && r.reaction[0]?.severity) r.severity = r.reaction[0].severity;
         if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
         if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
-        // Encounter period
-        if (r.period != null) {
+
+        // --- Encounter period ---
+        if (r.period != null && typeof r.period === "object") {
             if (r.period.start != null && r.startDate == null) r.startDate = r.period.start;
             if (r.period.end != null && r.endDate == null) r.endDate = r.period.end;
         }
-        if (r.actualPeriod != null) {
+        if (r.actualPeriod != null && typeof r.actualPeriod === "object") {
             if (r.actualPeriod.start != null && r.startDate == null) r.startDate = r.actualPeriod.start;
             if (r.actualPeriod.end != null && r.endDate == null) r.endDate = r.actualPeriod.end;
         }
         if (r.start != null && r.startDate == null) r.startDate = r.start;
         if (r.end != null && r.endDate == null) r.endDate = r.end;
 
-        // Clinical-alerts: identifiedDate
+        // --- Appointment start/end time ---
+        if (r.start != null) {
+            const iso = String(r.start);
+            if (r.appointmentStartDate == null) r.appointmentStartDate = iso.includes("T") ? iso.split("T")[0] : iso;
+            if (iso.includes("T")) {
+                const tp = iso.split("T")[1]?.replace(/Z$/, "")?.substring(0, 5);
+                if (tp) { if (r.appointmentStartTime == null) r.appointmentStartTime = tp; if (r.startTime == null) r.startTime = tp; }
+            }
+        }
+        if (r.end != null) {
+            const iso = String(r.end);
+            if (r.appointmentEndDate == null) r.appointmentEndDate = iso.includes("T") ? iso.split("T")[0] : iso;
+            if (iso.includes("T")) {
+                const tp = iso.split("T")[1]?.replace(/Z$/, "")?.substring(0, 5);
+                if (tp) { if (r.appointmentEndTime == null) r.appointmentEndTime = tp; if (r.endTime == null) r.endTime = tp; }
+            }
+        }
+
+        // --- Clinical-alerts: identifiedDate ---
         if (r.dateIdentified != null && r.identifiedDate == null) r.identifiedDate = r.dateIdentified;
         if (r.identified != null && r.identifiedDate == null) r.identifiedDate = r.identified;
         if (r.recordedDate != null && r.identifiedDate == null) r.identifiedDate = r.recordedDate;
         if (r.onsetDate != null && r.identifiedDate == null) r.identifiedDate = r.onsetDate;
 
-        // Documents: documentDate
+        // --- Documents: documentDate ---
         if (r.date != null && r.documentDate == null) r.documentDate = r.date;
         if (r.createdDate != null && r.documentDate == null) r.documentDate = r.createdDate;
         if (r.authored != null && r.documentDate == null) r.documentDate = r.authored;
+        if (r.created != null && r.documentDate == null) r.documentDate = r.created;
         if (r.indexed != null && r.documentDate == null) r.documentDate = r.indexed;
 
-        // Education: dateProvided
+        // --- Education: dateProvided ---
         if (r.providedDate != null && r.dateProvided == null) r.dateProvided = r.providedDate;
         if (r.assignedDate != null && r.dateProvided == null) r.dateProvided = r.assignedDate;
         if (r.date != null && r.dateProvided == null) r.dateProvided = r.date;
         if (r.createdDate != null && r.dateProvided == null) r.dateProvided = r.createdDate;
 
-        // Messaging: from, to, patient
+        // --- Messaging: from, to, patient, sentDate ---
         if (r.sender != null && r.from == null) r.from = r.sender;
         if (r.senderName != null && r.from == null) r.from = r.senderName;
         if (r.fromName != null && r.from == null) r.from = r.fromName;
@@ -156,13 +176,18 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.toName != null && r.to == null) r.to = r.toName;
         if (r.patientName != null && r.patient == null) r.patient = r.patientName;
         if (r.subject != null && r.patient == null && typeof r.subject === "string") r.patient = r.subject;
+        if (r.sent != null && r.sentDate == null) r.sentDate = r.sent;
+        if (r.timestamp != null && r.sentDate == null) r.sentDate = r.timestamp;
+        if (r.authoredOn != null && r.sentDate == null) r.sentDate = r.authoredOn;
 
-        // Visit-notes: date, noteType, author
+        // --- Visit-notes: date, noteType, author ---
         if (r.noteDate != null && r.date == null) r.date = r.noteDate;
         if (r.encounterDate != null && r.date == null) r.date = r.encounterDate;
         if (r.created != null && r.date == null) r.date = r.created;
         if (r.createdDate != null && r.date == null) r.date = r.createdDate;
         if (r.authored != null && r.date == null) r.date = r.authored;
+        if (r.effectiveDateTime != null && r.date == null) r.date = r.effectiveDateTime;
+        if (r._lastUpdated != null && r.date == null) r.date = r._lastUpdated;
         if (r.type != null && r.noteType == null && typeof r.type === "string") r.noteType = r.type;
         if (r.category != null && r.noteType == null && typeof r.category === "string") r.noteType = r.category;
         if (r.authorName != null && r.author == null) r.author = r.authorName;
@@ -170,16 +195,71 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.practitionerName != null && r.author == null) r.author = r.practitionerName;
         if (r.recorder != null && r.author == null) r.author = r.recorder;
 
-        // Medications: prescriber
+        // --- Medications: prescriber ---
         if (r.prescribingDoctor != null && r.prescriber == null) r.prescriber = r.prescribingDoctor;
         if (r.prescriberName != null && r.prescriber == null) r.prescriber = r.prescriberName;
         if (r.orderedBy != null && r.prescriber == null) r.prescriber = r.orderedBy;
         if (r.requester != null && r.prescriber == null) r.prescriber = r.requester;
 
-        // Demographics: middleName, maritalStatus
+        // --- Demographics: middleName, maritalStatus ---
         if (r.middle_name != null && r.middleName == null) r.middleName = r.middle_name;
         if (r.marital_status != null && r.maritalStatus == null) r.maritalStatus = r.marital_status;
         if (r.maritalStatusCode != null && r.maritalStatus == null) r.maritalStatus = r.maritalStatusCode;
+
+        // --- Labs ---
+        if (r.effectiveDateTime != null && r.collectionDate == null) r.collectionDate = r.effectiveDateTime;
+        if (r.effective != null && r.collectionDate == null) r.collectionDate = r.effective;
+        if (r.issued != null && r.collectionDate == null) r.collectionDate = r.issued;
+        if (r.specimen != null && typeof r.specimen === "object" && r.specimen.collectedDateTime && r.collectionDate == null) r.collectionDate = r.specimen.collectedDateTime;
+        if (r.performer != null && r.provider == null) {
+            if (typeof r.performer === "string") r.provider = r.performer;
+            else if (Array.isArray(r.performer) && r.performer[0]?.display) r.provider = r.performer[0].display;
+        }
+        if (r.performerDisplay != null && r.provider == null) r.provider = r.performerDisplay;
+        if (r.orderer != null && r.provider == null) { r.provider = typeof r.orderer === "string" ? r.orderer : (r.orderer?.display || null); }
+        if (r.ordererDisplay != null && r.provider == null) r.provider = r.ordererDisplay;
+        if (r.requester != null && r.provider == null) { r.provider = typeof r.requester === "string" ? r.requester : (r.requester?.display || null); }
+        if (r.requesterDisplay != null && r.provider == null) r.provider = r.requesterDisplay;
+
+        // --- Procedure ---
+        if (r.performedDateTime != null && r.datePerformed == null) r.datePerformed = r.performedDateTime;
+        if (r.performedPeriod?.start != null && r.datePerformed == null) r.datePerformed = r.performedPeriod.start;
+        if (r.date != null && r.datePerformed == null) r.datePerformed = r.date;
+        if (r.code != null && r.cptCode == null) {
+            if (typeof r.code === "string") r.cptCode = r.code;
+            else if (r.code?.coding?.[0]?.code) r.cptCode = r.code.coding[0].code;
+            else if (r.code?.text) r.cptCode = r.code.text;
+        }
+        if (r.procedureCode != null && r.cptCode == null) r.cptCode = r.procedureCode;
+
+        // --- Claims / Billing ---
+        if (r.created != null && r.createdDate == null) r.createdDate = r.created;
+        if (r.createdAt != null && r.createdDate == null) r.createdDate = r.createdAt;
+        if (r._lastUpdated != null && r.createdDate == null) r.createdDate = r._lastUpdated;
+        if (r.billablePeriod?.start != null && r.submissionDate == null) r.submissionDate = r.billablePeriod.start;
+        if (r.submittedDate != null && r.submissionDate == null) r.submissionDate = r.submittedDate;
+        if (r.responseDate == null && r.created) r.responseDate = r.created;
+        if (r.originalClaimReference == null && r.request != null) r.originalClaimReference = typeof r.request === "string" ? r.request : (r.request?.reference || r.request?.display);
+        if (r.originalClaimReference == null && r.claimReference != null) r.originalClaimReference = r.claimReference;
+
+        // --- Transaction ---
+        if (r.date == null && r.transactionDate != null) r.date = r.transactionDate;
+        if (r.date == null && r.createdAt != null) r.date = r.createdAt;
+        if (r.amount == null && r.total != null) r.amount = typeof r.total === "object" ? r.total.value : r.total;
+        if (r.amount == null && r.value != null) r.amount = r.value;
+        if (r.amount == null && r.payment?.amount != null) r.amount = typeof r.payment.amount === "object" ? r.payment.amount.value : r.payment.amount;
+
+        // --- Billing CPT code ---
+        if (r.cptCode == null && r.item?.[0]?.productOrService?.coding?.[0]?.code) r.cptCode = r.item[0].productOrService.coding[0].code;
+        if (r.cptCode == null && r.serviceCode != null) r.cptCode = r.serviceCode;
+
+        // --- Issues / Condition onset ---
+        if (r.recordedDate != null && r.onsetDate == null) r.onsetDate = r.recordedDate;
+        if (r.dateRecorded != null && r.onsetDate == null) r.onsetDate = r.dateRecorded;
+
+        // --- Generic encounter date ---
+        if (r.encounterDate == null && r.date != null) r.encounterDate = r.date;
+        if (r.encounterDate == null && r.startDate != null) r.encounterDate = r.startDate;
 
         return r;
     }, []);

@@ -712,12 +712,7 @@ const Calendar: React.FC = () => {
         })();
     }, [apiUrl]);
 
-    /// Auto-select first provider when in Week/Month + no specific provider chosen
-    useEffect(() => {
-        if (activeView !== "timeGridDay" && allProvidersSelected && providers.length > 1) {
-            setSelectedProviders([providers.filter(p => p.value !== 'all')[0]?.value].filter(Boolean));
-        }
-    }, [activeView, allProvidersSelected, providers]);
+    // No auto-select: let users freely choose "All Providers" in any view
 
 
 

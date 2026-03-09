@@ -55,7 +55,7 @@ export async function fetchWithAuth(
 
   if (isFormData) {
     headers.delete("Content-Type"); // ← critical for multi-part uploads
-  } else if (!headers.has("Content-Type")) {
+  } else if (init?.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -88,7 +88,7 @@ export async function fetchWithAuth(
 
         if (isFormData) {
           retryHeaders.delete("Content-Type");
-        } else if (!retryHeaders.has("Content-Type")) {
+        } else if (init?.body && !retryHeaders.has("Content-Type")) {
           retryHeaders.set("Content-Type", "application/json");
         }
 

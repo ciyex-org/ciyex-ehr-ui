@@ -118,9 +118,11 @@ export default function TasksPage() {
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
-          setTasks(json.data.content || []);
-          setTotalPages(json.data.totalPages || 1);
-          setTotalElements(json.data.totalElements || 0);
+          // Handle both paginated (content) and flat array responses
+          const items = Array.isArray(json.data) ? json.data : (json.data.content || []);
+          setTasks(items);
+          setTotalPages(Array.isArray(json.data) ? 1 : (json.data.totalPages || 1));
+          setTotalElements(Array.isArray(json.data) ? items.length : (json.data.totalElements || 0));
         } else {
           setTasks([]);
         }

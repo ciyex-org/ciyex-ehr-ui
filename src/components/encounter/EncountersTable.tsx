@@ -43,17 +43,22 @@ function normalizeData(data: unknown): Encounter[] {
         const rec = typeof data === "object" && data !== null ? (data as Record<string, unknown>) : {};
         if (Array.isArray(rec.content)) list = rec.content;
     }
-    return list.map((e) => ({
-        ...e,
-        id: e.id as number,
-        patientId: e.patientId as number,
-        encounterDate: (e.encounterDate ?? e.startDate ?? e.date ?? e.period ?? e._lastUpdated) as Encounter["encounterDate"],
-        encounterProvider: (e.encounterProvider ?? e.providerDisplay ?? e.provider ?? e.practitionerName) as string | undefined,
-        visitCategory: (e.visitCategory ?? e.type ?? e.encounterType ?? e.serviceType) as string | undefined,
-        reason: (e.reason ?? e.reasonCode ?? e.chiefComplaint ?? e.reasonForVisit) as string | undefined,
-        patientName: (e.patientName ?? e.patientDisplay ?? e.subjectDisplay) as string | undefined,
-        status: e.status as EncounterStatus | undefined,
-    }));
+    return list.map((e) => {
+        // Extract date from period object if needed
+        const periodStart = e.period && typeof e.period === "object" && (e.period as any).start ? (e.period as any).start : null;
+        const actualPeriodStart = e.actualPeriod && typeof e.actualPeriod === "object" && (e.actualPeriod as any).start ? (e.actualPeriod as any).start : null;
+        return {
+            ...e,
+            id: e.id as number,
+            patientId: e.patientId as number,
+            encounterDate: (e.encounterDate ?? e.startDate ?? e.date ?? periodStart ?? actualPeriodStart ?? e.start ?? e.created ?? e.createdAt ?? e._lastUpdated) as Encounter["encounterDate"],
+            encounterProvider: (e.encounterProvider ?? e.providerDisplay ?? e.provider ?? e.practitionerName ?? e.performerDisplay) as string | undefined,
+            visitCategory: (e.visitCategory ?? e.type ?? e.encounterType ?? e.serviceType ?? e.class) as string | undefined,
+            reason: (e.reason ?? e.reasonCode ?? e.chiefComplaint ?? e.reasonForVisit) as string | undefined,
+            patientName: (e.patientName ?? e.patientDisplay ?? e.subjectDisplay) as string | undefined,
+            status: e.status as EncounterStatus | undefined,
+        };
+    });
 }
 
 function StatusBadge({ value }: { value?: EncounterStatus | null }) {
