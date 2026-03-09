@@ -497,7 +497,7 @@ function downloadCSV(report: ReportDefinition, data: Record<string, unknown>[]) 
 export default function ReportShell({ report }: { report: ReportDefinition }) {
   const [filters, setFilters] = useState<FilterValues>(() => {
     const today = new Date();
-    const past = new Date(today); past.setDate(today.getDate() - 30);
+    const past = new Date(today); past.setFullYear(today.getFullYear() - 1);
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
     return { fromDate: fmt(past), toDate: fmt(today) };
   });

@@ -13,7 +13,7 @@ import {
 function getDateRange(filters: FilterValues): { from: string; to: string } {
   const today = new Date();
   const past = new Date(today);
-  past.setDate(today.getDate() - 30);
+  past.setFullYear(today.getFullYear() - 1);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
   return {
     from: (filters.fromDate as string) || fmt(past),
