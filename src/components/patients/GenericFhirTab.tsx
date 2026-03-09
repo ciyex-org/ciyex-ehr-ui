@@ -105,6 +105,13 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const normalizeRecord = useCallback((rec: Record<string, any>): Record<string, any> => {
         const r = { ...rec };
 
+        // Flatten nested audit dates to top-level for column display
+        if (r.audit != null && typeof r.audit === "object") {
+            if (r.audit.createdDate != null && r.createdDate == null) r.createdDate = r.audit.createdDate;
+            if (r.audit.createdAt != null && r.createdAt == null) r.createdAt = r.audit.createdAt;
+            if (r.audit.lastModifiedDate != null && r.lastModifiedDate == null) r.lastModifiedDate = r.audit.lastModifiedDate;
+        }
+
         // Java date array normalization: convert [year, month, day, ...] to ISO strings
         for (const key of Object.keys(r)) {
             if (Array.isArray(r[key]) && r[key].length >= 3 && typeof r[key][0] === "number" && r[key][0] > 1900) {
@@ -166,6 +173,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.assignedDate != null && r.dateProvided == null) r.dateProvided = r.assignedDate;
         if (r.date != null && r.dateProvided == null) r.dateProvided = r.date;
         if (r.createdDate != null && r.dateProvided == null) r.dateProvided = r.createdDate;
+        if (r.createdAt != null && r.dateProvided == null) r.dateProvided = r.createdAt;
 
         // --- Messaging: from, to, patient, sentDate ---
         if (r.sender != null && r.from == null) r.from = r.sender;
@@ -179,6 +187,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.sent != null && r.sentDate == null) r.sentDate = r.sent;
         if (r.timestamp != null && r.sentDate == null) r.sentDate = r.timestamp;
         if (r.authoredOn != null && r.sentDate == null) r.sentDate = r.authoredOn;
+        if (r.createdDate != null && r.sentDate == null) r.sentDate = r.createdDate;
+        if (r.createdAt != null && r.sentDate == null) r.sentDate = r.createdAt;
 
         // --- Visit-notes: date, noteType, author ---
         if (r.noteDate != null && r.date == null) r.date = r.noteDate;
@@ -210,7 +220,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.effectiveDateTime != null && r.collectionDate == null) r.collectionDate = r.effectiveDateTime;
         if (r.effective != null && r.collectionDate == null) r.collectionDate = r.effective;
         if (r.issued != null && r.collectionDate == null) r.collectionDate = r.issued;
+        if (r.orderDate != null && r.collectionDate == null) r.collectionDate = r.orderDate;
         if (r.specimen != null && typeof r.specimen === "object" && r.specimen.collectedDateTime && r.collectionDate == null) r.collectionDate = r.specimen.collectedDateTime;
+        if (r.createdDate != null && r.collectionDate == null) r.collectionDate = r.createdDate;
         if (r.performer != null && r.provider == null) {
             if (typeof r.performer === "string") r.provider = r.performer;
             else if (Array.isArray(r.performer) && r.performer[0]?.display) r.provider = r.performer[0].display;
@@ -235,17 +247,28 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         // --- Claims / Billing ---
         if (r.created != null && r.createdDate == null) r.createdDate = r.created;
         if (r.createdAt != null && r.createdDate == null) r.createdDate = r.createdAt;
+        if (r.dateOfService != null && r.createdDate == null) r.createdDate = r.dateOfService;
         if (r._lastUpdated != null && r.createdDate == null) r.createdDate = r._lastUpdated;
         if (r.billablePeriod?.start != null && r.submissionDate == null) r.submissionDate = r.billablePeriod.start;
         if (r.submittedDate != null && r.submissionDate == null) r.submissionDate = r.submittedDate;
+        if (r.submittedAt != null && r.submissionDate == null) r.submissionDate = r.submittedAt;
+        if (r.created != null && r.submissionDate == null) r.submissionDate = r.created;
+        if (r.responseDate == null && r.processedDate != null) r.responseDate = r.processedDate;
+        if (r.responseDate == null && r.adjudicationDate != null) r.responseDate = r.adjudicationDate;
         if (r.responseDate == null && r.created) r.responseDate = r.created;
         if (r.originalClaimReference == null && r.request != null) r.originalClaimReference = typeof r.request === "string" ? r.request : (r.request?.reference || r.request?.display);
         if (r.originalClaimReference == null && r.claimReference != null) r.originalClaimReference = r.claimReference;
+        if (r.originalClaimReference == null && r.originalClaimId != null) r.originalClaimReference = r.originalClaimId;
 
         // --- Transaction ---
         if (r.date == null && r.transactionDate != null) r.date = r.transactionDate;
+        if (r.date == null && r.paymentDate != null) r.date = r.paymentDate;
+        if (r.date == null && r.collectedAt != null) r.date = r.collectedAt;
         if (r.date == null && r.createdAt != null) r.date = r.createdAt;
+        if (r.date == null && r.createdDate != null) r.date = r.createdDate;
         if (r.amount == null && r.total != null) r.amount = typeof r.total === "object" ? r.total.value : r.total;
+        if (r.amount == null && r.totalAmount != null) r.amount = r.totalAmount;
+        if (r.amount == null && r.totalCharge != null) r.amount = r.totalCharge;
         if (r.amount == null && r.value != null) r.amount = r.value;
         if (r.amount == null && r.payment?.amount != null) r.amount = typeof r.payment.amount === "object" ? r.payment.amount.value : r.payment.amount;
 
@@ -254,8 +277,12 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.cptCode == null && r.serviceCode != null) r.cptCode = r.serviceCode;
 
         // --- Issues / Condition onset ---
+        if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
+        if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
         if (r.recordedDate != null && r.onsetDate == null) r.onsetDate = r.recordedDate;
         if (r.dateRecorded != null && r.onsetDate == null) r.onsetDate = r.dateRecorded;
+        if (r.identifiedDate != null && r.onsetDate == null) r.onsetDate = r.identifiedDate;
+        if (r.createdDate != null && r.onsetDate == null) r.onsetDate = r.createdDate;
 
         // --- Generic encounter date ---
         if (r.encounterDate == null && r.date != null) r.encounterDate = r.date;

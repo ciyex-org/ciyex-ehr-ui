@@ -74,7 +74,7 @@ function NewLabOrderContent() {
 
   return (
     <AdminLayout>
-      <div className="p-6">
+      <div className="p-6 h-full overflow-y-auto">
         <div className="max-w-[1200px] mx-auto">
           <h1 className="text-2xl font-semibold mb-4">{editId ? "Edit Lab Order" : "Create Lab Order"}</h1>
           {loading ? (
