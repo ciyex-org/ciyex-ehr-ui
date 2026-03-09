@@ -61,8 +61,8 @@ function detectDynamicFilters(columns: ColumnConfig[], data: Record<string, unkn
       if (!isDateLike(v)) allDate = false;
     }
 
-    // Skip if all numeric, all dates, too many unique values, or only 1 value
-    if (allNumeric || allDate || vals.size > MAX_UNIQUE_FOR_FILTER || vals.size <= 1) continue;
+    // Skip if all numeric, all dates, too many unique values, or no values at all
+    if (allNumeric || allDate || vals.size > MAX_UNIQUE_FOR_FILTER || vals.size === 0) continue;
 
     filters.push({
       key: col.key,
