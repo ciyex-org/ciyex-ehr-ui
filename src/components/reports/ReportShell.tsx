@@ -23,7 +23,7 @@ const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 const SKIP_KEYS = new Set(["id", "key", "uuid", "fhirId", "patientId", "encounterId"]);
 const MAX_UNIQUE_FOR_FILTER = 30; // don't show filter if > 30 unique vals
 
-/** Known default options for common categorical columns (shown even when no data exists) */
+/** Known default options for universal categorical columns */
 const DEFAULT_FILTER_OPTIONS: Record<string, string[]> = {
   gender: ["Male", "Female", "Other", "Unknown"],
   status: ["Active", "Inactive", "Completed", "Cancelled", "Pending", "Unsigned", "Signed", "Draft"],
@@ -38,8 +38,7 @@ const DEFAULT_FILTER_OPTIONS: Record<string, string[]> = {
 const UNIQUE_PER_ROW_KEYS = new Set([
   "name", "patient", "description", "details", "diagnosis", "medication",
   "testName", "code", "cptCode", "ipAddress", "timestamp", "date", "time",
-  "feature", "measure", "condition", "referTo", "resource", "vaccine",
-  "site", "dose", "prescriber", "reason", "insurance",
+  "feature", "measure", "referTo", "resource", "dose",
 ]);
 
 function isDateLike(v: unknown): boolean {
@@ -61,7 +60,7 @@ interface DynamicFilterInfo {
 function detectDynamicFilters(columns: ColumnConfig[], data: Record<string, unknown>[]): DynamicFilterInfo[] {
   const filters: DynamicFilterInfo[] = [];
 
-  // When no data exists, create filters from column definitions with known defaults
+  // When no data exists, create filters from column definitions for all eligible text columns
   if (data.length === 0) {
     for (const col of columns) {
       if (SKIP_KEYS.has(col.key)) continue;
@@ -69,10 +68,7 @@ function detectDynamicFilters(columns: ColumnConfig[], data: Record<string, unkn
       if (UNIQUE_PER_ROW_KEYS.has(col.key)) continue;
 
       const defaults = DEFAULT_FILTER_OPTIONS[col.key] || [];
-      // Only show filter if we have known default options for this column
-      if (defaults.length > 0) {
-        filters.push({ key: col.key, label: col.label, uniqueValues: defaults });
-      }
+      filters.push({ key: col.key, label: col.label, uniqueValues: defaults });
     }
     return filters;
   }
