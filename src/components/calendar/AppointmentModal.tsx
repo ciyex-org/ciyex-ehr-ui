@@ -355,15 +355,15 @@ const AppointmentModal: React.FC = () => {
             try {
                 const res = await fetchWithAuth(`${apiUrl}/api/providers?status=ACTIVE`);
                 const json = await res.json();
-                if (json?.success && json?.data) {
-                    const providerData = json.data.content || json.data;
-                    const list: Provider[] = Array.isArray(providerData) ? providerData : [];
-                    const opts = list.map((p) => ({
-                        value: String(p.id),
-                        label: `${p.identification?.firstName || ""} ${p.identification?.lastName || ""}`.trim(),
-                    })).filter((o) => o.label.trim() !== "");
-                    setAllProviders(opts);
-                }
+                const providerData = json?.data?.content || json?.data || json?.content || [];
+                const list: Provider[] = Array.isArray(providerData) ? providerData : [];
+                const opts = list.map((p) => ({
+                    value: String(p.id || p.fhirId || ""),
+                    label: p.identification
+                        ? `${p.identification.firstName || ""} ${p.identification.lastName || ""}`.trim()
+                        : (p.name || p.displayName || ""),
+                })).filter((o) => o.value && o.label.trim() !== "");
+                setAllProviders(opts);
             } catch (e) {
                 console.error("Failed to fetch providers", e);
             }

@@ -681,19 +681,27 @@ const Calendar: React.FC = () => {
     }, [multiColumnDay]);
 
 
-    // Fetch ACTIVE providers via generic FHIR endpoint
+    // Fetch ACTIVE providers via facade endpoint (includes enrichment with name & status)
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetchWithAuth(`${apiUrl}/api/fhir-resource/providers?size=100`);
+                const res = await fetchWithAuth(`${apiUrl}/api/providers`);
                 const json = await res.json();
-                if (json?.success && json?.data?.content) {
-                    const active = (json.data.content as FhirProvider[])
-                        .filter((p) => p['systemAccess.status'] === 'true' || p['systemAccess.status'] === 'ACTIVE')
-                        .map((p) => ({
-                            value: String(p.id),
-                            label: `${p['identification.firstName'] || ''} ${p['identification.lastName'] || ''}`.trim(),
-                        }));
+                const providerList = json?.data || json?.content || [];
+                if (Array.isArray(providerList)) {
+                    const active = providerList
+                        .filter((p: any) => {
+                            // Facade endpoint returns nested structure with systemAccess.status
+                            const status = p?.systemAccess?.status || p['systemAccess.status'] || 'ACTIVE';
+                            return status === 'ACTIVE' || status === 'true';
+                        })
+                        .map((p: any) => ({
+                            value: String(p.id || p.fhirId || ''),
+                            label: p.identification
+                                ? `${p.identification.firstName || ''} ${p.identification.lastName || ''}`.trim()
+                                : (p.name || `${p['identification.firstName'] || ''} ${p['identification.lastName'] || ''}`.trim() || 'Unknown'),
+                        }))
+                        .filter((p: any) => p.value && p.label);
 
                     setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
                 }

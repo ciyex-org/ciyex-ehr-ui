@@ -289,9 +289,13 @@ export default function AppointmentPage() {
         const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
         if (!res.ok) throw new Error();
         const data = await res.json();
-        setProviders(data.data.map((p: any) => ({
-          id: p.id, name: `${p.identification.firstName} ${p.identification.lastName}`,
-        })));
+        const providerList = data?.data || data?.content || data || [];
+        setProviders((Array.isArray(providerList) ? providerList : []).map((p: any) => ({
+          id: p.id || p.fhirId || "",
+          name: p.identification
+            ? `${p.identification.firstName || ""} ${p.identification.lastName || ""}`.trim()
+            : (p.name || p.displayName || "Unknown Provider"),
+        })).filter((p: any) => p.id && p.name));
       } catch { setProviders([]); }
       finally { setLoadingProviders(false); }
     })();

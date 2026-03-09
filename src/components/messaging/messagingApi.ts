@@ -32,6 +32,7 @@ export async function createChannel(data: {
   type: Channel["type"];
   topic?: string;
   memberIds?: string[];
+  memberNames?: Record<string, string>;
 }): Promise<Channel> {
   return api<Channel>("/api/channels", {
     method: "POST",
@@ -140,12 +141,13 @@ export async function getChannelMembers(channelId: string): Promise<ChannelMembe
 
 export async function addChannelMember(
   channelId: string,
-  userId: string
+  userId: string,
+  displayName?: string
 ): Promise<void> {
   await fetchWithAuth(`${API()}/api/channels/${channelId}/members`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId }),
+    body: JSON.stringify({ userId, displayName }),
   });
 }
 

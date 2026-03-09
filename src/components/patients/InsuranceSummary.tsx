@@ -108,6 +108,21 @@ export default function InsuranceSummary({
                         const plan = c.planName || c.plan || c.coveragePlan || c.planDisplay || c.groupName || c.groupId || "";
                         const ctype = c.coverageType || c.type || c.level || c.kind || c.relationship || "";
                         const status = c.status || "";
+                        const effectiveDate = c.policyEffectiveDate || c.effectiveDate || c.startDate || "";
+                        const endDate = c.policyEndDate || c.endDate || "";
+
+                        // Format date for display
+                        const fmtDate = (d: string) => {
+                            if (!d) return "";
+                            try {
+                                const dateOnly = d.includes("T") ? d.split("T")[0] : d;
+                                const parsed = new Date(dateOnly + "T00:00:00");
+                                if (!isNaN(parsed.getTime())) {
+                                    return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                                }
+                            } catch { /* ignore */ }
+                            return d;
+                        };
 
                         // Build a meaningful display line from whatever fields are available
                         const allValues = Object.values(c).filter(
@@ -122,6 +137,13 @@ export default function InsuranceSummary({
                                 {" "}
                                 {ctype && <span className="ml-1 text-gray-500">({ctype})</span>}
                                 {status && <span className="ml-1 text-xs text-green-600">{status}</span>}
+                                {(effectiveDate || endDate) && (
+                                    <span className="ml-1 text-xs text-gray-400">
+                                        {effectiveDate ? fmtDate(effectiveDate) : ""}
+                                        {effectiveDate && endDate ? " – " : ""}
+                                        {endDate ? fmtDate(endDate) : ""}
+                                    </span>
+                                )}
                             </li>
                         );
                     })}

@@ -102,12 +102,19 @@ export default function MessagingPage() {
       if (res.ok) {
         const json = await res.json();
         const providers = json.data || json.content || json || [];
-        const users = (Array.isArray(providers) ? providers : []).map((p: Record<string, unknown>) => ({
-          id: String(p.id || p.fhirId || ""),
-          name: p.identification
-            ? `${(p.identification as Record<string, string>).firstName || ""} ${(p.identification as Record<string, string>).lastName || ""}`.trim()
-            : String(p.name || p.displayName || "Unknown"),
-        }));
+        const users = (Array.isArray(providers) ? providers : [])
+          .map((p: Record<string, unknown>) => {
+            // Use keycloakUserId (Keycloak subject UUID) as the user ID for messaging
+            const systemAccess = p.systemAccess as Record<string, unknown> | undefined;
+            const keycloakId = systemAccess?.keycloakUserId
+              ? String(systemAccess.keycloakUserId)
+              : "";
+            const name = p.identification
+              ? `${(p.identification as Record<string, string>).firstName || ""} ${(p.identification as Record<string, string>).lastName || ""}`.trim()
+              : String(p.name || p.displayName || "Unknown");
+            return { id: keycloakId, name };
+          })
+          .filter((u: { id: string; name: string }) => u.id); // Only include users with a Keycloak account
         setAvailableUsers(users);
       }
     } catch {
