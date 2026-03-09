@@ -291,9 +291,11 @@ export default function PrescriptionsPage() {
       const res = await fetchWithAuth(url);
       const json = await res.json();
       if (res.ok && json.success) {
-        setPrescriptions(json.data.content || []);
-        setTotalPages(json.data.totalPages || 1);
-        setTotalElements(json.data.totalElements || 0);
+        // Search returns a plain List; paginated listing returns a Page with .content
+        const items = Array.isArray(json.data) ? json.data : (json.data.content || []);
+        setPrescriptions(items);
+        setTotalPages(Array.isArray(json.data) ? 1 : (json.data.totalPages || 1));
+        setTotalElements(Array.isArray(json.data) ? items.length : (json.data.totalElements || 0));
       } else {
         setPrescriptions([]);
       }
