@@ -153,7 +153,9 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     if (!form.medicationName.trim()) e.medicationName = "Medication name is required";
     if (!form.sig.trim()) e.sig = "SIG directions are required";
     if (form.prescriberName && !/^[A-Za-z\s\-'.]+$/.test(form.prescriberName.trim())) e.prescriberName = "Prescriber name must contain only letters";
+    if (form.pharmacyName && !/^[A-Za-z0-9\s\-'.,&#]+$/.test(form.pharmacyName.trim())) e.pharmacyName = "Pharmacy name contains invalid characters";
     if (form.pharmacyPhone && !/^[+]?[\d\s().\-]{7,20}$/.test(form.pharmacyPhone.trim())) e.pharmacyPhone = "Enter a valid phone number";
+    if (form.pharmacyAddress && form.pharmacyAddress.trim().length < 5) e.pharmacyAddress = "Enter a valid address (at least 5 characters)";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -358,7 +360,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className={labelCls}>Pharmacy Name</label>
-                <input className={inputCls()} value={form.pharmacyName || ""} onChange={(e) => set("pharmacyName", e.target.value)} placeholder="CVS Pharmacy" />
+                <input className={inputCls("pharmacyName")} value={form.pharmacyName || ""} onChange={(e) => set("pharmacyName", e.target.value)} placeholder="CVS Pharmacy" />
+                {errors.pharmacyName && <p className="text-xs text-red-500 mt-1">{errors.pharmacyName}</p>}
               </div>
               <div>
                 <label className={labelCls}>Phone</label>
@@ -367,7 +370,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
               </div>
               <div>
                 <label className={labelCls}>Address</label>
-                <input className={inputCls()} value={form.pharmacyAddress || ""} onChange={(e) => set("pharmacyAddress", e.target.value)} placeholder="123 Main St, City, ST 12345" />
+                <input className={inputCls("pharmacyAddress")} value={form.pharmacyAddress || ""} onChange={(e) => set("pharmacyAddress", e.target.value)} placeholder="123 Main St, City, ST 12345" />
+                {errors.pharmacyAddress && <p className="text-xs text-red-500 mt-1">{errors.pharmacyAddress}</p>}
               </div>
             </div>
           </Section>
