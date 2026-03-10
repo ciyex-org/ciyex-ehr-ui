@@ -3,6 +3,7 @@ import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
 import AdminLayout from "@/app/(admin)/layout";
 
 interface Patient {
@@ -24,6 +25,7 @@ export default function EditPatientPage() {
     const [formData, setFormData] = useState<Partial<Patient> | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (!id) {
@@ -67,6 +69,14 @@ export default function EditPatientPage() {
         e.preventDefault();
         if (!id || !formData) return;
 
+        const errs: Record<string, string> = {};
+        if (formData.firstName && !isValidName(formData.firstName)) errs.firstName = "Name must contain only letters";
+        if (formData.lastName && !isValidName(formData.lastName)) errs.lastName = "Name must contain only letters";
+        if (formData.phoneNumber && !isValidPhone(formData.phoneNumber)) errs.phoneNumber = "Enter a valid phone number";
+        if (formData.email && !isValidEmail(formData.email)) errs.email = "Enter a valid email address";
+        if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
+        setFormErrors({});
+
         setLoading(true);
         try {
             const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`, {
@@ -74,7 +84,15 @@ export default function EditPatientPage() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    email: formData.email,
+                    phoneNumber: formData.phoneNumber,
+                    dateOfBirth: formData.dateOfBirth,
+                    gender: formData.gender,
+                    ssn: formData.ssn,
+                }),
             });
 
             const result = await res.json();
@@ -108,9 +126,12 @@ export default function EditPatientPage() {
                             name="firstName"
                             value={formData.firstName || ""}
                             onChange={handleChange}
+                            pattern="[A-Za-z\s\-'.]+"
+                            title="Name must contain only letters"
                             className="mt-1 block w-full p-2 border rounded-md"
                             required
                         />
+                        {formErrors.firstName && <p className="text-xs text-red-500 mt-1">{formErrors.firstName}</p>}
                     </div>
                     <div className="mb-4">
                         <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">Last Name</label>
@@ -120,9 +141,12 @@ export default function EditPatientPage() {
                             name="lastName"
                             value={formData.lastName || ""}
                             onChange={handleChange}
+                            pattern="[A-Za-z\s\-'.]+"
+                            title="Name must contain only letters"
                             className="mt-1 block w-full p-2 border rounded-md"
                             required
                         />
+                        {formErrors.lastName && <p className="text-xs text-red-500 mt-1">{formErrors.lastName}</p>}
                     </div>
                     <div className="mb-4">
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
@@ -135,6 +159,7 @@ export default function EditPatientPage() {
                             className="mt-1 block w-full p-2 border rounded-md"
                             required
                         />
+                        {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
                     </div>
                     <div className="mb-4">
                         <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">Phone Number</label>
@@ -144,9 +169,12 @@ export default function EditPatientPage() {
                             name="phoneNumber"
                             value={formData.phoneNumber || ""}
                             onChange={handleChange}
+                            pattern="[+]?[\d\s().\-]{7,20}"
+                            title="Enter a valid phone number"
                             className="mt-1 block w-full p-2 border rounded-md"
                             required
                         />
+                        {formErrors.phoneNumber && <p className="text-xs text-red-500 mt-1">{formErrors.phoneNumber}</p>}
                     </div>
                     <div className="mb-4">
                         <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">Date of Birth</label>

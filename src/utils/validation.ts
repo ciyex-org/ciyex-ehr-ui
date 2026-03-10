@@ -1,10 +1,15 @@
 /** Validation utilities for form fields */
 
+const NAME_RE = /^[A-Za-z\s\-'.]+$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[+]?[\d\s().-]{7,20}$/;
 const FAX_RE = /^[+]?[\d\s().-]{7,20}$/;
 const URL_RE = /^https?:\/\/.+\..+/;
 const NPI_RE = /^\d{10}$/;
+
+export function isValidName(v: string): boolean {
+  return NAME_RE.test(v.trim());
+}
 
 export function isValidEmail(v: string): boolean {
   return EMAIL_RE.test(v.trim());

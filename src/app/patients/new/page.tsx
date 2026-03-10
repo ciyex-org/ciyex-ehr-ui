@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
 
 
 // Define interfaces for your form data structure
@@ -329,6 +330,7 @@ export default function AddPatient() {
         }
     });
     const [isSubmitting, setIsSubmitting] = useState(false); // Manage submission state
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
     const handleChange = <K extends keyof PatientFormData>(
         section: K,
@@ -476,6 +478,14 @@ export default function AddPatient() {
         e.preventDefault();
         if (isSubmitting) return;
 
+        const errs: Record<string, string> = {};
+        if (formData.personalInfo.firstName && !isValidName(formData.personalInfo.firstName)) errs.firstName = "Name must contain only letters";
+        if (formData.personalInfo.lastName && !isValidName(formData.personalInfo.lastName)) errs.lastName = "Name must contain only letters";
+        if (formData.contactInfo.cellPhone && !isValidPhone(formData.contactInfo.cellPhone)) errs.cellPhone = "Enter a valid phone number";
+        if (formData.contactInfo.email && !isValidEmail(formData.contactInfo.email)) errs.email = "Enter a valid email address";
+        if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
+        setFormErrors({});
+
         setIsSubmitting(true);
         try {
             // Map form data to generic FHIR demographics field keys
@@ -586,9 +596,12 @@ export default function AddPatient() {
                                         type="text"
                                         value={formData.personalInfo.firstName}
                                         onChange={(e) => handleChange("personalInfo", "firstName", e.target.value)}
+                                        pattern="[A-Za-z\s\-'.]+"
+                                        title="Name must contain only letters"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
+                                    {formErrors.firstName && <p className="text-xs text-red-500 mt-1">{formErrors.firstName}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Last Name*</label>
@@ -596,9 +609,12 @@ export default function AddPatient() {
                                         type="text"
                                         value={formData.personalInfo.lastName}
                                         onChange={(e) => handleChange("personalInfo", "lastName", e.target.value)}
+                                        pattern="[A-Za-z\s\-'.]+"
+                                        title="Name must contain only letters"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                         required
                                     />
+                                    {formErrors.lastName && <p className="text-xs text-red-500 mt-1">{formErrors.lastName}</p>}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -888,9 +904,12 @@ export default function AddPatient() {
                                                 type="tel"
                                                 value={formData.contactInfo.cellPhone}
                                                 onChange={(e) => handleChange("contactInfo", "cellPhone", e.target.value)}
+                                                pattern="[+]?[\d\s().\-]{7,20}"
+                                                title="Enter a valid phone number"
                                                 className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
+                                        {formErrors.cellPhone && <p className="text-xs text-red-500 mt-1">{formErrors.cellPhone}</p>}
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Email*</label>
@@ -901,6 +920,7 @@ export default function AddPatient() {
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             required
                                         />
+                                        {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
                                     </div>
                                 </div>
                             </div>
