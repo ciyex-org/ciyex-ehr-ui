@@ -109,9 +109,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         section.fields[i] = { ...f, type: "diagnosis-list", diagnosisConfig: f.diagnosisConfig || { codeSystem: "ICD10_CM", searchEndpoint: "/api/app-proxy/ciyex-codes/api/codes/ICD10_CM/search", allowMultiple: true } };
                     }
                 }
-                // Visit-notes: ensure type/noteType is a combobox if it's text
+                // Visit-notes: ensure author field is a provider lookup
+                if (tabKey === "visit-notes" && f.key === "author") {
+                    if (f.type !== "lookup" || !f.lookupConfig) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: f.lookupConfig || { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
+                // Visit-notes: ensure type/noteType is a combobox with options
                 if (tabKey === "visit-notes" && (f.key === "noteType" || f.key === "type")) {
-                    if (f.type === "text" && !f.options) {
+                    if (!f.options || f.options.length === 0) {
                         section.fields[i] = { ...f, type: "combobox", options: [
                             { value: "progress", label: "Progress Note" },
                             { value: "soap", label: "SOAP Note" },
@@ -125,9 +131,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         ] };
                     }
                 }
-                // Visit-notes: ensure action field works as a select/combobox
+                // Visit-notes: ensure action field works as a combobox with options
                 if (tabKey === "visit-notes" && f.key === "action") {
-                    if (f.type === "text" && !f.options) {
+                    if (!f.options || f.options.length === 0) {
                         section.fields[i] = { ...f, type: "combobox", options: [
                             { value: "review", label: "Review" },
                             { value: "sign", label: "Sign" },
@@ -195,8 +201,10 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.severity == null && Array.isArray(r.reaction) && r.reaction[0]?.severity) r.severity = r.reaction[0].severity;
         if (r.criticality != null && r.severity == null) r.severity = r.criticality;
         if (r.severity == null && r.severityLevel != null) r.severity = r.severityLevel;
-        // Ensure severity isn't the literal string "null"
-        if (r.severity === "null" || r.severity === "undefined") r.severity = null;
+        // Ensure severity isn't the literal string "null" / "undefined" / empty
+        if (r.severity === "null" || r.severity === "undefined" || r.severity === "") r.severity = null;
+        // Also clear reaction if it's the literal "null" string
+        if (r.reaction === "null" || r.reaction === "undefined") r.reaction = null;
         if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
         if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
 
@@ -350,6 +358,13 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
         if (r.requester != null && r.provider == null) { r.provider = typeof r.requester === "string" ? r.requester : (r.requester?.display || null); }
         if (r.requesterDisplay != null && r.provider == null) r.provider = r.requesterDisplay;
+        // Reverse: ensure field-config keys are populated from normalized values
+        if (r.collectionDate != null && r.effectiveDate == null) r.effectiveDate = r.collectionDate;
+        if (r.effectiveDate != null && r.collectionDate == null) r.collectionDate = r.effectiveDate;
+        if (r.provider != null && r.performer == null) r.performer = r.provider;
+        // Last-resort date: use _lastUpdated or createdDate
+        if (r.effectiveDate == null && r._lastUpdated != null) r.effectiveDate = r._lastUpdated;
+        if (r.effectiveDate == null && r.createdDate != null) r.effectiveDate = r.createdDate;
 
         // --- Procedure ---
         if (r.performedDateTime != null && r.datePerformed == null) r.datePerformed = r.performedDateTime;
@@ -365,6 +380,12 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
         if (r.procedureCode != null && r.cptCode == null) r.cptCode = r.procedureCode;
         if (r.serviceCode != null && r.cptCode == null) r.cptCode = r.serviceCode;
+        // Reverse: ensure field-config keys are populated
+        if (r.datePerformed != null && r.performedDate == null) r.performedDate = r.datePerformed;
+        if (r.performedDate != null && r.datePerformed == null) r.datePerformed = r.performedDate;
+        // Last-resort date for procedures
+        if (r.performedDate == null && r._lastUpdated != null) r.performedDate = r._lastUpdated;
+        if (r.performedDate == null && r.createdDate != null) r.performedDate = r.createdDate;
 
         // --- Claims / Billing ---
         if (r.created != null && r.createdDate == null) r.createdDate = r.created;
@@ -383,12 +404,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.originalClaimReference == null && r.originalClaimId != null) r.originalClaimReference = r.originalClaimId;
 
         // --- Claims: service from / service to dates ---
+        if (r.serviceFrom == null && r.billablePeriodStart != null) r.serviceFrom = r.billablePeriodStart;
         if (r.serviceFrom == null && r.billablePeriod?.start != null) r.serviceFrom = r.billablePeriod.start;
         if (r.serviceFrom == null && r.servicePeriod?.start != null) r.serviceFrom = r.servicePeriod.start;
         if (r.serviceFrom == null && r.serviceDate != null) r.serviceFrom = r.serviceDate;
         if (r.serviceFrom == null && r.dateOfService != null) r.serviceFrom = r.dateOfService;
         if (r.serviceFrom == null && r.startDate != null) r.serviceFrom = r.startDate;
         if (r.serviceFrom == null && r.createdDate != null) r.serviceFrom = r.createdDate;
+        if (r.serviceTo == null && r.billablePeriodEnd != null) r.serviceTo = r.billablePeriodEnd;
         if (r.serviceTo == null && r.billablePeriod?.end != null) r.serviceTo = r.billablePeriod.end;
         if (r.serviceTo == null && r.servicePeriod?.end != null) r.serviceTo = r.servicePeriod.end;
         if (r.serviceTo == null && r.serviceEndDate != null) r.serviceTo = r.serviceEndDate;
@@ -397,6 +420,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         // Also map serviceFromDate / serviceToDate alternate keys
         if (r.serviceFromDate != null && r.serviceFrom == null) r.serviceFrom = r.serviceFromDate;
         if (r.serviceToDate != null && r.serviceTo == null) r.serviceTo = r.serviceToDate;
+        // Reverse: ensure flat billablePeriod fields are populated for field-config display
+        if (r.billablePeriodStart == null && r.serviceFrom != null) r.billablePeriodStart = r.serviceFrom;
+        if (r.billablePeriodEnd == null && r.serviceTo != null) r.billablePeriodEnd = r.serviceTo;
 
         // --- Claim Submissions: tracking number and total charge ---
         if (r.trackingNumber == null && r.submissionNumber != null) r.trackingNumber = r.submissionNumber;
@@ -412,6 +438,11 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.totalCharge == null && r.amount != null) r.totalCharge = r.amount;
         if (r.totalCharge == null && r.billedAmount != null) r.totalCharge = r.billedAmount;
         if (r.totalCharge == null && r.claimTotal != null) r.totalCharge = typeof r.claimTotal === "object" ? r.claimTotal.value : r.claimTotal;
+        // Reverse: ensure field-config keys 'total' and 'created' are populated
+        if (r.total == null && r.totalCharge != null) r.total = r.totalCharge;
+        if (r.total == null && r.totalAmount != null) r.total = r.totalAmount;
+        if (r.created == null && r.createdDate != null) r.created = r.createdDate;
+        if (r.created == null && r._lastUpdated != null) r.created = r._lastUpdated;
 
         // --- Transaction ---
         if (r.date == null && r.transactionDate != null) r.date = r.transactionDate;
@@ -428,6 +459,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         // --- Billing CPT code ---
         if (r.cptCode == null && r.item?.[0]?.productOrService?.coding?.[0]?.code) r.cptCode = r.item[0].productOrService.coding[0].code;
         if (r.cptCode == null && r.serviceCode != null) r.cptCode = r.serviceCode;
+        if (r.cptCode == null && r.procedureCodes != null) r.cptCode = Array.isArray(r.procedureCodes) ? r.procedureCodes.map((c: any) => c.code || c).join(", ") : r.procedureCodes;
+        // Billing diagnosis code
+        if (r.diagnosisCode == null && r.diagnosis != null) {
+            r.diagnosisCode = Array.isArray(r.diagnosis) ? r.diagnosis.map((d: any) => d.code || d).join(", ") : (typeof r.diagnosis === "object" ? (r.diagnosis.code || JSON.stringify(r.diagnosis)) : r.diagnosis);
+        }
+        if (r.diagnosisCode == null && r.diagnosisCodes != null) {
+            r.diagnosisCode = Array.isArray(r.diagnosisCodes) ? r.diagnosisCodes.map((d: any) => d.code || d).join(", ") : r.diagnosisCodes;
+        }
+        if (r.diagnosisCode == null && r.icdCode != null) r.diagnosisCode = r.icdCode;
+        if (r.diagnosisCode == null && r.icdCodes != null) r.diagnosisCode = Array.isArray(r.icdCodes) ? r.icdCodes.join(", ") : r.icdCodes;
 
         // --- Issues / Condition onset ---
         if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
@@ -807,6 +848,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
     // Format display value for list table
     const formatValue = (value: any, colKey?: string, record?: Record<string, any>): React.ReactNode => {
+        // Treat literal "null" / "undefined" strings as missing
+        if (value === "null" || value === "undefined") value = null;
+
         // Handle Java date arrays inline
         if (Array.isArray(value) && value.length >= 3 && typeof value[0] === "number" && value[0] > 1900) {
             const converted = mapDateArray(value);

@@ -339,21 +339,29 @@ function LookupField({
   const search = useCallback(
     async (q: string) => {
       if (!q || q.length < 2 || !field.lookupConfig) return;
-      try {
-        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
-        const res = await fetchWithAuth(`${base}${field.lookupConfig.endpoint}?search=${encodeURIComponent(q)}`);
-        if (res.ok) {
+      const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+      const endpoint = field.lookupConfig.endpoint;
+      const eq = encodeURIComponent(q);
+      // Try multiple query parameter patterns; use whichever returns results
+      const urls = [
+        `${base}${endpoint}?search=${eq}`,
+        `${base}${endpoint}?q=${eq}`,
+        `${base}${endpoint}?name=${eq}`,
+      ];
+      for (const url of urls) {
+        try {
+          const res = await fetchWithAuth(url);
+          if (!res.ok) continue;
           const data = await res.json();
           const items = Array.isArray(data) ? data
             : Array.isArray(data.data) ? data.data
             : Array.isArray(data.data?.content) ? data.data.content
             : Array.isArray(data.content) ? data.content
             : [];
-          setResults(items);
-        }
-      } catch {
-        setResults([]);
+          if (items.length > 0) { setResults(items); return; }
+        } catch { /* try next */ }
       }
+      setResults([]);
     },
     [field.lookupConfig]
   );
