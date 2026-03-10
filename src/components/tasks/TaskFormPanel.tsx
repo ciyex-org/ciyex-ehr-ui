@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { X, Save, Loader2 } from "lucide-react";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 import DatePicker from "@/components/form/date-picker";
 import {
   TASK_TYPE_LABELS,
@@ -55,6 +57,43 @@ export default function TaskFormPanel({
 
   const set = <K extends keyof TaskFormData>(key: K, val: TaskFormData[K]) =>
     onChange({ ...form, [key]: val });
+
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+
+  // Sync patient query with form data
+  useEffect(() => {
+    setPatientQuery(form.patientName || "");
+  }, [form.patientName, open]);
+
+  // Debounced patient search
+  useEffect(() => {
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
+        const res = await fetchWithAuth(`${base}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const json = await res.json();
+        let list: typeof patientResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(list.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [patientQuery]);
+
+  const pName = (p: typeof patientResults[0]) =>
+    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+
+  const selectPatient = (p: typeof patientResults[0]) => {
+    const name = pName(p);
+    onChange({ ...form, patientId: p.id, patientName: name });
+    setPatientQuery(name);
+    setShowPatientDropdown(false);
+  };
 
   return (
     <>
@@ -234,17 +273,39 @@ export default function TaskFormPanel({
 
           {/* Row: Patient Name + Patient ID */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="relative">
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 Patient Name
               </label>
               <input
                 type="text"
-                value={form.patientName}
-                onChange={(e) => set("patientName", e.target.value)}
-                placeholder="Patient name"
+                value={patientQuery}
+                onChange={(e) => {
+                  setPatientQuery(e.target.value);
+                  set("patientName", e.target.value);
+                  set("patientId", "");
+                  setShowPatientDropdown(true);
+                }}
+                onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
+                placeholder="Search patient by name..."
+                autoComplete="off"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
               />
+              {showPatientDropdown && patientResults.length > 0 && (
+                <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                  {patientResults.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => selectPatient(p)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                    >
+                      <span className="font-medium">{pName(p)}</span>
+                      <span className="text-xs text-gray-400 ml-2">#{p.id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -253,9 +314,9 @@ export default function TaskFormPanel({
               <input
                 type="text"
                 value={form.patientId}
-                onChange={(e) => set("patientId", e.target.value)}
-                placeholder="Patient ID"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+                readOnly
+                placeholder="Auto-filled from search"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none transition cursor-not-allowed"
               />
             </div>
           </div>

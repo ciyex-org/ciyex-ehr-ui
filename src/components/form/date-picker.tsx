@@ -24,11 +24,16 @@ export default function DatePicker({
   placeholder,
 }: PropsType) {
   useEffect(() => {
+    const isTime = mode === "time";
     const flatPickr = flatpickr(`#${id}`, {
-      mode: mode || "single",
-      static: true,
+      mode: isTime ? "single" : (mode || "single"),
+      static: false,
+      appendTo: document.body,
       monthSelectorType: "static",
-      dateFormat: "Y-m-d",
+      dateFormat: isTime ? "H:i" : "Y-m-d",
+      enableTime: isTime,
+      noCalendar: isTime,
+      time_24hr: false,
       defaultDate,
       onChange,
     });
