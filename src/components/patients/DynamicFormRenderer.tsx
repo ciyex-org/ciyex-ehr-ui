@@ -338,15 +338,15 @@ function LookupField({
 
   const search = useCallback(
     async (q: string) => {
-      if (!q || q.length < 2 || !field.lookupConfig) return;
+      if (!q || q.length < 2 || !field.lookupConfig?.endpoint) return;
       const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
-      const endpoint = field.lookupConfig.endpoint;
+      const ep = field.lookupConfig.endpoint.startsWith("/") ? field.lookupConfig.endpoint : `/${field.lookupConfig.endpoint}`;
       const eq = encodeURIComponent(q);
       // Try multiple query parameter patterns; use whichever returns results
       const urls = [
-        `${base}${endpoint}?search=${eq}`,
-        `${base}${endpoint}?q=${eq}`,
-        `${base}${endpoint}?name=${eq}`,
+        `${base}${ep}?search=${eq}`,
+        `${base}${ep}?q=${eq}`,
+        `${base}${ep}?name=${eq}`,
       ];
       for (const url of urls) {
         try {

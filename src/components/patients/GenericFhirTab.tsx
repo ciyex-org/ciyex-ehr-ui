@@ -212,9 +212,13 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
 
         // Java date array normalization: convert [year, month, day, ...] to ISO strings
+        // Also normalize Java Date.toString() format ("Mon Mar 09 15:01:49 UTC 2026") to ISO
+        const javaDatePattern = /^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{2} \d{2}:\d{2}:\d{2} \w+ \d{4}$/;
         for (const key of Object.keys(r)) {
             if (Array.isArray(r[key]) && r[key].length >= 3 && typeof r[key][0] === "number" && r[key][0] > 1900) {
                 r[key] = mapDateArray(r[key]) || r[key];
+            } else if (typeof r[key] === "string" && javaDatePattern.test(r[key])) {
+                try { const d = new Date(r[key]); if (!isNaN(d.getTime())) r[key] = d.toISOString(); } catch { /* keep original */ }
             }
         }
 
@@ -479,6 +483,10 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.created == null && r._lastUpdated != null) r.created = r._lastUpdated;
 
         // --- Transaction ---
+        if (r.serviceDate == null && r.created != null) r.serviceDate = r.created;
+        if (r.serviceDate == null && r.createdDate != null) r.serviceDate = r.createdDate;
+        if (r.serviceDate == null && r.billablePeriodStart != null) r.serviceDate = r.billablePeriodStart;
+        if (r.serviceDate == null && r._lastUpdated != null) r.serviceDate = r._lastUpdated;
         if (r.date == null && r.transactionDate != null) r.date = r.transactionDate;
         if (r.date == null && r.paymentDate != null) r.date = r.paymentDate;
         if (r.date == null && r.collectedAt != null) r.date = r.collectedAt;
