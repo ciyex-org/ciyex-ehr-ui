@@ -997,9 +997,10 @@ const Calendar: React.FC = () => {
         }
 
         const allowed = providers.filter((p) =>
-            providerIds.has(Number(p.value))
+            p.value !== "all" && providerIds.has(Number(p.value))
         );
-        setProvidersForDate(allowed);
+        // Fallback to all active providers when no schedule-specific providers found
+        setProvidersForDate(allowed.length > 0 ? allowed : providers.filter(p => p.value !== "all"));
         setLoadingProvidersForDate(false);
     }, [
         isOpen,
@@ -1045,7 +1046,7 @@ const Calendar: React.FC = () => {
 
         // Fallback: if no schedule-based locations found, show all locations
         // so the user can still create the appointment
-        const effectiveLocations = filtered.length > 0 ? filtered : locations;
+        const effectiveLocations = filtered.length > 0 ? filtered : locations.filter(l => l.value !== "all");
         setProviderLocationOptions(effectiveLocations);
 
         if (effectiveLocations.length === 1) {

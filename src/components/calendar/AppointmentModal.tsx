@@ -376,13 +376,13 @@ const AppointmentModal: React.FC = () => {
             try {
                 const res = await fetchWithAuth(`${apiUrl}/api/locations`);
                 const json = await res.json();
-                if (json?.success && json?.data) {
-                    // Handle paginated response
-                    const locationData = json.data.content || json.data;
-                    const list: Location[] = Array.isArray(locationData) ? locationData : [];
+                // Handle multiple response formats
+                const locationData = json?.data?.content || json?.data || json?.content || (Array.isArray(json) ? json : []);
+                const list: Location[] = Array.isArray(locationData) ? locationData : [];
+                if (list.length > 0) {
                     const opts = list.map((l) => ({
                         value: String(l.id),
-                        label: `${l.name}${l.address ? ` - ${l.address}` : ""}`,
+                        label: `${l.name || ""}${l.address ? ` - ${l.address}` : ""}`,
                     }));
                     setAllLocations(opts);
                 }

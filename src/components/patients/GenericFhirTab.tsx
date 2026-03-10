@@ -85,6 +85,27 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: f.lookupConfig || { endpoint: "/api/patients", displayField: "name", valueField: "id", searchable: true } };
                     }
                 }
+                // Messaging: ensure "from" / "sender" field is a provider lookup
+                if (tabKey === "messaging" && (f.key === "from" || f.key === "sender" || f.key === "fromProvider")) {
+                    if (f.type !== "lookup" || !f.lookupConfig) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: f.lookupConfig || { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
+                // Relationships: ensure relationshipType is a combobox with common options
+                if (tabKey === "relationships" && (f.key === "relationshipType" || f.key === "relationType" || f.key === "type")) {
+                    if (!f.options || f.options.length === 0) {
+                        section.fields[i] = { ...f, type: "combobox", options: [
+                            { value: "parent", label: "Parent" },
+                            { value: "child", label: "Child" },
+                            { value: "spouse", label: "Spouse" },
+                            { value: "sibling", label: "Sibling" },
+                            { value: "guardian", label: "Guardian" },
+                            { value: "emergency", label: "Emergency Contact" },
+                            { value: "caregiver", label: "Caregiver" },
+                            { value: "other", label: "Other" },
+                        ] };
+                    }
+                }
                 // Labs: ensure performer / provider field is a provider lookup
                 if (tabKey === "labs" && (f.key === "performer" || f.key === "provider" || f.key === "orderedBy")) {
                     if (f.type !== "lookup" || !f.lookupConfig) {
@@ -495,6 +516,53 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.encounterDate == null && r.date != null) r.encounterDate = r.date;
         if (r.encounterDate == null && r.startDate != null) r.encounterDate = r.startDate;
 
+        // --- Insurance Coverage: policyEffectiveDate / policyEndDate ---
+        if (r.policyEffectiveDate == null && r.startDate != null) r.policyEffectiveDate = r.startDate;
+        if (r.policyEffectiveDate == null && r.period?.start != null) r.policyEffectiveDate = r.period.start;
+        if (r.policyEffectiveDate == null && r.coverageStartDate != null) r.policyEffectiveDate = r.coverageStartDate;
+        if (r.policyEffectiveDate == null && r.effectiveDate != null) r.policyEffectiveDate = r.effectiveDate;
+        if (r.policyEffectiveDate == null && r.start != null) r.policyEffectiveDate = r.start;
+        if (r.policyEffectiveDate == null && r.createdDate != null) r.policyEffectiveDate = r.createdDate;
+        if (r.policyEndDate == null && r.endDate != null) r.policyEndDate = r.endDate;
+        if (r.policyEndDate == null && r.period?.end != null) r.policyEndDate = r.period.end;
+        if (r.policyEndDate == null && r.coverageEndDate != null) r.policyEndDate = r.coverageEndDate;
+        if (r.policyEndDate == null && r.end != null) r.policyEndDate = r.end;
+        if (r.policyEndDate == null && r.expirationDate != null) r.policyEndDate = r.expirationDate;
+
+        // --- Relationship: relatedPatientName / relationshipType ---
+        if (r.relatedPatientName == null) {
+            const nameObj = Array.isArray(r.name) ? r.name[0] : r.name;
+            if (nameObj && typeof nameObj === "object") {
+                r.relatedPatientName = nameObj.text || [nameObj.given?.[0], nameObj.family].filter(Boolean).join(" ") || null;
+            } else if (typeof nameObj === "string") {
+                r.relatedPatientName = nameObj;
+            }
+        }
+        if (r.relatedPatientName == null && r.relatedPersonName != null) r.relatedPatientName = r.relatedPersonName;
+        if (r.relatedPatientName == null && r.fullName != null) r.relatedPatientName = r.fullName;
+        if (r.relatedPatientName == null && r.displayName != null) r.relatedPatientName = r.displayName;
+        if (r.relationshipType == null) {
+            const rel = Array.isArray(r.relationship) ? r.relationship[0] : r.relationship;
+            if (rel && typeof rel === "object") {
+                r.relationshipType = rel.coding?.[0]?.display || rel.coding?.[0]?.code || rel.text || null;
+            } else if (typeof rel === "string") {
+                r.relationshipType = rel;
+            }
+        }
+        if (r.relationshipType == null && r.relationType != null) r.relationshipType = r.relationType;
+        if (r.relationshipType == null && r.type != null && typeof r.type === "string") r.relationshipType = r.type;
+
+        // --- Messaging: ensure from/to resolve provider and patient references ---
+        if (r.from == null && r.providerName != null) r.from = r.providerName;
+        if (r.from == null && r.provider != null && typeof r.provider === "string") r.from = r.provider;
+        if (r.from == null && r.authorName != null) r.from = r.authorName;
+        if (r.from == null && r.author != null && typeof r.author === "string") r.from = r.author;
+        if (r.to == null && r.patientName != null) r.to = r.patientName;
+        if (r.to == null && r.toPatientName != null) r.to = r.toPatientName;
+
+        // --- Documents: reverse mapping for save (documentDate → date) ---
+        if (r.date == null && r.documentDate != null) r.date = r.documentDate;
+
         return r;
     }, []);
 
@@ -754,6 +822,22 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             const isEdit = (mode === "edit") && selectedRecord;
             const resourceId = isEdit ? (selectedRecord!.id || selectedRecord!.fhirId) : null;
 
+            // Pre-save field mapping: ensure backend receives expected field names
+            const payload = { ...formData };
+            if (tabKey === "visit-notes") {
+                // Backend expects noteDateTime for the date
+                if (payload.date && !payload.noteDateTime) payload.noteDateTime = payload.date;
+                if (payload.date && !payload.noteDate) payload.noteDate = payload.date;
+                // Backend expects noteText for the content
+                if (payload.note && !payload.noteText) payload.noteText = payload.note;
+                if (payload.content && !payload.noteText) payload.noteText = payload.content;
+            }
+            if (tabKey === "insurance-coverage") {
+                // Ensure backend gets period.start/end from policyEffectiveDate/policyEndDate
+                if (payload.policyEffectiveDate && !payload.coverageStartDate) payload.coverageStartDate = payload.policyEffectiveDate;
+                if (payload.policyEndDate && !payload.coverageEndDate) payload.coverageEndDate = payload.policyEndDate;
+            }
+
             const url = isEdit
                 ? `${API_BASE()}/api/fhir-resource/${tabKey}/patient/${patientId}/${resourceId}`
                 : `${API_BASE()}/api/fhir-resource/${tabKey}/patient/${patientId}`;
@@ -761,7 +845,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             const res = await fetchWithAuth(url, {
                 method: isEdit ? "PUT" : "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
 
             if (res.ok) {

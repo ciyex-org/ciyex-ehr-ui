@@ -140,7 +140,7 @@ function AddUserLookupPanel({
 
   if (!open) return null;
 
-  const staffRoles = SYSTEM_ROLES.filter((r) => r.value !== "PATIENT");
+  const staffRoles = SYSTEM_ROLES; // Show all roles including PATIENT
   const isPatientTab = tab === "patients";
 
   return (
