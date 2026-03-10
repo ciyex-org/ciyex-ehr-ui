@@ -185,9 +185,9 @@ export default function PatientChartPanel({ patientId }: PatientChartPanelProps)
       return (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <AllergiesSummary patientId={patientId} />
-            <MedicalProblemsSummary patientId={patientId} />
-            <InsuranceSummary patientId={patientId} />
+            <AllergiesSummary patientId={patientId} onNavigate={onTabClick} />
+            <MedicalProblemsSummary patientId={patientId} onNavigate={onTabClick} />
+            <InsuranceSummary patientId={patientId} onNavigate={onTabClick} />
             <PatientAccountCard patientId={patientId} />
           </div>
         </div>

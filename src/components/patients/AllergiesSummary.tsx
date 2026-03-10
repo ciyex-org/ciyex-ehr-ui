@@ -25,9 +25,11 @@ type AllergyDto = {
 export default function AllergiesSummary({
                                              patientId,
                                              orgId,
+                                             onNavigate,
                                          }: {
     patientId: number;
     orgId?: number;
+    onNavigate?: (tab: string) => void;
 }) {
     const [items, setItems] = useState<AllergyItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -83,9 +85,7 @@ export default function AllergiesSummary({
             <div className="bg-white rounded-lg border p-4 shadow-sm">
                 <div className="flex justify-between items-center mb-2">
                     <h4 className="font-semibold text-sm">Allergies</h4>
-                    <a href={`?tab=allergies`} className="text-xs text-blue-600 hover:underline">
-                        View all
-                    </a>
+                    <button type="button" onClick={() => onNavigate ? onNavigate("allergies") : (window.location.search = "?tab=allergies")} className="text-xs text-blue-600 hover:underline">View all</button>
                 </div>
                 <p className="text-gray-500 text-sm">Loading allergies...</p>
             </div>
@@ -96,9 +96,7 @@ export default function AllergiesSummary({
         <div className="bg-white rounded-lg border p-4 shadow-sm">
             <div className="flex justify-between items-center mb-2">
                 <h4 className="font-semibold text-sm">Allergies</h4>
-                <a href={`?tab=allergies`} className="text-xs text-blue-600 hover:underline">
-                    View all
-                </a>
+                <button type="button" onClick={() => onNavigate ? onNavigate("allergies") : (window.location.search = "?tab=allergies")} className="text-xs text-blue-600 hover:underline">View all</button>
             </div>
             {items.length === 0 ? (
                 <p className="text-gray-500 text-sm">No allergies recorded</p>

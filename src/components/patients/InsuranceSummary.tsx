@@ -16,9 +16,11 @@ type ApiResponse<T> = {
 export default function InsuranceSummary({
                                              patientId,
                                              orgId,
+                                             onNavigate,
                                          }: {
     patientId: number;
     orgId?: number;
+    onNavigate?: (tab: string) => void;
 }) {
     const [rows, setRows] = useState<Coverage[]>([]);
     const [loading, setLoading] = useState(true);
@@ -81,9 +83,7 @@ export default function InsuranceSummary({
             <div className="bg-white rounded-lg border p-4 shadow-sm">
                 <div className="flex justify-between items-center mb-2">
                     <h4 className="font-semibold text-sm">Insurance</h4>
-                    <a href={`?tab=insurance`} className="text-xs text-blue-600 hover:underline">
-                        View all
-                    </a>
+                    <button type="button" onClick={() => onNavigate ? onNavigate("insurance") : (window.location.search = "?tab=insurance")} className="text-xs text-blue-600 hover:underline">View all</button>
                 </div>
                 <p className="text-gray-500 text-sm">Loading insurance...</p>
             </div>
@@ -94,9 +94,7 @@ export default function InsuranceSummary({
         <div className="bg-white rounded-lg border p-4 shadow-sm">
             <div className="flex justify-between items-center mb-2">
                 <h4 className="font-semibold text-sm">Insurance</h4>
-                <a href={`?tab=insurance`} className="text-xs text-blue-600 hover:underline">
-                    View all
-                </a>
+                <button type="button" onClick={() => onNavigate ? onNavigate("insurance") : (window.location.search = "?tab=insurance")} className="text-xs text-blue-600 hover:underline">View all</button>
             </div>
             {rows.length === 0 ? (
                 <p className="text-gray-500 text-sm">No insurance on file</p>

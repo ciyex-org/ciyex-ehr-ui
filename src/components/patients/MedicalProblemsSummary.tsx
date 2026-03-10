@@ -25,8 +25,10 @@ type MedicalProblemDto = {
 
 export default function MedicalProblemsSummary({
                                                    patientId,
+                                                   onNavigate,
                                                }: {
     patientId: number;
+    onNavigate?: (tab: string) => void;
 }) {
     const [items, setItems] = useState<MedicalProblem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -79,12 +81,7 @@ export default function MedicalProblemsSummary({
             <div className="bg-white rounded-lg border p-4 shadow-sm">
                 <div className="flex justify-between items-center mb-2">
                     <h4 className="font-semibold text-sm">Medical Problems</h4>
-                    <a
-                        href={`?tab=medicalproblems`}
-                        className="text-xs text-blue-600 hover:underline"
-                    >
-                        View all
-                    </a>
+                    <button type="button" onClick={() => onNavigate ? onNavigate("medicalproblems") : (window.location.search = "?tab=medicalproblems")} className="text-xs text-blue-600 hover:underline">View all</button>
                 </div>
                 <p className="text-gray-500 text-sm">Loading problems...</p>
             </div>
@@ -95,12 +92,7 @@ export default function MedicalProblemsSummary({
         <div className="bg-white rounded-lg border p-4 shadow-sm">
             <div className="flex justify-between items-center mb-2">
                 <h4 className="font-semibold text-sm">Medical Problems</h4>
-                <a
-                    href={`?tab=medicalproblems`}
-                    className="text-xs text-blue-600 hover:underline"
-                >
-                    View all
-                </a>
+                <button type="button" onClick={() => onNavigate ? onNavigate("medicalproblems") : (window.location.search = "?tab=medicalproblems")} className="text-xs text-blue-600 hover:underline">View all</button>
             </div>
             {items.length === 0 ? (
                 <p className="text-gray-500 text-sm">No problems recorded</p>
