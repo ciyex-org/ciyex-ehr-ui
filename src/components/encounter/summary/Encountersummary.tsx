@@ -723,7 +723,10 @@ const downloadPdf = useCallback(async () => {
                                     {v?.weightLbs && <div><b>Weight:</b> {v.weightLbs} lbs</div>}
                                     {v?.heightCm && <div><b>Height:</b> {v.heightCm} cm</div>}
                                     {v?.heightIn && <div><b>Height:</b> {v.heightIn} in</div>}
-                                    {v?.bmi && <div><b>BMI:</b> {v.bmi}</div>}
+                                    {(v?.bmi || (v?.weightKg && v?.heightCm)) && (() => {
+                                        const bmiVal = v.bmi || (v.weightKg && v.heightCm ? +(v.weightKg / ((v.heightCm / 100) ** 2)).toFixed(1) : null);
+                                        return bmiVal ? <div><b>BMI:</b> {bmiVal}</div> : null;
+                                    })()}
                                 </div>
                                 {v?.notes && <div className="mt-2 text-gray-700 whitespace-pre-wrap">{v.notes}</div>}
                                 {v?.recordedAt && <div className="mt-1 text-xs text-gray-500">Recorded: {v.recordedAt}</div>}

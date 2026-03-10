@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import ReactDOM from "react-dom";
 import { UserResponse, ROLE_BADGE_COLORS } from "./types";
 import { Edit3, KeyRound, UserX, MoreVertical, Mail, Link2, LinkIcon } from "lucide-react";
 
@@ -15,6 +16,7 @@ interface Props {
 
 export default function UserTable({ users, onEdit, onResetPassword, onSendResetEmail, onDeactivate, onLinkPractitioner }: Props) {
   const [openMenu, setOpenMenu] = React.useState<string | null>(null);
+  const [menuPos, setMenuPos] = React.useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   const primaryRole = (u: UserResponse) => {
     const filtered = u.roles.filter(
@@ -79,15 +81,20 @@ export default function UserTable({ users, onEdit, onResetPassword, onSendResetE
                 </td>
                 <td className="px-4 py-3 text-right relative">
                   <button
-                    onClick={() => setOpenMenu(openMenu === u.id ? null : u.id)}
+                    onClick={(e) => {
+                      if (openMenu === u.id) { setOpenMenu(null); return; }
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setMenuPos({ top: rect.bottom + 4, left: rect.right - 192 });
+                      setOpenMenu(u.id);
+                    }}
                     className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>
-                  {openMenu === u.id && (
+                  {openMenu === u.id && ReactDOM.createPortal(
                     <>
-                      <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
-                      <div className="absolute right-4 top-full mt-1 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 w-48">
+                      <div className="fixed inset-0 z-[9998]" onClick={() => setOpenMenu(null)} />
+                      <div className="fixed z-[9999] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg py-1 w-48" style={{ top: menuPos.top, left: menuPos.left }}>
                         <button
                           onClick={() => { onEdit(u); setOpenMenu(null); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
@@ -123,7 +130,8 @@ export default function UserTable({ users, onEdit, onResetPassword, onSendResetE
                           </button>
                         )}
                       </div>
-                    </>
+                    </>,
+                    document.body
                   )}
                 </td>
               </tr>

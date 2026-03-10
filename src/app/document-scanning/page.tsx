@@ -207,7 +207,29 @@ export default function DocumentScanningPage() {
       const res = await fetchWithAuth(url);
       const json = await res.json();
       if (res.ok && json.success) {
-        setDocuments(json.data.content || json.data || []);
+        const docs: ScannedDocument[] = json.data.content || json.data || [];
+        // Resolve missing patient names from patientId
+        const missingNames = docs.filter(d => d.patientId && !d.patientName);
+        if (missingNames.length > 0) {
+          const uniqueIds = Array.from(new Set(missingNames.map(d => d.patientId)));
+          const nameMap: Record<number, string> = {};
+          await Promise.all(uniqueIds.map(async (pid) => {
+            try {
+              const r = await fetchWithAuth(`${API()}/api/patients/${pid}`);
+              if (r.ok) {
+                const pj = await r.json();
+                const p = pj.data || pj;
+                nameMap[pid!] = p.name || [p.firstName, p.lastName].filter(Boolean).join(" ") || `Patient ${pid}`;
+              }
+            } catch { /* skip */ }
+          }));
+          for (const d of docs) {
+            if (d.patientId && !d.patientName && nameMap[d.patientId]) {
+              d.patientName = nameMap[d.patientId];
+            }
+          }
+        }
+        setDocuments(docs);
         setTotalPages(json.data.totalPages || 1);
         setTotalElements(json.data.totalElements || 0);
       } else { setDocuments([]); }

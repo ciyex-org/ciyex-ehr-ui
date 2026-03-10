@@ -360,6 +360,7 @@ function ApiFilterBar({
           <div key={f.key} className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">{f.label}</label>
             <select value={(filters[f.key] as string) || ""} onChange={e => onChange({ ...filters, [f.key]: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px]">
+              {!allOptions.some(o => o.value === "") && <option value="">All {f.label}</option>}
               {allOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
@@ -511,16 +512,19 @@ function DataTable({ columns, data, totalRecords }: { columns: ColumnConfig[]; d
   );
 }
 
-/* ── CSV Export ── */
+/* ── CSV Export (with BOM for Excel compatibility) ── */
 function downloadCSV(report: ReportDefinition, data: Record<string, unknown>[]) {
   const headers = report.columns.map(c => c.label);
   const rows = data.map(row => report.columns.map(c => {
     const v = row[c.key];
     const s = v == null ? "" : String(v);
-    return s.includes(",") ? `"${s}"` : s;
+    // Always quote fields to prevent Excel display issues (######)
+    return `"${s.replace(/"/g, '""')}"`;
   }));
-  const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
+  // UTF-8 BOM ensures Excel opens CSV with correct encoding and wider column detection
+  const bom = "\uFEFF";
+  const csv = bom + [headers.map(h => `"${h}"`).join(","), ...rows.map(r => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

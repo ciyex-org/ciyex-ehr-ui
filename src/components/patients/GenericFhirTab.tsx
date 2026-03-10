@@ -221,6 +221,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.end != null && r.endDate == null) r.endDate = r.end;
 
         // --- Appointment start/end time ---
+        // Fallback for start/end from alternate field names
+        if (r.start == null && r.appointmentStart != null) r.start = r.appointmentStart;
+        if (r.start == null && r.appointmentDate != null) r.start = r.appointmentDate;
+        if (r.start == null && r.scheduledDate != null) r.start = r.scheduledDate;
+        if (r.start == null && r.serviceDate != null) r.start = r.serviceDate;
+        if (r.start == null && r.dateTime != null) r.start = r.dateTime;
+        if (r.start == null && r.startDate != null) r.start = r.startDate;
+        if (r.end == null && r.appointmentEnd != null) r.end = r.appointmentEnd;
+        if (r.end == null && r.endDate != null) r.end = r.endDate;
         if (r.start != null) {
             const iso = String(r.start);
             if (r.appointmentStartDate == null) r.appointmentStartDate = iso.includes("T") ? iso.split("T")[0] : iso;
@@ -243,6 +252,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.identified != null && r.identifiedDate == null) r.identifiedDate = r.identified;
         if (r.recordedDate != null && r.identifiedDate == null) r.identifiedDate = r.recordedDate;
         if (r.onsetDate != null && r.identifiedDate == null) r.identifiedDate = r.onsetDate;
+        if (r.createdDate != null && r.identifiedDate == null) r.identifiedDate = r.createdDate;
+        if (r._lastUpdated != null && r.identifiedDate == null) r.identifiedDate = r._lastUpdated;
 
         // --- Documents: title fallback, documentTitle, documentDate ---
         if (r.title == null && r.description != null) r.title = r.description;
@@ -399,6 +410,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.responseDate == null && r.processedDate != null) r.responseDate = r.processedDate;
         if (r.responseDate == null && r.adjudicationDate != null) r.responseDate = r.adjudicationDate;
         if (r.responseDate == null && r.created) r.responseDate = r.created;
+        if (r.responseDate == null && r.createdDate != null) r.responseDate = r.createdDate;
+        if (r.responseDate == null && r._lastUpdated != null) r.responseDate = r._lastUpdated;
         if (r.originalClaimReference == null && r.request != null) r.originalClaimReference = typeof r.request === "string" ? r.request : (r.request?.reference || r.request?.display);
         if (r.originalClaimReference == null && r.claimReference != null) r.originalClaimReference = r.claimReference;
         if (r.originalClaimReference == null && r.originalClaimId != null) r.originalClaimReference = r.originalClaimId;

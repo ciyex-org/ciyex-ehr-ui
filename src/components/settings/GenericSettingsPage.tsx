@@ -13,6 +13,29 @@ import { isValidEmail, isValidPhone, isValidFax, isValidUrl } from "@/utils/vali
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
+/** Normalize dates and common fields in settings records */
+function normalizeSettingsRecord(r: Record<string, any>): Record<string, any> {
+    // Convert Java date arrays [y,m,d,...] to ISO strings
+    for (const key of Object.keys(r)) {
+        if (Array.isArray(r[key]) && r[key].length >= 3 && typeof r[key][0] === "number" && r[key][0] > 1900) {
+            const [y, m, d, hh = 0, mm = 0, ss = 0, ns = 0] = r[key];
+            const ms = Math.floor((ns || 0) / 1e6);
+            try { r[key] = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, ss || 0, ms).toISOString(); } catch { /* keep original */ }
+        }
+    }
+    // Ensure 'date' field has a value from common fallbacks
+    if (r.date == null && r.createdDate != null) r.date = r.createdDate;
+    if (r.date == null && r.createdAt != null) r.date = r.createdAt;
+    if (r.date == null && r.updatedAt != null) r.date = r.updatedAt;
+    if (r.date == null && r._lastUpdated != null) r.date = r._lastUpdated;
+    if (r.date == null && r.created != null) r.date = r.created;
+    // Clear literal "null" strings
+    for (const key of Object.keys(r)) {
+        if (r[key] === "null" || r[key] === "undefined") r[key] = null;
+    }
+    return r;
+}
+
 /** Resolve a dot-notation path like "identification.firstName" on a nested object */
 const getNestedValue = (obj: any, path: string): any => {
     if (!obj || !path) return undefined;
@@ -200,12 +223,12 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                 const payload = json.data || json;
                 if (payload.content) {
                     // Merge flattened values so nested fields (e.g. systemAccess.email) are accessible by dot-notation keys
-                    const enriched = payload.content.map((r: Record<string, any>) => ({ ...r, ...flattenObject(r) }));
+                    const enriched = payload.content.map((r: Record<string, any>) => normalizeSettingsRecord({ ...r, ...flattenObject(r) }));
                     setRecords(enriched);
                     setTotalElements(payload.totalElements || payload.content.length);
                     setTotalPages(payload.totalPages || 1);
                 } else if (Array.isArray(payload)) {
-                    const enriched = payload.map((r: Record<string, any>) => ({ ...r, ...flattenObject(r) }));
+                    const enriched = payload.map((r: Record<string, any>) => normalizeSettingsRecord({ ...r, ...flattenObject(r) }));
                     setRecords(enriched);
                     setTotalElements(payload.length);
                     setTotalPages(1);

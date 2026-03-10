@@ -80,12 +80,13 @@ export default function AuditLogPage() {
         const res = await fetchWithAuth(apiUrl("/api/audit-log?page=0&size=200"));
         if (res.ok) {
           const json = await res.json();
-          if (json.success && json.data) {
-            const content: AuditLogEntry[] = json.data.content ?? [];
-            const types = content.map((e) => e.resourceType).filter((rt): rt is string => Boolean(rt));
-            if (types.length > 0) {
-              setResourceTypes(Array.from(new Set(types)).sort());
-            }
+          const raw = json.data || json;
+          const content: AuditLogEntry[] = raw.content ?? (Array.isArray(raw) ? raw : []);
+          const types = content
+            .map((e: any) => e.resourceType || e.resource_type || e.entityType)
+            .filter((rt): rt is string => Boolean(rt));
+          if (types.length > 0) {
+            setResourceTypes(Array.from(new Set(types)).sort());
           }
         }
       } catch { /* ignore */ }
