@@ -161,12 +161,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.recordedDate != null && r.identifiedDate == null) r.identifiedDate = r.recordedDate;
         if (r.onsetDate != null && r.identifiedDate == null) r.identifiedDate = r.onsetDate;
 
-        // --- Documents: documentDate ---
+        // --- Documents: documentTitle, documentDate ---
+        if (r.title != null && r.documentTitle == null) r.documentTitle = r.title;
         if (r.date != null && r.documentDate == null) r.documentDate = r.date;
         if (r.createdDate != null && r.documentDate == null) r.documentDate = r.createdDate;
         if (r.authored != null && r.documentDate == null) r.documentDate = r.authored;
         if (r.created != null && r.documentDate == null) r.documentDate = r.created;
         if (r.indexed != null && r.documentDate == null) r.documentDate = r.indexed;
+        if (r._lastUpdated != null && r.documentDate == null) r.documentDate = r._lastUpdated;
 
         // --- Education: dateProvided ---
         if (r.providedDate != null && r.dateProvided == null) r.dateProvided = r.providedDate;
@@ -205,11 +207,19 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.practitionerName != null && r.author == null) r.author = r.practitionerName;
         if (r.recorder != null && r.author == null) r.author = r.recorder;
 
-        // --- Medications: prescriber ---
+        // --- Medications: prescriber + prescriberDisplay ---
+        if (r.prescribingDoctorDisplay != null && r.prescriberDisplay == null) r.prescriberDisplay = r.prescribingDoctorDisplay;
         if (r.prescribingDoctor != null && r.prescriber == null) r.prescriber = r.prescribingDoctor;
         if (r.prescriberName != null && r.prescriber == null) r.prescriber = r.prescriberName;
         if (r.orderedBy != null && r.prescriber == null) r.prescriber = r.orderedBy;
         if (r.requester != null && r.prescriber == null) r.prescriber = r.requester;
+        // If prescriber is a FHIR reference (e.g. "Practitioner/123"), prefer Display name
+        if (typeof r.prescriber === "string" && r.prescriber.includes("/") && r.prescriberDisplay) {
+            r.prescriber = r.prescriberDisplay;
+        }
+        // Medications: dateIssued fallback
+        if (r.authoredOn != null && r.dateIssued == null) r.dateIssued = r.authoredOn;
+        if (r.effectiveDateTime != null && r.dateIssued == null) r.dateIssued = r.effectiveDateTime;
 
         // --- Demographics: middleName, maritalStatus ---
         if (r.middle_name != null && r.middleName == null) r.middleName = r.middle_name;
