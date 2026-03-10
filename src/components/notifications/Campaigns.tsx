@@ -8,6 +8,7 @@ import {
   Play,
   XCircle,
   CheckCircle,
+  Eye,
 } from "lucide-react";
 import type {
   BulkCampaign,
@@ -346,13 +347,20 @@ export default function Campaigns() {
                     {c.totalRecipients ?? "-"}
                   </td>
                   <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 font-medium">
-                    {c.sentCount ?? 0}
+                    {c.sentCount || "-"}
                   </td>
                   <td className="px-4 py-3 text-center text-red-600 dark:text-red-400 font-medium">
-                    {c.failedCount ?? 0}
+                    {c.failedCount || "-"}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => { setForm({ ...c }); setCreating(true); }}
+                        className="rounded-md p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                        title="View Campaign"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
                       {(c.status === "draft" || c.status === "scheduled") && c.id && (
                         <button
                           onClick={() => start(c.id!)}

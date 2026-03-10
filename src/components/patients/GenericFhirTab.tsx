@@ -674,6 +674,19 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     }
                 }
             }
+            // Insurance-specific: ensure at least payer/insurer name is provided
+            if (tabKey === "insurance-coverage" && mode === "create") {
+                const hasPayerName = ["payerName", "insurerName", "insurer", "companyName", "name"].some(
+                    k => typeof formData[k] === "string" && formData[k].trim()
+                );
+                if (!hasPayerName) {
+                    // Find first insurer/payer field from config to attach error
+                    const payerField = fieldConfig.sections.flatMap(s => s.fields).find(
+                        f => /payer|insurer|company/i.test(f.key)
+                    );
+                    if (payerField) errors[payerField.key] = `${payerField.label} is required`;
+                }
+            }
             if (Object.keys(errors).length > 0) {
                 setValidationErrors(errors);
                 setError("Please correct the highlighted fields");

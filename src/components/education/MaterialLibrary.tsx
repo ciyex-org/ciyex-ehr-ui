@@ -87,13 +87,14 @@ export default function MaterialLibrary({
       const res = await fetchWithAuth(apiUrl(url));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      if (json.success && json.data) {
-        setMaterials(json.data.content || []);
-        setTotalPages(json.data.totalPages || 1);
-        setTotalElements(json.data.totalElements || 0);
-      } else {
-        setMaterials([]);
-      }
+      // Handle various API response formats
+      const raw = json?.data ?? json;
+      const items = Array.isArray(raw) ? raw : raw?.content ?? raw?.data?.content ?? [];
+      const tp = raw?.totalPages ?? (Math.ceil((raw?.totalElements ?? items.length) / pageSize) || 1);
+      const te = raw?.totalElements ?? items.length;
+      setMaterials(items);
+      setTotalPages(tp);
+      setTotalElements(te);
     } catch (err) {
       console.error("Failed to load education materials:", err);
       setMaterials([]);
@@ -125,7 +126,7 @@ export default function MaterialLibrary({
       const q = searchQuery.toLowerCase();
       return (
         m.title?.toLowerCase().includes(q) ||
-        m.description?.toLowerCase().includes(q) ||
+        m.content?.toLowerCase().includes(q) ||
         m.category?.toLowerCase().includes(q) ||
         (Array.isArray(m.tags) ? m.tags.join(" ") : (m.tags || "")).toLowerCase().includes(q) ||
         m.source?.toLowerCase().includes(q)

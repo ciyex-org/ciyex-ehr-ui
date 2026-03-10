@@ -96,7 +96,11 @@ function groupByMonth(records: any[], dateField: string): Record<string, number>
   for (const r of records) {
     const d = r[dateField];
     if (!d) continue;
-    const month = new Date(d).toISOString().slice(0, 7); // YYYY-MM
+    const nd = normDate(d);
+    if (!nd) continue;
+    const dt = new Date(nd);
+    if (isNaN(dt.getTime())) continue;
+    const month = dt.toISOString().slice(0, 7); // YYYY-MM
     g[month] = (g[month] || 0) + 1;
   }
   return g;
@@ -109,7 +113,11 @@ function groupByWeekday(records: any[], dateField: string): Record<string, numbe
   for (const r of records) {
     const dt = r[dateField];
     if (!dt) continue;
-    const day = days[new Date(dt).getDay()];
+    const nd = normDate(dt);
+    if (!nd) continue;
+    const parsed = new Date(nd);
+    if (isNaN(parsed.getTime())) continue;
+    const day = days[parsed.getDay()];
     g[day] = (g[day] || 0) + 1;
   }
   return g;
@@ -274,7 +282,7 @@ const encounterSummary: ReportDefinition = {
         byWeekday: Object.entries(weekday).map(([d, c]) => ({ name: d, count: c })),
       },
       tableData: records.map(e => ({
-        id: e.id, date: e.encounterDate || e.startDate || e.date || "",
+        id: e.id, date: normDate(e.encounterDate || e.startDate || e.date || ""),
         patient: e.patientName || e.patientDisplay || e.subjectDisplay || e.patientId || "",
         provider: e.encounterProvider || e.providerDisplay || e.provider || e.practitionerName || "",
         type: e.type || e.visitCategory || e.serviceType || e.encounterType || "",
@@ -336,7 +344,7 @@ const labResults: ReportDefinition = {
         monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })),
       },
       tableData: records.map(o => ({
-        id: o.id, orderDate: o.orderDate || o.orderedDate || o.date || o.createdAt || "", patient: o.patientName || o.patientId || "",
+        id: o.id, orderDate: normDate(o.orderDate || o.orderedDate || o.date || o.createdAt || ""), patient: o.patientName || o.patientId || "",
         testName: o.testName || o.labTestName || o.name || o.orderName || o.code || o.loincCode || o.description || o.test || "", status: o.status || "",
         priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || o.provider || "",
       })),
@@ -394,7 +402,7 @@ const medicationReport: ReportDefinition = {
         topMedications: toChartData(topMeds, "name", "count"),
       },
       tableData: filtered.map(p => ({
-        id: p.id, prescriptionDate: p.prescriptionDate || p.dateWritten || p.createdAt || "",
+        id: p.id, prescriptionDate: normDate(p.prescriptionDate || p.dateWritten || p.createdAt || ""),
         patient: p.patientName || p.patientId || "",
         medication: p.medicationName || p.medication || p.drugName || p.name || "",
         status: p.status || "Active", prescriber: p.prescriberName || p.prescriber || p.providerName || p.practitionerName || p.prescribedBy || p.provider || "",
@@ -444,7 +452,7 @@ const referralReport: ReportDefinition = {
         { key: "completionRate", label: "Completion Rate", value: Math.round(((statusCounts["completed"] || statusCounts["Completed"] || 0) / total) * 100), format: "percent", color: "text-purple-600" },
       ],
       charts: { byStatus: toChartData(statusCounts, "name", "count"), bySpecialty: toChartData(specCounts, "name", "count").slice(0, 10), monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })) },
-      tableData: records.map(r => ({ id: r.id, date: r.referralDate || r.createdAt || "", patient: r.patientName || r.patientId || "", referTo: r.specialistName || r.referredToName || r.referredTo || r.facilityName || "", specialty: r.specialty || "", status: r.status || "", urgency: r.urgency || "Routine" })),
+      tableData: records.map(r => ({ id: r.id, date: normDate(r.referralDate || r.createdAt || ""), patient: r.patientName || r.patientId || "", referTo: r.specialistName || r.referredToName || r.referredTo || r.facilityName || "", specialty: r.specialty || "", status: r.status || "", urgency: r.urgency || "Routine" })),
       totalRecords: records.length,
     };
   },
@@ -487,7 +495,7 @@ const immunizationReport: ReportDefinition = {
         { key: "thisMonth", label: "This Month", value: records.filter(i => { const d = i.administeredDate; if (!d) return false; return new Date(d) >= new Date(daysAgo(30)); }).length, format: "number", color: "text-purple-600" },
       ],
       charts: { byVaccine: toChartData(vaccineCounts, "name", "count"), monthlyTrend: Object.entries(monthly).sort().map(([m, c]) => ({ month: m, count: c })) },
-      tableData: records.map(i => ({ id: i.id, date: i.administeredDate || i.occurrenceDateTime || i.date || i.createdAt || "", patient: i.patientName || "", vaccine: i.vaccineName || i.vaccineCode || i.vaccine || "", dose: i.doseNumber || i.doseQuantity || "", site: i.site || i.bodySite || "", provider: i.administeredBy || i.performedBy || i.providerName || i.provider || "" })),
+      tableData: records.map(i => ({ id: i.id, date: normDate(i.administeredDate || i.occurrenceDateTime || i.date || i.createdAt || ""), patient: i.patientName || "", vaccine: i.vaccineName || i.vaccineCode || i.vaccine || "", dose: i.doseNumber || i.doseQuantity || "", site: i.site || i.bodySite || "", provider: i.administeredBy || i.performedBy || i.providerName || i.provider || "" })),
       totalRecords: records.length,
     };
   },
@@ -591,7 +599,8 @@ const revenueOverview: ReportDefinition = {
     const charges = total * 1.4;
     const monthly: Record<string, { charges: number; collections: number }> = {};
     for (const p of payments) {
-      const m = (p.paymentDate || p.createdAt || "").slice(0, 7);
+      const nd = normDate(p.paymentDate || p.createdAt || "");
+      const m = nd.slice(0, 7);
       if (!m) continue;
       if (!monthly[m]) monthly[m] = { charges: 0, collections: 0 };
       monthly[m].collections += p.amount || 0;
@@ -603,7 +612,7 @@ const revenueOverview: ReportDefinition = {
       const provName = p.providerName || p.provider || p.encounterProvider || encounterProviderMap[String(p.patientId || "")] || "";
       return {
         id: p.id,
-        date: p.paymentDate || p.createdAt || "",
+        date: normDate(p.paymentDate || p.createdAt || ""),
         patient: p.patientName || p.patientId || "",
         provider: provName,
         payer: payerName,
@@ -686,8 +695,9 @@ const arAging: ReportDefinition = {
       const payer = p.payerName || p.insurerName || "Self-Pay";
       const balance = Math.round((p.amount || 0) * 0.3);
       if (balance <= 0) continue;
-      const payDate = p.paymentDate || p.createdAt || "";
-      const ageDays = payDate ? Math.floor((now - new Date(payDate).getTime()) / 86400000) : 0;
+      const payDate = normDate(p.paymentDate || p.createdAt || "");
+      const parsedDate = payDate ? new Date(payDate) : null;
+      const ageDays = parsedDate && !isNaN(parsedDate.getTime()) ? Math.floor((now - parsedDate.getTime()) / 86400000) : 0;
       if (!payerAging[payer]) payerAging[payer] = { current: 0, d31_60: 0, d61_90: 0, over90: 0 };
       if (ageDays <= 30) payerAging[payer].current += balance;
       else if (ageDays <= 60) payerAging[payer].d31_60 += balance;
@@ -1042,7 +1052,7 @@ const appointmentVolume: ReportDefinition = {
     const typeCounts = countBy(records, a => (a.visitType || a.type || "Unknown").toString());
     const weekday = groupByWeekday(records, "appointmentStartDate");
     const daily: Record<string, number> = {};
-    for (const a of records) { const d = (a.appointmentStartDate || "").slice(0, 10); if (d) daily[d] = (daily[d] || 0) + 1; }
+    for (const a of records) { const d = normDate(a.appointmentStartDate || "").slice(0, 10); if (d) daily[d] = (daily[d] || 0) + 1; }
     const completed = (statusCounts["completed"] || statusCounts["Completed"] || statusCounts["checked_out"] || 0);
     return {
       kpis: [
@@ -1057,7 +1067,7 @@ const appointmentVolume: ReportDefinition = {
         byWeekday: Object.entries(weekday).map(([d, c]) => ({ name: d, count: c })),
         byType: toChartData(typeCounts, "name", "count"),
       },
-      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: a.appointmentStartDate || a.date || "", time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "" })),
+      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "" })),
       totalRecords: records.length,
     };
   },
@@ -1122,7 +1132,7 @@ const noShowAnalysis: ReportDefinition = {
         byProvider: Object.entries(providerCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, ct]) => ({ name, rate: ct })),
         reasons: toChartData(reasonCounts, "name", "count").slice(0, 8),
       },
-      tableData: combined.slice(0, 100).map(a => ({ id: a.id, date: a.appointmentStartDate || "", patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "", reason: a.cancelReason || a.reason || "" })),
+      tableData: combined.slice(0, 100).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || ""), patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "", reason: a.cancelReason || a.reason || "" })),
       totalRecords: combined.length,
     };
   },

@@ -1020,6 +1020,9 @@ function CodeLookup({
   const searchCodes = useCallback(
     async (q: string) => {
       if (!q || q.length < 2) { setSearchResults([]); return; }
+      // Map code system names to the format the global_codes API expects
+      const codeTypeMap: Record<string, string> = { CPT: "CPT4", HCPCS: "HCPCS", ICD10: "ICD10", ICD9: "ICD9", CVX: "CVX" };
+      const mappedCodeType = codeTypeMap[codeSystem] || codeSystem;
       try {
         const base = API_BASE();
         const url = `${base}/api/app-proxy/ciyex-codes/api/codes/${codeSystem}/search?q=${encodeURIComponent(q)}&size=15`;
@@ -1029,9 +1032,26 @@ function CodeLookup({
           const results = json.content || json.data || [];
           if (results.length > 0) { setSearchResults(results); return; }
         }
-        // Fallback: global_codes search endpoint
-        const fb = await fetchWithAuth(`${base}/api/global_codes/search?q=${encodeURIComponent(q)}&codeType=${codeSystem}`);
-        if (fb.ok) { const fj = await fb.json(); setSearchResults(fj.data || fj.content || []); }
+        // Fallback: global_codes search endpoint (uses CPT4 format)
+        const fb = await fetchWithAuth(`${base}/api/global_codes/search?q=${encodeURIComponent(q)}&codeType=${mappedCodeType}`);
+        if (fb.ok) {
+          const fj = await fb.json();
+          const fbResults = fj.data || fj.content || [];
+          if (fbResults.length > 0) { setSearchResults(fbResults); return; }
+        }
+        // Second fallback: global_codes list endpoint with search
+        const fb2 = await fetchWithAuth(`${base}/api/global_codes?codeType=${mappedCodeType}&page=0&size=50`);
+        if (fb2.ok) {
+          const fj2 = await fb2.json();
+          const allCodes = fj2.data || fj2.content || [];
+          const ql = q.toLowerCase();
+          const filtered = allCodes.filter((c: any) =>
+            (c.code || "").toLowerCase().includes(ql) ||
+            (c.description || "").toLowerCase().includes(ql) ||
+            (c.shortDescription || "").toLowerCase().includes(ql)
+          );
+          setSearchResults(filtered.slice(0, 15));
+        }
       } catch { setSearchResults([]); }
     },
     [codeSystem]

@@ -300,11 +300,16 @@ function ReferralFormPanel({
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!form.reason.trim()) e.reason = "Reason is required";
     if (!form.patientName.trim()) e.patientName = "Patient name is required";
+    if (!form.reason.trim()) e.reason = "Reason is required";
+    if (!form.specialistName.trim()) e.specialistName = "Specialist name is required";
+    if (!form.facilityName.trim()) e.facilityName = "Facility name is required";
+    if (!form.referralDate.trim()) e.referralDate = "Referral date is required";
     if (form.facilityPhone.trim() && !isValidPhone(form.facilityPhone)) e.facilityPhone = "Invalid phone number";
     if (form.facilityFax.trim() && !isValidFax(form.facilityFax)) e.facilityFax = "Invalid fax number";
     if (form.specialistNpi.trim() && !isValidNpi(form.specialistNpi)) e.specialistNpi = "NPI must be exactly 10 digits";
+    if (form.expiryDate && form.referralDate && form.expiryDate < form.referralDate) e.expiryDate = "Expiry date must be after referral date";
+    if (form.appointmentDate && form.referralDate && form.appointmentDate < form.referralDate) e.appointmentDate = "Appointment date must be after referral date";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -375,8 +380,9 @@ function ReferralFormPanel({
                 <input className={inputCls()} value={form.referringProvider} onChange={(e) => set("referringProvider", e.target.value)} placeholder="Dr. Smith" />
               </div>
               <div>
-                <label className={labelCls}>Referral Date</label>
-                <input type="date" className={inputCls()} value={form.referralDate} onChange={(e) => set("referralDate", e.target.value)} />
+                <label className={labelCls}>Referral Date <span className="text-red-500">*</span></label>
+                <input type="date" className={inputCls("referralDate")} value={form.referralDate} onChange={(e) => set("referralDate", e.target.value)} />
+                {errors.referralDate && <p className="text-xs text-red-500 mt-1">{errors.referralDate}</p>}
               </div>
             </div>
           </Section>
@@ -385,8 +391,9 @@ function ReferralFormPanel({
           <Section title="Specialist Information" icon={<Stethoscope className="w-4 h-4" />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>Specialist Name</label>
-                <input className={inputCls()} value={form.specialistName} onChange={(e) => set("specialistName", e.target.value)} placeholder="Dr. Johnson" />
+                <label className={labelCls}>Specialist Name <span className="text-red-500">*</span></label>
+                <input className={inputCls("specialistName")} value={form.specialistName} onChange={(e) => set("specialistName", e.target.value)} placeholder="Dr. Johnson" />
+                {errors.specialistName && <p className="text-xs text-red-500 mt-1">{errors.specialistName}</p>}
               </div>
               <div>
                 <label className={labelCls}>NPI</label>
@@ -404,8 +411,9 @@ function ReferralFormPanel({
           <Section title="Facility Information" icon={<Building2 className="w-4 h-4" />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
-                <label className={labelCls}>Facility Name</label>
-                <input className={inputCls()} value={form.facilityName} onChange={(e) => set("facilityName", e.target.value)} placeholder="City Medical Center" />
+                <label className={labelCls}>Facility Name <span className="text-red-500">*</span></label>
+                <input className={inputCls("facilityName")} value={form.facilityName} onChange={(e) => set("facilityName", e.target.value)} placeholder="City Medical Center" />
+                {errors.facilityName && <p className="text-xs text-red-500 mt-1">{errors.facilityName}</p>}
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls}>Address</label>
@@ -441,7 +449,8 @@ function ReferralFormPanel({
               </div>
               <div>
                 <label className={labelCls}>Expiry Date</label>
-                <input type="date" className={inputCls()} value={form.expiryDate} onChange={(e) => set("expiryDate", e.target.value)} />
+                <input type="date" className={inputCls("expiryDate")} value={form.expiryDate} onChange={(e) => set("expiryDate", e.target.value)} />
+                {errors.expiryDate && <p className="text-xs text-red-500 mt-1">{errors.expiryDate}</p>}
               </div>
             </div>
           </Section>
@@ -483,7 +492,8 @@ function ReferralFormPanel({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Appointment Date</label>
-                  <input type="date" className={inputCls()} value={form.appointmentDate} onChange={(e) => set("appointmentDate", e.target.value)} />
+                  <input type="date" className={inputCls("appointmentDate")} value={form.appointmentDate} onChange={(e) => set("appointmentDate", e.target.value)} />
+                  {errors.appointmentDate && <p className="text-xs text-red-500 mt-1">{errors.appointmentDate}</p>}
                 </div>
               </div>
               <div>
