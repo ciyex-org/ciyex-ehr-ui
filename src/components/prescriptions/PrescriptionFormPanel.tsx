@@ -152,6 +152,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     if (!form.patientName.trim()) e.patientName = "Patient name is required";
     if (!form.medicationName.trim()) e.medicationName = "Medication name is required";
     if (!form.sig.trim()) e.sig = "SIG directions are required";
+    if (form.prescriberName && !/^[A-Za-z\s\-'.]+$/.test(form.prescriberName.trim())) e.prescriberName = "Prescriber name must contain only letters";
+    if (form.pharmacyPhone && !/^[+]?[\d\s().\-]{7,20}$/.test(form.pharmacyPhone.trim())) e.pharmacyPhone = "Enter a valid phone number";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -253,7 +255,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Prescriber Name</label>
-                <input className={inputCls()} value={form.prescriberName || ""} onChange={(e) => set("prescriberName", e.target.value)} placeholder="Dr. Smith" />
+                <input className={inputCls("prescriberName")} value={form.prescriberName || ""} onChange={(e) => set("prescriberName", e.target.value)} placeholder="Dr. Smith" pattern="[A-Za-z\s\-'.]+" title="Name must contain only letters" />
+                {errors.prescriberName && <p className="text-xs text-red-500 mt-1">{errors.prescriberName}</p>}
               </div>
               <div>
                 <label className={labelCls}>Prescriber NPI</label>
@@ -359,7 +362,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
               </div>
               <div>
                 <label className={labelCls}>Phone</label>
-                <input className={inputCls()} value={form.pharmacyPhone || ""} onChange={(e) => set("pharmacyPhone", e.target.value)} placeholder="(555) 123-4567" />
+                <input type="tel" className={inputCls("pharmacyPhone")} value={form.pharmacyPhone || ""} onChange={(e) => set("pharmacyPhone", e.target.value)} placeholder="(555) 123-4567" pattern="[+]?[\d\s().\-]{7,20}" title="Enter a valid phone number" />
+                {errors.pharmacyPhone && <p className="text-xs text-red-500 mt-1">{errors.pharmacyPhone}</p>}
               </div>
               <div>
                 <label className={labelCls}>Address</label>

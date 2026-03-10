@@ -207,8 +207,11 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
 }) {
   const [form, setForm] = useState<Immunization>(blankImmunization());
   const [saving, setSaving] = useState(false);
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
 
-  useEffect(() => { if (open) setForm(record ? { ...record } : blankImmunization()); }, [open, record]);
+  useEffect(() => { if (open) { setForm(record ? { ...record } : blankImmunization()); setPatientQuery(record?.patientName || ""); } }, [open, record]);
   useEffect(() => {
     if (!open) return;
     const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -216,6 +219,32 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
     document.body.style.overflow = "hidden";
     return () => { document.removeEventListener("keydown", fn); document.body.style.overflow = ""; };
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl(`/api/patients?search=${encodeURIComponent(patientQuery)}`));
+        const json = await res.json();
+        let list: typeof patientResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(list.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [patientQuery]);
+
+  const pName = (p: typeof patientResults[0]) =>
+    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+
+  const selectPatient = (p: typeof patientResults[0]) => {
+    const name = pName(p);
+    setForm(prev => ({ ...prev, patientId: p.id, patientName: name }));
+    setPatientQuery(name);
+    setShowPatientDropdown(false);
+  };
 
   const set = (field: keyof Immunization, value: string | number) => setForm((p) => ({ ...p, [field]: value }));
 
@@ -261,11 +290,23 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className={labelCls}>Patient Name *</label>
-                <input className={inputCls} value={form.patientName} onChange={(e) => set("patientName", e.target.value)} placeholder="Jane Doe" />
+                <div className="relative">
+                  <input className={inputCls} value={patientQuery} onChange={(e) => { setPatientQuery(e.target.value); set("patientName", e.target.value); set("patientId", ""); setShowPatientDropdown(true); }} onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)} placeholder="Search patient by name..." autoComplete="off" />
+                  {showPatientDropdown && patientResults.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                      {patientResults.map((p) => (
+                        <button key={p.id} type="button" onClick={() => selectPatient(p)} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+                          <span className="font-medium">{pName(p)}</span>
+                          <span className="text-xs text-gray-400 ml-2">#{p.id}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <label className={labelCls}>Patient ID</label>
-                <input className={inputCls} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="12345" />
+                <input className={inputCls} value={form.patientId} readOnly placeholder="Auto-filled from search" />
               </div>
             </div>
           </div>

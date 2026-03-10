@@ -369,6 +369,11 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
             sanitized[k] = v;
           }
         }
+        // Build patient search display text for editing
+        const firstName = (sanitized.patientFirstName || prev.patientFirstName || '') as string;
+        const lastName = (sanitized.patientLastName || prev.patientLastName || '') as string;
+        const searchText = `${firstName} ${lastName}`.trim();
+        if (searchText) sanitized.patientSearch = searchText;
         return { ...prev, ...sanitized } as Draft;
       });
     } else {
@@ -382,6 +387,27 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   const [procModalRows, setProcModalRows] = useState<ProcRow[]>([{ test: "", testCode: "", diagnosisCodes: [] }]);
   const [procedureCodes, setProcedureCodes] = useState<string[]>([]);
+
+  // Populate procedure/diagnosis rows when editing
+  useEffect(() => {
+    if (initial) {
+      const procCode = (initial.procedureCode || '') as string;
+      const diagCode = (initial.diagnosisCode || '') as string;
+      if (procCode || diagCode) {
+        const procCodes = procCode.split(',').filter(Boolean);
+        const diagCodes = diagCode.split(',').filter(Boolean);
+        if (procCodes.length > 0 || diagCodes.length > 0) {
+          const rows = procCodes.length > 0
+            ? procCodes.map(pc => ({ test: pc, testCode: pc, diagnosisCodes: diagCodes }))
+            : [{ test: '', testCode: '', diagnosisCodes: diagCodes }];
+          setProcModalRows(rows);
+        }
+      }
+      if (procCode) {
+        setProcedureCodes(procCode.split(',').filter(Boolean));
+      }
+    }
+  }, [initial]);
 
   const [codesList, setCodesList] = useState<CodeItem[]>([]);
   const [, setCodesLoading] = useState(false);
@@ -774,12 +800,17 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
       const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
       const orgHeader = (typeof window !== 'undefined' ? (localStorage.getItem('orgId') || '') : '')
         || (getEnv("NEXT_PUBLIC_ORG_ID") || '1');
-      
-      const url = `${base}/api/lab-order/${pid}`;
-      console.log('POST request to:', url);
-      
+
+      // Determine if editing (initial has id)
+      const isEditing = initial && initial.id;
+      const url = isEditing
+        ? `${base}/api/lab-order/${pid}/${initial.id}`
+        : `${base}/api/lab-order/${pid}`;
+      const method = isEditing ? 'PUT' : 'POST';
+      console.log(`${method} request to:`, url);
+
       const res = await fetchWithAuth(url, {
-        method: 'POST',
+        method,
         headers: { 'Content-Type': 'application/json', orgId: orgHeader, 'X-Org-Id': orgHeader },
         body: JSON.stringify(payload),
       });
