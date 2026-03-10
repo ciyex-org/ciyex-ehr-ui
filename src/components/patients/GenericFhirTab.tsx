@@ -161,7 +161,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.recordedDate != null && r.identifiedDate == null) r.identifiedDate = r.recordedDate;
         if (r.onsetDate != null && r.identifiedDate == null) r.identifiedDate = r.onsetDate;
 
-        // --- Documents: documentTitle, documentDate ---
+        // --- Documents: title fallback, documentTitle, documentDate ---
+        if (r.title == null && r.description != null) r.title = r.description;
+        if (r.title == null && r.noteText != null) r.title = typeof r.noteText === "string" && r.noteText.length > 60 ? r.noteText.substring(0, 60) + "…" : r.noteText;
         if (r.title != null && r.documentTitle == null) r.documentTitle = r.title;
         if (r.date != null && r.documentDate == null) r.documentDate = r.date;
         if (r.createdDate != null && r.documentDate == null) r.documentDate = r.createdDate;
@@ -169,6 +171,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.created != null && r.documentDate == null) r.documentDate = r.created;
         if (r.indexed != null && r.documentDate == null) r.documentDate = r.indexed;
         if (r._lastUpdated != null && r.documentDate == null) r.documentDate = r._lastUpdated;
+
+        // --- Education: sent (date provided) fallback ---
+        if (r.sent == null && r._lastUpdated != null) r.sent = r._lastUpdated;
 
         // --- Education: dateProvided ---
         if (r.providedDate != null && r.dateProvided == null) r.dateProvided = r.providedDate;
@@ -213,13 +218,17 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.prescriberName != null && r.prescriber == null) r.prescriber = r.prescriberName;
         if (r.orderedBy != null && r.prescriber == null) r.prescriber = r.orderedBy;
         if (r.requester != null && r.prescriber == null) r.prescriber = r.requester;
-        // If prescriber is a FHIR reference (e.g. "Practitioner/123"), prefer Display name
+        // If prescriber/prescribingDoctor is a FHIR reference (e.g. "Practitioner/123"), prefer Display name
         if (typeof r.prescriber === "string" && r.prescriber.includes("/") && r.prescriberDisplay) {
             r.prescriber = r.prescriberDisplay;
+        }
+        if (typeof r.prescribingDoctor === "string" && r.prescribingDoctor.includes("/") && r.prescribingDoctorDisplay) {
+            r.prescribingDoctor = r.prescribingDoctorDisplay;
         }
         // Medications: dateIssued fallback
         if (r.authoredOn != null && r.dateIssued == null) r.dateIssued = r.authoredOn;
         if (r.effectiveDateTime != null && r.dateIssued == null) r.dateIssued = r.effectiveDateTime;
+        if (r._lastUpdated != null && r.dateIssued == null) r.dateIssued = r._lastUpdated;
 
         // --- Demographics: middleName, maritalStatus ---
         if (r.middle_name != null && r.middleName == null) r.middleName = r.middle_name;
@@ -628,6 +637,13 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 }
             } catch { /* ignore */ }
         }
+        // Fallback: try parsing any date string (e.g. "Tue Mar 10 01:53:55 UTC 2026")
+        try {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            }
+        } catch { /* ignore */ }
         return null;
     };
 
@@ -714,6 +730,10 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
         // Auto-detect date-like strings even without field def
         if (typeof value === "string") {
+            // Suppress raw FHIR references like "Practitioner/123" — show dash instead
+            if (/^[A-Z][a-zA-Z]+\/\d+$/.test(value)) {
+                return "-";
+            }
             if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
                 return tryFormatDatetime(value) || value;
             }
