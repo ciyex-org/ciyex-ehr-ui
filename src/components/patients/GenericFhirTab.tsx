@@ -106,10 +106,10 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         ] };
                     }
                 }
-                // Labs: ensure performer / provider field is a provider lookup
+                // Labs: ensure performer / provider field is a provider lookup with valid endpoint
                 if (tabKey === "labs" && (f.key === "performer" || f.key === "provider" || f.key === "orderedBy")) {
-                    if (f.type !== "lookup" || !f.lookupConfig) {
-                        section.fields[i] = { ...f, type: "lookup", lookupConfig: f.lookupConfig || { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
                     }
                 }
                 // Procedures: ensure cptCode / procedureCode is a code-lookup
