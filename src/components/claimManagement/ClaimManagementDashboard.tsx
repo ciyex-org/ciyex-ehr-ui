@@ -13,6 +13,8 @@ interface Claim {
   status: string;
   type: string;
   createdOn: string;
+  serviceFrom: string;
+  serviceTo: string;
   notes: string;
 }
 
@@ -37,14 +39,22 @@ const STATUS_COLORS: Record<string, string> = {
   VOID: "bg-red-100 text-red-700",
 };
 
-const formatDate = (d: string) => {
+const formatDate = (d: any) => {
   if (!d) return "—";
+  // Handle Java date arrays [year, month, day, ...]
+  if (Array.isArray(d) && d.length >= 3 && typeof d[0] === "number" && d[0] > 1900) {
+    const [y, m, day, hh = 0, mm = 0, ss = 0, ns = 0] = d;
+    const ms = Math.floor((ns || 0) / 1e6);
+    const date = new Date(y, (m || 1) - 1, day || 1, hh || 0, mm || 0, ss || 0, ms);
+    return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+  }
   try {
     const date = new Date(d);
-    return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
-  } catch {
-    return d;
-  }
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+    }
+  } catch { /* ignore */ }
+  return String(d);
 };
 
 const ClaimManagementDashboard: React.FC = () => {
@@ -77,6 +87,8 @@ const ClaimManagementDashboard: React.FC = () => {
         provider: item.provider || item.providerName || item.billingProvider || item.renderingProvider || "—",
         diagnosisCode: item.diagnosisCode || item.diagnosis || item.icdCode || item.primaryDiagnosis || "—",
         createdOn: item.createdOn || item.createdDate || item.serviceDate || item.date || "",
+        serviceFrom: item.serviceFrom || item.serviceFromDate || item.billablePeriod?.start || item.servicePeriod?.start || item.serviceDate || item.dateOfService || item.startDate || item.createdOn || item.createdDate || "",
+        serviceTo: item.serviceTo || item.serviceToDate || item.billablePeriod?.end || item.servicePeriod?.end || item.serviceEndDate || item.endDate || item.serviceFrom || item.serviceFromDate || item.billablePeriod?.start || item.servicePeriod?.start || item.serviceDate || "",
       }));
       setClaims(data);
     } catch (e: unknown) {
@@ -174,6 +186,8 @@ const ClaimManagementDashboard: React.FC = () => {
               <th className="text-left px-4 py-3 font-medium text-gray-600">Provider</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Payer</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Diagnosis</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Service From</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Service To</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Action</th>
@@ -181,9 +195,9 @@ const ClaimManagementDashboard: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={8} className="text-center py-12 text-gray-400">Loading claims...</td></tr>
+              <tr><td colSpan={10} className="text-center py-12 text-gray-400">Loading claims...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-12 text-gray-400">No claims found</td></tr>
+              <tr><td colSpan={10} className="text-center py-12 text-gray-400">No claims found</td></tr>
             ) : (
               filtered.map((c) => (
                 <tr
@@ -198,6 +212,8 @@ const ClaimManagementDashboard: React.FC = () => {
                   <td className="px-4 py-3 text-gray-700">{c.provider || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.payerName || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.diagnosisCode || "—"}</td>
+                  <td className="px-4 py-3 text-gray-700">{formatDate(c.serviceFrom)}</td>
+                  <td className="px-4 py-3 text-gray-700">{formatDate(c.serviceTo)}</td>
                   <td className="px-4 py-3 text-gray-700">{formatDate(c.createdOn)}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[c.status] || "bg-gray-100 text-gray-600"}`}>
