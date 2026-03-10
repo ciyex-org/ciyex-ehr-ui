@@ -361,7 +361,7 @@ export default function Campaigns() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      {(c.status === "draft" || c.status === "scheduled") && c.id && (
+                      {(c.status === "draft" || c.status === "scheduled") && c.id != null && (
                         <button
                           onClick={() => start(c.id!)}
                           className="rounded-md p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
@@ -371,7 +371,7 @@ export default function Campaigns() {
                         </button>
                       )}
                       {(c.status === "draft" || c.status === "scheduled" || c.status === "sending") &&
-                        c.id && (
+                        c.id != null && (
                           <button
                             onClick={() => cancel(c.id!)}
                             className="rounded-md p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"

@@ -166,6 +166,28 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         ] };
                     }
                 }
+                // Demographics: ensure provider lookup fields (assignedProvider, referringProvider, primaryCarePhysician) are editable lookups
+                if (tabKey === "demographics" && (f.key === "assignedProvider" || f.key === "assignedProviderId" || f.key === "provider" || f.key === "providerId")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "id", searchable: true } };
+                    }
+                }
+                if (tabKey === "demographics" && (f.key === "referringProvider" || f.key === "referringPhysician" || f.key === "referringProviderId")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "id", searchable: true } };
+                    }
+                }
+                if (tabKey === "demographics" && (f.key === "primaryCarePhysician" || f.key === "pcp" || f.key === "pcpId")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "id", searchable: true } };
+                    }
+                }
+                // Referral-provider settings: ensure organization field is an editable lookup
+                if ((tabKey === "referral-provider" || tabKey === "referral-providers" || tabKey === "referralProvider") && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
+                    }
+                }
             }
         }
         return patched;

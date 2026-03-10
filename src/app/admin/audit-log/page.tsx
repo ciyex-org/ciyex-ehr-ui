@@ -25,7 +25,11 @@ export default function AuditLogPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [stats, setStats] = useState<Stats>({ total24h: 0, total7d: 0, total30d: 0 });
-  const [resourceTypes, setResourceTypes] = useState<string[]>([]);
+  const [resourceTypes, setResourceTypes] = useState<string[]>([
+    "Appointment", "Coverage", "Encounter", "InsuranceCompany", "LabOrder",
+    "LabResult", "Medication", "Patient", "Practitioner", "Provider",
+    "User", "Vitals",
+  ]);
 
   // Filters
   const [search, setSearch] = useState("");

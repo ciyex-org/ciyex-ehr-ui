@@ -526,8 +526,8 @@ export default function LabOrdersPage() {
                     {o.mrn && <div className="text-xs text-gray-500">MRN {o.mrn}</div>}
                   </td>
                   <td className="px-3 py-3">
-                    <div className="font-medium text-gray-900">{o.orderName}</div>
-                    <div className="text-xs text-gray-500">{o.testCode}</div>
+                    <div className="font-medium text-gray-900">{o.orderName || o.testDisplay || o.testCode || "\u2014"}</div>
+                    {o.testCode && o.orderName && <div className="text-xs text-gray-500">{o.testCode}</div>}
                   </td>
                   <td className="px-3 py-3"><PriorityBadge priority={o.priority} /></td>
                   <td className="px-3 py-3">

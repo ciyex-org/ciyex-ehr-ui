@@ -90,6 +90,37 @@ interface GenericSettingsPageProps {
     embedded?: boolean;
 }
 
+/** Patch field configs for known settings pages to ensure proper field types */
+function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig {
+    if (!fc?.sections) return fc;
+    const patched = { ...fc, sections: fc.sections.map(s => ({ ...s, fields: [...s.fields] })) };
+    for (const section of patched.sections) {
+        for (let i = 0; i < section.fields.length; i++) {
+            const f = section.fields[i];
+            // Referral provider settings: ensure organization field is an editable lookup
+            if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName")) {
+                if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
+                }
+            }
+        }
+        // Referral providers: add organization field if it doesn't exist
+        if (/referral/i.test(pageKey)) {
+            const hasOrgField = section.fields.some(f => f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName");
+            if (!hasOrgField && section.fields.some(f => f.key === "firstName" || f.key === "name" || f.key === "lastName" || f.key === "npi")) {
+                section.fields.push({
+                    key: "organization",
+                    label: "Organization / Affiliation",
+                    type: "lookup",
+                    required: false,
+                    lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true },
+                } as any);
+            }
+        }
+    }
+    return patched;
+}
+
 // Stable wrapper components (defined outside render to keep React identity stable)
 const PassThrough = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
@@ -162,7 +193,9 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
 
                 // Set field config if it has sections (i.e. it's a real FieldConfig)
                 if (fc?.sections?.length) {
-                    setFieldConfig(fc);
+                    // Patch specific field types for known settings pages
+                    const patched = patchSettingsFieldConfig(pageKey, fc);
+                    setFieldConfig(patched);
                 }
             } catch (err) {
                 console.error("Failed to load page config:", err);

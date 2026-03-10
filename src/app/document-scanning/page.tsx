@@ -79,7 +79,44 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
   const [category, setCategory] = useState<DocumentCategory>("medical_record");
   const [patientSearch, setPatientSearch] = useState("");
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [selectedPatientName, setSelectedPatientName] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: number; name: string }[]>([]);
+  const [searchingPatient, setSearchingPatient] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const patientDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const searchPatients = useCallback(async (query: string) => {
+    if (query.length < 2) { setPatientResults([]); return; }
+    setSearchingPatient(true);
+    try {
+      const res = await fetchWithAuth(`${API()}/api/patients?search=${encodeURIComponent(query)}&page=0&size=10`);
+      if (res.ok) {
+        const json = await res.json();
+        const raw = json.data?.content || json.data || json.content || [];
+        setPatientResults(
+          (Array.isArray(raw) ? raw : []).map((p: any) => ({
+            id: p.id,
+            name: p.name || [p.firstName, p.lastName].filter(Boolean).join(" ") || `Patient ${p.id}`,
+          }))
+        );
+      }
+    } catch { /* ignore */ }
+    finally { setSearchingPatient(false); }
+  }, []);
+
+  const handlePatientSearchInput = (v: string) => {
+    setPatientSearch(v);
+    if (!v) { setSelectedPatientId(null); setSelectedPatientName(""); setPatientResults([]); return; }
+    if (patientDebounceRef.current) clearTimeout(patientDebounceRef.current);
+    patientDebounceRef.current = setTimeout(() => searchPatients(v), 300);
+  };
+
+  const selectPatient = (p: { id: number; name: string }) => {
+    setSelectedPatientId(p.id);
+    setSelectedPatientName(p.name);
+    setPatientSearch(p.name);
+    setPatientResults([]);
+  };
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -121,7 +158,7 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
         PDF, PNG, JPG, TIFF — drag &amp; drop or click to browse
       </p>
 
-      <div className="flex items-center justify-center gap-3 mb-3">
+      <div className="flex items-center justify-center gap-3 mb-3 flex-wrap">
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as DocumentCategory)}
@@ -131,6 +168,42 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
+
+        {/* Patient search */}
+        <div className="relative">
+          <div className="flex items-center gap-1">
+            <User className="w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="text"
+              value={patientSearch}
+              onChange={(e) => handlePatientSearchInput(e.target.value)}
+              placeholder="Link to patient..."
+              className="text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 w-48"
+            />
+            {selectedPatientId && (
+              <button
+                onClick={() => { setSelectedPatientId(null); setSelectedPatientName(""); setPatientSearch(""); setPatientResults([]); }}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          {patientResults.length > 0 && (
+            <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+              {patientResults.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => selectPatient(p)}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                >
+                  <User className="w-3 h-3 inline mr-1.5 text-slate-400" />
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <button

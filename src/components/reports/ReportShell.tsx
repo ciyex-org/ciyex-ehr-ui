@@ -513,11 +513,24 @@ function DataTable({ columns, data, totalRecords }: { columns: ColumnConfig[]; d
 }
 
 /* ── CSV Export (with BOM for Excel compatibility) ── */
+function formatDateForExcel(dateStr: string): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+}
+
 function downloadCSV(report: ReportDefinition, data: Record<string, unknown>[]) {
   const headers = report.columns.map(c => c.label);
   const rows = data.map(row => report.columns.map(c => {
     const v = row[c.key];
-    const s = v == null ? "" : String(v);
+    if (v == null || v === "") return '""';
+    // Format date columns in MM/DD/YYYY for better Excel display
+    if (c.format === "date") {
+      const formatted = formatDateForExcel(String(v));
+      return `"${formatted.replace(/"/g, '""')}"`;
+    }
+    const s = String(v);
     // Always quote fields to prevent Excel display issues (######)
     return `"${s.replace(/"/g, '""')}"`;
   }));

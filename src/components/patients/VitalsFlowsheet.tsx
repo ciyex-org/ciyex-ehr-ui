@@ -99,6 +99,19 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
 
     useEffect(() => { loadVitals(); }, [patientId]);
 
+    // Auto-calculate BMI when weight or height changes
+    useEffect(() => {
+        const w = parseFloat(addForm.weightKg || "");
+        const h = parseFloat(addForm.heightCm || "");
+        if (w > 0 && h > 0) {
+            const heightM = h / 100;
+            const calculated = (w / (heightM * heightM)).toFixed(1);
+            if (addForm.bmi !== calculated) {
+                setAddForm(prev => ({ ...prev, bmi: calculated }));
+            }
+        }
+    }, [addForm.weightKg, addForm.heightCm]);
+
     const handleAddVitals = async () => {
         setSaving(true);
         try {
@@ -225,8 +238,10 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                                     step="0.1"
                                     value={addForm[row.key] || ""}
                                     onChange={(e) => setAddForm(prev => ({ ...prev, [row.key]: e.target.value }))}
-                                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="—"
+                                    readOnly={row.key === "bmi"}
+                                    className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${row.key === "bmi" ? "bg-gray-50" : ""}`}
+                                    placeholder={row.key === "bmi" ? "Auto" : "—"}
+                                    title={row.key === "bmi" ? "Auto-calculated from weight and height" : undefined}
                                 />
                             </div>
                         ))}
