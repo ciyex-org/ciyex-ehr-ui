@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { X, Loader2, Search, Send, BookOpen } from "lucide-react";
@@ -35,6 +35,9 @@ export default function AssignMaterialModal({
   const [assignedBy, setAssignedBy] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [patientResults, setPatientResults] = useState<Array<{ id: string; firstName: string; lastName: string }>>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const patientDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -46,6 +49,8 @@ export default function AssignMaterialModal({
       setMaterialSearch("");
       setMaterialResults([]);
       setShowMaterialDropdown(false);
+      setPatientResults([]);
+      setShowPatientDropdown(false);
 
       if (preselectedMaterial) {
         setSelectedMaterial(preselectedMaterial);
@@ -71,6 +76,34 @@ export default function AssignMaterialModal({
       document.body.style.overflow = "";
     };
   }, [open, onClose]);
+
+  const searchPatients = useCallback(async (q: string) => {
+    if (q.length < 2) { setPatientResults([]); return; }
+    try {
+      const res = await fetchWithAuth(apiUrl(`/api/patients?search=${encodeURIComponent(q)}`));
+      if (res.ok) {
+        const json = await res.json();
+        const list = json.data?.content || json.data || json.content || [];
+        setPatientResults(Array.isArray(list) ? list : []);
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    if (!patientName.trim()) return;
+    const t = setTimeout(() => searchPatients(patientName), 300);
+    return () => clearTimeout(t);
+  }, [patientName, searchPatients]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (patientDropdownRef.current && !patientDropdownRef.current.contains(e.target as Node)) {
+        setShowPatientDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const searchMaterials = useCallback(async (q: string) => {
     if (!q.trim()) {
@@ -173,22 +206,48 @@ export default function AssignMaterialModal({
 
             {/* Patient Name + ID */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="relative" ref={patientDropdownRef}>
                 <label className={labelCls}>Patient Name *</label>
                 <input
                   className={inputCls}
                   value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="Jane Doe"
+                  onChange={(e) => {
+                    setPatientName(e.target.value);
+                    setShowPatientDropdown(true);
+                    if (!e.target.value.trim()) {
+                      setPatientId("");
+                    }
+                  }}
+                  onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
+                  placeholder="Search patients..."
                 />
+                {showPatientDropdown && patientResults.length > 0 && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {patientResults.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setPatientName(`${p.firstName} ${p.lastName}`);
+                          setPatientId(p.id);
+                          setShowPatientDropdown(false);
+                          setPatientResults([]);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-900 dark:text-gray-100 transition"
+                      >
+                        {p.firstName} {p.lastName}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Patient ID *</label>
                 <input
                   className={inputCls}
                   value={patientId}
-                  onChange={(e) => setPatientId(e.target.value)}
-                  placeholder="PAT-001"
+                  readOnly
+                  placeholder="Auto-filled on selection"
                 />
               </div>
             </div>

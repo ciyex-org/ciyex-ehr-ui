@@ -255,11 +255,16 @@ const encounterSummary: ReportDefinition = {
     { key: "provider", label: "Provider", sortable: true },
     { key: "type", label: "Visit Type", sortable: true },
     { key: "status", label: "Status", format: "status", sortable: true },
+    { key: "insurance", label: "Insurance" },
     { key: "diagnosis", label: "Diagnosis" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const all = await safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn);
+    const [all, coverages, insuranceCos] = await Promise.all([
+      safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn),
+      safeFetch(`${apiUrl}/api/coverages?page=0&size=5000`, fetchFn),
+      safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
+    ]);
     const byDate = filterByDateRange(all, "encounterDate", from, to);
     const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, e => (e.status || "Unsigned").toString());
@@ -267,6 +272,31 @@ const encounterSummary: ReportDefinition = {
     const monthly = groupByMonth(records, "encounterDate");
     const weekday = groupByWeekday(records, "encounterDate");
     const dayCount = new Set(records.map(e => (e.encounterDate || "").slice(0, 10)).filter(Boolean)).size;
+
+    // Build patient→insurance map from coverages
+    const insurerMap: Record<string, string> = {};
+    for (const co of insuranceCos) {
+      insurerMap[String(co.id)] = co.name || co.companyName || "";
+      if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
+    }
+    const patInsurance: Record<string, string> = {};
+    for (const c of coverages) {
+      let pid = String(c.patientId || c.beneficiaryId || "");
+      if (!pid && c.beneficiary) {
+        const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
+        if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
+      }
+      if (!pid) continue;
+      let fhirPayorName = "";
+      if (Array.isArray(c.payor) && c.payor.length > 0) {
+        const p = c.payor[0];
+        fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
+      }
+      const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
+        insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
+        c.subscriberPlan || c.insuranceType || "";
+      if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
+    }
 
     return {
       kpis: [
@@ -287,6 +317,7 @@ const encounterSummary: ReportDefinition = {
         provider: e.encounterProvider || e.providerDisplay || e.provider || e.practitionerName || "",
         type: e.type || e.visitCategory || e.serviceType || e.encounterType || "",
         status: e.status || "Unsigned",
+        insurance: patInsurance[String(e.patientId)] || patInsurance[String(e.subjectId)] || e.insuranceName || e.payerName || "",
         diagnosis: e.diagnosis || e.primaryDiagnosis || e.reasonCode || e.reason || e.chiefComplaint || e.reasonForVisit || e.assessment || e.visitCategory || "",
       })),
       totalRecords: records.length,
@@ -1044,12 +1075,41 @@ const appointmentVolume: ReportDefinition = {
     { key: "provider", label: "Provider", sortable: true },
     { key: "type", label: "Visit Type" },
     { key: "status", label: "Status", format: "status", sortable: true },
+    { key: "insurance", label: "Insurance" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
     const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
-    const all = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
+    const [all, coverages, insuranceCos] = await Promise.all([
+      safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn),
+      safeFetch(`${apiUrl}/api/coverages?page=0&size=5000`, fetchFn),
+      safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
+    ]);
     const records = filterByProvider(all, filters.provider as string | undefined);
+    // Build patient→insurance map
+    const insurerMap: Record<string, string> = {};
+    for (const co of insuranceCos) {
+      insurerMap[String(co.id)] = co.name || co.companyName || "";
+      if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
+    }
+    const patInsurance: Record<string, string> = {};
+    for (const c of coverages) {
+      let pid = String(c.patientId || c.beneficiaryId || "");
+      if (!pid && c.beneficiary) {
+        const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
+        if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
+      }
+      if (!pid) continue;
+      let fhirPayorName = "";
+      if (Array.isArray(c.payor) && c.payor.length > 0) {
+        const p = c.payor[0];
+        fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
+      }
+      const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
+        insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
+        c.subscriberPlan || c.insuranceType || "";
+      if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
+    }
     const statusCounts = countBy(records, a => (a.status || "Unknown").toString());
     const typeCounts = countBy(records, a => (a.visitType || a.type || "Unknown").toString());
     const weekday = groupByWeekday(records, "appointmentStartDate");
@@ -1069,7 +1129,7 @@ const appointmentVolume: ReportDefinition = {
         byWeekday: Object.entries(weekday).map(([d, c]) => ({ name: d, count: c })),
         byType: toChartData(typeCounts, "name", "count"),
       },
-      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "" })),
+      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "", insurance: patInsurance[String(a.patientId)] || a.insuranceName || a.payerName || "" })),
       totalRecords: records.length,
     };
   },

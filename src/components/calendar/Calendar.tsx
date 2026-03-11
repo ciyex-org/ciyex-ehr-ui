@@ -863,8 +863,10 @@ const Calendar: React.FC = () => {
                 );
                 const json = await res.json();
 
-                if (json.success && json.data?.content) {
-                    const events: CalendarEvent[] = (json.data.content as FhirAppointment[]).map((a) => {
+                // Handle multiple response formats: {success, data: {content}} or {data: {content}} or {content} or []
+                const rawContent = json?.data?.content ?? json?.content ?? (Array.isArray(json?.data) ? json.data : null) ?? (Array.isArray(json) ? json : null);
+                if (rawContent && Array.isArray(rawContent) && rawContent.length >= 0) {
+                    const events: CalendarEvent[] = (rawContent as FhirAppointment[]).map((a) => {
                         const patientId = extractIdFromRef(a.patient);
                         const providerId = extractIdFromRef(a.provider);
                         const locationId = extractIdFromRef(a.location);
@@ -901,7 +903,7 @@ const Calendar: React.FC = () => {
                     });
 
                     allEvents = [...allEvents, ...events];
-                    hasMore = json.data.hasNext === true;
+                    hasMore = json?.data?.hasNext === true || (json?.data?.totalPages != null && json?.data?.number != null && json.data.number < json.data.totalPages - 1);
                     page++;
                 } else {
                     hasMore = false;

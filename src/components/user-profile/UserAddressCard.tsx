@@ -230,10 +230,10 @@ export default function UserAddressCard() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-                            <Button size="sm" variant="outline" onClick={closeModal}>
+                            <Button type="button" size="sm" variant="outline" onClick={closeModal}>
                                 Close
                             </Button>
-                            <Button size="sm" onClick={handleSave}>
+                            <Button type="button" size="sm" onClick={handleSave}>
                                 Save Changes
                             </Button>
                         </div>

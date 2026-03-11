@@ -94,6 +94,9 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
     if (["video", "pdf", "link"].includes(form.contentType) && !form.externalUrl.trim()) {
       e.externalUrl = "External URL is required for this content type";
     }
+    if (form.externalUrl.trim() && !/^https?:\/\/.+\..+/.test(form.externalUrl.trim())) {
+      e.externalUrl = "Please enter a valid URL (e.g. https://example.com)";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
