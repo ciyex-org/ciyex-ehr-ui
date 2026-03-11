@@ -14,6 +14,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
+import { usePermissions } from "@/context/PermissionContext";
 
 interface Patient {
     id: number;
@@ -67,6 +68,8 @@ const emptyPatient: Omit<Patient, "id"> = {
 
 export default function PatientListPage() {
     const router = useRouter();
+    const { canWriteResource, superAdmin } = usePermissions();
+    const canWritePatient = superAdmin || canWriteResource("Patient");
     const [patients, setPatients] = useState<Patient[]>([]);
     const [recentPatients, setRecentPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
@@ -316,6 +319,7 @@ export default function PatientListPage() {
                         )}
                     </div>
 
+                    {canWritePatient && (
                     <button
                         onClick={() => setShowAddModal(true)}
                         className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
@@ -325,6 +329,8 @@ export default function PatientListPage() {
                         </svg>
                         Add Patient
                     </button>
+                    )}
+
                 </div>
 
                 {/* Filter bar */}
@@ -481,6 +487,7 @@ export default function PatientListPage() {
                                                     </button>
 
                                                     {/* Edit */}
+                                                    {canWritePatient && (
                                                     <button
                                                         onClick={() => handleEdit(patient)}
                                                         title="Edit Patient"
@@ -490,8 +497,10 @@ export default function PatientListPage() {
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
                                                         </svg>
                                                     </button>
+                                                    )}
 
                                                     {/* Toggle active/inactive */}
+                                                    {canWritePatient && (
                                                     <button
                                                         onClick={() => handleToggleStatus(patient)}
                                                         title={patient.status === "Active" ? "Deactivate" : "Activate"}
@@ -514,6 +523,7 @@ export default function PatientListPage() {
                                                             </svg>
                                                         )}
                                                     </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>

@@ -12,6 +12,7 @@ import { SlideOverPanel } from "@/components/ui/slide-over-panel";
 import DynamicEncounterForm from "@/components/patients/DynamicEncounterForm";
 import PatientChartPanel from "@/components/patients/PatientChartPanel";
 import Encountersummary from "@/components/encounter/summary/Encountersummary";
+import { usePermissions } from "@/context/PermissionContext";
 
 type PanelState =
   | { mode: "closed" }
@@ -157,6 +158,8 @@ const REFRESH_OPTIONS = [
 ];
 
 export default function AppointmentPage() {
+  const { canWriteResource, superAdmin } = usePermissions();
+  const canWriteEncounter = superAdmin || canWriteResource("Encounter");
   const [category, setCategory] = useState<string>("All Visit Categories");
   const [categories, setCategories] = useState<string[]>([]);
   const [provider, setProvider] = useState<string>("All Providers");
@@ -943,7 +946,7 @@ export default function AppointmentPage() {
                                 <FileText className="h-4 w-4" />
                               </button>
                             </>
-                          ) : (
+                          ) : canWriteEncounter ? (
                             <button
                               onClick={() => createEncounter(r)}
                               className="p-1.5 rounded hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600"
@@ -951,7 +954,7 @@ export default function AppointmentPage() {
                             >
                               <FilePlus className="h-4 w-4" />
                             </button>
-                          )}
+                          ) : null}
                         </div>
                       </td>
                     </tr>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Alert from "@/components/ui/alert/Alert";
+import { usePermissions } from "@/context/PermissionContext";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.css";
 
@@ -202,6 +203,8 @@ const getLocationIdFromSchedule = (sched: Schedule): string | null => {
  * ======================= */
 const AppointmentModal: React.FC = () => {
     const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
+    const { canWriteResource, superAdmin } = usePermissions();
+    const canWriteAppointment = superAdmin || canWriteResource("Appointment");
 
     const [open, setOpen] = useState(false);
 
@@ -978,7 +981,8 @@ const AppointmentModal: React.FC = () => {
                         onClick={handleSave}
                         type="button"
                         className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 sm:w-auto"
-                        disabled={!startDate || !startTime || !endDate || !endTime || !providerId || !locationId}
+                        disabled={!startDate || !startTime || !endDate || !endTime || !providerId || !locationId || !canWriteAppointment}
+                        title={!canWriteAppointment ? "You don't have permission to create appointments" : undefined}
                     >
                         Save Appointment
                     </button>

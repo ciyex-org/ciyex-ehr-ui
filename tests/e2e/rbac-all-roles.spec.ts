@@ -17,7 +17,7 @@ import * as path from "path";
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
-const BASE_URL = "http://localhost:3002";
+const BASE_URL = "https://app-dev.ciyex.org";
 const API_URL = "https://api-dev.ciyex.org";
 const PASSWORD = "Test@123";
 const SCREENSHOTS_DIR = path.join(process.cwd(), "test-results", "rbac-screenshots");

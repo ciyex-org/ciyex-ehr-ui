@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
 import AdminLayout from "@/app/(admin)/layout";
+import { usePermissions } from "@/context/PermissionContext";
 
 interface Patient {
     id: string;
@@ -22,6 +23,8 @@ export default function EditPatientPage() {
     const params = useParams();
     const router = useRouter();
     const id = params?.id ?? "";
+    const { canWriteResource, superAdmin } = usePermissions();
+    const canWritePatient = superAdmin || canWriteResource("Patient");
     const [formData, setFormData] = useState<Partial<Patient> | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -224,7 +227,8 @@ export default function EditPatientPage() {
                     <button
                         type="submit"
                         className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400"
-                        disabled={loading}
+                        disabled={loading || !canWritePatient}
+                        title={!canWritePatient ? "You don't have permission to edit patients" : undefined}
                     >
                         {loading ? "Saving..." : "Save"}
                     </button>

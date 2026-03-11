@@ -5,7 +5,7 @@ import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
-
+import { usePermissions } from "@/context/PermissionContext";
 
 // Define interfaces for your form data structure
 interface PersonalInfo {
@@ -136,6 +136,8 @@ interface PatientFormData {
 
 export default function AddPatient() {
     const router = useRouter();
+    const { canWriteResource, superAdmin } = usePermissions();
+    const canWritePatient = superAdmin || canWriteResource("Patient");
     const [activeTab, setActiveTab] = useState(0);
     const [formData, setFormData] = useState<PatientFormData>({
         // Personal Information
@@ -2360,8 +2362,9 @@ export default function AddPatient() {
                             ) : (
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting}
-                                    className={`px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={isSubmitting || !canWritePatient}
+                                    className={`px-4 py-2 text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${(isSubmitting || !canWritePatient) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    title={!canWritePatient ? "You don't have permission to create patients" : undefined}
                                 >
                                     {isSubmitting ? 'Saving...' : 'Save Patient'}
                                 </button>

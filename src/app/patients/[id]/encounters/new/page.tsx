@@ -6,6 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import AdminLayout from "@/app/(admin)/layout";
 import { Loader2 } from "lucide-react";
+import { usePermissions } from "@/context/PermissionContext";
 
 interface Provider {
   id: number | string;
@@ -30,6 +31,8 @@ export default function NewEncounterPage() {
   const params = useParams();
   const router = useRouter();
   const patientId = Number(params?.id);
+  const { canWriteResource, superAdmin } = usePermissions();
+  const canWriteEncounter = superAdmin || canWriteResource("Encounter");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -212,8 +215,9 @@ export default function NewEncounterPage() {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !canWriteEncounter}
               className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2"
+              title={!canWriteEncounter ? "You don't have permission to create encounters" : undefined}
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               {submitting ? "Creating..." : "Create Encounter"}
