@@ -117,11 +117,12 @@ export default function AuditLogPage() {
       const res = await fetchWithAuth(apiUrl(`/api/audit-log?${params.toString()}`));
       if (!res.ok) throw new Error("Failed to fetch audit logs");
       const json = await res.json();
-      if (json.success && json.data) {
-        const content: AuditLogEntry[] = json.data.content ?? [];
+      const responseData = json.data ?? json;
+      if (json.success !== false && responseData) {
+        const content: AuditLogEntry[] = responseData.content ?? (Array.isArray(responseData) ? responseData : []);
         setLogs(content);
-        setTotalElements(json.data.totalElements ?? 0);
-        setTotalPages(json.data.totalPages ?? 0);
+        setTotalElements(responseData.totalElements ?? content.length ?? 0);
+        setTotalPages(responseData.totalPages ?? (content.length > 0 ? 1 : 0));
 
         // Collect distinct resource types for filter dropdown (use functional update to avoid stale closure)
         const newTypes = content

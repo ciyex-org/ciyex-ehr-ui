@@ -343,7 +343,7 @@ function DynamicDataFilters({
   const activeCount = Object.values(dataFilters).filter(v => v !== "").length;
 
   return (
-    <div className="flex flex-wrap items-end gap-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+    <div className="flex flex-wrap items-end gap-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 relative z-20">
       <div className="flex items-center gap-2 self-center">
         <Filter className="w-4 h-4 text-blue-500" />
         <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Data Filters</span>
@@ -354,7 +354,7 @@ function DynamicDataFilters({
           <select
             value={dataFilters[f.key] || ""}
             onChange={e => onChange(f.key, e.target.value)}
-            className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] ${
+            className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer appearance-auto ${
               dataFilters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
             }`}
           >
@@ -485,10 +485,10 @@ function downloadCSV(report: ReportDefinition, data: Record<string, unknown>[]) 
   const rows = data.map(row => report.columns.map(c => {
     const v = row[c.key];
     if (v == null || v === "") return '""';
-    // Format date columns in MM/DD/YYYY for better Excel display
+    // Format date columns as explicit text for Excel to prevent ###### display
     if (c.format === "date") {
       const formatted = formatDateForExcel(String(v));
-      return `"${formatted.replace(/"/g, '""')}"`;
+      return `="${formatted.replace(/"/g, '""')}"`;
     }
     const s = String(v);
     // Always quote fields to prevent Excel display issues (######)

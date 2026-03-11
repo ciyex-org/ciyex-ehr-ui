@@ -311,6 +311,19 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.start == null && r.startDate != null) r.start = r.startDate;
         if (r.end == null && r.appointmentEnd != null) r.end = r.appointmentEnd;
         if (r.end == null && r.endDate != null) r.end = r.endDate;
+        // Calculate end from start + minutesDuration (FHIR standard)
+        if (r.end == null && r.start != null && (r.minutesDuration != null || r.duration != null || r.durationMinutes != null)) {
+            try {
+                const dur = Number(r.minutesDuration ?? r.duration ?? r.durationMinutes);
+                if (dur > 0) {
+                    const s = new Date(String(r.start));
+                    if (!isNaN(s.getTime())) {
+                        s.setMinutes(s.getMinutes() + dur);
+                        r.end = s.toISOString();
+                    }
+                }
+            } catch { /* skip */ }
+        }
         if (r.start != null) {
             const iso = String(r.start);
             if (r.appointmentStartDate == null) r.appointmentStartDate = iso.includes("T") ? iso.split("T")[0] : iso;

@@ -174,7 +174,7 @@ export default function Vitalslist({ patientId, encounterId }: Props) {
             </p>
             {v.weightKg && <p>Weight: {v.weightKg} kg</p>}
                 {v.heightCm && <p>Height: {v.heightCm} cm</p>}
-                    {v.bmi && <p>BMI: {v.bmi}</p>}
+                    {(v.bmi || (v.weightKg && v.heightCm)) && <p>BMI: {v.bmi || (v.weightKg && v.heightCm && v.heightCm > 0 ? (v.weightKg / Math.pow(v.heightCm / 100, 2)).toFixed(1) : "")}</p>}
                         {v.notes && <p className="text-gray-700 whitespace-pre-wrap">{v.notes}</p>}
                             {v.signed && (
                                 <p className="text-xs text-gray-500 font-medium">Signed — read only</p>

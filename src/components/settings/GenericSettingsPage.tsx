@@ -100,9 +100,9 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
             const f = section.fields[i];
             // Referral provider settings: ensure organization field is an editable lookup
             if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName")) {
-                if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
-                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
-                }
+                const patched = { ...f, type: "lookup", readOnly: false, disabled: false, lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
+                delete (patched as any).readonly;
+                section.fields[i] = patched;
             }
         }
         // Referral providers: add organization field if it doesn't exist

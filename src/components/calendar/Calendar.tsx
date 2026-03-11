@@ -690,7 +690,7 @@ const Calendar: React.FC = () => {
                 const raw = json?.data?.content || json?.data || json?.content || [];
                 const providerList = Array.isArray(raw) ? raw : [];
                 if (providerList.length > 0) {
-                    const active = providerList
+                    let active = providerList
                         .filter((p: any) => {
                             // Facade endpoint returns nested structure with systemAccess.status
                             const status = String(p?.systemAccess?.status || p['systemAccess.status'] || 'ACTIVE').toUpperCase();
@@ -706,6 +706,18 @@ const Calendar: React.FC = () => {
                             };
                         })
                         .filter((p: any) => p.value);
+                    // If all providers were filtered out by status, use unfiltered list
+                    if (active.length === 0) {
+                        active = providerList.map((p: any) => {
+                            const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
+                            const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
+                            const fullName = `${firstName} ${lastName}`.trim();
+                            return {
+                                value: String(p.id || p.fhirId || ''),
+                                label: fullName || p.name || p.fullName || p.displayName || `Provider #${p.id || p.fhirId || ''}`,
+                            };
+                        }).filter((p: any) => p.value);
+                    }
 
                     setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
                 }
@@ -865,9 +877,9 @@ const Calendar: React.FC = () => {
 
                 if (json.success && json.data?.content) {
                     const events: CalendarEvent[] = (json.data.content as FhirAppointment[]).map((a) => {
-                        const patientId = extractIdFromRef(a.patient);
-                        const providerId = extractIdFromRef(a.provider);
-                        const locationId = extractIdFromRef(a.location);
+                        const patientId = extractIdFromRef(a.patient) || String(a.patientId || '');
+                        const providerId = extractIdFromRef(a.provider) || String(a.providerId || a.practitionerId || '');
+                        const locationId = extractIdFromRef(a.location) || String(a.locationId || '');
 
                         // Parse ISO start/end into local date strings
                         const startDt = a.start ? new Date(a.start) : null;
@@ -1639,7 +1651,8 @@ const Calendar: React.FC = () => {
                                         views={{ timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } } }}
                                         datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
                                         events={events.filter((e) => {
-                                            const matchProv = e.extendedProps.providerId === p.value;
+                                            const eProv = e.extendedProps.providerId;
+                                            const matchProv = eProv === p.value || !eProv || !visibleProviders.some(vp => vp.value === eProv);
                                             const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
                                             return matchProv && matchLoc;
                                         })}
@@ -1685,7 +1698,8 @@ const Calendar: React.FC = () => {
                                         }}
                                         datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
                                         events={events.filter((e) => {
-                                            const matchProv = e.extendedProps.providerId === p.value;
+                                            const eProv = e.extendedProps.providerId;
+                                            const matchProv = eProv === p.value || !eProv || !visibleProviders.some(vp => vp.value === eProv);
                                             const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
                                             return matchProv && matchLoc;
                                         })}

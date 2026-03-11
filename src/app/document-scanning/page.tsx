@@ -284,7 +284,11 @@ export default function DocumentScanningPage() {
       const res = await fetchWithAuth(url);
       const json = await res.json();
       if (res.ok && json.success) {
-        const docs: ScannedDocument[] = json.data.content || json.data || [];
+        const docs: ScannedDocument[] = (json.data.content || json.data || []).map((d: any) => ({
+          ...d,
+          patientId: d.patientId || d.patient_id || d.patientFhirId || null,
+          patientName: d.patientName || d.patient_name || d.patientDisplay || null,
+        }));
         // Resolve missing patient names from patientId
         const missingNames = docs.filter(d => d.patientId && !d.patientName);
         if (missingNames.length > 0) {

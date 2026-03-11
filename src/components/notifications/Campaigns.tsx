@@ -344,7 +344,7 @@ export default function Campaigns() {
                   </td>
                   <td className="px-4 py-3">{campaignStatusBadge(c.status)}</td>
                   <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-300">
-                    {c.totalRecipients ?? "-"}
+                    {(c.totalRecipients || (c.status === "completed" || c.status === "COMPLETED" ? (c.sentCount || 0) + (c.failedCount || 0) : 0)) || "-"}
                   </td>
                   <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 font-medium">
                     {c.sentCount || "-"}

@@ -168,29 +168,45 @@ const patientDemographics: ReportDefinition = {
       insurerMap[String(co.id)] = co.name || co.companyName || "";
       if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
     }
-    // Try coverages endpoint (may return FHIR-based data)
-    try {
-      const coverages = await safeFetch(`${apiUrl}/api/coverages?page=0&size=5000`, fetchFn);
-      for (const c of coverages) {
-        // FHIR Coverage: beneficiary is "Patient/{id}", extract the ID
-        let pid = String(c.patientId || c.beneficiaryId || "");
-        if (!pid && c.beneficiary) {
-          const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
-          if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
+    // Try multiple coverage/insurance endpoints
+    const coverageEndpoints = [
+      `${apiUrl}/api/coverages?page=0&size=5000`,
+      `${apiUrl}/api/fhir-resource/coverage?page=0&size=5000`,
+      `${apiUrl}/api/patient-insurances?page=0&size=5000`,
+    ];
+    for (const endpoint of coverageEndpoints) {
+      try {
+        const coverages = await safeFetch(endpoint, fetchFn);
+        if (coverages.length === 0) continue;
+        for (const c of coverages) {
+          // FHIR Coverage: beneficiary is "Patient/{id}", extract the ID
+          let pid = String(c.patientId || c.beneficiaryId || "");
+          if (!pid && c.beneficiary) {
+            const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
+            if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
+          }
+          if (!pid) continue;
+          // Handle FHIR payor array: payor[0].display or payor[0].reference
+          let fhirPayorName = "";
+          if (Array.isArray(c.payor) && c.payor.length > 0) {
+            const p = c.payor[0];
+            fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
+          }
+          const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
+            insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
+            c.subscriberPlan || c.insuranceType || c.companyName || c.name || "";
+          if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
         }
-        if (!pid) continue;
-        // Handle FHIR payor array: payor[0].display or payor[0].reference
-        let fhirPayorName = "";
-        if (Array.isArray(c.payor) && c.payor.length > 0) {
-          const p = c.payor[0];
-          fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
-        }
-        const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
-          insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
-          c.subscriberPlan || c.insuranceType || "";
-        if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
-      }
-    } catch { /* coverages endpoint may not exist */ }
+        if (Object.keys(patInsurance).length > 0) break; // found data, stop trying endpoints
+      } catch { /* endpoint may not exist */ }
+    }
+    // Also try to extract insurance from patient records directly
+    for (const p of records) {
+      const pid = String(p.id);
+      if (patInsurance[pid]) continue;
+      const ins = p.insuranceName || p.primaryInsurance || p.insuranceCompany || p.insurance || p.insurancePlan || "";
+      if (ins) patInsurance[pid] = ins;
+    }
     const ages = records.map(p => {
       const dob = p.dateOfBirth || p.birthDate || "";
       if (!dob) return 0;
@@ -345,7 +361,7 @@ const labResults: ReportDefinition = {
       },
       tableData: records.map(o => ({
         id: o.id, orderDate: normDate(o.orderDate || o.orderedDate || o.date || o.createdAt || ""), patient: o.patientName || o.patientId || "",
-        testName: o.testName || o.labTestName || o.name || o.orderName || o.code || o.loincCode || o.description || o.test || "", status: o.status || "",
+        testName: o.testName || o.labTestName || o.name || o.orderName || o.testType || o.labTest || o.orderDetail || o.serviceName || o.code || o.loincCode || o.description || o.test || o.title || "", status: o.status || "",
         priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || o.provider || "",
       })),
       totalRecords: records.length,
@@ -583,11 +599,22 @@ const revenueOverview: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const [allPayments, allEncounters, insuranceCos] = await Promise.all([
+    let [allPayments, allEncounters, insuranceCos] = await Promise.all([
       safeFetch(`${apiUrl}/api/payments/transactions?page=0&size=1000`, fetchFn),
       safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=500`, fetchFn),
       safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
     ]);
+    // Fallback payment endpoints if primary returned empty
+    if (allPayments.length === 0) {
+      allPayments = await safeFetch(`${apiUrl}/api/fhir-resource/payment?page=0&size=1000`, fetchFn);
+    }
+    if (allPayments.length === 0) {
+      allPayments = await safeFetch(`${apiUrl}/api/payments?page=0&size=1000`, fetchFn);
+    }
+    // Fallback encounters endpoint
+    if (allEncounters.length === 0) {
+      allEncounters = await safeFetch(`${apiUrl}/api/fhir-resource/encounters?page=0&size=500`, fetchFn);
+    }
     const payments = filterByDateRange(allPayments, "paymentDate", from, to);
     const encounters = filterByDateRange(allEncounters, "encounterDate", from, to);
     // Build encounter provider map for enriching payment rows
