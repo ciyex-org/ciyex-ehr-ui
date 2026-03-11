@@ -8,12 +8,16 @@ type PermissionContextType = {
   role: string;
   superAdmin: boolean;
   loading: boolean;
+  /** FHIR resource types the user can write (e.g. ["Appointment", "Patient"]) */
+  writableResources: string[];
   /** Exact match: user has this specific permission key */
   hasPermission: (key: string) => boolean;
   /** Category match: user has ANY permission starting with `category.` */
   hasCategory: (category: string) => boolean;
   /** Write match: user has any non-`.read` permission in the category */
   hasCategoryWrite: (category: string) => boolean;
+  /** Check if user can write a specific FHIR resource type (e.g. "Practitioner") */
+  canWriteResource: (resourceType: string) => boolean;
   /** Refresh permissions from server */
   refreshPermissions: () => Promise<void>;
 };
@@ -45,6 +49,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [permissions, setPermissions] = useState<string[]>(cached.permissions);
   const [role, setRole] = useState(cached.role);
   const [superAdmin, setSuperAdmin] = useState(cached.superAdmin);
+  const [writableResources, setWritableResources] = useState<string[]>([]);
   const [loading, setLoading] = useState(!cached.role); // skip loading if we have cached data
 
   const fetchPermissions = useCallback(async () => {
@@ -75,6 +80,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setPermissions(json.data.permissions || []);
         setRole(json.data.role || "");
         setSuperAdmin(json.data.superAdmin === true);
+        setWritableResources(json.data.writableResources || []);
       }
     } catch (err) {
       console.warn("Failed to fetch permissions:", err);
@@ -136,6 +142,12 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     [permissions, superAdmin]
   );
 
+  const canWriteResource = useCallback(
+    (resourceType: string) =>
+      superAdmin || writableResources.includes(resourceType),
+    [writableResources, superAdmin]
+  );
+
   return (
     <PermissionContext.Provider
       value={{
@@ -143,9 +155,11 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         role,
         superAdmin,
         loading,
+        writableResources,
         hasPermission,
         hasCategory,
         hasCategoryWrite,
+        canWriteResource,
         refreshPermissions: fetchPermissions,
       }}
     >

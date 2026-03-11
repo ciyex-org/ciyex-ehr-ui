@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { usePermissions } from "@/context/PermissionContext";
 import AdminLayout from "@/app/(admin)/layout";
 import DynamicFormRenderer, { FieldConfig } from "@/components/patients/DynamicFormRenderer";
 import {
@@ -147,6 +148,11 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     const [pageSize] = useState(20);
     const [totalElements, setTotalElements] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
+
+    // Write permission check based on FHIR resource type
+    const { canWriteResource, superAdmin } = usePermissions();
+    const primaryResource = config?.fhirResources?.[0]?.type || "";
+    const canWrite = superAdmin || !primaryResource || canWriteResource(primaryResource);
 
     // Reset view state when page changes
     useEffect(() => {
@@ -553,7 +559,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                         ✓ Saved
                                     </span>
                                 )}
-                                {mode !== "view" && (
+                                {mode !== "view" && canWrite && (
                                     <button
                                         onClick={handleSave}
                                         disabled={saving}
@@ -563,7 +569,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                         Save
                                     </button>
                                 )}
-                                {mode === "view" && (
+                                {mode === "view" && canWrite && (
                                     <button
                                         onClick={() => handleEdit(selectedRecord!)}
                                         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
@@ -664,13 +670,15 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                             </div>
                             <span className="text-xs text-gray-400">{totalElements} records</span>
                         </div>
-                        <button
-                            onClick={handleCreate}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add
-                        </button>
+                        {canWrite && (
+                            <button
+                                onClick={handleCreate}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Add
+                            </button>
+                        )}
                     </div>
 
                     {/* Loading */}
@@ -683,9 +691,11 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                     ) : filteredRecords.length === 0 ? (
                         <div className="p-6 text-center">
                             <p className="text-gray-400 text-sm">No records found</p>
-                            <button onClick={handleCreate} className="mt-3 text-blue-600 text-sm hover:underline">
-                                Create your first record
-                            </button>
+                            {canWrite && (
+                                <button onClick={handleCreate} className="mt-3 text-blue-600 text-sm hover:underline">
+                                    Create your first record
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <>
@@ -716,22 +726,24 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                                     </td>
                                                 ))}
                                                 <td className="px-4 py-2.5 text-right">
-                                                    <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
-                                                        <button
-                                                            onClick={() => handleEdit(record)}
-                                                            className="p-1.5 text-gray-400 hover:text-blue-600 rounded"
-                                                            title="Edit"
-                                                        >
-                                                            <Pencil className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(record)}
-                                                            className="p-1.5 text-gray-400 hover:text-red-600 rounded"
-                                                            title="Delete"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
+                                                    {canWrite && (
+                                                        <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                                                            <button
+                                                                onClick={() => handleEdit(record)}
+                                                                className="p-1.5 text-gray-400 hover:text-blue-600 rounded"
+                                                                title="Edit"
+                                                            >
+                                                                <Pencil className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(record)}
+                                                                className="p-1.5 text-gray-400 hover:text-red-600 rounded"
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}

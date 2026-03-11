@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { usePermissions } from "@/context/PermissionContext";
 import DynamicFormRenderer, { FieldConfig, FieldConfigFeatures, SectionDef, FieldDef } from "./DynamicFormRenderer";
 import { Plus, Pencil, Trash2, X, Save, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText, CheckCircle2 } from "lucide-react";
 import { isValidEmail, isValidPhone, isValidFax, isValidUrl } from "@/utils/validation";
@@ -24,6 +25,11 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [singleRecord, setSingleRecord] = useState(false);
+    const [fhirResourceType, setFhirResourceType] = useState<string>("");
+
+    // Write permission check based on FHIR resource type
+    const { canWriteResource, superAdmin } = usePermissions();
+    const canWrite = superAdmin || !fhirResourceType || canWriteResource(fhirResourceType);
 
     // View state: "list" | "create" | "edit" | "view"
     const [mode, setMode] = useState<"list" | "create" | "edit" | "view">("list");
@@ -223,6 +229,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     ? JSON.parse(config.fieldConfig)
                     : config.fieldConfig;
                 setFieldConfig(patchFieldConfig(fc));
+                // Extract primary FHIR resource type for write permission check
+                const fhirRes = Array.isArray(config.fhirResources)
+                    ? config.fhirResources
+                    : typeof config.fhirResources === "string"
+                        ? JSON.parse(config.fhirResources)
+                        : [];
+                if (fhirRes.length > 0) {
+                    const first = fhirRes[0];
+                    setFhirResourceType(typeof first === "string" ? first : first?.type || "");
+                }
             }
         } catch (err) {
             console.error("Error fetching field config", err);
@@ -1204,14 +1220,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     <div className="flex items-center gap-2">
                         {mode === "edit" ? (
                             <>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={saving}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                                >
-                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                    Save
-                                </button>
+                                {canWrite && (
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={saving}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                    >
+                                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                        Save
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleCancel}
                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
@@ -1220,7 +1238,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                                     Cancel
                                 </button>
                             </>
-                        ) : (
+                        ) : canWrite ? (
                             <button
                                 onClick={() => handleEdit()}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
@@ -1228,7 +1246,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                                 <Pencil className="w-4 h-4" />
                                 Edit
                             </button>
-                        )}
+                        ) : null}
                     </div>
                 </div>
                 <div className="p-4">
@@ -1267,7 +1285,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         {mode === "create" ? "New Record" : mode === "edit" ? "Edit Record" : "View Record"}
                     </h4>
                     <div className="flex items-center gap-2">
-                        {mode === "view" && selectedRecord && (
+                        {mode === "view" && selectedRecord && canWrite && (
                             <button
                                 onClick={() => handleEdit(selectedRecord)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
@@ -1276,7 +1294,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                                 Edit
                             </button>
                         )}
-                        {mode !== "view" && (
+                        {mode !== "view" && canWrite && (
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
@@ -1336,13 +1354,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     </div>
                     <span className="text-xs text-gray-400">{totalElements} records</span>
                 </div>
-                <button
-                    onClick={handleCreate}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add
-                </button>
+                {canWrite && (
+                    <button
+                        onClick={handleCreate}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add
+                    </button>
+                )}
             </div>
 
             {/* Success / Error flash */}
@@ -1368,12 +1388,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     ) : (
                         <p className="text-gray-400 text-sm">No records found</p>
                     )}
-                    <button
-                        onClick={handleCreate}
-                        className="mt-3 text-blue-600 text-sm hover:underline"
-                    >
-                        Create your first record
-                    </button>
+                    {canWrite && (
+                        <button
+                            onClick={handleCreate}
+                            className="mt-3 text-blue-600 text-sm hover:underline"
+                        >
+                            Create your first record
+                        </button>
+                    )}
                 </div>
             ) : (
                 <>
@@ -1410,22 +1432,24 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                                             </td>
                                         ))}
                                         <td className="px-4 py-2.5 text-right">
-                                            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                                <button
-                                                    onClick={() => handleEdit(record)}
-                                                    className="p-1.5 text-gray-400 hover:text-blue-600 rounded"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(record)}
-                                                    className="p-1.5 text-gray-400 hover:text-red-600 rounded"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                            {canWrite && (
+                                                <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                                                    <button
+                                                        onClick={() => handleEdit(record)}
+                                                        className="p-1.5 text-gray-400 hover:text-blue-600 rounded"
+                                                        title="Edit"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(record)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 rounded"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
