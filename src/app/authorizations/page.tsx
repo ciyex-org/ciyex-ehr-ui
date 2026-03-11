@@ -279,11 +279,13 @@ export default function PriorAuthorizationsPage() {
     if (!insuranceQuery.trim() || insuranceQuery.length < 2) { setInsuranceResults([]); return; }
     debounceSearch("insurance", async () => {
       try {
-        const res = await fetchWithAuth(`${base()}/api/insurances?search=${encodeURIComponent(insuranceQuery)}`);
+        const res = await fetchWithAuth(`${base()}/api/insurance-companies`);
         const json = await res.json();
-        let list: typeof insuranceResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        let all: typeof insuranceResults = [];
+        if (Array.isArray(json?.data)) all = json.data;
+        else if (Array.isArray(json?.data?.content)) all = json.data.content;
+        const q = insuranceQuery.toLowerCase();
+        const list = all.filter(i => (i.name || i.insuranceName || i.payerName || "").toLowerCase().includes(q));
         setInsuranceResults(list);
         setShowInsuranceDropdown(true);
       } catch { /* silent */ }
@@ -295,7 +297,7 @@ export default function PriorAuthorizationsPage() {
     if (!diagnosisQuery.trim() || diagnosisQuery.length < 2) { setDiagnosisResults([]); return; }
     debounceSearch("diagnosis", async () => {
       try {
-        const res = await fetchWithAuth(`${base()}/api/codes?codeType=ICD10&search=${encodeURIComponent(diagnosisQuery)}&size=10`);
+        const res = await fetchWithAuth(`${base()}/api/global_codes/search?q=${encodeURIComponent(diagnosisQuery)}&codeType=ICD10`);
         const json = await res.json();
         let list: typeof diagnosisResults = [];
         if (Array.isArray(json?.data)) list = json.data;
@@ -311,7 +313,7 @@ export default function PriorAuthorizationsPage() {
     if (!procedureQuery.trim() || procedureQuery.length < 2) { setProcedureResults([]); return; }
     debounceSearch("procedure", async () => {
       try {
-        const res = await fetchWithAuth(`${base()}/api/codes?codeType=CPT&search=${encodeURIComponent(procedureQuery)}&size=10`);
+        const res = await fetchWithAuth(`${base()}/api/global_codes/search?q=${encodeURIComponent(procedureQuery)}&codeType=CPT`);
         const json = await res.json();
         let list: typeof procedureResults = [];
         if (Array.isArray(json?.data)) list = json.data;
