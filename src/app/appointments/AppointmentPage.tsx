@@ -159,6 +159,7 @@ const REFRESH_OPTIONS = [
 
 export default function AppointmentPage() {
   const { canWriteResource, superAdmin } = usePermissions();
+  const canWriteAppointment = superAdmin || canWriteResource("Appointment");
   const canWriteEncounter = superAdmin || canWriteResource("Encounter");
   const [category, setCategory] = useState<string>("All Visit Categories");
   const [categories, setCategories] = useState<string[]>([]);
@@ -830,13 +831,14 @@ export default function AppointmentPage() {
                           ) : (
                             <>
                               <button
-                                onClick={() => setEditingStatusId(r.id)}
-                                title="Click to change status"
+                                onClick={() => canWriteAppointment && setEditingStatusId(r.id)}
+                                title={canWriteAppointment ? "Click to change status" : "No permission to change status"}
+                                className={!canWriteAppointment ? "cursor-default" : ""}
                               >
                                 {renderStatusBadge(r.status)}
                               </button>
                               {/* Workflow quick-action */}
-                              {hasNext && !isTerminal && nextOpt && (
+                              {canWriteAppointment && hasNext && !isTerminal && nextOpt && (
                                 <button
                                   onClick={() => advanceStatus(r)}
                                   className="flex items-center gap-0.5 px-2 py-0.5 text-xs rounded-full border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
