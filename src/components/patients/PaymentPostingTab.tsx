@@ -580,7 +580,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                     className="w-full text-sm bg-white border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
                                 >
                                     <option value="">-- No claim (general payment) --</option>
-                                    {claims.filter((c) => c.id).map((c) => {
+                                    {claims.filter((c, i, arr) => c.id && arr.findIndex(x => x.id === c.id) === i).map((c) => {
                                         const bal = Number(c.totalCharges || 0) - Number(c.totalPaid || 0);
                                         return (
                                             <option key={c.id} value={c.id}>

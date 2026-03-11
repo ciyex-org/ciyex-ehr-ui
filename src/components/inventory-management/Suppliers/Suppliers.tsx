@@ -69,7 +69,7 @@ export default function Suppliers() {
     e.preventDefault();
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = "Name is required.";
-    if (form.phone && form.phone.replace(/\D/g, "").length < 7) errs.phone = "Phone must have at least 7 digits.";
+    if (form.phone && !/^[+]?[\d\s().\-]{7,20}$/.test(form.phone)) errs.phone = "Please enter a valid phone number.";
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Please enter a valid email.";
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -101,7 +101,7 @@ export default function Suppliers() {
     [s.name, s.contactName, s.email, s.phone].some(f => f?.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const F = (k: keyof typeof form, v: string | boolean) => setForm(p => ({ ...p, [k]: v }));
+  const F = (k: keyof typeof form, v: string | boolean) => { setForm(p => ({ ...p, [k]: v })); setFormErrors(prev => { const n = { ...prev }; delete n[k]; return n; }); };
   const dateInput = "flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
   return (

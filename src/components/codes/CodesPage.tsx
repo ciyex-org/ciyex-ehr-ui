@@ -649,7 +649,7 @@ function CodeModal({
             <input
               value={form.modifier || ""}
               onChange={(e) => setForm({ ...form, modifier: e.target.value })}
-              placeholder="Modifier"
+              placeholder="e.g. 26, TC, LT"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -660,7 +660,7 @@ function CodeModal({
             <input
               value={form.category || ""}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              placeholder="Category"
+              placeholder="e.g. Evaluation and Management"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -673,7 +673,7 @@ function CodeModal({
             <input
               value={form.description || ""}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Full description"
+              placeholder="e.g. Essential (primary) hypertension"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -684,7 +684,7 @@ function CodeModal({
             <input
               value={form.shortDescription || ""}
               onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
-              placeholder="Short description"
+              placeholder="e.g. Essential Hypertension"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -697,7 +697,7 @@ function CodeModal({
             <input
               value={form.relateTo || ""}
               onChange={(e) => setForm({ ...form, relateTo: e.target.value })}
-              placeholder="Relate To"
+              placeholder="e.g. 99213, I10"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -714,7 +714,7 @@ function CodeModal({
                   feeStandard: e.target.value ? parseFloat(e.target.value) : undefined,
                 })
               }
-              placeholder="Fee"
+              placeholder="e.g. 150.00"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
