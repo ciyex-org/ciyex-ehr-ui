@@ -31,6 +31,7 @@ import {
   CATEGORY_LABELS,
   OCR_STATUS_LABELS,
 } from "@/components/document-scanning/types";
+import { usePermissions } from "@/context/PermissionContext";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
@@ -252,6 +253,9 @@ function OcrTextViewer({ document: doc, onClose }: { document: ScannedDocument; 
 
 /* ── Main Page ── */
 export default function DocumentScanningPage() {
+  const { hasCategoryWrite } = usePermissions();
+  const canWriteDocs = hasCategoryWrite("documents");
+
   const [documents, setDocuments] = useState<ScannedDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -359,9 +363,11 @@ export default function DocumentScanningPage() {
         </div>
 
         {/* Upload area */}
+        {canWriteDocs && (
         <div className="shrink-0 mb-4">
           <UploadPanel onUploaded={() => { setToast({ type: "success", text: "Upload complete" }); fetchDocuments(); }} />
         </div>
+        )}
 
         {/* Search + Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-4 shrink-0">
@@ -470,7 +476,7 @@ export default function DocumentScanningPage() {
                               <Eye className="w-4 h-4" />
                             </button>
                           )}
-                          {(doc.ocrStatus === "failed" || doc.ocrStatus === "pending") && (
+                          {canWriteDocs && (doc.ocrStatus === "failed" || doc.ocrStatus === "pending") && (
                             <button onClick={() => handleReOcr(doc)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-green-600" title="Run OCR">
                               <ScanLine className="w-4 h-4" />
                             </button>
@@ -484,9 +490,11 @@ export default function DocumentScanningPage() {
                           >
                             <Download className="w-4 h-4" />
                           </a>
+                          {canWriteDocs && (
                           <button onClick={() => handleDelete(doc)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-600" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>

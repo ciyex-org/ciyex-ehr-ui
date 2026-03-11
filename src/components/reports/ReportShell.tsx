@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { usePermissions } from "@/context/PermissionContext";
 import type {
   ReportDefinition, ReportResult, FilterValues, ChartConfig,
   ChartDataPoint, KpiValue, ColumnConfig,
@@ -548,6 +549,9 @@ function downloadCSV(report: ReportDefinition, data: Record<string, unknown>[]) 
 
 /* ── Main Shell ── */
 export default function ReportShell({ report }: { report: ReportDefinition }) {
+  const { hasCategoryWrite } = usePermissions();
+  const canWriteReports = hasCategoryWrite("reports");
+
   const [filters, setFilters] = useState<FilterValues>(() => {
     const today = new Date();
     const past = new Date(today); past.setFullYear(today.getFullYear() - 1);
@@ -832,11 +836,13 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
           {/* Export + Data Table */}
           {filteredTableData.length > 0 && (
             <>
+              {canWriteReports && (
               <div className="flex justify-end">
                 <button onClick={() => downloadCSV(report, filteredTableData)} className="inline-flex items-center gap-2 px-4 py-1.5 text-sm font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
                   <Download className="w-4 h-4" /> Export CSV
                 </button>
               </div>
+              )}
               <DataTable columns={report.columns} data={filteredTableData} totalRecords={filteredTableData.length} />
             </>
           )}

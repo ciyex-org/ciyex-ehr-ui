@@ -24,6 +24,7 @@ import {
 import PrescriptionStatsCards from "@/components/prescriptions/PrescriptionStatsCards";
 import PrescriptionTable from "@/components/prescriptions/PrescriptionTable";
 import PrescriptionFormPanel from "@/components/prescriptions/PrescriptionFormPanel";
+import { usePermissions } from "@/context/PermissionContext";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -244,6 +245,9 @@ function DeleteModal({
 /* ------------------------------------------------------------------ */
 
 export default function PrescriptionsPage() {
+  const { hasCategoryWrite } = usePermissions();
+  const canWriteRx = hasCategoryWrite("rx");
+
   /* State */
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [stats, setStats] = useState<PrescriptionStats>({ active: 0, completed: 0, cancelled: 0, on_hold: 0, discontinued: 0 });
@@ -510,12 +514,14 @@ export default function PrescriptionsPage() {
               </select>
             </div>
 
+            {canWriteRx && (
             <div className="flex-shrink-0 ml-auto">
               <button onClick={openNew} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm">
                 <Plus className="w-4 h-4" />
                 New Prescription
               </button>
             </div>
+            )}
           </div>
         </div>
 

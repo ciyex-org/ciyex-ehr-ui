@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { usePermissions } from "@/context/PermissionContext";
 import {
   Edit,
   Trash2,
@@ -145,6 +146,9 @@ export default function PrescriptionTable({
   onNew,
   hasFilters,
 }: Props) {
+  const { hasCategoryWrite } = usePermissions();
+  const canWriteRx = hasCategoryWrite("rx");
+
   return (
     <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden">
       <div className="flex-1 overflow-auto">
@@ -178,7 +182,7 @@ export default function PrescriptionTable({
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     {hasFilters ? "Try adjusting your filters" : "Create your first prescription to get started"}
                   </p>
-                  {!hasFilters && (
+                  {!hasFilters && canWriteRx && (
                     <button onClick={onNew} className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
                       <Plus className="w-4 h-4" />
                       New Prescription
@@ -240,45 +244,49 @@ export default function PrescriptionTable({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      {/* Edit */}
-                      <button
-                        onClick={() => onEdit(rx)}
-                        title="Edit"
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
+                      {canWriteRx && (
+                        <>
+                          {/* Edit */}
+                          <button
+                            onClick={() => onEdit(rx)}
+                            title="Edit"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
 
-                      {/* Refill - only for active prescriptions with refills remaining */}
-                      {rx.status === "active" && (rx.refillsRemaining ?? 0) > 0 && (
-                        <button
-                          onClick={() => onRefill(rx)}
-                          title="Refill"
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 dark:hover:text-green-400 transition"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
+                          {/* Refill - only for active prescriptions with refills remaining */}
+                          {rx.status === "active" && (rx.refillsRemaining ?? 0) > 0 && (
+                            <button
+                              onClick={() => onRefill(rx)}
+                              title="Refill"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 dark:hover:text-green-400 transition"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Discontinue - only for active or on_hold */}
+                          {(rx.status === "active" || rx.status === "on_hold") && (
+                            <button
+                              onClick={() => onDiscontinue(rx)}
+                              title="Discontinue"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 dark:hover:text-amber-400 transition"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </button>
+                          )}
+
+                          {/* Delete */}
+                          <button
+                            onClick={() => onDelete(rx)}
+                            title="Delete"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
                       )}
-
-                      {/* Discontinue - only for active or on_hold */}
-                      {(rx.status === "active" || rx.status === "on_hold") && (
-                        <button
-                          onClick={() => onDiscontinue(rx)}
-                          title="Discontinue"
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 dark:hover:text-amber-400 transition"
-                        >
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      )}
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => onDelete(rx)}
-                        title="Delete"
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   </td>
                 </tr>
