@@ -310,36 +310,6 @@ function ApiFilterBar({
 }) {
   const hasDateRange = report.filters.some(f => f.type === "dateRange");
 
-  const [dynamicOptions, setDynamicOptions] = useState<Record<string, { value: string; label: string }[]>>({});
-
-  useEffect(() => {
-    const filtersWithApi = report.filters.filter(f => f.apiSource);
-    if (filtersWithApi.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      const results: Record<string, { value: string; label: string }[]> = {};
-      await Promise.all(filtersWithApi.map(async (f) => {
-        try {
-          const res = await fetchWithAuth(`${API()}${f.apiSource}`);
-          if (!res.ok || cancelled) return;
-          const json = await res.json();
-          const raw = json?.data ?? json;
-          const items: any[] = Array.isArray(raw) ? raw : raw?.content ?? raw?.data?.content ?? raw?.data ?? [];
-          const vf = f.apiMapping?.valueField || "name";
-          const lf = f.apiMapping?.labelField || "name";
-          results[f.key] = items.map(item => ({
-            value: String(item[vf] ?? item.companyName ?? item.name ?? item.id ?? ""),
-            label: String(item[lf] ?? item.companyName ?? item.name ?? item[vf] ?? ""),
-          })).filter(o => o.value && o.label);
-        } catch (err) {
-          console.warn(`Failed to fetch options for filter "${f.key}":`, err);
-        }
-      }));
-      if (!cancelled) setDynamicOptions(results);
-    })();
-    return () => { cancelled = true; };
-  }, [report.key]);
-
   return (
     <div className="flex flex-wrap items-end gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
       <Filter className="w-4 h-4 text-slate-400 self-center" />
@@ -355,18 +325,7 @@ function ApiFilterBar({
           </div>
         </>
       )}
-      {report.filters.filter(f => f.type !== "dateRange").map(f => {
-        const allOptions = [...(f.options || []), ...(dynamicOptions[f.key] || [])];
-        return (
-          <div key={f.key} className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">{f.label}</label>
-            <select value={(filters[f.key] as string) || ""} onChange={e => onChange({ ...filters, [f.key]: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px]">
-              {!allOptions.some(o => o.value === "") && <option value="">All {f.label}</option>}
-              {allOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-        );
-      })}
+      {/* Non-date API filters removed – use Data Filters instead */}
       <button onClick={onGenerate} disabled={loading} className="px-5 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
         {loading ? "Loading..." : "Generate"}
       </button>
