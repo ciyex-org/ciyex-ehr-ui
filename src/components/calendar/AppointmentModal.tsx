@@ -357,12 +357,15 @@ const AppointmentModal: React.FC = () => {
                 const json = await res.json();
                 const providerData = json?.data?.content || json?.data || json?.content || [];
                 const list: Provider[] = Array.isArray(providerData) ? providerData : [];
-                const opts = list.map((p) => ({
-                    value: String(p.id || p.fhirId || ""),
-                    label: p.identification
-                        ? `${p.identification.firstName || ""} ${p.identification.lastName || ""}`.trim()
-                        : (p.name || p.displayName || ""),
-                })).filter((o) => o.value && o.label.trim() !== "");
+                const opts = list.map((p: any) => {
+                    const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
+                    const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    return {
+                        value: String(p.id || p.fhirId || ""),
+                        label: fullName || p.name || p.displayName || p.fullName || `Provider #${p.id || p.fhirId || ""}`,
+                    };
+                }).filter((o) => o.value);
                 setAllProviders(opts);
             } catch (e) {
                 console.error("Failed to fetch providers", e);
@@ -417,9 +420,13 @@ const AppointmentModal: React.FC = () => {
      * Provider availability for chosen slot
      * ======================= */
     useEffect(() => {
-        // Load providers when at least a start date is selected
-        if (!open || !startDate) {
+        if (!open) {
             setProvidersForDate([]);
+            return;
+        }
+        // If no start date yet, show all providers so the dropdown is not empty
+        if (!startDate) {
+            setProvidersForDate(allProviders);
             return;
         }
 
@@ -471,8 +478,8 @@ const AppointmentModal: React.FC = () => {
 
         (async () => {
             if (!providerId) {
-                setProviderLocationOptions([]);
-                setLocationId("");
+                // Show all locations when no provider selected so the field is accessible
+                setProviderLocationOptions(allLocations);
                 return;
             }
 
@@ -883,16 +890,14 @@ const AppointmentModal: React.FC = () => {
                         <select
                             value={providerId}
                             onChange={(e) => setProviderId(e.target.value)}
-                            disabled={!startDate || loadingProvidersForDate || providersForDate.length === 0}
+                            disabled={loadingProvidersForDate || providersForDate.length === 0}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100 disabled:opacity-60"
                         >
                             <option value="">
-                                {!startDate
-                                    ? "Pick a date first"
-                                    : loadingProvidersForDate
+                                {loadingProvidersForDate
                                         ? "Loading available providers…"
                                         : providersForDate.length === 0
-                                            ? "No providers scheduled for this date"
+                                            ? "No providers available"
                                             : "Select a provider..."}
                             </option>
                             {providersForDate.map((p) => (

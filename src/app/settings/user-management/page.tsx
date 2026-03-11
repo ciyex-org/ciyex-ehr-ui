@@ -119,15 +119,16 @@ function AddUserLookupPanel({
       });
       const json = await res.json();
       if (res.ok && json.success) {
+        const msg = json.message || "User created";
         if (json.data?.temporaryPassword) {
-          onCreated("User created", {
+          onCreated(msg, {
             userId: json.data.id,
             username: json.data.email,
             temporaryPassword: json.data.temporaryPassword,
             resetDate: new Date().toISOString().split("T")[0],
           });
         } else {
-          onCreated("User created");
+          onCreated(msg);
         }
         onClose();
       } else {
@@ -250,12 +251,13 @@ function AddUserLookupPanel({
             </div>
           )}
 
-          {/* Role (staff tab only) */}
-          {!isPatientTab && selected && (
+          {/* Role */}
+          {selected && (
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role</label>
               <select value={roleName} onChange={(e) => setRoleName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm">
+                disabled={isPatientTab}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm disabled:opacity-60">
                 {staffRoles.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}

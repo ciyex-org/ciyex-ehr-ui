@@ -182,6 +182,24 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "id", searchable: true } };
                     }
                 }
+                // Appointments: ensure provider/practitioner field is a provider lookup
+                if (tabKey === "appointments" && (f.key === "provider" || f.key === "providerId" || f.key === "practitioner" || f.key === "practitionerId")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
+                // Appointments: ensure location field is a location lookup
+                if (tabKey === "appointments" && (f.key === "location" || f.key === "locationId" || f.key === "locationName")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/facilities", displayField: "name", valueField: "id", searchable: true } };
+                    }
+                }
+                // Issues/Conditions: ensure onsetDate is a date field
+                if ((tabKey === "issues" || tabKey === "conditions" || tabKey === "problems") && (f.key === "onsetDate" || f.key === "onsetDateTime" || f.key === "onset")) {
+                    if (f.type !== "date" && f.type !== "datetime") {
+                        section.fields[i] = { ...f, type: "date" };
+                    }
+                }
                 // Referral-provider settings: ensure organization field is an editable lookup
                 if ((tabKey === "referral-provider" || tabKey === "referral-providers" || tabKey === "referralProvider") && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName")) {
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
@@ -593,6 +611,49 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         // --- Documents: reverse mapping for save (documentDate → date) ---
         if (r.date == null && r.documentDate != null) r.date = r.documentDate;
 
+        // --- Reverse mappings: ensure field-config keys are populated from normalized values ---
+
+        // Insurance: reverse policyEffectiveDate/policyEndDate → effectiveDate/endDate
+        if (r.effectiveDate == null && r.policyEffectiveDate != null) r.effectiveDate = r.policyEffectiveDate;
+        if (r.endDate == null && r.policyEndDate != null) r.endDate = r.policyEndDate;
+        if (r.startDate == null && r.policyEffectiveDate != null) r.startDate = r.policyEffectiveDate;
+        if (r.coverageStartDate == null && r.policyEffectiveDate != null) r.coverageStartDate = r.policyEffectiveDate;
+        if (r.coverageEndDate == null && r.policyEndDate != null) r.coverageEndDate = r.policyEndDate;
+
+        // Visit-notes: reverse date → noteDateTime/noteDate and note ↔ noteText
+        if (r.noteDateTime == null && r.date != null) r.noteDateTime = r.date;
+        if (r.noteDate == null && r.date != null) r.noteDate = r.date;
+        if (r.noteText == null && r.note != null) r.noteText = r.note;
+        if (r.note == null && r.noteText != null) r.note = r.noteText;
+        if (r.content == null && r.noteText != null) r.content = r.noteText;
+
+        // Issues/Conditions: reverse onsetDate → onsetDateTime/onset/recordedDate
+        if (r.onsetDateTime == null && r.onsetDate != null) r.onsetDateTime = r.onsetDate;
+        if (r.onset == null && r.onsetDate != null) r.onset = r.onsetDate;
+        if (r.recordedDate == null && r.onsetDate != null) r.recordedDate = r.onsetDate;
+
+        // Messaging: reverse from/to → sender/recipient/providerName/patientName
+        if (r.sender == null && r.from != null) r.sender = r.from;
+        if (r.senderName == null && r.from != null) r.senderName = r.from;
+        if (r.providerName == null && r.from != null) r.providerName = r.from;
+        if (r.recipient == null && r.to != null) r.recipient = r.to;
+        if (r.recipientName == null && r.to != null) r.recipientName = r.to;
+        if (r.toPatientName == null && r.to != null) r.toPatientName = r.to;
+
+        // Relationships: reverse relatedPatientName/relationshipType → name/relationType
+        if (r.relatedPersonName == null && r.relatedPatientName != null) r.relatedPersonName = r.relatedPatientName;
+        if (r.fullName == null && r.relatedPatientName != null) r.fullName = r.relatedPatientName;
+        if (r.displayName == null && r.relatedPatientName != null) r.displayName = r.relatedPatientName;
+        if (r.relationType == null && r.relationshipType != null) r.relationType = r.relationshipType;
+
+        // Allergies: reverse severity → criticality/severityLevel
+        if (r.criticality == null && r.severity != null) r.criticality = r.severity;
+        if (r.severityLevel == null && r.severity != null) r.severityLevel = r.severity;
+
+        // Appointments: reverse provider/location display names
+        if (r.providerDisplay == null && r.provider != null && typeof r.provider === "string" && !r.provider.includes("/")) r.providerDisplay = r.provider;
+        if (r.locationDisplay == null && r.location != null && typeof r.location === "string" && !r.location.includes("/")) r.locationDisplay = r.location;
+
         return r;
     }, []);
 
@@ -866,6 +927,29 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 // Ensure backend gets period.start/end from policyEffectiveDate/policyEndDate
                 if (payload.policyEffectiveDate && !payload.coverageStartDate) payload.coverageStartDate = payload.policyEffectiveDate;
                 if (payload.policyEndDate && !payload.coverageEndDate) payload.coverageEndDate = payload.policyEndDate;
+                if (payload.effectiveDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.effectiveDate;
+                if (payload.endDate && !payload.policyEndDate) payload.policyEndDate = payload.endDate;
+                if (payload.startDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.startDate;
+            }
+            if (tabKey === "documents") {
+                if (payload.documentDate && !payload.date) payload.date = payload.documentDate;
+                if (payload.date && !payload.documentDate) payload.documentDate = payload.date;
+            }
+            if (tabKey === "messaging") {
+                if (payload.from && !payload.sender) payload.sender = payload.from;
+                if (payload.to && !payload.recipient) payload.recipient = payload.to;
+            }
+            if (tabKey === "relationships" || tabKey === "related-persons") {
+                if (payload.relatedPatientName && !payload.relatedPersonName) payload.relatedPersonName = payload.relatedPatientName;
+                if (payload.relationshipType && !payload.relationType) payload.relationType = payload.relationshipType;
+                if (payload.relatedPersonName && !payload.relatedPatientName) payload.relatedPatientName = payload.relatedPersonName;
+            }
+            if (tabKey === "issues" || tabKey === "conditions" || tabKey === "problems") {
+                if (payload.onsetDate && !payload.onsetDateTime) payload.onsetDateTime = payload.onsetDate;
+                if (payload.onset && !payload.onsetDate) payload.onsetDate = payload.onset;
+            }
+            if (tabKey === "allergies") {
+                if (payload.severity && !payload.criticality) payload.criticality = payload.severity;
             }
 
             const url = isEdit

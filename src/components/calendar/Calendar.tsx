@@ -693,16 +693,19 @@ const Calendar: React.FC = () => {
                     const active = providerList
                         .filter((p: any) => {
                             // Facade endpoint returns nested structure with systemAccess.status
-                            const status = p?.systemAccess?.status || p['systemAccess.status'] || 'ACTIVE';
-                            return status === 'ACTIVE' || status === 'true';
+                            const status = String(p?.systemAccess?.status || p['systemAccess.status'] || 'ACTIVE').toUpperCase();
+                            return status === 'ACTIVE' || status === 'TRUE' || status === '';
                         })
-                        .map((p: any) => ({
-                            value: String(p.id || p.fhirId || ''),
-                            label: p.identification
-                                ? `${p.identification.firstName || ''} ${p.identification.lastName || ''}`.trim()
-                                : (p.name || p.fullName || `${p['identification.firstName'] || p.firstName || ''} ${p['identification.lastName'] || p.lastName || ''}`.trim() || 'Unknown'),
-                        }))
-                        .filter((p: any) => p.value && p.label && p.label !== 'Unknown');
+                        .map((p: any) => {
+                            const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
+                            const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
+                            const fullName = `${firstName} ${lastName}`.trim();
+                            return {
+                                value: String(p.id || p.fhirId || ''),
+                                label: fullName || p.name || p.fullName || p.displayName || `Provider #${p.id || p.fhirId || ''}`,
+                            };
+                        })
+                        .filter((p: any) => p.value);
 
                     setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
                 }
@@ -972,14 +975,16 @@ const Calendar: React.FC = () => {
 
     // Build provider list for chosen date/time (& location) — uses cached schedules
     useEffect(() => {
-        if (!isOpen || !combinedStart || !combinedEnd) {
+        if (!isOpen) {
             setProvidersForDate([]);
             return;
         }
 
-        // When a provider is pre-selected (e.g. from calendar column click),
-        // still show all available providers so the user can switch if needed.
-        // The selected provider will be pre-selected in the dropdown.
+        // If no date/time selected yet, show all providers so the dropdown is never empty
+        if (!startDate) {
+            setProvidersForDate(providers.filter(p => p.value !== "all"));
+            return;
+        }
 
         setLoadingProvidersForDate(true);
         const effectiveLocation =
@@ -987,12 +992,17 @@ const Calendar: React.FC = () => {
 
         const providerIds = new Set<number>();
         for (const s of allSchedules) {
-            if (
-                String(s.status).toLowerCase() === "active" &&
-                hasOccurrenceCoveringSlot(s, combinedStart, combinedEnd) &&
-                scheduleHasLocation(s, effectiveLocation)
-            ) {
-                providerIds.add(Number(s.providerId));
+            if (String(s.status).toLowerCase() !== "active") continue;
+            // If full date+time available, check exact slot coverage
+            if (combinedStart && combinedEnd) {
+                if (hasOccurrenceCoveringSlot(s, combinedStart, combinedEnd) && scheduleHasLocation(s, effectiveLocation)) {
+                    providerIds.add(Number(s.providerId));
+                }
+            } else {
+                // Otherwise just check if provider has a schedule on this date
+                if (hasOccurrenceOnDate(s, startDate) && scheduleHasLocation(s, effectiveLocation)) {
+                    providerIds.add(Number(s.providerId));
+                }
             }
         }
 
@@ -1958,15 +1968,13 @@ const Calendar: React.FC = () => {
                                         className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                         value={appointmentProviderId}
                                         onChange={(e) => setAppointmentProviderId(e.target.value)}
-                                        disabled={!combinedStart || !combinedEnd || loadingProvidersForDate || providersForDate.length === 0}
+                                        disabled={loadingProvidersForDate || providersForDate.length === 0}
                                     >
                                         <option value="">
-                                            {!combinedStart || !combinedEnd
-                                                ? 'Pick date & time first'
-                                                : loadingProvidersForDate
+                                            {loadingProvidersForDate
                                                     ? 'Loading available providers…'
                                                     : providersForDate.length === 0
-                                                        ? 'No providers scheduled for this slot'
+                                                        ? 'No providers available'
                                                         : 'Select a provider...'}
                                         </option>
                                         {providersForDate.map((p) => (
