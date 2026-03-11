@@ -357,11 +357,38 @@ const labResults: ReportDefinition = {
     let all = await safeFetch(`${apiUrl}/api/lab-order/search?q=`, fetchFn);
     if (all.length === 0) all = await safeFetch(`${apiUrl}/api/lab-orders?page=0&size=1000`, fetchFn);
     if (all.length === 0) all = await safeFetch(`${apiUrl}/api/lab-order?page=0&size=1000`, fetchFn);
+    // Try to load lab test catalog for ID-to-name resolution
+    const labTests = await safeFetch(`${apiUrl}/api/lab-tests?page=0&size=500`, fetchFn);
+    const labTestMap: Record<string, string> = {};
+    for (const t of labTests) {
+      if (t.id && (t.name || t.testName)) labTestMap[String(t.id)] = t.name || t.testName;
+    }
     const byDate = filterByDateRange(all, "orderDate", from, to);
     const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, o => (o.status || "Unknown").toString());
     const priorityCounts = countBy(records, o => (o.priority || "Routine").toString());
     const monthly = groupByMonth(records, "orderDate");
+
+    // Resolve lab test name, handling nested objects and ID lookups
+    const resolveTestName = (o: any): string => {
+      if (o.testName && typeof o.testName === "string") return o.testName;
+      if (o.labTestName && typeof o.labTestName === "string") return o.labTestName;
+      if (o.test && typeof o.test === "string") return o.test;
+      if (o.orderName && typeof o.orderName === "string") return o.orderName;
+      if (o.testDescription && typeof o.testDescription === "string") return o.testDescription;
+      // Nested labTest object with name
+      if (o.labTest && typeof o.labTest === "object" && (o.labTest.name || o.labTest.testName)) return o.labTest.name || o.labTest.testName;
+      // labTest or labTestId as numeric ID - resolve from catalog
+      const testId = (typeof o.labTest === "number" || typeof o.labTest === "string") ? String(o.labTest) : String(o.labTestId || "");
+      if (testId && labTestMap[testId]) return labTestMap[testId];
+      // Other fallbacks (prefer descriptive names over codes)
+      if (o.serviceDescription) return String(o.serviceDescription);
+      if (o.description) return String(o.description);
+      if (o.name) return String(o.name);
+      if (o.cptDescription) return String(o.cptDescription);
+      return o.code || o.loincCode || "";
+    };
+
     return {
       kpis: [
         { key: "total", label: "Total Orders", value: records.length, format: "number", color: "text-blue-600" },
@@ -376,7 +403,7 @@ const labResults: ReportDefinition = {
       },
       tableData: records.map(o => ({
         id: o.id, orderDate: normDate(o.orderDate || o.orderedDate || o.date || o.createdAt || ""), patient: o.patientName || o.patientId || "",
-        testName: o.testName || o.labTestName || o.test || o.name || o.orderName || o.testDescription || o.labTest?.name || o.serviceDescription || o.description || o.code || o.loincCode || o.cptDescription || "", status: o.status || "",
+        testName: resolveTestName(o), status: o.status || "",
         priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || o.provider || "",
       })),
       totalRecords: records.length,

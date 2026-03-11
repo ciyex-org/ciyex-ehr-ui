@@ -27,12 +27,13 @@ const MAX_UNIQUE_FOR_FILTER = 30; // don't show filter if > 30 unique vals
 /** Known default options for universal categorical columns */
 const DEFAULT_FILTER_OPTIONS: Record<string, string[]> = {
   gender: ["Male", "Female", "Other", "Unknown"],
-  status: ["Active", "Inactive", "Completed", "Cancelled", "Pending", "Unsigned", "Signed", "Draft"],
+  status: ["Active", "Inactive", "Completed", "Cancelled", "Pending", "Unsigned", "Signed", "Draft", "No-Show", "Checked In", "In Progress"],
   ageGroup: ["0-17", "18-29", "30-44", "45-59", "60-74", "75+"],
   priority: ["Routine", "STAT", "Urgent"],
   urgency: ["Routine", "Urgent", "STAT"],
   tier: ["Low", "Moderate", "High", "Very High"],
   gapType: ["AWV", "A1C Lab", "Screening", "Depression", "Immunization"],
+  type: ["Office Visit", "Follow-Up", "New Patient", "Annual Physical", "Telehealth", "Urgent"],
 };
 
 /** Column keys that are likely unique per row and should NOT become filters */

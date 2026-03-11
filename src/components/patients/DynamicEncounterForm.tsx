@@ -326,17 +326,19 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
     if (!fieldConfig?.sections) return null;
     for (const s of fieldConfig.sections) {
       for (const f of s.fields) {
-        if (BMI_KEYS.includes(f.key) || f.key.toLowerCase() === "bmi") return f.key;
+        if (BMI_KEYS.includes(f.key) || f.key.toLowerCase().includes("bmi")) return f.key;
       }
     }
-    return null;
+    // Fallback: store BMI even if no field is configured for it
+    return "bmi";
   }, [fieldConfig]);
 
   const handleFieldChange = useCallback((key: string, value: any) => {
     autoSave.onChange(key, value);
 
-    const isWeight = WEIGHT_KEYS.includes(key) || key.toLowerCase().includes("weight");
-    const isHeight = HEIGHT_KEYS.includes(key) || key.toLowerCase().includes("height");
+    const keyLower = key.toLowerCase();
+    const isWeight = WEIGHT_KEYS.includes(key) || (keyLower.includes("weight") && !keyLower.includes("birth"));
+    const isHeight = HEIGHT_KEYS.includes(key) || keyLower.includes("height");
 
     if (isWeight || isHeight) {
       const bmiKey = findBmiKey();

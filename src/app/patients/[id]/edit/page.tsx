@@ -1,6 +1,6 @@
 "use client";
 import { getEnv } from "@/utils/env";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
@@ -36,25 +36,42 @@ export default function EditPatientPage() {
     const [providers, setProviders] = useState<ProviderOption[]>([]);
     const [providerSearch, setProviderSearch] = useState("");
     const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
+    const [providerLoading, setProviderLoading] = useState(false);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    useEffect(() => {
-        const fetchProviders = async () => {
-            try {
-                const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
-                if (res.ok) {
-                    const result = await res.json();
-                    const list = result.data?.content || result.data || result.content || [];
-                    setProviders(
-                        (Array.isArray(list) ? list : []).map((p: any) => ({
-                            id: String(p.id),
-                            name: p.name || [p.firstName, p.lastName].filter(Boolean).join(" ") || `Provider ${p.id}`,
-                        }))
-                    );
-                }
-            } catch { /* ignore */ }
-        };
-        fetchProviders();
+    const searchProviders = useCallback(async (query: string) => {
+        setProviderLoading(true);
+        try {
+            const url = `${getEnv("NEXT_PUBLIC_API_URL")}/api/practitioners?search=${encodeURIComponent(query)}`;
+            const res = await fetchWithAuth(url);
+            if (res.ok) {
+                const result = await res.json();
+                const list = result.data?.content || result.data || result.content || [];
+                setProviders(
+                    (Array.isArray(list) ? list : []).map((p: any) => ({
+                        id: String(p.id),
+                        name: p.name || [p.firstName, p.lastName].filter(Boolean).join(" ") || `Provider ${p.id}`,
+                    }))
+                );
+            }
+        } catch { /* ignore */ }
+        setProviderLoading(false);
     }, []);
+
+    // Load initial providers list on mount
+    useEffect(() => {
+        searchProviders("");
+    }, [searchProviders]);
+
+    // Debounced provider search
+    useEffect(() => {
+        if (!providerDropdownOpen) return;
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            searchProviders(providerSearch);
+        }, 300);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [providerSearch, providerDropdownOpen, searchProviders]);
 
     useEffect(() => {
         if (!id) {
@@ -274,24 +291,25 @@ export default function EditPatientPage() {
                         )}
                         {providerDropdownOpen && (
                             <div className="absolute z-50 top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                                {providers
-                                    .filter(p => !providerSearch || p.name.toLowerCase().includes(providerSearch.toLowerCase()))
-                                    .map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                                            onMouseDown={(e) => e.preventDefault()}
-                                            onClick={() => {
-                                                if (formData) setFormData({ ...formData, assignedProviderId: p.id, assignedProviderName: p.name });
-                                                setProviderDropdownOpen(false);
-                                                setProviderSearch("");
-                                            }}
-                                        >
-                                            {p.name}
-                                        </button>
-                                    ))}
-                                {providers.filter(p => !providerSearch || p.name.toLowerCase().includes(providerSearch.toLowerCase())).length === 0 && (
+                                {providerLoading && (
+                                    <div className="px-3 py-2 text-sm text-gray-400">Searching...</div>
+                                )}
+                                {!providerLoading && providers.map(p => (
+                                    <button
+                                        key={p.id}
+                                        type="button"
+                                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                        onClick={() => {
+                                            if (formData) setFormData({ ...formData, assignedProviderId: p.id, assignedProviderName: p.name });
+                                            setProviderDropdownOpen(false);
+                                            setProviderSearch("");
+                                        }}
+                                    >
+                                        {p.name}
+                                    </button>
+                                ))}
+                                {!providerLoading && providers.length === 0 && (
                                     <div className="px-3 py-2 text-sm text-gray-400">No providers found</div>
                                 )}
                             </div>

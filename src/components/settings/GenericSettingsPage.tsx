@@ -705,7 +705,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                             <tr
                                                 key={record.id || record.fhirId || idx}
                                                 className="hover:bg-gray-50 cursor-pointer"
-                                                onClick={() => handleView(record)}
+                                                onClick={() => handleEdit(record)}
                                             >
                                                 {cols.map(col => (
                                                     <td key={col.key} className="px-4 py-2.5 text-gray-700">

@@ -43,7 +43,13 @@ function formatCellForCSV(cell: string | number): string {
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
     const d = new Date(s.includes("T") ? s : s + "T00:00:00");
     if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+      // Format as YYYY-MM-DD HH:mm for Excel compatibility
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mi = String(d.getMinutes()).padStart(2, "0");
+      return s.includes("T") ? `${yyyy}-${mm}-${dd} ${hh}:${mi}` : `${yyyy}-${mm}-${dd}`;
     }
   }
   return s;
