@@ -800,19 +800,35 @@ export default function PriorAuthorizationsPage() {
                         setFormData({ ...formData, patientId: v })
                       }
                     />
-                    <FormField
+                    <SearchFormField
                       label="Patient Name"
                       value={formData.patientName}
                       onChange={(v) =>
                         setFormData({ ...formData, patientName: v })
                       }
+                      searchUrl={(q) => `/api/patients?search=${encodeURIComponent(q)}`}
+                      mapResults={(data) => {
+                        const list = Array.isArray(data) ? data : data.content || [];
+                        return list.map((p: any) => ({ label: `${p.firstName} ${p.lastName}`, value: p }));
+                      }}
+                      onSelect={(p) =>
+                        setFormData({ ...formData, patientName: `${p.firstName} ${p.lastName}`, patientId: p.id || p.patientId || "" })
+                      }
                     />
                   </FormRow>
-                  <FormField
+                  <SearchFormField
                     label="Provider Name"
                     value={formData.providerName}
                     onChange={(v) =>
                       setFormData({ ...formData, providerName: v })
+                    }
+                    searchUrl={(q) => `/api/practitioners?search=${encodeURIComponent(q)}`}
+                    mapResults={(data) => {
+                      const list = Array.isArray(data) ? data : data.content || [];
+                      return list.map((p: any) => ({ label: p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim(), value: p }));
+                    }}
+                    onSelect={(p) =>
+                      setFormData({ ...formData, providerName: p.name || `${p.firstName || ""} ${p.lastName || ""}`.trim() })
                     }
                   />
                 </FormSection>
@@ -823,11 +839,19 @@ export default function PriorAuthorizationsPage() {
                   title="Insurance Information"
                 >
                   <FormRow>
-                    <FormField
+                    <SearchFormField
                       label="Insurance Name"
                       value={formData.insuranceName}
                       onChange={(v) =>
                         setFormData({ ...formData, insuranceName: v })
+                      }
+                      searchUrl={(q) => `/api/insurance-companies?search=${encodeURIComponent(q)}`}
+                      mapResults={(data) => {
+                        const list = Array.isArray(data) ? data : data.content || [];
+                        return list.map((c: any) => ({ label: c.name || c.companyName || "", value: c }));
+                      }}
+                      onSelect={(c) =>
+                        setFormData({ ...formData, insuranceName: c.name || c.companyName || "", insuranceId: c.id || "" })
                       }
                     />
                     <FormField
@@ -853,11 +877,19 @@ export default function PriorAuthorizationsPage() {
                   title="Procedure & Diagnosis"
                 >
                   <FormRow>
-                    <FormField
+                    <SearchFormField
                       label="Procedure Code"
                       value={formData.procedureCode}
                       onChange={(v) =>
                         setFormData({ ...formData, procedureCode: v })
+                      }
+                      searchUrl={(q) => `/api/global_codes/search?codeType=CPT4&q=${encodeURIComponent(q)}`}
+                      mapResults={(data) => {
+                        const list = Array.isArray(data) ? data : data.content || [];
+                        return list.map((c: any) => ({ label: `${c.code} - ${c.description}`, value: c }));
+                      }}
+                      onSelect={(c) =>
+                        setFormData({ ...formData, procedureCode: c.code, procedureDescription: c.description || "" })
                       }
                     />
                     <FormField
@@ -872,11 +904,19 @@ export default function PriorAuthorizationsPage() {
                     />
                   </FormRow>
                   <FormRow>
-                    <FormField
+                    <SearchFormField
                       label="Diagnosis Code"
                       value={formData.diagnosisCode}
                       onChange={(v) =>
                         setFormData({ ...formData, diagnosisCode: v })
+                      }
+                      searchUrl={(q) => `/api/global_codes/search?codeType=ICD10&q=${encodeURIComponent(q)}`}
+                      mapResults={(data) => {
+                        const list = Array.isArray(data) ? data : data.content || [];
+                        return list.map((c: any) => ({ label: `${c.code} - ${c.description}`, value: c }));
+                      }}
+                      onSelect={(c) =>
+                        setFormData({ ...formData, diagnosisCode: c.code, diagnosisDescription: c.description || "" })
                       }
                     />
                     <FormField
@@ -1288,6 +1328,79 @@ function FormField({
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
+    </div>
+  );
+}
+
+function SearchFormField({
+  label,
+  value,
+  onChange,
+  searchUrl,
+  mapResults,
+  onSelect,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  searchUrl: (query: string) => string;
+  mapResults: (data: any) => { label: string; value: any }[];
+  onSelect: (item: any) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<{ label: string; value: any }[]>([]);
+  const [open, setOpen] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const doSearch = (query: string) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (query.length < 2) { setSuggestions([]); setOpen(false); return; }
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(`${getEnv().API_BASE}${searchUrl(query)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = mapResults(data);
+        setSuggestions(items);
+        setOpen(items.length > 0);
+      } catch { setSuggestions([]); }
+    }, 300);
+  };
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+        {label}
+      </label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => { onChange(e.target.value); doSearch(e.target.value); }}
+        onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
+        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      {open && (
+        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+          {suggestions.map((item, i) => (
+            <button
+              key={i}
+              type="button"
+              className="w-full text-left px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-gray-700"
+              onClick={() => { onSelect(item.value); setOpen(false); setSuggestions([]); }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
