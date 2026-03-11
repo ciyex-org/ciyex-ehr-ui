@@ -485,10 +485,10 @@ function downloadCSV(report: ReportDefinition, data: Record<string, unknown>[]) 
   const rows = data.map(row => report.columns.map(c => {
     const v = row[c.key];
     if (v == null || v === "") return '""';
-    // Format date columns as explicit text for Excel to prevent ###### display
+    // Format date columns as readable text for Excel
     if (c.format === "date") {
       const formatted = formatDateForExcel(String(v));
-      return `="${formatted.replace(/"/g, '""')}"`;
+      return `"${formatted.replace(/"/g, '""')}"`;
     }
     const s = String(v);
     // Always quote fields to prevent Excel display issues (######)

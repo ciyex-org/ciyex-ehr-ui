@@ -739,7 +739,9 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                 className="w-full text-sm bg-white border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">-- Choose a claim --</option>
-                                {claims.map((c) => (
+                                {claims
+                                    .filter((c, i, arr) => c.id && c.claimNumber && arr.findIndex(x => x.id === c.id) === i)
+                                    .map((c) => (
                                     <option key={c.id} value={c.id}>
                                         {c.claimNumber} &bull; {formatDate(c.dateOfService)} &bull; {c.payerName || "No payer"} &bull; {formatCurrency(c.totalCharges)}
                                     </option>

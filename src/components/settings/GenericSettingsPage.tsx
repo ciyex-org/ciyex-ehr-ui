@@ -100,9 +100,11 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
             const f = section.fields[i];
             // Referral provider settings: ensure organization field is an editable lookup
             if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName")) {
-                const patched = { ...f, type: "lookup", readOnly: false, disabled: false, lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
-                delete (patched as any).readonly;
-                section.fields[i] = patched;
+                // Preserve existing lookupConfig if present (backend may have correct endpoint)
+                const existingLookup = f.lookupConfig || { endpoint: "/api/fhir-resource/referral-practices", displayField: "name", valueField: "name", searchable: true };
+                const patchedField = { ...f, type: "lookup" as const, readOnly: false, disabled: false, lookupConfig: existingLookup };
+                delete (patchedField as any).readonly;
+                section.fields[i] = patchedField;
             }
         }
         // Referral providers: add organization field if it doesn't exist
@@ -114,7 +116,7 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                     label: "Organization / Affiliation",
                     type: "lookup",
                     required: false,
-                    lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true },
+                    lookupConfig: { endpoint: "/api/fhir-resource/referral-practices", displayField: "name", valueField: "name", searchable: true },
                 } as any);
             }
         }
@@ -177,20 +179,23 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                 const json = await res.json();
                 if (cancelled) return;
 
-                const fc = typeof json.fieldConfig === "string"
-                    ? JSON.parse(json.fieldConfig)
-                    : json.fieldConfig;
+                // Handle both wrapped {data: {...}} and unwrapped response formats
+                const config = json.data || json;
 
-                const fhirRes = Array.isArray(json.fhirResources)
-                    ? json.fhirResources
-                    : typeof json.fhirResources === "string"
-                        ? JSON.parse(json.fhirResources)
+                const fc = typeof config.fieldConfig === "string"
+                    ? JSON.parse(config.fieldConfig)
+                    : config.fieldConfig;
+
+                const fhirRes = Array.isArray(config.fhirResources)
+                    ? config.fhirResources
+                    : typeof config.fhirResources === "string"
+                        ? JSON.parse(config.fhirResources)
                         : [];
 
                 const cfg: PageConfig = {
-                    tabKey: json.tabKey || pageKey,
-                    label: json.label || pageKey.replace(/-/g, " ").replace(/^./, (s: string) => s.toUpperCase()),
-                    icon: json.icon || "FileText",
+                    tabKey: config.tabKey || pageKey,
+                    label: config.label || pageKey.replace(/-/g, " ").replace(/^./, (s: string) => s.toUpperCase()),
+                    icon: config.icon || "FileText",
                     fhirResources: fhirRes,
                     fieldConfig: fc || {},
                 };

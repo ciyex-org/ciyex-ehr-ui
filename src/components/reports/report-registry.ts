@@ -338,10 +338,12 @@ const labResults: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    // Try search endpoint first, then fallback to paginated list
+    // Try search endpoint first, then fallback to paginated list, then FHIR
     let all = await safeFetch(`${apiUrl}/api/lab-order/search?q=`, fetchFn);
     if (all.length === 0) all = await safeFetch(`${apiUrl}/api/lab-orders?page=0&size=1000`, fetchFn);
     if (all.length === 0) all = await safeFetch(`${apiUrl}/api/lab-order?page=0&size=1000`, fetchFn);
+    if (all.length === 0) all = await safeFetch(`${apiUrl}/api/fhir-resource/lab-orders?page=0&size=1000`, fetchFn);
+    if (all.length === 0) all = await safeFetch(`${apiUrl}/api/fhir-resource/service-request?page=0&size=1000`, fetchFn);
     const byDate = filterByDateRange(all, "orderDate", from, to);
     const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, o => (o.status || "Unknown").toString());
@@ -614,6 +616,10 @@ const revenueOverview: ReportDefinition = {
     // Fallback encounters endpoint
     if (allEncounters.length === 0) {
       allEncounters = await safeFetch(`${apiUrl}/api/fhir-resource/encounters?page=0&size=500`, fetchFn);
+    }
+    // paymentDate is often null — normalize to createdAt fallback before filtering
+    for (const p of allPayments) {
+      if (!p.paymentDate && p.createdAt) p.paymentDate = p.createdAt;
     }
     const payments = filterByDateRange(allPayments, "paymentDate", from, to);
     const encounters = filterByDateRange(allEncounters, "encounterDate", from, to);
@@ -1073,14 +1079,29 @@ const appointmentVolume: ReportDefinition = {
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
     const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
-    const all = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
+    let all = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
+    // Fallback to FHIR resource endpoint if legacy endpoint returned empty
+    if (all.length === 0) {
+      all = await safeFetch(`${apiUrl}/api/fhir-resource/appointments?page=0&size=1000`, fetchFn);
+    }
+    // Normalize start/date fields for consistent access
+    for (const a of all) {
+      if (!a.appointmentStartDate && a.start) {
+        const iso = String(a.start);
+        a.appointmentStartDate = iso.includes("T") ? iso.split("T")[0] : iso;
+        if (iso.includes("T")) a.appointmentStartTime = iso.split("T")[1]?.replace(/Z$/, "")?.substring(0, 5) || "";
+      }
+      if (!a.providerName && a.providerDisplay) a.providerName = a.providerDisplay;
+      if (!a.patientName && a.patientDisplay) a.patientName = a.patientDisplay;
+      if (!a.visitType && a.appointmentType) a.visitType = a.appointmentType;
+    }
     const records = filterByProvider(all, filters.provider as string | undefined);
     const statusCounts = countBy(records, a => (a.status || "Unknown").toString());
     const typeCounts = countBy(records, a => (a.visitType || a.type || "Unknown").toString());
     const weekday = groupByWeekday(records, "appointmentStartDate");
     const daily: Record<string, number> = {};
-    for (const a of records) { const d = normDate(a.appointmentStartDate || "").slice(0, 10); if (d) daily[d] = (daily[d] || 0) + 1; }
-    const completed = (statusCounts["completed"] || statusCounts["Completed"] || statusCounts["checked_out"] || 0);
+    for (const a of records) { const d = normDate(a.appointmentStartDate || a.start || "").slice(0, 10); if (d) daily[d] = (daily[d] || 0) + 1; }
+    const completed = (statusCounts["completed"] || statusCounts["Completed"] || statusCounts["checked_out"] || statusCounts["fulfilled"] || 0);
     return {
       kpis: [
         { key: "total", label: "Total Scheduled", value: records.length, format: "number", color: "text-blue-600" },
@@ -1094,7 +1115,7 @@ const appointmentVolume: ReportDefinition = {
         byWeekday: Object.entries(weekday).map(([d, c]) => ({ name: d, count: c })),
         byType: toChartData(typeCounts, "name", "count"),
       },
-      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "" })),
+      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || "", status: a.status || "" })),
       totalRecords: records.length,
     };
   },
@@ -1130,8 +1151,21 @@ const noShowAnalysis: ReportDefinition = {
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
     const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
-    const records = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
-    const noShows = records.filter(a => (a.status || "").toLowerCase().includes("no") || (a.status || "").toLowerCase().includes("noshow"));
+    let records = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
+    if (records.length === 0) {
+      records = await safeFetch(`${apiUrl}/api/fhir-resource/appointments?page=0&size=1000`, fetchFn);
+    }
+    // Normalize fields from FHIR format
+    for (const a of records) {
+      if (!a.appointmentStartDate && a.start) {
+        const iso = String(a.start);
+        a.appointmentStartDate = iso.includes("T") ? iso.split("T")[0] : iso;
+      }
+      if (!a.providerName && a.providerDisplay) a.providerName = a.providerDisplay;
+      if (!a.patientName && a.patientDisplay) a.patientName = a.patientDisplay;
+      if (!a.visitType && a.appointmentType) a.visitType = a.appointmentType;
+    }
+    const noShows = records.filter(a => (a.status || "").toLowerCase().includes("no") || (a.status || "").toLowerCase() === "noshow");
     const cancelled = records.filter(a => (a.status || "").toLowerCase().includes("cancel"));
     const combined = [...noShows, ...cancelled];
     const total = records.length || 1;
@@ -1159,7 +1193,7 @@ const noShowAnalysis: ReportDefinition = {
         byProvider: Object.entries(providerCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, ct]) => ({ name, rate: ct })),
         reasons: toChartData(reasonCounts, "name", "count").slice(0, 8),
       },
-      tableData: combined.slice(0, 100).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || ""), patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "", reason: a.cancelReason || a.reason || "" })),
+      tableData: combined.slice(0, 100).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || ""), patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || "", status: a.status || "", reason: a.cancelReason || a.reason || "" })),
       totalRecords: combined.length,
     };
   },
