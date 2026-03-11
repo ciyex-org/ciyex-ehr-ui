@@ -222,7 +222,7 @@ const patientDemographics: ReportDefinition = {
           dob,
           ageGroup: ageGroup(dob),
           status: p.status || "Active",
-          insurance: patInsurance[String(p.id)] || patInsurance[String(p.fhirId)] || p.insurance || p.insurancePlan || p.insuranceCompany || p.payerName || p.insurerName || p.coverageName || "",
+          insurance: patInsurance[String(p.id)] || p.insurance || p.insurancePlan || "",
         };
       }),
       totalRecords: records.length,
@@ -255,16 +255,11 @@ const encounterSummary: ReportDefinition = {
     { key: "provider", label: "Provider", sortable: true },
     { key: "type", label: "Visit Type", sortable: true },
     { key: "status", label: "Status", format: "status", sortable: true },
-    { key: "insurance", label: "Insurance" },
     { key: "diagnosis", label: "Diagnosis" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const [all, coverages, insuranceCos] = await Promise.all([
-      safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn),
-      safeFetch(`${apiUrl}/api/coverages?page=0&size=5000`, fetchFn),
-      safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
-    ]);
+    const all = await safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=1000`, fetchFn);
     const byDate = filterByDateRange(all, "encounterDate", from, to);
     const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, e => (e.status || "Unsigned").toString());
@@ -272,31 +267,6 @@ const encounterSummary: ReportDefinition = {
     const monthly = groupByMonth(records, "encounterDate");
     const weekday = groupByWeekday(records, "encounterDate");
     const dayCount = new Set(records.map(e => (e.encounterDate || "").slice(0, 10)).filter(Boolean)).size;
-
-    // Build patient→insurance map from coverages
-    const insurerMap: Record<string, string> = {};
-    for (const co of insuranceCos) {
-      insurerMap[String(co.id)] = co.name || co.companyName || "";
-      if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
-    }
-    const patInsurance: Record<string, string> = {};
-    for (const c of coverages) {
-      let pid = String(c.patientId || c.beneficiaryId || "");
-      if (!pid && c.beneficiary) {
-        const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
-        if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
-      }
-      if (!pid) continue;
-      let fhirPayorName = "";
-      if (Array.isArray(c.payor) && c.payor.length > 0) {
-        const p = c.payor[0];
-        fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
-      }
-      const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
-        insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
-        c.subscriberPlan || c.insuranceType || "";
-      if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
-    }
 
     return {
       kpis: [
@@ -317,7 +287,6 @@ const encounterSummary: ReportDefinition = {
         provider: e.encounterProvider || e.providerDisplay || e.provider || e.practitionerName || "",
         type: e.type || e.visitCategory || e.serviceType || e.encounterType || "",
         status: e.status || "Unsigned",
-        insurance: patInsurance[String(e.patientId)] || patInsurance[String(e.subjectId)] || e.insuranceName || e.payerName || "",
         diagnosis: e.diagnosis || e.primaryDiagnosis || e.reasonCode || e.reason || e.chiefComplaint || e.reasonForVisit || e.assessment || e.visitCategory || "",
       })),
       totalRecords: records.length,
@@ -357,38 +326,11 @@ const labResults: ReportDefinition = {
     let all = await safeFetch(`${apiUrl}/api/lab-order/search?q=`, fetchFn);
     if (all.length === 0) all = await safeFetch(`${apiUrl}/api/lab-orders?page=0&size=1000`, fetchFn);
     if (all.length === 0) all = await safeFetch(`${apiUrl}/api/lab-order?page=0&size=1000`, fetchFn);
-    // Try to load lab test catalog for ID-to-name resolution
-    const labTests = await safeFetch(`${apiUrl}/api/lab-tests?page=0&size=500`, fetchFn);
-    const labTestMap: Record<string, string> = {};
-    for (const t of labTests) {
-      if (t.id && (t.name || t.testName)) labTestMap[String(t.id)] = t.name || t.testName;
-    }
     const byDate = filterByDateRange(all, "orderDate", from, to);
     const records = filterByProvider(byDate, filters.provider as string | undefined);
     const statusCounts = countBy(records, o => (o.status || "Unknown").toString());
     const priorityCounts = countBy(records, o => (o.priority || "Routine").toString());
     const monthly = groupByMonth(records, "orderDate");
-
-    // Resolve lab test name, handling nested objects and ID lookups
-    const resolveTestName = (o: any): string => {
-      if (o.testName && typeof o.testName === "string") return o.testName;
-      if (o.labTestName && typeof o.labTestName === "string") return o.labTestName;
-      if (o.test && typeof o.test === "string") return o.test;
-      if (o.orderName && typeof o.orderName === "string") return o.orderName;
-      if (o.testDescription && typeof o.testDescription === "string") return o.testDescription;
-      // Nested labTest object with name
-      if (o.labTest && typeof o.labTest === "object" && (o.labTest.name || o.labTest.testName)) return o.labTest.name || o.labTest.testName;
-      // labTest or labTestId as numeric ID - resolve from catalog
-      const testId = (typeof o.labTest === "number" || typeof o.labTest === "string") ? String(o.labTest) : String(o.labTestId || "");
-      if (testId && labTestMap[testId]) return labTestMap[testId];
-      // Other fallbacks (prefer descriptive names over codes)
-      if (o.serviceDescription) return String(o.serviceDescription);
-      if (o.description) return String(o.description);
-      if (o.name) return String(o.name);
-      if (o.cptDescription) return String(o.cptDescription);
-      return o.code || o.loincCode || "";
-    };
-
     return {
       kpis: [
         { key: "total", label: "Total Orders", value: records.length, format: "number", color: "text-blue-600" },
@@ -403,7 +345,7 @@ const labResults: ReportDefinition = {
       },
       tableData: records.map(o => ({
         id: o.id, orderDate: normDate(o.orderDate || o.orderedDate || o.date || o.createdAt || ""), patient: o.patientName || o.patientId || "",
-        testName: resolveTestName(o), status: o.status || "",
+        testName: o.testName || o.labTestName || o.name || o.orderName || o.code || o.loincCode || o.description || o.test || "", status: o.status || "",
         priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || o.provider || "",
       })),
       totalRecords: records.length,
@@ -641,114 +583,45 @@ const revenueOverview: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    let allPayments = await safeFetch(`${apiUrl}/api/payments/transactions?page=0&size=1000`, fetchFn);
-    if (allPayments.length === 0) allPayments = await safeFetch(`${apiUrl}/api/payments?page=0&size=1000`, fetchFn);
-    if (allPayments.length === 0) allPayments = await safeFetch(`${apiUrl}/api/billing/payments?page=0&size=1000`, fetchFn);
-    if (allPayments.length === 0) allPayments = await safeFetch(`${apiUrl}/api/billing?page=0&size=1000`, fetchFn);
-    const [allEncounters, insuranceCos, coverages] = await Promise.all([
+    const [allPayments, allEncounters, insuranceCos] = await Promise.all([
+      safeFetch(`${apiUrl}/api/payments/transactions?page=0&size=1000`, fetchFn),
       safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=500`, fetchFn),
       safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
-      safeFetch(`${apiUrl}/api/coverages?page=0&size=5000`, fetchFn),
     ]);
     const payments = filterByDateRange(allPayments, "paymentDate", from, to);
     const encounters = filterByDateRange(allEncounters, "encounterDate", from, to);
     // Build encounter provider map for enriching payment rows
     const encounterProviderMap: Record<string, string> = {};
-    const encounterPatientMap: Record<string, string> = {};
     for (const e of encounters) {
-      if (e.patientId) {
-        encounterProviderMap[String(e.patientId)] = e.encounterProvider || e.providerDisplay || e.provider || "";
-        encounterPatientMap[String(e.patientId)] = e.patientName || e.patientDisplay || e.subjectDisplay || "";
-      }
+      if (e.patientId) encounterProviderMap[String(e.patientId)] = e.encounterProvider || e.providerDisplay || e.provider || "";
     }
-    // Build patient→insurance map from coverages
-    const insurerMap: Record<string, string> = {};
-    for (const co of insuranceCos) {
-      insurerMap[String(co.id)] = co.name || co.companyName || "";
-      if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
-    }
-    const patInsurance: Record<string, string> = {};
-    for (const c of coverages) {
-      let pid = String(c.patientId || c.beneficiaryId || "");
-      if (!pid && c.beneficiary) {
-        const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
-        if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
-      }
-      if (!pid) continue;
-      let fhirPayorName = "";
-      if (Array.isArray(c.payor) && c.payor.length > 0) {
-        const p = c.payor[0];
-        fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
-      }
-      const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
-        insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
-        c.subscriberPlan || c.insuranceType || "";
-      if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
-    }
-
-    // If no payments exist, generate revenue data from encounters (estimated charges)
-    const useEncounterFallback = payments.length === 0 && encounters.length > 0;
-    const avgChargePerVisit = 180; // average charge estimate per encounter
-
-    let total: number;
-    let charges: number;
+    const total = payments.reduce((s, p) => s + (p.amount || 0), 0);
+    const charges = total * 1.4;
     const monthly: Record<string, { charges: number; collections: number }> = {};
-    let tableRows: { id: any; date: string; patient: string; provider: string; payer: string; charges: number; payments: number; adjustments: number; balance: number }[];
-
-    if (useEncounterFallback) {
-      total = encounters.length * avgChargePerVisit * 0.72; // estimated collection rate
-      charges = encounters.length * avgChargePerVisit;
-      for (const e of encounters) {
-        const nd = normDate(e.encounterDate || e.startDate || "");
-        const m = nd.slice(0, 7);
-        if (!m) continue;
-        if (!monthly[m]) monthly[m] = { charges: 0, collections: 0 };
-        monthly[m].charges += avgChargePerVisit;
-        monthly[m].collections += avgChargePerVisit * 0.72;
-      }
-      tableRows = encounters.slice(0, 200).map(e => {
-        const pid = String(e.patientId || "");
-        const payerName = patInsurance[pid] || e.payerName || e.insurerName || "Self-Pay";
-        return {
-          id: e.id,
-          date: normDate(e.encounterDate || e.startDate || ""),
-          patient: e.patientName || e.patientDisplay || e.subjectDisplay || pid,
-          provider: e.encounterProvider || e.providerDisplay || e.provider || "",
-          payer: payerName,
-          charges: avgChargePerVisit,
-          payments: Math.round(avgChargePerVisit * 0.72),
-          adjustments: Math.round(avgChargePerVisit * 0.1),
-          balance: Math.round(avgChargePerVisit * 0.18),
-        };
-      });
-    } else {
-      total = payments.reduce((s, p) => s + (p.amount || 0), 0);
-      charges = total * 1.4;
-      for (const p of payments) {
-        const nd = normDate(p.paymentDate || p.createdAt || "");
-        const m = nd.slice(0, 7);
-        if (!m) continue;
-        if (!monthly[m]) monthly[m] = { charges: 0, collections: 0 };
-        monthly[m].collections += p.amount || 0;
-        monthly[m].charges += (p.amount || 0) * 1.4;
-      }
-      tableRows = payments.slice(0, 200).map(p => {
-        const pid = String(p.patientId || "");
-        const payerName = p.payerName || p.insurerName || p.insuranceCompany || patInsurance[pid] || "Self-Pay";
-        const provName = p.providerName || p.provider || p.encounterProvider || encounterProviderMap[pid] || "";
-        return {
-          id: p.id,
-          date: normDate(p.paymentDate || p.createdAt || ""),
-          patient: p.patientName || encounterPatientMap[pid] || pid,
-          provider: provName,
-          payer: payerName,
-          charges: Math.round((p.amount || 0) * 1.4),
-          payments: p.amount || 0,
-          adjustments: Math.round((p.amount || 0) * 0.1),
-          balance: Math.round((p.amount || 0) * 0.3),
-        };
-      });
+    for (const p of payments) {
+      const nd = normDate(p.paymentDate || p.createdAt || "");
+      const m = nd.slice(0, 7);
+      if (!m) continue;
+      if (!monthly[m]) monthly[m] = { charges: 0, collections: 0 };
+      monthly[m].collections += p.amount || 0;
+      monthly[m].charges += (p.amount || 0) * 1.4;
     }
+    // Build table data with payer and provider columns
+    const tableRows = payments.slice(0, 200).map(p => {
+      const payerName = p.payerName || p.insurerName || p.insuranceCompany || "Self-Pay";
+      const provName = p.providerName || p.provider || p.encounterProvider || encounterProviderMap[String(p.patientId || "")] || "";
+      return {
+        id: p.id,
+        date: normDate(p.paymentDate || p.createdAt || ""),
+        patient: p.patientName || p.patientId || "",
+        provider: provName,
+        payer: payerName,
+        charges: Math.round((p.amount || 0) * 1.4),
+        payments: p.amount || 0,
+        adjustments: Math.round((p.amount || 0) * 0.1),
+        balance: Math.round((p.amount || 0) * 0.3),
+      };
+    });
     // Build payer chart from table rows
     const payerRevenue: Record<string, number> = {};
     for (const row of tableRows) {
@@ -779,7 +652,7 @@ const revenueOverview: ReportDefinition = {
         byProvider: provChart.length > 0 ? provChart : [{ name: "All Providers", amount: Math.round(total) }],
       },
       tableData: tableRows,
-      totalRecords: useEncounterFallback ? encounters.length : payments.length,
+      totalRecords: payments.length,
     };
   },
 };
@@ -1169,41 +1042,12 @@ const appointmentVolume: ReportDefinition = {
     { key: "provider", label: "Provider", sortable: true },
     { key: "type", label: "Visit Type" },
     { key: "status", label: "Status", format: "status", sortable: true },
-    { key: "insurance", label: "Insurance" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
     const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
-    const [all, coverages, insuranceCos] = await Promise.all([
-      safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn),
-      safeFetch(`${apiUrl}/api/coverages?page=0&size=5000`, fetchFn),
-      safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
-    ]);
+    const all = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
     const records = filterByProvider(all, filters.provider as string | undefined);
-    // Build patient→insurance map
-    const insurerMap: Record<string, string> = {};
-    for (const co of insuranceCos) {
-      insurerMap[String(co.id)] = co.name || co.companyName || "";
-      if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
-    }
-    const patInsurance: Record<string, string> = {};
-    for (const c of coverages) {
-      let pid = String(c.patientId || c.beneficiaryId || "");
-      if (!pid && c.beneficiary) {
-        const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
-        if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
-      }
-      if (!pid) continue;
-      let fhirPayorName = "";
-      if (Array.isArray(c.payor) && c.payor.length > 0) {
-        const p = c.payor[0];
-        fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
-      }
-      const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
-        insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
-        c.subscriberPlan || c.insuranceType || "";
-      if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
-    }
     const statusCounts = countBy(records, a => (a.status || "Unknown").toString());
     const typeCounts = countBy(records, a => (a.visitType || a.type || "Unknown").toString());
     const weekday = groupByWeekday(records, "appointmentStartDate");
@@ -1223,7 +1067,7 @@ const appointmentVolume: ReportDefinition = {
         byWeekday: Object.entries(weekday).map(([d, c]) => ({ name: d, count: c })),
         byType: toChartData(typeCounts, "name", "count"),
       },
-      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "", insurance: patInsurance[String(a.patientId)] || a.insuranceName || a.payerName || "" })),
+      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientId || "", provider: a.providerName || a.provider || "", type: a.visitType || a.type || "", status: a.status || "" })),
       totalRecords: records.length,
     };
   },
@@ -1235,7 +1079,7 @@ const noShowAnalysis: ReportDefinition = {
   description: "No-show rates by provider, day, time, financial impact",
   category: "operational",
   icon: "UserX",
-  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, LOCATION_FILTER, { key: "visitType", label: "Visit Type", type: "select", options: [{ value: "", label: "All Types" }], apiSource: "/api/appointments/visit-types", apiMapping: { valueField: "name", labelField: "name" } }],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER],
   kpis: [
     { key: "noShowRate", label: "No-Show Rate", format: "percent", color: "text-red-600" },
     { key: "cancelRate", label: "Cancel Rate", format: "percent", color: "text-amber-600" },

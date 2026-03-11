@@ -398,7 +398,7 @@ export default function CodesPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by code or description..."
+            placeholder="Search..."
             className="border rounded px-3 py-2 w-80 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
           />
           <button
@@ -649,7 +649,7 @@ function CodeModal({
             <input
               value={form.modifier || ""}
               onChange={(e) => setForm({ ...form, modifier: e.target.value })}
-              placeholder="e.g. 26, TC, LT"
+              placeholder="Modifier"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -660,7 +660,7 @@ function CodeModal({
             <input
               value={form.category || ""}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              placeholder="e.g. Evaluation and Management"
+              placeholder="Category"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -673,7 +673,7 @@ function CodeModal({
             <input
               value={form.description || ""}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="e.g. Essential (primary) hypertension"
+              placeholder="Full description"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -684,7 +684,7 @@ function CodeModal({
             <input
               value={form.shortDescription || ""}
               onChange={(e) => setForm({ ...form, shortDescription: e.target.value })}
-              placeholder="e.g. Essential Hypertension"
+              placeholder="Short description"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -697,7 +697,7 @@ function CodeModal({
             <input
               value={form.relateTo || ""}
               onChange={(e) => setForm({ ...form, relateTo: e.target.value })}
-              placeholder="e.g. 99213, I10"
+              placeholder="Relate To"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
@@ -714,7 +714,7 @@ function CodeModal({
                   feeStandard: e.target.value ? parseFloat(e.target.value) : undefined,
                 })
               }
-              placeholder="e.g. 150.00"
+              placeholder="Fee"
               className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
             />
           </div>

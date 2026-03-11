@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState } from "react";
 import {
   X,
   Plus,
@@ -9,8 +9,6 @@ import {
   Target,
   Activity,
 } from "lucide-react";
-import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { getEnv } from "@/utils/env";
 import {
   CarePlan,
   Goal,
@@ -49,38 +47,6 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
 
   const [form, setForm] = useState<FormData>(initial);
   const [saving, setSaving] = useState(false);
-  const [patientQuery, setPatientQuery] = useState(initial.patientName || "");
-  const [patientResults, setPatientResults] = useState<Array<{ id: string; firstName: string; lastName: string }>>([]);
-  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
-  const patientDropdownRef = useRef<HTMLDivElement>(null);
-
-  const searchPatients = useCallback(async (q: string) => {
-    if (q.length < 2) { setPatientResults([]); return; }
-    try {
-      const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients?search=${encodeURIComponent(q)}`);
-      if (res.ok) {
-        const json = await res.json();
-        const list = json.data?.content || json.data || json.content || [];
-        setPatientResults(Array.isArray(list) ? list : []);
-      }
-    } catch { /* silent */ }
-  }, []);
-
-  useEffect(() => {
-    if (!patientQuery.trim() || patientQuery === form.patientName) return;
-    const t = setTimeout(() => searchPatients(patientQuery), 300);
-    return () => clearTimeout(t);
-  }, [patientQuery, searchPatients, form.patientName]);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (patientDropdownRef.current && !patientDropdownRef.current.contains(e.target as Node)) {
-        setShowPatientDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   function setField<K extends keyof FormData>(key: K, val: FormData[K]) {
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -188,53 +154,24 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="relative" ref={patientDropdownRef}>
+              <div>
                 <label className={labelClass}>Patient Name</label>
                 <input
                   type="text"
-                  value={patientQuery}
-                  onChange={(e) => {
-                    setPatientQuery(e.target.value);
-                    setShowPatientDropdown(true);
-                    if (!e.target.value.trim()) {
-                      setField("patientName", "");
-                      setField("patientId", "");
-                    }
-                  }}
-                  onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
+                  value={form.patientName}
+                  onChange={(e) => setField("patientName", e.target.value)}
                   className={inputClass}
-                  placeholder="Search patients..."
+                  placeholder="Patient name"
                 />
-                {showPatientDropdown && patientResults.length > 0 && (
-                  <div className="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {patientResults.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          const name = `${p.firstName} ${p.lastName}`;
-                          setPatientQuery(name);
-                          setField("patientName", name);
-                          setField("patientId", p.id);
-                          setShowPatientDropdown(false);
-                          setPatientResults([]);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 transition"
-                      >
-                        {p.firstName} {p.lastName}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
               <div>
                 <label className={labelClass}>Patient ID</label>
                 <input
                   type="text"
                   value={form.patientId}
-                  readOnly
-                  className={`${inputClass} bg-gray-50 dark:bg-gray-800/50`}
-                  placeholder="Auto-filled on selection"
+                  onChange={(e) => setField("patientId", e.target.value)}
+                  className={inputClass}
+                  placeholder="Patient ID"
                 />
               </div>
             </div>

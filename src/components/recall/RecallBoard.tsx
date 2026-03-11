@@ -166,7 +166,6 @@ export default function RecallPage() {
   // Create/Edit modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editRecall, setEditRecall] = useState<PatientRecall | null>(null);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     patientId: "", patientName: "", patientPhone: "", patientEmail: "",
     recallTypeId: "", providerId: "", providerName: "", dueDate: "",
@@ -295,7 +294,6 @@ export default function RecallPage() {
       preferredContact: "PHONE", priority: "NORMAL", notes: "",
     });
     setPatientQuery(""); setPatientResults([]); setShowPatientDropdown(false);
-    setFormErrors({});
     setShowCreateModal(true);
   };
 
@@ -310,7 +308,7 @@ export default function RecallPage() {
       dueDate: r.dueDate ?? "", preferredContact: r.preferredContact ?? "PHONE",
       priority: r.priority ?? "NORMAL", notes: r.notes ?? "",
     });
-    setPatientQuery(""); setFormErrors({}); setShowCreateModal(true);
+    setPatientQuery(""); setShowCreateModal(true);
   };
 
   const choosePatient = (p: Patient) => {
@@ -323,13 +321,8 @@ export default function RecallPage() {
   };
 
   const saveRecall = async () => {
-    const errs: Record<string, string> = {};
-    if (!formData.patientId) errs.patientId = "Please select a patient.";
-    if (!formData.dueDate) errs.dueDate = "Due date is required.";
-    if (formData.patientPhone && !/^[+]?[\d\s().\-]{7,20}$/.test(formData.patientPhone)) errs.patientPhone = "Please enter a valid phone number.";
-    if (formData.patientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.patientEmail)) errs.patientEmail = "Please enter a valid email address.";
-    setFormErrors(errs);
-    if (Object.keys(errs).length > 0) return;
+    if (!formData.patientId) { setAlert({ variant: "error", title: "Error", message: "Please select a patient." }); return; }
+    if (!formData.dueDate) { setAlert({ variant: "error", title: "Error", message: "Due date is required." }); return; }
 
     const payload = {
       patientId: Number(formData.patientId),
@@ -694,9 +687,8 @@ export default function RecallPage() {
                   <div>
                     <Label>Due Date <span className="text-red-500">*</span></Label>
                     <input type="date" value={formData.dueDate}
-                      onChange={e => { setFormData(prev => ({ ...prev, dueDate: e.target.value })); setFormErrors(prev => { const n = { ...prev }; delete n.dueDate; return n; }); }}
-                      className={`mt-1 w-full h-9 rounded-lg border ${formErrors.dueDate ? "border-red-400 ring-1 ring-red-300" : "border-slate-300 dark:border-slate-600"} bg-white dark:bg-slate-800 px-3 text-sm`} />
-                    {formErrors.dueDate && <p className="text-xs text-red-500 mt-1">{formErrors.dueDate}</p>}
+                      onChange={e => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
                   </div>
                 </div>
 
@@ -733,16 +725,14 @@ export default function RecallPage() {
                   <div>
                     <Label>Phone</Label>
                     <input type="text" value={formData.patientPhone}
-                      onChange={e => { setFormData(prev => ({ ...prev, patientPhone: e.target.value })); setFormErrors(prev => { const n = { ...prev }; delete n.patientPhone; return n; }); }}
-                      className={`mt-1 w-full h-9 rounded-lg border ${formErrors.patientPhone ? "border-red-400 ring-1 ring-red-300" : "border-slate-300 dark:border-slate-600"} bg-white dark:bg-slate-800 px-3 text-sm`} />
-                    {formErrors.patientPhone && <p className="text-xs text-red-500 mt-1">{formErrors.patientPhone}</p>}
+                      onChange={e => setFormData(prev => ({ ...prev, patientPhone: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
                   </div>
                   <div>
                     <Label>Email</Label>
                     <input type="email" value={formData.patientEmail}
-                      onChange={e => { setFormData(prev => ({ ...prev, patientEmail: e.target.value })); setFormErrors(prev => { const n = { ...prev }; delete n.patientEmail; return n; }); }}
-                      className={`mt-1 w-full h-9 rounded-lg border ${formErrors.patientEmail ? "border-red-400 ring-1 ring-red-300" : "border-slate-300 dark:border-slate-600"} bg-white dark:bg-slate-800 px-3 text-sm`} />
-                    {formErrors.patientEmail && <p className="text-xs text-red-500 mt-1">{formErrors.patientEmail}</p>}
+                      onChange={e => setFormData(prev => ({ ...prev, patientEmail: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
                   </div>
                 </div>
 

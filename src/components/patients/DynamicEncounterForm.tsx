@@ -318,67 +318,6 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
   const isReadOnly = status === "SIGNED";
   const sections = (fieldConfig.sections || []).filter((s) => s.visible !== false);
 
-  const WEIGHT_KEYS = ["weightKg", "weight", "vitals.weightKg", "vitals.weight"];
-  const HEIGHT_KEYS = ["heightCm", "height", "vitals.heightCm", "vitals.height"];
-  const BMI_KEYS = ["bmi", "vitals.bmi", "bodyMassIndex"];
-
-  const findBmiKey = useCallback(() => {
-    if (!fieldConfig?.sections) return null;
-    for (const s of fieldConfig.sections) {
-      for (const f of s.fields) {
-        if (BMI_KEYS.includes(f.key) || f.key.toLowerCase().includes("bmi")) return f.key;
-      }
-    }
-    // Fallback: store BMI even if no field is configured for it
-    return "bmi";
-  }, [fieldConfig]);
-
-  const handleFieldChange = useCallback((key: string, value: any) => {
-    autoSave.onChange(key, value);
-
-    const keyLower = key.toLowerCase();
-    const isWeight = WEIGHT_KEYS.includes(key) || (keyLower.includes("weight") && !keyLower.includes("birth"));
-    const isHeight = HEIGHT_KEYS.includes(key) || keyLower.includes("height");
-
-    if (isWeight || isHeight) {
-      const bmiKey = findBmiKey();
-      if (!bmiKey) return;
-
-      const currentData = { ...autoSave.formData, [key]: value };
-      let w = 0;
-      let h = 0;
-      for (const wk of WEIGHT_KEYS) {
-        const v = parseFloat(currentData[wk]);
-        if (v > 0) { w = v; break; }
-      }
-      if (w === 0) {
-        for (const k of Object.keys(currentData)) {
-          if (k.toLowerCase().includes("weight") && !k.toLowerCase().includes("birth")) {
-            const v = parseFloat(currentData[k]);
-            if (v > 0) { w = v; break; }
-          }
-        }
-      }
-      for (const hk of HEIGHT_KEYS) {
-        const v = parseFloat(currentData[hk]);
-        if (v > 0) { h = v; break; }
-      }
-      if (h === 0) {
-        for (const k of Object.keys(currentData)) {
-          if (k.toLowerCase().includes("height")) {
-            const v = parseFloat(currentData[k]);
-            if (v > 0) { h = v; break; }
-          }
-        }
-      }
-      if (w > 0 && h > 0) {
-        const heightM = h / 100;
-        const bmiVal = (w / (heightM * heightM)).toFixed(1);
-        autoSave.onChange(bmiKey, bmiVal);
-      }
-    }
-  }, [autoSave, findBmiKey]);
-
   const handleNavClick = (e: React.MouseEvent, sectionKey: string) => {
     e.preventDefault();
     const el = document.getElementById(`section-${sectionKey}`);
@@ -517,7 +456,7 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
                 <DynamicFormRenderer
                   fieldConfig={{ sections: [section], features: fieldConfig.features }}
                   formData={autoSave.formData}
-                  onChange={handleFieldChange}
+                  onChange={autoSave.onChange}
                   readOnly={isReadOnly}
                 />
               </section>

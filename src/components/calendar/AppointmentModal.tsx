@@ -277,7 +277,7 @@ const AppointmentModal: React.FC = () => {
                         const iso = d.toISOString().slice(0, 10);
                         setStartDate(iso);
                         setStartDateInput(iso);
-                        setEndDate(iso); setEndDateInput(iso); fpEndRef.current?.setDate(d, false);
+                        if (!endDate) { setEndDate(iso); setEndDateInput(iso); fpEndRef.current?.setDate(d, false); }
                     },
                 });
             }
@@ -850,7 +850,7 @@ const AppointmentModal: React.FC = () => {
                             onChange={(e) => {
                                 const val = e.target.value;
                                 setStartTime(val);
-                                if (val) setEndTime(addMinutes(val, 30));
+                                if (val) setEndTime(addMinutes(val, 15));
                             }}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         />

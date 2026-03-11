@@ -79,12 +79,12 @@ export default function CDSPage() {
       if (severityFilter !== "all") url += `&severity=${severityFilter}`;
       const res = await fetchWithAuth(url);
       const json = await res.json();
-      const payload = (json.success ? json.data : json) || {};
-      const rawRules: any[] = payload.content || (Array.isArray(payload) ? payload : []);
-      if (res.ok && rawRules.length >= 0) {
+      if (res.ok && json.success) {
+        const rawRules: any[] = json.data.content || json.data || [];
+        // Normalize active field: backend may return `active` (Java) or `isActive` (TS interface)
         setRules(rawRules.map((r: any) => ({ ...r, isActive: r.isActive ?? r.active ?? false })));
-        setTotalPages(payload.totalPages || 1);
-        setTotalElements(payload.totalElements || rawRules.length);
+        setTotalPages(json.data.totalPages || 1);
+        setTotalElements(json.data.totalElements || rawRules.length);
       } else {
         setRules([]);
       }
@@ -105,16 +105,15 @@ export default function CDSPage() {
     try {
       const res = await fetchWithAuth(`${API()}/api/cds/alerts?page=0&size=50`);
       const json = await res.json();
-      const alertPayload = (json.success ? json.data : json) || {};
-      const rawAlerts: any[] = alertPayload.content || (Array.isArray(alertPayload) ? alertPayload : []);
-      if (res.ok && rawAlerts.length >= 0) {
+      if (res.ok && json.success) {
+        const rawAlerts: any[] = json.data.content || json.data || [];
         setAlerts(rawAlerts.map((a: any) => ({
           ...a,
           createdAt: Array.isArray(a.createdAt)
             ? new Date(a.createdAt[0], (a.createdAt[1] || 1) - 1, a.createdAt[2] || 1, a.createdAt[3] || 0, a.createdAt[4] || 0).toISOString()
             : (a.createdAt || new Date().toISOString()),
         })));
-      } else { setAlerts([]); }
+      } else setAlerts([]);
     } catch { setAlerts([]); }
     finally { setAlertsLoading(false); }
   }, []);
@@ -129,12 +128,8 @@ export default function CDSPage() {
         return;
       }
       const json = await res.json();
-      const statsData = json.success ? json.data : json;
-      if (statsData && (statsData.totalRules != null || statsData.activeRules != null)) {
-        setStats(statsData);
-      } else {
-        setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
-      }
+      if (json.success) setStats(json.data);
+      else setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
     } catch {
       // Fallback stats from local data
       setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
@@ -191,16 +186,15 @@ export default function CDSPage() {
     const url = editingRule ? `${API()}/api/cds/rules/${editingRule.id}` : `${API()}/api/cds/rules`;
     const method = editingRule ? "PUT" : "POST";
     const res = await fetchWithAuth(url, { method, body: JSON.stringify(data) });
-    const json = await res.json().catch(() => null);
-    if (res.ok) {
+    const json = await res.json();
+    if (res.ok && json.success) {
       setToast({ type: "success", text: editingRule ? "Rule updated" : "Rule created" });
       setPanelOpen(false);
       setEditingRule(null);
       fetchRules();
-      fetchAlerts();
       fetchStats();
     } else {
-      setToast({ type: "error", text: json?.message || "Failed to save rule" });
+      setToast({ type: "error", text: json.message || "Failed to save rule" });
     }
   };
 

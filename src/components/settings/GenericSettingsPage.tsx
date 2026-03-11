@@ -97,8 +97,11 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
     for (const section of patched.sections) {
         for (let i = 0; i < section.fields.length; i++) {
             const f = section.fields[i];
+            // Referral provider settings: ensure organization field is an editable lookup
             if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName")) {
-                section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
+                if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
+                }
             }
         }
         // Referral providers: add organization field if it doesn't exist
@@ -705,7 +708,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                             <tr
                                                 key={record.id || record.fhirId || idx}
                                                 className="hover:bg-gray-50 cursor-pointer"
-                                                onClick={() => handleEdit(record)}
+                                                onClick={() => handleView(record)}
                                             >
                                                 {cols.map(col => (
                                                     <td key={col.key} className="px-4 py-2.5 text-gray-700">

@@ -687,13 +687,13 @@ const Calendar: React.FC = () => {
             try {
                 const res = await fetchWithAuth(`${apiUrl}/api/providers`);
                 const json = await res.json();
-                const raw = Array.isArray(json) ? json : (json?.data?.content || json?.data || json?.content || []);
+                const raw = json?.data?.content || json?.data || json?.content || [];
                 const providerList = Array.isArray(raw) ? raw : [];
                 if (providerList.length > 0) {
                     const active = providerList
                         .filter((p: any) => {
                             // Facade endpoint returns nested structure with systemAccess.status
-                            const status = String(p?.systemAccess?.status || p['systemAccess.status'] || p?.status || 'ACTIVE').toUpperCase();
+                            const status = String(p?.systemAccess?.status || p['systemAccess.status'] || 'ACTIVE').toUpperCase();
                             return status === 'ACTIVE' || status === 'TRUE' || status === '';
                         })
                         .map((p: any) => {
@@ -863,10 +863,8 @@ const Calendar: React.FC = () => {
                 );
                 const json = await res.json();
 
-                // Handle multiple response formats: {success, data: {content}} or {data: {content}} or {content} or []
-                const rawContent = json?.data?.content ?? json?.content ?? (Array.isArray(json?.data) ? json.data : null) ?? (Array.isArray(json) ? json : null);
-                if (rawContent && Array.isArray(rawContent) && rawContent.length >= 0) {
-                    const events: CalendarEvent[] = (rawContent as FhirAppointment[]).map((a) => {
+                if (json.success && json.data?.content) {
+                    const events: CalendarEvent[] = (json.data.content as FhirAppointment[]).map((a) => {
                         const patientId = extractIdFromRef(a.patient);
                         const providerId = extractIdFromRef(a.provider);
                         const locationId = extractIdFromRef(a.location);
@@ -903,7 +901,7 @@ const Calendar: React.FC = () => {
                     });
 
                     allEvents = [...allEvents, ...events];
-                    hasMore = json?.data?.hasNext === true || (json?.data?.totalPages != null && json?.data?.number != null && json.data.number < json.data.totalPages - 1);
+                    hasMore = json.data.hasNext === true;
                     page++;
                 } else {
                     hasMore = false;

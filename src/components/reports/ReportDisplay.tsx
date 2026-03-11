@@ -38,38 +38,24 @@ const BAR_COLORS = [
   "bg-teal-500",
 ];
 
-function formatCellForCSV(cell: string | number): string {
-  const s = String(cell);
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
-    const d = new Date(s.includes("T") ? s : s + "T00:00:00");
-    if (!isNaN(d.getTime())) {
-      // Format as YYYY-MM-DD HH:mm for Excel compatibility
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mi = String(d.getMinutes()).padStart(2, "0");
-      return s.includes("T") ? `${yyyy}-${mm}-${dd} ${hh}:${mi}` : `${yyyy}-${mm}-${dd}`;
-    }
-  }
-  return s;
-}
-
 function downloadCSV(data: ReportData) {
-  const bom = "\uFEFF";
-  const headerRow = data.tableHeaders.map((h) => `"${h}"`).join(",");
-  const dataRows = data.tableRows.map((row) =>
-    row.map((cell) => {
-      const formatted = formatCellForCSV(cell);
-      return `"${formatted.replace(/"/g, '""')}"`;
-    }).join(",")
-  );
-  const csv = bom + [headerRow, ...dataRows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const rows = [data.tableHeaders.join(",")];
+  for (const row of data.tableRows) {
+    rows.push(
+      row
+        .map((cell) => {
+          const s = String(cell);
+          return s.includes(",") ? `"${s}"` : s;
+        })
+        .join(",")
+    );
+  }
+  const csv = rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${data.reportType}_report_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `${data.reportType}_report.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }

@@ -773,7 +773,7 @@ export default function AppointmentPage() {
                     >
                       {/* Time */}
                       <td className="py-1.5 px-3 text-sm whitespace-nowrap">
-                        <div className="font-medium">{r.appointmentStartTime || "—"}{r.appointmentEndTime ? ` - ${r.appointmentEndTime}` : ""}</div>
+                        <div className="font-medium">{r.appointmentStartTime || "—"}</div>
                         <div className="text-xs text-gray-400">{formatToMMDDYYYY(r.appointmentStartDate)}</div>
                       </td>
 

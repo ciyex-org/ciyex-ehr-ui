@@ -1,6 +1,6 @@
 "use client";
 import { getEnv } from "@/utils/env";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
@@ -16,13 +16,6 @@ interface Patient {
     dateOfBirth: string;
     gender: string;
     status: "Active" | "Pending" | "Inactive";
-    assignedProviderId?: string;
-    assignedProviderName?: string;
-}
-
-interface ProviderOption {
-    id: string;
-    name: string;
 }
 
 export default function EditPatientPage() {
@@ -33,45 +26,6 @@ export default function EditPatientPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-    const [providers, setProviders] = useState<ProviderOption[]>([]);
-    const [providerSearch, setProviderSearch] = useState("");
-    const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
-    const [providerLoading, setProviderLoading] = useState(false);
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const searchProviders = useCallback(async (query: string) => {
-        setProviderLoading(true);
-        try {
-            const url = `${getEnv("NEXT_PUBLIC_API_URL")}/api/practitioners?search=${encodeURIComponent(query)}`;
-            const res = await fetchWithAuth(url);
-            if (res.ok) {
-                const result = await res.json();
-                const list = result.data?.content || result.data || result.content || [];
-                setProviders(
-                    (Array.isArray(list) ? list : []).map((p: any) => ({
-                        id: String(p.id),
-                        name: p.name || [p.firstName, p.lastName].filter(Boolean).join(" ") || `Provider ${p.id}`,
-                    }))
-                );
-            }
-        } catch { /* ignore */ }
-        setProviderLoading(false);
-    }, []);
-
-    // Load initial providers list on mount
-    useEffect(() => {
-        searchProviders("");
-    }, [searchProviders]);
-
-    // Debounced provider search
-    useEffect(() => {
-        if (!providerDropdownOpen) return;
-        if (debounceRef.current) clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-            searchProviders(providerSearch);
-        }, 300);
-        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-    }, [providerSearch, providerDropdownOpen, searchProviders]);
 
     useEffect(() => {
         if (!id) {
@@ -138,7 +92,6 @@ export default function EditPatientPage() {
                     dateOfBirth: formData.dateOfBirth,
                     gender: formData.gender,
                     ssn: formData.ssn,
-                    assignedProviderId: formData.assignedProviderId || null,
                 }),
             });
 
@@ -267,53 +220,6 @@ export default function EditPatientPage() {
                             className="mt-1 block w-full p-2 border rounded-md"
                             required
                         />
-                    </div>
-                    <div className="mb-4 relative">
-                        <label htmlFor="assignedProviderId" className="block text-sm font-medium text-gray-700">Assigned Provider</label>
-                        <input
-                            type="text"
-                            autoComplete="off"
-                            placeholder="Search providers..."
-                            value={providerDropdownOpen ? providerSearch : (providers.find(p => p.id === formData.assignedProviderId)?.name || formData.assignedProviderName || "")}
-                            onFocus={() => { setProviderDropdownOpen(true); setProviderSearch(""); }}
-                            onChange={(e) => { setProviderSearch(e.target.value); setProviderDropdownOpen(true); }}
-                            onBlur={() => setTimeout(() => setProviderDropdownOpen(false), 200)}
-                            className="mt-1 block w-full p-2 border rounded-md"
-                        />
-                        {formData.assignedProviderId && (
-                            <button
-                                type="button"
-                                onClick={() => { if (formData) setFormData({ ...formData, assignedProviderId: undefined, assignedProviderName: undefined }); }}
-                                className="absolute right-2 top-8 text-gray-400 hover:text-gray-600 text-sm"
-                            >
-                                ✕
-                            </button>
-                        )}
-                        {providerDropdownOpen && (
-                            <div className="absolute z-50 top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                                {providerLoading && (
-                                    <div className="px-3 py-2 text-sm text-gray-400">Searching...</div>
-                                )}
-                                {!providerLoading && providers.map(p => (
-                                    <button
-                                        key={p.id}
-                                        type="button"
-                                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
-                                        onMouseDown={(e) => e.preventDefault()}
-                                        onClick={() => {
-                                            if (formData) setFormData({ ...formData, assignedProviderId: p.id, assignedProviderName: p.name });
-                                            setProviderDropdownOpen(false);
-                                            setProviderSearch("");
-                                        }}
-                                    >
-                                        {p.name}
-                                    </button>
-                                ))}
-                                {!providerLoading && providers.length === 0 && (
-                                    <div className="px-3 py-2 text-sm text-gray-400">No providers found</div>
-                                )}
-                            </div>
-                        )}
                     </div>
                     <button
                         type="submit"

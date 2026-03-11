@@ -283,10 +283,9 @@ export default function DocumentScanningPage() {
       if (ocrFilter !== "all") url += `&ocrStatus=${ocrFilter}`;
       const res = await fetchWithAuth(url);
       const json = await res.json();
-      const payload = json.success ? json.data : json;
-      const docsRaw = payload?.content || (Array.isArray(payload) ? payload : []);
-      if (res.ok && docsRaw.length >= 0) {
-        const docs: ScannedDocument[] = docsRaw;
+      if (res.ok && json.success) {
+        const docs: ScannedDocument[] = json.data.content || json.data || [];
+        // Resolve missing patient names from patientId
         const missingNames = docs.filter(d => d.patientId && !d.patientName);
         if (missingNames.length > 0) {
           const uniqueIds = Array.from(new Set(missingNames.map(d => d.patientId)));
@@ -296,11 +295,8 @@ export default function DocumentScanningPage() {
               const r = await fetchWithAuth(`${API()}/api/patients/${pid}`);
               if (r.ok) {
                 const pj = await r.json();
-                // Handle {success: true, data: {...}} or {data: {...}} or direct {...}
-                const p = (pj.success !== undefined ? pj.data : null) || pj.data || pj;
-                if (p) {
-                  nameMap[pid!] = p.name || p.fullName || [p.firstName, p.lastName].filter(Boolean).join(" ") || `Patient ${pid}`;
-                }
+                const p = pj.data || pj;
+                nameMap[pid!] = p.name || [p.firstName, p.lastName].filter(Boolean).join(" ") || `Patient ${pid}`;
               }
             } catch { /* skip */ }
           }));
@@ -311,8 +307,8 @@ export default function DocumentScanningPage() {
           }
         }
         setDocuments(docs);
-        setTotalPages(payload?.totalPages || 1);
-        setTotalElements(payload?.totalElements || docs.length);
+        setTotalPages(json.data.totalPages || 1);
+        setTotalElements(json.data.totalElements || 0);
       } else { setDocuments([]); }
     } catch { setDocuments([]); }
     finally { setLoading(false); }

@@ -54,12 +54,11 @@ export default function AuditLogPage() {
         const res = await fetchWithAuth(apiUrl("/api/audit-log/stats"));
         if (!res.ok) return;
         const json = await res.json();
-        const statsData = json.success ? json.data : json;
-        if (statsData) {
+        if (json.success && json.data) {
           setStats({
-            total24h: statsData.total24h ?? 0,
-            total7d: statsData.total7d ?? 0,
-            total30d: statsData.total30d ?? 0,
+            total24h: json.data.total24h ?? 0,
+            total7d: json.data.total7d ?? 0,
+            total30d: json.data.total30d ?? 0,
           });
         }
       } catch (err) {
@@ -118,16 +117,16 @@ export default function AuditLogPage() {
       const res = await fetchWithAuth(apiUrl(`/api/audit-log?${params.toString()}`));
       if (!res.ok) throw new Error("Failed to fetch audit logs");
       const json = await res.json();
-      const raw = json.success ? json.data : json;
-      const content: AuditLogEntry[] = raw?.content ?? (Array.isArray(raw) ? raw : []);
-      setLogs(content);
-      setTotalElements(raw?.totalElements ?? content.length);
-      setTotalPages(raw?.totalPages ?? (content.length > 0 ? 1 : 0));
+      if (json.success && json.data) {
+        const content: AuditLogEntry[] = json.data.content ?? [];
+        setLogs(content);
+        setTotalElements(json.data.totalElements ?? 0);
+        setTotalPages(json.data.totalPages ?? 0);
 
-      const newTypes = content
-        .map((entry: AuditLogEntry) => entry.resourceType)
-        .filter((rt): rt is string => Boolean(rt));
-      if (newTypes.length > 0) {
+        // Collect distinct resource types for filter dropdown (use functional update to avoid stale closure)
+        const newTypes = content
+          .map((entry: AuditLogEntry) => entry.resourceType)
+          .filter((rt): rt is string => Boolean(rt));
         setResourceTypes((prev) => Array.from(new Set([...prev, ...newTypes])).sort());
       }
     } catch (err) {
