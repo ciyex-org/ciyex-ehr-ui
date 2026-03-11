@@ -687,13 +687,13 @@ const Calendar: React.FC = () => {
             try {
                 const res = await fetchWithAuth(`${apiUrl}/api/providers`);
                 const json = await res.json();
-                const raw = json?.data?.content || json?.data || json?.content || [];
+                const raw = Array.isArray(json) ? json : (json?.data?.content || json?.data || json?.content || []);
                 const providerList = Array.isArray(raw) ? raw : [];
                 if (providerList.length > 0) {
                     const active = providerList
                         .filter((p: any) => {
                             // Facade endpoint returns nested structure with systemAccess.status
-                            const status = String(p?.systemAccess?.status || p['systemAccess.status'] || 'ACTIVE').toUpperCase();
+                            const status = String(p?.systemAccess?.status || p['systemAccess.status'] || p?.status || 'ACTIVE').toUpperCase();
                             return status === 'ACTIVE' || status === 'TRUE' || status === '';
                         })
                         .map((p: any) => {

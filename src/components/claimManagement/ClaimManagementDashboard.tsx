@@ -81,15 +81,45 @@ const ClaimManagementDashboard: React.FC = () => {
       if (!res.ok) throw new Error("Failed to load claims");
       const json = await res.json();
       const raw: any[] = Array.isArray(json) ? json : json.data?.content ?? json.data ?? [];
-      const data: Claim[] = raw.map((item: any) => ({
-        ...item,
-        payerName: item.payerName || item.insurer || item.insurerName || item.insuranceCompany || item.payer || "—",
-        provider: item.provider || item.providerName || item.billingProvider || item.renderingProvider || "—",
-        diagnosisCode: item.diagnosisCode || item.diagnosis || item.icdCode || item.primaryDiagnosis || "—",
-        createdOn: item.createdOn || item.createdDate || item.serviceDate || item.date || "",
-        serviceFrom: item.serviceFrom || item.serviceFromDate || item.billablePeriod?.start || item.servicePeriod?.start || item.serviceDate || item.dateOfService || item.startDate || item.createdOn || item.createdDate || "",
-        serviceTo: item.serviceTo || item.serviceToDate || item.billablePeriod?.end || item.servicePeriod?.end || item.serviceEndDate || item.endDate || item.serviceFrom || item.serviceFromDate || item.billablePeriod?.start || item.servicePeriod?.start || item.serviceDate || "",
-      }));
+      const data: Claim[] = raw.map((item: any) => {
+        const patientName = item.patientName
+          || item.patient?.name
+          || [item.patient?.firstName, item.patient?.lastName].filter(Boolean).join(" ")
+          || [item.patientFirstName, item.patientLastName].filter(Boolean).join(" ")
+          || item.patientDisplay || item.subjectDisplay || "";
+        const provider = item.provider
+          || item.providerName
+          || item.provider?.name
+          || [item.provider?.firstName, item.provider?.lastName].filter(Boolean).join(" ")
+          || item.billingProvider || item.renderingProvider || "";
+        const payerName = item.payerName
+          || item.insurer || item.insurerName || item.insuranceCompany
+          || item.payer?.name || item.insurance?.companyName
+          || item.payer || "";
+        const diagnosisCode = item.diagnosisCode
+          || item.diagnosis || item.icdCode || item.primaryDiagnosis
+          || item.diagnoses?.[0]?.code || item.diagnosisLines?.[0]?.icdCode || "";
+        const serviceFrom = item.serviceFrom || item.serviceFromDate
+          || item.billablePeriod?.start || item.servicePeriod?.start
+          || item.serviceDate || item.dateOfService || item.startDate
+          || item.encounter?.date || item.appointmentDate
+          || item.createdOn || item.createdDate || "";
+        const serviceTo = item.serviceTo || item.serviceToDate
+          || item.billablePeriod?.end || item.servicePeriod?.end
+          || item.serviceEndDate || item.endDate
+          || item.encounter?.date || item.appointmentDate
+          || serviceFrom || "";
+        return {
+          ...item,
+          patientName: patientName || "\u2014",
+          provider: provider || "\u2014",
+          payerName: payerName || "\u2014",
+          diagnosisCode: diagnosisCode || "\u2014",
+          createdOn: item.createdOn || item.createdDate || item.serviceDate || item.date || "",
+          serviceFrom,
+          serviceTo,
+        };
+      });
       setClaims(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to load claims");

@@ -222,7 +222,7 @@ const patientDemographics: ReportDefinition = {
           dob,
           ageGroup: ageGroup(dob),
           status: p.status || "Active",
-          insurance: patInsurance[String(p.id)] || p.insurance || p.insurancePlan || "",
+          insurance: patInsurance[String(p.id)] || patInsurance[String(p.fhirId)] || p.insurance || p.insurancePlan || p.insuranceCompany || p.payerName || p.insurerName || p.coverageName || "",
         };
       }),
       totalRecords: records.length,
@@ -345,7 +345,7 @@ const labResults: ReportDefinition = {
       },
       tableData: records.map(o => ({
         id: o.id, orderDate: normDate(o.orderDate || o.orderedDate || o.date || o.createdAt || ""), patient: o.patientName || o.patientId || "",
-        testName: o.testName || o.labTestName || o.name || o.orderName || o.code || o.loincCode || o.description || o.test || "", status: o.status || "",
+        testName: o.testName || o.labTestName || o.test || o.name || o.orderName || o.testDescription || o.labTest?.name || o.serviceDescription || o.description || o.code || o.loincCode || o.cptDescription || "", status: o.status || "",
         priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || o.provider || "",
       })),
       totalRecords: records.length,
@@ -583,8 +583,10 @@ const revenueOverview: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const [allPayments, allEncounters, insuranceCos] = await Promise.all([
-      safeFetch(`${apiUrl}/api/payments/transactions?page=0&size=1000`, fetchFn),
+    let allPayments = await safeFetch(`${apiUrl}/api/payments/transactions?page=0&size=1000`, fetchFn);
+    if (allPayments.length === 0) allPayments = await safeFetch(`${apiUrl}/api/payments?page=0&size=1000`, fetchFn);
+    if (allPayments.length === 0) allPayments = await safeFetch(`${apiUrl}/api/billing/payments?page=0&size=1000`, fetchFn);
+    const [allEncounters, insuranceCos] = await Promise.all([
       safeFetch(`${apiUrl}/api/encounters/report/encounterAll?page=0&size=500`, fetchFn),
       safeFetch(`${apiUrl}/api/insurance-companies?page=0&size=200`, fetchFn),
     ]);
@@ -1079,7 +1081,7 @@ const noShowAnalysis: ReportDefinition = {
   description: "No-show rates by provider, day, time, financial impact",
   category: "operational",
   icon: "UserX",
-  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER],
+  filters: [DATE_RANGE_FILTER, PROVIDER_FILTER, LOCATION_FILTER, { key: "visitType", label: "Visit Type", type: "select", options: [{ value: "", label: "All Types" }], apiSource: "/api/appointments/visit-types", apiMapping: { valueField: "name", labelField: "name" } }],
   kpis: [
     { key: "noShowRate", label: "No-Show Rate", format: "percent", color: "text-red-600" },
     { key: "cancelRate", label: "Cancel Rate", format: "percent", color: "text-amber-600" },
