@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { RolePermission } from "@/components/roles/types";
 import PermissionMatrix from "@/components/roles/PermissionMatrix";
+import SmartScopeMatrix from "@/components/roles/SmartScopeMatrix";
 import RoleFormPanel from "@/components/roles/RoleFormPanel";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
@@ -77,6 +78,22 @@ export default function RolesPermissionsPage() {
       }
     } catch {
       setToast({ type: "error", text: "Failed to delete role" });
+    }
+  };
+
+  const handleQuickScopeUpdate = async (role: RolePermission, newScopes: string[]) => {
+    try {
+      const res = await fetchWithAuth(`${API()}/api/admin/roles/${role.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ smartScopes: newScopes }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setToast({ type: "success", text: "FHIR scopes updated" });
+        fetchRoles();
+      }
+    } catch {
+      setToast({ type: "error", text: "Failed to update FHIR scopes" });
     }
   };
 
@@ -165,7 +182,7 @@ export default function RolesPermissionsPage() {
                           )}
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {role.description} — {role.permissions.length} permissions
+                          {role.description} — {role.permissions.length} permissions, {(role.smartScopes || []).length} FHIR scopes
                         </p>
                       </div>
                     </div>
@@ -189,13 +206,23 @@ export default function RolesPermissionsPage() {
                     </div>
                   </div>
 
-                  {/* Expanded permission matrix */}
+                  {/* Expanded permission + SMART scope matrices */}
                   {isExpanded && (
-                    <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-3">
-                      <PermissionMatrix
-                        selected={role.permissions}
-                        onChange={(newPerms) => handleQuickPermissionUpdate(role, newPerms)}
-                      />
+                    <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-3 space-y-4">
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Page Permissions</h4>
+                        <PermissionMatrix
+                          selected={role.permissions}
+                          onChange={(newPerms) => handleQuickPermissionUpdate(role, newPerms)}
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">FHIR API Scopes</h4>
+                        <SmartScopeMatrix
+                          selected={role.smartScopes || []}
+                          onChange={(newScopes) => handleQuickScopeUpdate(role, newScopes)}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

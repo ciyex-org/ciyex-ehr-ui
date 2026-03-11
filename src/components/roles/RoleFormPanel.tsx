@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { X, Save, Loader2 } from "lucide-react";
 import { RolePermission } from "./types";
 import PermissionMatrix from "./PermissionMatrix";
+import SmartScopeMatrix from "./SmartScopeMatrix";
 
 interface Props {
   open: boolean;
@@ -17,6 +18,7 @@ export default function RoleFormPanel({ open, editRole, onClose, onSave }: Props
   const [roleLabel, setRoleLabel] = useState("");
   const [description, setDescription] = useState("");
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [smartScopes, setSmartScopes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -25,8 +27,9 @@ export default function RoleFormPanel({ open, editRole, onClose, onSave }: Props
       setRoleLabel(editRole.roleLabel);
       setDescription(editRole.description || "");
       setPermissions(editRole.permissions || []);
+      setSmartScopes(editRole.smartScopes || []);
     } else {
-      setRoleName(""); setRoleLabel(""); setDescription(""); setPermissions([]);
+      setRoleName(""); setRoleLabel(""); setDescription(""); setPermissions([]); setSmartScopes([]);
     }
   }, [editRole, open]);
 
@@ -34,7 +37,7 @@ export default function RoleFormPanel({ open, editRole, onClose, onSave }: Props
     e.preventDefault();
     setSaving(true);
     try {
-      await onSave({ roleName, roleLabel, description, permissions });
+      await onSave({ roleName, roleLabel, description, permissions, smartScopes });
     } finally {
       setSaving(false);
     }
@@ -84,6 +87,16 @@ export default function RoleFormPanel({ open, editRole, onClose, onSave }: Props
               Permissions ({permissions.length} selected)
             </label>
             <PermissionMatrix selected={permissions} onChange={setPermissions} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              FHIR API Scopes ({smartScopes.length} selected)
+            </label>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+              Controls which FHIR resources this role can read/write via the API.
+            </p>
+            <SmartScopeMatrix selected={smartScopes} onChange={setSmartScopes} />
           </div>
 
           <div className="pt-4 flex justify-end gap-3">
