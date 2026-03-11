@@ -3,6 +3,7 @@ import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
 import AdminLayout from "@/app/(admin)/layout";
 import Link from "next/link";
 import {
@@ -85,6 +86,23 @@ export default function PatientListPage() {
     const [newPatient, setNewPatient] = useState(emptyPatient);
     const [saving, setSaving] = useState(false);
     const [togglingId, setTogglingId] = useState<number | null>(null);
+    const [addErrors, setAddErrors] = useState<Record<string, string>>({});
+    const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+
+    const validatePatient = (p: Omit<Patient, "id"> | Patient): Record<string, string> => {
+        const errs: Record<string, string> = {};
+        if (!p.firstName.trim()) errs.firstName = "First name is required";
+        else if (!isValidName(p.firstName)) errs.firstName = "Name must contain only letters";
+        if (!p.lastName.trim()) errs.lastName = "Last name is required";
+        else if (!isValidName(p.lastName)) errs.lastName = "Name must contain only letters";
+        if (p.middleName && !isValidName(p.middleName)) errs.middleName = "Name must contain only letters";
+        if (!p.phoneNumber.trim()) errs.phoneNumber = "Phone number is required";
+        else if (!isValidPhone(p.phoneNumber)) errs.phoneNumber = "Enter a valid phone number";
+        if (p.email && !isValidEmail(p.email)) errs.email = "Enter a valid email address";
+        if (!p.gender) errs.gender = "Gender is required";
+        if (!p.dateOfBirth) errs.dateOfBirth = "Date of birth is required";
+        return errs;
+    };
 
     useEffect(() => {
         const recent = JSON.parse(localStorage.getItem("recentPatients") || "[]");
@@ -169,10 +187,13 @@ export default function PatientListPage() {
     const handlePrevious = () => setCurrentPage((p) => Math.max(1, p - 1));
     const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
 
-    const handleEdit = (patient: Patient) => setEditPatient(patient);
+    const handleEdit = (patient: Patient) => { setEditPatient(patient); setEditErrors({}); };
 
     const handleSaveEdit = async (updatedPatient: Patient) => {
         if (!updatedPatient) return;
+        const errs = validatePatient(updatedPatient);
+        setEditErrors(errs);
+        if (Object.keys(errs).length > 0) return;
         setSaving(true);
         try {
             const res = await fetchWithAuth(
@@ -195,6 +216,9 @@ export default function PatientListPage() {
     };
 
     const handleAddPatient = async () => {
+        const errs = validatePatient(newPatient);
+        setAddErrors(errs);
+        if (Object.keys(errs).length > 0) return;
         setSaving(true);
         try {
             const res = await fetchWithAuth(
@@ -559,18 +583,20 @@ export default function PatientListPage() {
                                     required
                                     placeholder="First name"
                                     value={newPatient.firstName}
-                                    onChange={(e) => setNewPatient({ ...newPatient, firstName: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => { setNewPatient({ ...newPatient, firstName: e.target.value }); if (addErrors.firstName) setAddErrors(p => { const n = {...p}; delete n.firstName; return n; }); }}
+                                    className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.firstName ? "border-red-400" : ""}`}
                                 />
+                                {addErrors.firstName && <p className="text-xs text-red-500 mt-1">{addErrors.firstName}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">Middle Name</label>
                                 <input
                                     placeholder="Middle (optional)"
                                     value={newPatient.middleName}
-                                    onChange={(e) => setNewPatient({ ...newPatient, middleName: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => { setNewPatient({ ...newPatient, middleName: e.target.value }); if (addErrors.middleName) setAddErrors(p => { const n = {...p}; delete n.middleName; return n; }); }}
+                                    className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.middleName ? "border-red-400" : ""}`}
                                 />
+                                {addErrors.middleName && <p className="text-xs text-red-500 mt-1">{addErrors.middleName}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">Last Name <span className="text-red-500">*</span></label>
@@ -578,9 +604,10 @@ export default function PatientListPage() {
                                     required
                                     placeholder="Last name"
                                     value={newPatient.lastName}
-                                    onChange={(e) => setNewPatient({ ...newPatient, lastName: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => { setNewPatient({ ...newPatient, lastName: e.target.value }); if (addErrors.lastName) setAddErrors(p => { const n = {...p}; delete n.lastName; return n; }); }}
+                                    className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.lastName ? "border-red-400" : ""}`}
                                 />
+                                {addErrors.lastName && <p className="text-xs text-red-500 mt-1">{addErrors.lastName}</p>}
                             </div>
                         </div>
 
@@ -591,17 +618,18 @@ export default function PatientListPage() {
                                     type="date"
                                     required
                                     value={newPatient.dateOfBirth}
-                                    onChange={(e) => setNewPatient({ ...newPatient, dateOfBirth: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => { setNewPatient({ ...newPatient, dateOfBirth: e.target.value }); if (addErrors.dateOfBirth) setAddErrors(p => { const n = {...p}; delete n.dateOfBirth; return n; }); }}
+                                    className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.dateOfBirth ? "border-red-400" : ""}`}
                                 />
+                                {addErrors.dateOfBirth && <p className="text-xs text-red-500 mt-1">{addErrors.dateOfBirth}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">Gender <span className="text-red-500">*</span></label>
                                 <select
                                     required
                                     value={newPatient.gender}
-                                    onChange={(e) => setNewPatient({ ...newPatient, gender: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => { setNewPatient({ ...newPatient, gender: e.target.value }); if (addErrors.gender) setAddErrors(p => { const n = {...p}; delete n.gender; return n; }); }}
+                                    className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.gender ? "border-red-400" : ""}`}
                                 >
                                     <option value="">Select gender</option>
                                     <option value="male">Male</option>
@@ -609,6 +637,7 @@ export default function PatientListPage() {
                                     <option value="other">Other</option>
                                     <option value="unknown">Unknown</option>
                                 </select>
+                                {addErrors.gender && <p className="text-xs text-red-500 mt-1">{addErrors.gender}</p>}
                             </div>
                         </div>
 
@@ -620,9 +649,10 @@ export default function PatientListPage() {
                                     required
                                     placeholder="(555) 123-4567"
                                     value={newPatient.phoneNumber}
-                                    onChange={(e) => setNewPatient({ ...newPatient, phoneNumber: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => { setNewPatient({ ...newPatient, phoneNumber: e.target.value }); if (addErrors.phoneNumber) setAddErrors(p => { const n = {...p}; delete n.phoneNumber; return n; }); }}
+                                    className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.phoneNumber ? "border-red-400" : ""}`}
                                 />
+                                {addErrors.phoneNumber && <p className="text-xs text-red-500 mt-1">{addErrors.phoneNumber}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">Email</label>
@@ -630,9 +660,10 @@ export default function PatientListPage() {
                                     type="email"
                                     placeholder="patient@email.com"
                                     value={newPatient.email}
-                                    onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    onChange={(e) => { setNewPatient({ ...newPatient, email: e.target.value }); if (addErrors.email) setAddErrors(p => { const n = {...p}; delete n.email; return n; }); }}
+                                    className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.email ? "border-red-400" : ""}`}
                                 />
+                                {addErrors.email && <p className="text-xs text-red-500 mt-1">{addErrors.email}</p>}
                             </div>
                         </div>
 
@@ -685,18 +716,20 @@ export default function PatientListPage() {
                                         required
                                         placeholder="First name"
                                         value={editPatient.firstName}
-                                        onChange={(e) => setEditPatient({ ...editPatient, firstName: e.target.value })}
-                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        onChange={(e) => { setEditPatient({ ...editPatient, firstName: e.target.value }); if (editErrors.firstName) setEditErrors(p => { const n = {...p}; delete n.firstName; return n; }); }}
+                                        className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${editErrors.firstName ? "border-red-400" : ""}`}
                                     />
+                                    {editErrors.firstName && <p className="text-xs text-red-500 mt-1">{editErrors.firstName}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Middle Name</label>
                                     <input
                                         placeholder="Middle (optional)"
                                         value={editPatient.middleName}
-                                        onChange={(e) => setEditPatient({ ...editPatient, middleName: e.target.value })}
-                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        onChange={(e) => { setEditPatient({ ...editPatient, middleName: e.target.value }); if (editErrors.middleName) setEditErrors(p => { const n = {...p}; delete n.middleName; return n; }); }}
+                                        className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${editErrors.middleName ? "border-red-400" : ""}`}
                                     />
+                                    {editErrors.middleName && <p className="text-xs text-red-500 mt-1">{editErrors.middleName}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Last Name <span className="text-red-500">*</span></label>
@@ -704,9 +737,10 @@ export default function PatientListPage() {
                                         required
                                         placeholder="Last name"
                                         value={editPatient.lastName}
-                                        onChange={(e) => setEditPatient({ ...editPatient, lastName: e.target.value })}
-                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        onChange={(e) => { setEditPatient({ ...editPatient, lastName: e.target.value }); if (editErrors.lastName) setEditErrors(p => { const n = {...p}; delete n.lastName; return n; }); }}
+                                        className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${editErrors.lastName ? "border-red-400" : ""}`}
                                     />
+                                    {editErrors.lastName && <p className="text-xs text-red-500 mt-1">{editErrors.lastName}</p>}
                                 </div>
                             </div>
 
@@ -745,18 +779,20 @@ export default function PatientListPage() {
                                         type="tel"
                                         required
                                         value={editPatient.phoneNumber}
-                                        onChange={(e) => setEditPatient({ ...editPatient, phoneNumber: e.target.value })}
-                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        onChange={(e) => { setEditPatient({ ...editPatient, phoneNumber: e.target.value }); if (editErrors.phoneNumber) setEditErrors(p => { const n = {...p}; delete n.phoneNumber; return n; }); }}
+                                        className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${editErrors.phoneNumber ? "border-red-400" : ""}`}
                                     />
+                                    {editErrors.phoneNumber && <p className="text-xs text-red-500 mt-1">{editErrors.phoneNumber}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Email</label>
                                     <input
                                         type="email"
                                         value={editPatient.email}
-                                        onChange={(e) => setEditPatient({ ...editPatient, email: e.target.value })}
-                                        className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        onChange={(e) => { setEditPatient({ ...editPatient, email: e.target.value }); if (editErrors.email) setEditErrors(p => { const n = {...p}; delete n.email; return n; }); }}
+                                        className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${editErrors.email ? "border-red-400" : ""}`}
                                     />
+                                    {editErrors.email && <p className="text-xs text-red-500 mt-1">{editErrors.email}</p>}
                                 </div>
                             </div>
 

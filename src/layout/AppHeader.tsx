@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import DatePicker from "@/components/DatePicker";
 import PluginSlot from "@/components/plugins/PluginSlot";
+import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
 import {
     Dialog,
     DialogContent,
@@ -42,6 +43,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
     });
 
     const [errorMessage, setErrorMessage] = useState("");
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [searchTerm, setSearchTerm] = useState("");
 
     const resetForm = () => {
@@ -59,6 +61,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
         });
         setEditingPatientId(null);
         setErrorMessage("");
+        setFieldErrors({});
     };
 
     const handleInputChange = (
@@ -69,9 +72,24 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
             ...prev,
             [name]: type === "checkbox" ? checked : value,
         }));
+        if (fieldErrors[name]) setFieldErrors((prev) => { const n = { ...prev }; delete n[name]; return n; });
     };
 
     const handleSave = async () => {
+        const errs: Record<string, string> = {};
+        if (!formData.firstName.trim()) errs.firstName = "First name is required";
+        else if (!isValidName(formData.firstName)) errs.firstName = "Name must contain only letters";
+        if (!formData.lastName.trim()) errs.lastName = "Last name is required";
+        else if (!isValidName(formData.lastName)) errs.lastName = "Name must contain only letters";
+        if (formData.middleName && !isValidName(formData.middleName)) errs.middleName = "Name must contain only letters";
+        if (!formData.phoneNumber.trim()) errs.phoneNumber = "Phone number is required";
+        else if (!isValidPhone(formData.phoneNumber)) errs.phoneNumber = "Enter a valid phone number";
+        if (formData.email && !isValidEmail(formData.email)) errs.email = "Enter a valid email address";
+        if (!formData.gender) errs.gender = "Gender is required";
+        if (!formData.dateOfBirth) errs.dateOfBirth = "Date of birth is required";
+        setFieldErrors(errs);
+        if (Object.keys(errs).length > 0) return;
+
         try {
             const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
             let response: Response;
@@ -299,8 +317,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                     placeholder="First name"
                                     value={formData.firstName}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className={`w-full p-2 border rounded ${fieldErrors.firstName ? "border-red-400" : ""}`}
                                 />
+                                {fieldErrors.firstName && <p className="text-xs text-red-500 mt-1">{fieldErrors.firstName}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">
@@ -311,8 +330,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                     placeholder="Middle name"
                                     value={formData.middleName}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className={`w-full p-2 border rounded ${fieldErrors.middleName ? "border-red-400" : ""}`}
                                 />
+                                {fieldErrors.middleName && <p className="text-xs text-red-500 mt-1">{fieldErrors.middleName}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">
@@ -324,8 +344,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                     placeholder="Last name"
                                     value={formData.lastName}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className={`w-full p-2 border rounded ${fieldErrors.lastName ? "border-red-400" : ""}`}
                                 />
+                                {fieldErrors.lastName && <p className="text-xs text-red-500 mt-1">{fieldErrors.lastName}</p>}
                             </div>
                         </div>
 
@@ -340,11 +361,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                     placeholder="(555) 123-4567"
                                     value={formData.phoneNumber}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className={`w-full p-2 border rounded ${fieldErrors.phoneNumber ? "border-red-400" : ""}`}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Include country code if outside your region.
-                                </p>
+                                {fieldErrors.phoneNumber ? (
+                                    <p className="text-xs text-red-500 mt-1">{fieldErrors.phoneNumber}</p>
+                                ) : (
+                                    <p className="text-xs text-gray-500 mt-1">Include country code if outside your region.</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium mb-1">
@@ -383,8 +406,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                     placeholder="name@example.com"
                                     value={formData.email}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className={`w-full p-2 border rounded ${fieldErrors.email ? "border-red-400" : ""}`}
                                 />
+                                {fieldErrors.email && <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
                             </div>
                         </div>
 

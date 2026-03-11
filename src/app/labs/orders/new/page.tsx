@@ -49,7 +49,26 @@ function NewLabOrderContent() {
           if (res.ok && hasData) {
             const payload = (dataLike && typeof dataLike === 'object' && 'data' in dataLike && dataLike.data && typeof dataLike.data === 'object'
               ? dataLike.data as Record<string, unknown>
-              : dataLike);
+              : dataLike) as Record<string, unknown>;
+
+            // If patient name is missing but patientId exists, fetch patient details
+            const pId = payload?.patientId || patientId;
+            const hasName = !!(payload?.patientFirstName || payload?.patientLastName);
+            if (pId && !hasName) {
+              try {
+                const pRes = await fetchWithAuth(`${base}/api/patients/${pId}`);
+                if (pRes.ok) {
+                  const pJson = await pRes.json();
+                  const pData = pJson?.data || pJson;
+                  if (pData) {
+                    if (pData.firstName) payload.patientFirstName = pData.firstName;
+                    if (pData.lastName) payload.patientLastName = pData.lastName;
+                    if (pData.phoneNumber && !payload.patientHomePhone) payload.patientHomePhone = pData.phoneNumber;
+                  }
+                }
+              } catch { /* patient lookup is optional */ }
+            }
+
             setInitial(payload);
           } else if (res.status === 403) {
             setError(`Forbidden (403). Check auth token / org headers or URL pattern. Tried: ${primaryUrl !== legacyUrl ? primaryUrl + "; " + legacyUrl : primaryUrl}`);

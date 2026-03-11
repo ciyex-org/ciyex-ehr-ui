@@ -405,6 +405,7 @@ const loadAll = useCallback(async () => {
     setLoading(true);
     setTopErr(null);
 
+    // Try aggregate summary endpoint first
     const res = await fetchWithOrg(`/api/encounters/${patientId}/${encounterId}/summary`, {
       headers: { Accept: "application/json" },
     });
@@ -428,30 +429,73 @@ const loadAll = useCallback(async () => {
       dateTimeFinalized: DateTimeFinalized;
     }>>(res);
 
-    if (!res.ok || !json?.success || !json.data) {
-      throw new Error(json?.message || "Failed to load summary");
-    }
+    const d = (res.ok && json?.success && json.data) ? json.data : null;
 
-    const d = json.data;
-    setEncMeta(d.meta || null);
-    setAssignedProviders(d.assignedProviders || null);
-    setChiefComplaints(d.chiefComplaints || null);
-    setHpi(d.hpi || null);
-    setPmh(d.pmh || null);
-    setPatientMH(d.patientMH || null);
-    setFh(d.familyHistory || null);
-    setSh(d.socialHistory || null);
-    setRos(d.ros || null);
-    setPe(d.physicalExam || null);
-    setVitals(d.vitals || null);
-    setProcedures(d.procedures || null);
+    // Set what we got from the aggregate endpoint
+    const meta = d?.meta || null;
+    const ap = d?.assignedProviders || null;
+    let cc = d?.chiefComplaints || null;
+    let hp = d?.hpi || null;
+    let pm = d?.pmh || null;
+    let pm2 = d?.patientMH || null;
+    let fam = d?.familyHistory || null;
+    let soc = d?.socialHistory || null;
+    let rs = d?.ros || null;
+    let px = d?.physicalExam || null;
+    let vt = d?.vitals || null;
+    let pr = d?.procedures || null;
+    let asmt = d?.assessment || null;
+    let pl = d?.plan || null;
+    let pnotes = d?.providerNotes || null;
+    let sig = d?.providerSignature || null;
+    let dtf = d?.dateTimeFinalized || null;
+
+    // Fall back to individual endpoints for any missing sections
+    const isEmpty = (v: unknown) => !v || (Array.isArray(v) && v.length === 0);
+    const pid = patientId;
+    const eid = encounterId;
+
+    const fallbacks: Promise<void>[] = [];
+
+    if (isEmpty(cc)) fallbacks.push(tryMany<ChiefComplaint[]>([`/api/chief-complaint/${pid}/${eid}`, `/api/chief-complaints/${pid}/${eid}`, `/api/cc/${pid}/${eid}`]).then(r => { if (r) cc = r; }));
+    if (isEmpty(hp)) fallbacks.push(tryMany<HPIEntry[]>([`/api/history-of-present-illness/${pid}/${eid}`, `/api/hpi/${pid}/${eid}`]).then(r => { if (r) hp = r; }));
+    if (isEmpty(pm)) fallbacks.push(tryMany<PMHEntry[]>([`/api/pmh/${pid}/${eid}`, `/api/past-medical-history/${pid}/${eid}`]).then(r => { if (r) pm = r; }));
+    if (isEmpty(pm2)) fallbacks.push(tryMany<PatientMHEntry[]>([`/api/patient-medical-history/${pid}/${eid}`, `/api/patient-mh/${pid}/${eid}`]).then(r => { if (r) pm2 = r; }));
+    if (isEmpty(fam)) fallbacks.push(tryMany<FamilyHistory[]>([`/api/family-history/${pid}/${eid}`, `/api/fh/${pid}/${eid}`]).then(r => { if (r) fam = r; }));
+    if (isEmpty(soc?.entries)) fallbacks.push(tryMany<SocialHistory | SocialHistoryEntry[]>([`/api/social-history/${pid}/${eid}`, `/api/socialhistory/${pid}/${eid}`, `/api/sh/${pid}/${eid}`]).then(r => {
+      if (r) soc = Array.isArray(r) ? { entries: r } : r as SocialHistory;
+    }));
+    if (isEmpty(rs)) fallbacks.push(tryMany<ROSEntry[]>([`/api/reviewofsystems/${pid}/${eid}`, `/api/ros/${pid}/${eid}`]).then(r => { if (r) rs = r; }));
+    if (isEmpty(px)) fallbacks.push(tryMany<PhysicalExam[]>([`/api/physical-exam/${pid}/${eid}`, `/api/pe/${pid}/${eid}`]).then(r => { if (r) px = r; }));
+    if (isEmpty(vt)) fallbacks.push(tryMany<Vitals[]>([`/api/vitals/${pid}/${eid}`]).then(r => { if (r) vt = r; }));
+    if (isEmpty(pr)) fallbacks.push(tryMany<Procedure[]>([`/api/procedures/${pid}/${eid}`, `/api/procedure/${pid}/${eid}`]).then(r => { if (r) pr = r; }));
+    if (isEmpty(asmt)) fallbacks.push(tryMany<Assessment[]>([`/api/assessment/${pid}/${eid}`, `/api/assessments/${pid}/${eid}`]).then(r => { if (r) asmt = r; }));
+    if (isEmpty(pl)) fallbacks.push(tryMany<Plan[]>([`/api/plan/${pid}/${eid}`, `/api/plans/${pid}/${eid}`]).then(r => { if (r) pl = r; }));
+    if (isEmpty(pnotes)) fallbacks.push(tryMany<ProviderNote[]>([`/api/provider-notes/${pid}/${eid}`, `/api/soap/${pid}/${eid}`]).then(r => { if (r) pnotes = r; }));
+    if (!sig) fallbacks.push(tryMany<ProviderSignature>([`/api/provider-signatures/${pid}/${eid}`, `/api/signatures/${pid}/${eid}`]).then(r => { if (r) sig = r; }));
+    if (!dtf) fallbacks.push(tryMany<DateTimeFinalized>([`/api/datetime-finalized/${pid}/${eid}`, `/api/finalized/${pid}/${eid}`]).then(r => { if (r) dtf = r; }));
+
+    if (fallbacks.length > 0) await Promise.all(fallbacks);
+
+    setEncMeta(meta || (await tryMany<EncounterMeta>([`/api/encounters/${pid}/${eid}/summary`, `/api/encounters/${pid}/${eid}`])) || null);
+    setAssignedProviders(ap);
+    setChiefComplaints(cc);
+    setHpi(hp);
+    setPmh(pm);
+    setPatientMH(pm2);
+    setFh(fam);
+    setSh(soc);
+    setRos(rs);
+    setPe(px);
+    setVitals(vt);
+    setProcedures(pr);
     setCodes(null);
-    setAssessment(d.assessment || null);
-    setPlan(d.plan || null);
-    setProviderNotes(d.providerNotes || null);
-    setProviderSignature(d.providerSignature || null);
+    setAssessment(asmt);
+    setPlan(pl);
+    setProviderNotes(pnotes);
+    setProviderSignature(sig);
     setSignoff(null);
-    setDateTimeFinalized(d.dateTimeFinalized || null);
+    setDateTimeFinalized(dtf);
   } catch (e: unknown) {
     setTopErr(e instanceof Error ? e.message : "Failed to load summary");
   } finally {
