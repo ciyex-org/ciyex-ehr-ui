@@ -1357,10 +1357,11 @@ function SearchFormField({
     if (query.length < 2) { setSuggestions([]); setOpen(false); return; }
     timerRef.current = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`${getEnv().API_BASE}${searchUrl(query)}`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}${searchUrl(query)}`);
         if (!res.ok) return;
-        const data = await res.json();
-        const items = mapResults(data);
+        const json = await res.json();
+        const payload = json.success && json.data != null ? json.data : json;
+        const items = mapResults(payload);
         setSuggestions(items);
         setOpen(items.length > 0);
       } catch { setSuggestions([]); }
