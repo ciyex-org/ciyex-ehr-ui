@@ -323,6 +323,8 @@ export default function RecallPage() {
   const saveRecall = async () => {
     if (!formData.patientId) { setAlert({ variant: "error", title: "Error", message: "Please select a patient." }); return; }
     if (!formData.dueDate) { setAlert({ variant: "error", title: "Error", message: "Due date is required." }); return; }
+    if (formData.patientPhone && formData.patientPhone.replace(/\D/g, "").length < 10) { setAlert({ variant: "error", title: "Error", message: "Phone must have at least 10 digits." }); return; }
+    if (formData.patientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.patientEmail)) { setAlert({ variant: "error", title: "Error", message: "Please enter a valid email address." }); return; }
 
     const payload = {
       patientId: Number(formData.patientId),

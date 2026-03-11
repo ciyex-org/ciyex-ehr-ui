@@ -63,9 +63,16 @@ export default function Suppliers() {
   const openDelete = (s: Supplier) => { setDeleteTarget(s); setModal("delete"); };
   const close = () => { setModal(null); setEditId(null); setDeleteTarget(null); };
 
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Name is required.";
+    if (form.phone && form.phone.replace(/\D/g, "").length < 7) errs.phone = "Phone must have at least 7 digits.";
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Please enter a valid email.";
+    setFormErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     try {
       const isEdit = modal === "edit" && editId;
       const res = await fetchWithAuth(isEdit ? `${API()}/${editId}` : API(), {
@@ -160,10 +167,10 @@ export default function Suppliers() {
               <button onClick={close} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">X</button>
             </div>
             <form onSubmit={save} className="p-6 grid grid-cols-2 gap-4 text-sm">
-              <div className="col-span-2"><Label>Name <span className="text-red-500">*</span></Label><Input value={form.name} onChange={e => F("name", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Name <span className="text-red-500">*</span></Label><Input value={form.name} onChange={e => F("name", e.target.value)} />{formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}</div>
               <div><Label>Contact Name</Label><Input value={form.contactName} onChange={e => F("contactName", e.target.value)} /></div>
-              <div><Label>Phone</Label><Input value={form.phone} onChange={e => F("phone", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => F("email", e.target.value)} /></div>
+              <div><Label>Phone</Label><Input value={form.phone} onChange={e => F("phone", e.target.value)} />{formErrors.phone && <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>}</div>
+              <div className="col-span-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => F("email", e.target.value)} />{formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}</div>
               <div className="col-span-2"><Label>Address</Label><Input value={form.address} onChange={e => F("address", e.target.value)} /></div>
               <div className="col-span-2"><Label>Notes</Label><textarea value={form.notes} onChange={e => F("notes", e.target.value)} rows={2} className={`${dateInput} py-2`} /></div>
               <div className="col-span-2 flex items-center gap-2">

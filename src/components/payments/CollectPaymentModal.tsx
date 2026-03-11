@@ -104,6 +104,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     const e: Record<string, string> = {};
     if (!form.patientName.trim()) e.patientName = "Patient is required";
     if (!form.amount || parseFloat(form.amount) <= 0) e.amount = "Valid amount required";
+    if (form.receiptEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.receiptEmail.trim())) e.receiptEmail = "Please enter a valid email";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -274,11 +275,12 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
               <label className={labelCls}>Receipt Email</label>
               <input
                 type="email"
-                className={inputCls()}
+                className={inputCls("receiptEmail")}
                 value={form.receiptEmail}
                 onChange={(e) => setForm((prev) => ({ ...prev, receiptEmail: e.target.value }))}
                 placeholder="patient@email.com"
               />
+              {errors.receiptEmail && <p className="text-xs text-red-500 mt-1">{errors.receiptEmail}</p>}
             </div>
           </div>
 

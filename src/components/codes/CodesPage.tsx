@@ -398,7 +398,7 @@ export default function CodesPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search..."
+            placeholder="Search by code or description..."
             className="border rounded px-3 py-2 w-80 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
           />
           <button
