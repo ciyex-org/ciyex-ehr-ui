@@ -6,10 +6,10 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3002",
+    baseURL: "https://app-dev.ciyex.org",
     trace: "off",
     screenshot: "off",
-    headless: true,
+    headless: false,
     ignoreHTTPSErrors: true,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
