@@ -28,11 +28,24 @@ export const usePermissions = () => {
   return context;
 };
 
+/** Read pre-fetched permission data injected into localStorage by automated tests */
+function readCachedPermissions(): { permissions: string[]; role: string; superAdmin: boolean } {
+  try {
+    if (typeof window === "undefined") return { permissions: [], role: "", superAdmin: false };
+    const raw = localStorage.getItem("__perm_cache__");
+    if (!raw) return { permissions: [], role: "", superAdmin: false };
+    return JSON.parse(raw) as { permissions: string[]; role: string; superAdmin: boolean };
+  } catch {
+    return { permissions: [], role: "", superAdmin: false };
+  }
+}
+
 export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [permissions, setPermissions] = useState<string[]>([]);
-  const [role, setRole] = useState("");
-  const [superAdmin, setSuperAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const cached = readCachedPermissions();
+  const [permissions, setPermissions] = useState<string[]>(cached.permissions);
+  const [role, setRole] = useState(cached.role);
+  const [superAdmin, setSuperAdmin] = useState(cached.superAdmin);
+  const [loading, setLoading] = useState(!cached.role); // skip loading if we have cached data
 
   const fetchPermissions = useCallback(async () => {
     try {

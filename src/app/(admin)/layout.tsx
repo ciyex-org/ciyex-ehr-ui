@@ -13,6 +13,7 @@ import AppointmentModal from "@/components/calendar/AppointmentModal";
 import { useLowStockNotifications } from "@/hooks/useLowStockNotifications";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import PermissionGuard from "@/components/auth/PermissionGuard";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { isExpanded, isHovered, isMobileOpen } = useSidebar();
@@ -81,7 +82,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <AppHeader pageTitle={pageTitle} />
                     <div className="flex-1 overflow-hidden min-h-0 p-4 md:p-6">
                         <div key={pathname} className="transition-colors duration-300 h-full">
-                            {children}
+                            <PermissionGuard>
+                                {children}
+                            </PermissionGuard>
                         </div>
                     </div>
                 </div>

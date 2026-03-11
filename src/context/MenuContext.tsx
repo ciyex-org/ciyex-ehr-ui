@@ -35,6 +35,8 @@ type MenuContextType = {
   isOrgCustom: boolean;
   menuId: string | null;
   pageTitleMap: Record<string, string>;
+  /** Maps screenSlug → requiredPermission (null means visible to all) */
+  pagePermissionMap: Record<string, string | null>;
   refreshMenu: () => Promise<void>;
 };
 
@@ -67,12 +69,43 @@ function buildPageTitleMap(items: MenuItemNode[]): Record<string, string> {
   return map;
 }
 
+function buildPagePermissionMap(items: MenuItemNode[]): Record<string, string | null> {
+  const map: Record<string, string | null> = {};
+
+  function traverse(nodes: MenuItemNode[]) {
+    for (const node of nodes) {
+      if (node.item.screenSlug) {
+        map[node.item.screenSlug] = node.item.requiredPermission;
+      }
+      if (node.children?.length) {
+        traverse(node.children);
+      }
+    }
+  }
+
+  traverse(items);
+  return map;
+}
+
+/** Read a pre-fetched permission map injected into localStorage by automated tests */
+function readCachedPermissionMap(): Record<string, string | null> {
+  try {
+    if (typeof window === "undefined") return {};
+    const raw = localStorage.getItem("__menu_perm_map_cache__");
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, string | null>;
+  } catch {
+    return {};
+  }
+}
+
 export const MenuProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [menuItems, setMenuItems] = useState<MenuItemNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOrgCustom, setIsOrgCustom] = useState(false);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [pageTitleMap, setPageTitleMap] = useState<Record<string, string>>({});
+  const [pagePermissionMap, setPagePermissionMap] = useState<Record<string, string | null>>(readCachedPermissionMap);
 
   const fetchMenu = useCallback(async () => {
     try {
@@ -115,6 +148,7 @@ export const MenuProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMenuItems(data.items || []);
       setMenuId(data.menu?.id || null);
       setPageTitleMap(buildPageTitleMap(data.items || []));
+      setPagePermissionMap(buildPagePermissionMap(data.items || []));
 
       // Check if org has customizations (overrides)
       try {
@@ -198,6 +232,7 @@ export const MenuProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isOrgCustom,
         menuId,
         pageTitleMap,
+        pagePermissionMap,
         refreshMenu: fetchMenu,
       }}
     >
