@@ -94,7 +94,7 @@ function AuthCallbackContent() {
                     const rolesUpper = Array.isArray(groups)
                         ? groups.map((g: string) => g?.toUpperCase())
                         : [];
-                    const staffRoles = ["ADMIN", "SUPER_ADMIN", "NURSE", "MA", "FRONT_DESK", "BILLING"];
+                    const staffRoles = ["ADMIN", "SUPER_ADMIN", "CIYEX_SUPER_ADMIN", "NURSE", "MA", "FRONT_DESK", "BILLING"];
                     const hasStaffRole = rolesUpper.some((r) => staffRoles.includes(r));
                     const isProvider = rolesUpper.includes("PROVIDER");
                     const isPatient = rolesUpper.includes("PATIENT");
