@@ -6,7 +6,6 @@ import { getEnv } from "@/utils/env";
 type PermissionContextType = {
   permissions: string[];
   role: string;
-  superAdmin: boolean;
   loading: boolean;
   /** FHIR resource types the user can write (e.g. ["Appointment", "Patient"]) */
   writableResources: string[];
@@ -33,14 +32,14 @@ export const usePermissions = () => {
 };
 
 /** Read pre-fetched permission data injected into localStorage by automated tests */
-function readCachedPermissions(): { permissions: string[]; role: string; superAdmin: boolean } {
+function readCachedPermissions(): { permissions: string[]; role: string } {
   try {
-    if (typeof window === "undefined") return { permissions: [], role: "", superAdmin: false };
+    if (typeof window === "undefined") return { permissions: [], role: "" };
     const raw = localStorage.getItem("__perm_cache__");
-    if (!raw) return { permissions: [], role: "", superAdmin: false };
-    return JSON.parse(raw) as { permissions: string[]; role: string; superAdmin: boolean };
+    if (!raw) return { permissions: [], role: "" };
+    return JSON.parse(raw) as { permissions: string[]; role: string };
   } catch {
-    return { permissions: [], role: "", superAdmin: false };
+    return { permissions: [], role: "" };
   }
 }
 
@@ -48,7 +47,6 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const cached = readCachedPermissions();
   const [permissions, setPermissions] = useState<string[]>(cached.permissions);
   const [role, setRole] = useState(cached.role);
-  const [superAdmin, setSuperAdmin] = useState(cached.superAdmin);
   const [writableResources, setWritableResources] = useState<string[]>([]);
   const [loading, setLoading] = useState(!cached.role); // skip loading if we have cached data
 
@@ -79,7 +77,6 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (json.success && json.data) {
         setPermissions(json.data.permissions || []);
         setRole(json.data.role || "");
-        setSuperAdmin(json.data.superAdmin === true);
         setWritableResources(json.data.writableResources || []);
       }
     } catch (err) {
@@ -125,27 +122,26 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [fetchPermissions, permissions.length, role]);
 
   const hasPermission = useCallback(
-    (key: string) => superAdmin || permissions.includes(key),
-    [permissions, superAdmin]
+    (key: string) => permissions.includes(key),
+    [permissions]
   );
 
   const hasCategory = useCallback(
     (category: string) =>
-      superAdmin || permissions.some((p) => p.startsWith(category + ".")),
-    [permissions, superAdmin]
+      permissions.some((p) => p.startsWith(category + ".")),
+    [permissions]
   );
 
   const hasCategoryWrite = useCallback(
     (category: string) =>
-      superAdmin ||
       permissions.some((p) => p.startsWith(category + ".") && !p.endsWith(".read")),
-    [permissions, superAdmin]
+    [permissions]
   );
 
   const canWriteResource = useCallback(
     (resourceType: string) =>
-      superAdmin || writableResources.includes(resourceType),
-    [writableResources, superAdmin]
+      writableResources.includes(resourceType),
+    [writableResources]
   );
 
   return (
@@ -153,7 +149,6 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       value={{
         permissions,
         role,
-        superAdmin,
         loading,
         writableResources,
         hasPermission,

@@ -136,8 +136,8 @@ interface PatientFormData {
 
 export default function AddPatient() {
     const router = useRouter();
-    const { canWriteResource, superAdmin } = usePermissions();
-    const canWritePatient = superAdmin || canWriteResource("Patient");
+    const { canWriteResource } = usePermissions();
+    const canWritePatient = canWriteResource("Patient");
     const [activeTab, setActiveTab] = useState(0);
     const [formData, setFormData] = useState<PatientFormData>({
         // Personal Information

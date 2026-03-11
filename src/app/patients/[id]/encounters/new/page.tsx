@@ -31,8 +31,8 @@ export default function NewEncounterPage() {
   const params = useParams();
   const router = useRouter();
   const patientId = Number(params?.id);
-  const { canWriteResource, superAdmin } = usePermissions();
-  const canWriteEncounter = superAdmin || canWriteResource("Encounter");
+  const { canWriteResource } = usePermissions();
+  const canWriteEncounter = canWriteResource("Encounter");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

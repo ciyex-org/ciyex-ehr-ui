@@ -23,8 +23,8 @@ export default function EditPatientPage() {
     const params = useParams();
     const router = useRouter();
     const id = params?.id ?? "";
-    const { canWriteResource, superAdmin } = usePermissions();
-    const canWritePatient = superAdmin || canWriteResource("Patient");
+    const { canWriteResource } = usePermissions();
+    const canWritePatient = canWriteResource("Patient");
     const [formData, setFormData] = useState<Partial<Patient> | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

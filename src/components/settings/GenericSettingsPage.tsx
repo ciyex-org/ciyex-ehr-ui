@@ -152,9 +152,9 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     const [totalPages, setTotalPages] = useState(0);
 
     // Write permission check based on FHIR resource type
-    const { canWriteResource, superAdmin } = usePermissions();
+    const { canWriteResource } = usePermissions();
     const primaryResource = config?.fhirResources?.[0]?.type || "";
-    const canWrite = superAdmin || !primaryResource || canWriteResource(primaryResource);
+    const canWrite = !primaryResource || canWriteResource(primaryResource);
 
     // Reset view state when page changes
     useEffect(() => {

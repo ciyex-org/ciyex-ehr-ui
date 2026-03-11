@@ -68,8 +68,8 @@ const emptyPatient: Omit<Patient, "id"> = {
 
 export default function PatientListPage() {
     const router = useRouter();
-    const { canWriteResource, superAdmin } = usePermissions();
-    const canWritePatient = superAdmin || canWriteResource("Patient");
+    const { canWriteResource } = usePermissions();
+    const canWritePatient = canWriteResource("Patient");
     const [patients, setPatients] = useState<Patient[]>([]);
     const [recentPatients, setRecentPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);

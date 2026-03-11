@@ -18,14 +18,11 @@ interface PermissionGuardProps {
  */
 export default function PermissionGuard({ children }: PermissionGuardProps) {
   const pathname = usePathname();
-  const { hasCategory, superAdmin, loading: permLoading } = usePermissions();
+  const { hasCategory, loading: permLoading } = usePermissions();
   const { pagePermissionMap, isLoading: menuLoading } = useMenu();
 
   // Wait for both permission and menu data
   if (permLoading || menuLoading) return null;
-
-  // Super admins can access everything
-  if (superAdmin) return <>{children}</>;
 
   // Find the required permission for the current path.
   // Try exact match first, then prefix match (longest wins).

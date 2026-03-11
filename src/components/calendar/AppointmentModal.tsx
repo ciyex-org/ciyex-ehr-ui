@@ -203,8 +203,8 @@ const getLocationIdFromSchedule = (sched: Schedule): string | null => {
  * ======================= */
 const AppointmentModal: React.FC = () => {
     const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
-    const { canWriteResource, superAdmin } = usePermissions();
-    const canWriteAppointment = superAdmin || canWriteResource("Appointment");
+    const { canWriteResource } = usePermissions();
+    const canWriteAppointment = canWriteResource("Appointment");
 
     const [open, setOpen] = useState(false);
 

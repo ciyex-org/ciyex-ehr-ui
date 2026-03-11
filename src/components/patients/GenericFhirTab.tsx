@@ -28,8 +28,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const [fhirResourceType, setFhirResourceType] = useState<string>("");
 
     // Write permission check based on FHIR resource type
-    const { canWriteResource, superAdmin } = usePermissions();
-    const canWrite = superAdmin || !fhirResourceType || canWriteResource(fhirResourceType);
+    const { canWriteResource } = usePermissions();
+    const canWrite = !fhirResourceType || canWriteResource(fhirResourceType);
 
     // View state: "list" | "create" | "edit" | "view"
     const [mode, setMode] = useState<"list" | "create" | "edit" | "view">("list");

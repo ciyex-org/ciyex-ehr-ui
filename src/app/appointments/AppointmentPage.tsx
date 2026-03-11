@@ -158,9 +158,9 @@ const REFRESH_OPTIONS = [
 ];
 
 export default function AppointmentPage() {
-  const { canWriteResource, superAdmin } = usePermissions();
-  const canWriteAppointment = superAdmin || canWriteResource("Appointment");
-  const canWriteEncounter = superAdmin || canWriteResource("Encounter");
+  const { canWriteResource } = usePermissions();
+  const canWriteAppointment = canWriteResource("Appointment");
+  const canWriteEncounter = canWriteResource("Encounter");
   const [category, setCategory] = useState<string>("All Visit Categories");
   const [categories, setCategories] = useState<string[]>([]);
   const [provider, setProvider] = useState<string>("All Providers");
