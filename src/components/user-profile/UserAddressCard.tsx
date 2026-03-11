@@ -108,35 +108,35 @@ export default function UserAddressCard() {
                             <div>
                                 <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Street</p>
                                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                                    {address.street}
+                                    {address.street || "-"}
                                 </p>
                             </div>
 
                             <div>
                                 <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Street 2</p>
                                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                                    {address.street2}
+                                    {address.street2 || "-"}
                                 </p>
                             </div>
 
                             <div>
                                 <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">City / State</p>
                                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                                    {address.city}, {address.state}
+                                    {address.city || "-"}, {address.state || "-"}
                                 </p>
                             </div>
 
                             <div>
                                 <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Postal Code</p>
                                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                                    {address.postalCode}
+                                    {address.postalCode || "-"}
                                 </p>
                             </div>
 
                             <div>
                                 <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Country</p>
                                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                                    {address.country}
+                                    {address.country || "-"}
                                 </p>
                             </div>
                         </div>

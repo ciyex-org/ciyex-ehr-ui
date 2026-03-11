@@ -63,9 +63,21 @@ export default function UserInfoCard() {
         }
     }, []);
 
+    const [saveError, setSaveError] = useState("");
+    const [saving, setSaving] = useState(false);
+
     const handleSave = async () => {
+        setSaveError("");
         if (!formData || !user?.email) return;
 
+        // Validation
+        if (!formData.firstName.trim()) { setSaveError("First name is required"); return; }
+        if (!formData.lastName.trim()) { setSaveError("Last name is required"); return; }
+        if (!formData.email.trim()) { setSaveError("Email is required"); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) { setSaveError("Please enter a valid email address"); return; }
+        if (formData.phoneNumber && !/^\+?[\d\s\-().]{7,20}$/.test(formData.phoneNumber)) { setSaveError("Please enter a valid phone number"); return; }
+
+        setSaving(true);
         try {
             const res = await fetchWithAuth(
                 `${getEnv("NEXT_PUBLIC_API_URL")}/api/users/email/${user.email}/profile`,
@@ -73,9 +85,9 @@ export default function UserInfoCard() {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        firstName: formData.firstName,
-                        lastName: formData.lastName,
-                        email: formData.email,
+                        firstName: formData.firstName.trim(),
+                        lastName: formData.lastName.trim(),
+                        email: formData.email.trim(),
                         phoneNumber: formData.phoneNumber,
                         dateOfBirth: formData.dateOfBirth,
                     }),
@@ -84,7 +96,7 @@ export default function UserInfoCard() {
 
             if (!res.ok) throw new Error("Update failed");
 
-            // ✅ Merge updated fields with existing user object
+            // Merge updated fields with existing user object
             const existing = localStorage.getItem("user");
             let mergedUser = { ...formData };
 
@@ -93,15 +105,18 @@ export default function UserInfoCard() {
                 mergedUser = { ...parsed, ...formData };
             }
 
-            // ✅ Save merged object to localStorage
+            // Save merged object to localStorage
             localStorage.setItem("user", JSON.stringify(mergedUser));
 
             setUser(formData);
             closeModal();
-            alert("Profile updated successfully");
+            // Force page reload to reflect changes in all components
+            window.location.reload();
         } catch (err) {
             console.error("Failed to save:", err);
-            alert("Failed to save profile changes");
+            setSaveError("Failed to save profile changes. Please try again.");
+        } finally {
+            setSaving(false);
         }
     };
     if (!user) return null;
@@ -193,7 +208,12 @@ export default function UserInfoCard() {
                             Update your details to keep your profile up-to-date.
                         </p>
                     </div>
-                    <form className="flex flex-col">
+                    <form className="flex flex-col" onSubmit={(e) => e.preventDefault()}>
+                        {saveError && (
+                            <div className="mx-2 mb-4 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 rounded-lg px-3 py-2">
+                                {saveError}
+                            </div>
+                        )}
                         <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
                             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                                 <div>
@@ -242,8 +262,8 @@ export default function UserInfoCard() {
                             <Button size="sm" variant="outline" onClick={closeModal}>
                                 Close
                             </Button>
-                            <Button size="sm" onClick={handleSave}>
-                                Save Changes
+                            <Button size="sm" onClick={handleSave} disabled={saving}>
+                                {saving ? "Saving..." : "Save Changes"}
                             </Button>
                         </div>
                     </form>

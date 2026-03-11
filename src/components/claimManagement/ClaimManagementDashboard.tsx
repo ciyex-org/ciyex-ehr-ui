@@ -13,8 +13,6 @@ interface Claim {
   status: string;
   type: string;
   createdOn: string;
-  serviceFrom: string;
-  serviceTo: string;
   notes: string;
 }
 
@@ -83,12 +81,13 @@ const ClaimManagementDashboard: React.FC = () => {
       const raw: any[] = Array.isArray(json) ? json : json.data?.content ?? json.data ?? [];
       const data: Claim[] = raw.map((item: any) => ({
         ...item,
-        payerName: item.payerName || item.insurer || item.insurerName || item.insuranceCompany || item.payer || "—",
-        provider: item.provider || item.providerName || item.billingProvider || item.renderingProvider || "—",
-        diagnosisCode: item.diagnosisCode || item.diagnosis || item.icdCode || item.primaryDiagnosis || "—",
-        createdOn: item.createdOn || item.createdDate || item.serviceDate || item.date || "",
-        serviceFrom: item.serviceFrom || item.serviceFromDate || item.billablePeriod?.start || item.servicePeriod?.start || item.serviceDate || item.dateOfService || item.startDate || item.createdOn || item.createdDate || "",
-        serviceTo: item.serviceTo || item.serviceToDate || item.billablePeriod?.end || item.servicePeriod?.end || item.serviceEndDate || item.endDate || item.serviceFrom || item.serviceFromDate || item.billablePeriod?.start || item.servicePeriod?.start || item.serviceDate || "",
+        patientName: item.patientName || "—",
+        payerName: item.payerName || "—",
+        provider: item.provider || "—",
+        diagnosisCode: item.diagnosisCode || "—",
+        policyNumber: item.policyNumber || "—",
+        planName: item.planName || "—",
+        createdOn: item.createdOn || "",
       }));
       setClaims(data);
     } catch (e: unknown) {
@@ -185,9 +184,9 @@ const ClaimManagementDashboard: React.FC = () => {
               <th className="text-left px-4 py-3 font-medium text-gray-600">Patient</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Provider</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Payer</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Plan</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Diagnosis</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Service From</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Service To</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Policy #</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Action</th>
@@ -211,9 +210,9 @@ const ClaimManagementDashboard: React.FC = () => {
                   <td className="px-4 py-3 text-gray-700">{c.patientName || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.provider || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.payerName || "—"}</td>
+                  <td className="px-4 py-3 text-gray-700">{c.planName || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.diagnosisCode || "—"}</td>
-                  <td className="px-4 py-3 text-gray-700">{formatDate(c.serviceFrom)}</td>
-                  <td className="px-4 py-3 text-gray-700">{formatDate(c.serviceTo)}</td>
+                  <td className="px-4 py-3 text-gray-700">{c.policyNumber || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{formatDate(c.createdOn)}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[c.status] || "bg-gray-100 text-gray-600"}`}>
