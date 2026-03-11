@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { X, Loader2, Search, Send, BookOpen } from "lucide-react";
@@ -25,6 +25,10 @@ export default function AssignMaterialModal({
 }: Props) {
   const [patientId, setPatientId] = useState("");
   const [patientName, setPatientName] = useState("");
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const patientSearchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [selectedMaterial, setSelectedMaterial] = useState<EducationMaterial | null>(null);
   const [materialSearch, setMaterialSearch] = useState("");
   const [materialResults, setMaterialResults] = useState<EducationMaterial[]>([]);
@@ -36,10 +40,33 @@ export default function AssignMaterialModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const getPatientDisplayName = (p: typeof patientResults[0]) =>
+    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+
+  // Patient search
+  useEffect(() => {
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    if (patientSearchTimer.current) clearTimeout(patientSearchTimer.current);
+    patientSearchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl(`/api/patients?search=${encodeURIComponent(patientQuery)}`));
+        const json = await res.json();
+        let list: typeof patientResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(true);
+      } catch { /* silent */ }
+    }, 300);
+  }, [patientQuery]);
+
   useEffect(() => {
     if (open) {
       setPatientId("");
       setPatientName("");
+      setPatientQuery("");
+      setPatientResults([]);
+      setShowPatientDropdown(false);
       setDueDate("");
       setNotes("");
       setError("");
@@ -173,22 +200,49 @@ export default function AssignMaterialModal({
 
             {/* Patient Name + ID */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Patient Name *</label>
                 <input
                   className={inputCls}
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="Jane Doe"
+                  value={patientQuery}
+                  onChange={(e) => {
+                    setPatientQuery(e.target.value);
+                    setPatientName("");
+                    setPatientId("");
+                    setShowPatientDropdown(true);
+                  }}
+                  onFocus={() => { if (patientResults.length > 0) setShowPatientDropdown(true); }}
+                  placeholder="Search patient..."
                 />
+                {showPatientDropdown && patientResults.length > 0 && (
+                  <div className="absolute z-10 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                    {patientResults.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          const name = getPatientDisplayName(p);
+                          setPatientName(name);
+                          setPatientId(String(p.id));
+                          setPatientQuery(name);
+                          setShowPatientDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 cursor-pointer"
+                      >
+                        {getPatientDisplayName(p)} <span className="text-xs text-gray-400">({p.id})</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Patient ID *</label>
                 <input
                   className={inputCls}
                   value={patientId}
-                  onChange={(e) => setPatientId(e.target.value)}
-                  placeholder="PAT-001"
+                  readOnly
+                  placeholder="Auto-filled"
                 />
               </div>
             </div>

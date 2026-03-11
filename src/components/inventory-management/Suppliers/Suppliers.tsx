@@ -65,7 +65,26 @@ export default function Suppliers() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) {
+      setAlert({ variant: "error", title: "Validation Error", message: "Supplier name is required." });
+      return;
+    }
+    if (form.name.trim().length < 2) {
+      setAlert({ variant: "error", title: "Validation Error", message: "Supplier name must be at least 2 characters." });
+      return;
+    }
+    if (form.contactName && form.contactName.trim().length < 2) {
+      setAlert({ variant: "error", title: "Validation Error", message: "Contact name must be at least 2 characters." });
+      return;
+    }
+    if (form.phone && !/^\+?[\d\s\-().]{7,20}$/.test(form.phone)) {
+      setAlert({ variant: "error", title: "Validation Error", message: "Please enter a valid phone number." });
+      return;
+    }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setAlert({ variant: "error", title: "Validation Error", message: "Please enter a valid email address." });
+      return;
+    }
     try {
       const isEdit = modal === "edit" && editId;
       const res = await fetchWithAuth(isEdit ? `${API()}/${editId}` : API(), {
@@ -160,11 +179,11 @@ export default function Suppliers() {
               <button onClick={close} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">X</button>
             </div>
             <form onSubmit={save} className="p-6 grid grid-cols-2 gap-4 text-sm">
-              <div className="col-span-2"><Label>Name <span className="text-red-500">*</span></Label><Input value={form.name} onChange={e => F("name", e.target.value)} /></div>
-              <div><Label>Contact Name</Label><Input value={form.contactName} onChange={e => F("contactName", e.target.value)} /></div>
-              <div><Label>Phone</Label><Input value={form.phone} onChange={e => F("phone", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => F("email", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Address</Label><Input value={form.address} onChange={e => F("address", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Name <span className="text-red-500">*</span></Label><Input value={form.name} onChange={e => F("name", e.target.value)} placeholder="e.g. Medline Industries" /></div>
+              <div><Label>Contact Name</Label><Input value={form.contactName} onChange={e => F("contactName", e.target.value)} placeholder="e.g. John Smith" /></div>
+              <div><Label>Phone</Label><Input type="tel" value={form.phone} onChange={e => F("phone", e.target.value)} placeholder="e.g. (555) 123-4567" /></div>
+              <div className="col-span-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => F("email", e.target.value)} placeholder="e.g. contact@supplier.com" /></div>
+              <div className="col-span-2"><Label>Address</Label><Input value={form.address} onChange={e => F("address", e.target.value)} placeholder="e.g. 123 Main St, City, State" /></div>
               <div className="col-span-2"><Label>Notes</Label><textarea value={form.notes} onChange={e => F("notes", e.target.value)} rows={2} className={`${dateInput} py-2`} /></div>
               <div className="col-span-2 flex items-center gap-2">
                 <input type="checkbox" checked={form.active} onChange={e => F("active", e.target.checked)} className="h-4 w-4 rounded border-gray-300" />

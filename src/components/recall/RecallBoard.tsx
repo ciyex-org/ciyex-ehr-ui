@@ -323,6 +323,12 @@ export default function RecallPage() {
   const saveRecall = async () => {
     if (!formData.patientId) { setAlert({ variant: "error", title: "Error", message: "Please select a patient." }); return; }
     if (!formData.dueDate) { setAlert({ variant: "error", title: "Error", message: "Due date is required." }); return; }
+    if (formData.patientPhone && !/^\+?[\d\s\-().]{7,20}$/.test(formData.patientPhone)) {
+      setAlert({ variant: "error", title: "Error", message: "Please enter a valid phone number." }); return;
+    }
+    if (formData.patientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.patientEmail)) {
+      setAlert({ variant: "error", title: "Error", message: "Please enter a valid email address." }); return;
+    }
 
     const payload = {
       patientId: Number(formData.patientId),
@@ -724,14 +730,16 @@ export default function RecallPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Phone</Label>
-                    <input type="text" value={formData.patientPhone}
+                    <input type="tel" value={formData.patientPhone}
                       onChange={e => setFormData(prev => ({ ...prev, patientPhone: e.target.value }))}
+                      placeholder="e.g. (555) 123-4567"
                       className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
                   </div>
                   <div>
                     <Label>Email</Label>
                     <input type="email" value={formData.patientEmail}
                       onChange={e => setFormData(prev => ({ ...prev, patientEmail: e.target.value }))}
+                      placeholder="e.g. patient@email.com"
                       className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
                   </div>
                 </div>

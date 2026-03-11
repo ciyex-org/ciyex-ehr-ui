@@ -213,6 +213,125 @@ export default function PriorAuthorizationsPage() {
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
 
+  // ----- Autocomplete search state for form fields -----
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string; insurances?: { insuranceName?: string; insuranceId?: string; memberId?: string }[] }[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+
+  const [providerQuery, setProviderQuery] = useState("");
+  const [providerResults, setProviderResults] = useState<{ id: string; name?: string; firstName?: string; lastName?: string }[]>([]);
+  const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+
+  const [insuranceQuery, setInsuranceQuery] = useState("");
+  const [insuranceResults, setInsuranceResults] = useState<{ id: string; name?: string; insuranceName?: string; payerName?: string; insuranceId?: string }[]>([]);
+  const [showInsuranceDropdown, setShowInsuranceDropdown] = useState(false);
+
+  const [diagnosisQuery, setDiagnosisQuery] = useState("");
+  const [diagnosisResults, setDiagnosisResults] = useState<{ code: string; description?: string; shortDescription?: string }[]>([]);
+  const [showDiagnosisDropdown, setShowDiagnosisDropdown] = useState(false);
+
+  const [procedureQuery, setProcedureQuery] = useState("");
+  const [procedureResults, setProcedureResults] = useState<{ code: string; description?: string; shortDescription?: string }[]>([]);
+  const [showProcedureDropdown, setShowProcedureDropdown] = useState(false);
+
+  // Debounced search helpers
+  const searchRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  function debounceSearch(key: string, fn: () => void, delay = 300) {
+    if (searchRef.current[key]) clearTimeout(searchRef.current[key]);
+    searchRef.current[key] = setTimeout(fn, delay);
+  }
+
+  // Patient search
+  useEffect(() => {
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    debounceSearch("patient", async () => {
+      try {
+        const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const json = await res.json();
+        let list: typeof patientResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(true);
+      } catch { /* silent */ }
+    });
+  }, [patientQuery]);
+
+  // Provider search
+  useEffect(() => {
+    if (!providerQuery.trim() || providerQuery.length < 2) { setProviderResults([]); return; }
+    debounceSearch("provider", async () => {
+      try {
+        const res = await fetchWithAuth(`${base()}/api/providers?search=${encodeURIComponent(providerQuery)}`);
+        const json = await res.json();
+        let list: typeof providerResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setProviderResults(list);
+        setShowProviderDropdown(true);
+      } catch { /* silent */ }
+    });
+  }, [providerQuery]);
+
+  // Insurance search
+  useEffect(() => {
+    if (!insuranceQuery.trim() || insuranceQuery.length < 2) { setInsuranceResults([]); return; }
+    debounceSearch("insurance", async () => {
+      try {
+        const res = await fetchWithAuth(`${base()}/api/insurances?search=${encodeURIComponent(insuranceQuery)}`);
+        const json = await res.json();
+        let list: typeof insuranceResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setInsuranceResults(list);
+        setShowInsuranceDropdown(true);
+      } catch { /* silent */ }
+    });
+  }, [insuranceQuery]);
+
+  // Diagnosis code search
+  useEffect(() => {
+    if (!diagnosisQuery.trim() || diagnosisQuery.length < 2) { setDiagnosisResults([]); return; }
+    debounceSearch("diagnosis", async () => {
+      try {
+        const res = await fetchWithAuth(`${base()}/api/codes?codeType=ICD10&search=${encodeURIComponent(diagnosisQuery)}&size=10`);
+        const json = await res.json();
+        let list: typeof diagnosisResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setDiagnosisResults(list);
+        setShowDiagnosisDropdown(true);
+      } catch { /* silent */ }
+    });
+  }, [diagnosisQuery]);
+
+  // Procedure code search
+  useEffect(() => {
+    if (!procedureQuery.trim() || procedureQuery.length < 2) { setProcedureResults([]); return; }
+    debounceSearch("procedure", async () => {
+      try {
+        const res = await fetchWithAuth(`${base()}/api/codes?codeType=CPT&search=${encodeURIComponent(procedureQuery)}&size=10`);
+        const json = await res.json();
+        let list: typeof procedureResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setProcedureResults(list);
+        setShowProcedureDropdown(true);
+      } catch { /* silent */ }
+    });
+  }, [procedureQuery]);
+
+  const getPatientDisplayName = (p: typeof patientResults[0]) =>
+    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+
+  const getProviderDisplayName = (p: typeof providerResults[0]) =>
+    p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+
+  const autocompleteInputClass = "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const dropdownClass = "absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg";
+  const dropdownItemClass = "w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 cursor-pointer";
+
   // ----- Fetch list -----
   const fetchAuths = useCallback(async () => {
     setLoading(true);
@@ -280,9 +399,18 @@ export default function PriorAuthorizationsPage() {
   }
 
   // ----- Form handlers -----
+  function resetSearchFields() {
+    setPatientQuery(""); setPatientResults([]); setShowPatientDropdown(false);
+    setProviderQuery(""); setProviderResults([]); setShowProviderDropdown(false);
+    setInsuranceQuery(""); setInsuranceResults([]); setShowInsuranceDropdown(false);
+    setDiagnosisQuery(""); setDiagnosisResults([]); setShowDiagnosisDropdown(false);
+    setProcedureQuery(""); setProcedureResults([]); setShowProcedureDropdown(false);
+  }
+
   function openNewForm() {
     setEditingAuth(null);
     setFormData({ ...EMPTY_FORM, requestedDate: new Date().toISOString().split("T")[0] });
+    resetSearchFields();
     setShowForm(true);
     setActionMenuId(null);
   }
@@ -292,6 +420,9 @@ export default function PriorAuthorizationsPage() {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = auth;
     setFormData(rest);
+    setPatientQuery(auth.patientName); setProviderQuery(auth.providerName);
+    setInsuranceQuery(auth.insuranceName); setDiagnosisQuery(auth.diagnosisCode);
+    setProcedureQuery(auth.procedureCode);
     setShowForm(true);
     setActionMenuId(null);
   }
@@ -300,6 +431,7 @@ export default function PriorAuthorizationsPage() {
     setShowForm(false);
     setEditingAuth(null);
     setFormData(EMPTY_FORM);
+    resetSearchFields();
   }
 
   async function handleSave() {
@@ -800,21 +932,79 @@ export default function PriorAuthorizationsPage() {
                         setFormData({ ...formData, patientId: v })
                       }
                     />
-                    <FormField
-                      label="Patient Name"
-                      value={formData.patientName}
-                      onChange={(v) =>
-                        setFormData({ ...formData, patientName: v })
-                      }
-                    />
+                    {/* Patient Name - Searchable */}
+                    <div className="relative">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Patient Name</label>
+                      <input
+                        type="text"
+                        value={patientQuery}
+                        onChange={(e) => {
+                          setPatientQuery(e.target.value);
+                          setFormData({ ...formData, patientId: "", patientName: "" });
+                          setShowPatientDropdown(true);
+                        }}
+                        onFocus={() => { if (patientResults.length > 0) setShowPatientDropdown(true); }}
+                        placeholder="Search patient..."
+                        className={autocompleteInputClass}
+                      />
+                      {showPatientDropdown && patientResults.length > 0 && (
+                        <div className={dropdownClass}>
+                          {patientResults.map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                const name = getPatientDisplayName(p);
+                                setFormData({ ...formData, patientId: String(p.id), patientName: name });
+                                setPatientQuery(name);
+                                setShowPatientDropdown(false);
+                              }}
+                              className={dropdownItemClass}
+                            >
+                              {getPatientDisplayName(p)} <span className="text-xs text-gray-400">({p.id})</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </FormRow>
-                  <FormField
-                    label="Provider Name"
-                    value={formData.providerName}
-                    onChange={(v) =>
-                      setFormData({ ...formData, providerName: v })
-                    }
-                  />
+                  {/* Provider Name - Searchable */}
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Provider Name</label>
+                    <input
+                      type="text"
+                      value={providerQuery}
+                      onChange={(e) => {
+                        setProviderQuery(e.target.value);
+                        setFormData({ ...formData, providerName: "" });
+                        setShowProviderDropdown(true);
+                      }}
+                      onFocus={() => { if (providerResults.length > 0) setShowProviderDropdown(true); }}
+                      placeholder="Search provider..."
+                      className={autocompleteInputClass}
+                    />
+                    {showProviderDropdown && providerResults.length > 0 && (
+                      <div className={dropdownClass}>
+                        {providerResults.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              const name = getProviderDisplayName(p);
+                              setFormData({ ...formData, providerName: name });
+                              setProviderQuery(name);
+                              setShowProviderDropdown(false);
+                            }}
+                            className={dropdownItemClass}
+                          >
+                            {getProviderDisplayName(p)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </FormSection>
 
                 {/* Section: Insurance Info */}
@@ -823,13 +1013,44 @@ export default function PriorAuthorizationsPage() {
                   title="Insurance Information"
                 >
                   <FormRow>
-                    <FormField
-                      label="Insurance Name"
-                      value={formData.insuranceName}
-                      onChange={(v) =>
-                        setFormData({ ...formData, insuranceName: v })
-                      }
-                    />
+                    {/* Insurance Name - Searchable */}
+                    <div className="relative">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Insurance Name</label>
+                      <input
+                        type="text"
+                        value={insuranceQuery}
+                        onChange={(e) => {
+                          setInsuranceQuery(e.target.value);
+                          setFormData({ ...formData, insuranceName: "", insuranceId: "" });
+                          setShowInsuranceDropdown(true);
+                        }}
+                        onFocus={() => { if (insuranceResults.length > 0) setShowInsuranceDropdown(true); }}
+                        placeholder="Search insurance..."
+                        className={autocompleteInputClass}
+                      />
+                      {showInsuranceDropdown && insuranceResults.length > 0 && (
+                        <div className={dropdownClass}>
+                          {insuranceResults.map((ins) => {
+                            const displayName = ins.insuranceName || ins.payerName || ins.name || "";
+                            return (
+                              <button
+                                key={ins.id}
+                                type="button"
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => {
+                                  setFormData({ ...formData, insuranceName: displayName, insuranceId: ins.insuranceId || String(ins.id) });
+                                  setInsuranceQuery(displayName);
+                                  setShowInsuranceDropdown(false);
+                                }}
+                                className={dropdownItemClass}
+                              >
+                                {displayName} <span className="text-xs text-gray-400">({ins.insuranceId || ins.id})</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                     <FormField
                       label="Insurance ID"
                       value={formData.insuranceId}
@@ -853,13 +1074,41 @@ export default function PriorAuthorizationsPage() {
                   title="Procedure & Diagnosis"
                 >
                   <FormRow>
-                    <FormField
-                      label="Procedure Code"
-                      value={formData.procedureCode}
-                      onChange={(v) =>
-                        setFormData({ ...formData, procedureCode: v })
-                      }
-                    />
+                    {/* Procedure Code - Searchable */}
+                    <div className="relative">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Procedure Code</label>
+                      <input
+                        type="text"
+                        value={procedureQuery}
+                        onChange={(e) => {
+                          setProcedureQuery(e.target.value);
+                          setFormData({ ...formData, procedureCode: e.target.value, procedureDescription: "" });
+                          setShowProcedureDropdown(true);
+                        }}
+                        onFocus={() => { if (procedureResults.length > 0) setShowProcedureDropdown(true); }}
+                        placeholder="Search CPT code..."
+                        className={autocompleteInputClass}
+                      />
+                      {showProcedureDropdown && procedureResults.length > 0 && (
+                        <div className={dropdownClass}>
+                          {procedureResults.map((c) => (
+                            <button
+                              key={c.code}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setFormData({ ...formData, procedureCode: c.code, procedureDescription: c.description || c.shortDescription || "" });
+                                setProcedureQuery(c.code);
+                                setShowProcedureDropdown(false);
+                              }}
+                              className={dropdownItemClass}
+                            >
+                              <span className="font-medium">{c.code}</span> <span className="text-xs text-gray-400">{c.shortDescription || c.description || ""}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <FormField
                       label="Procedure Description"
                       value={formData.procedureDescription}
@@ -872,13 +1121,41 @@ export default function PriorAuthorizationsPage() {
                     />
                   </FormRow>
                   <FormRow>
-                    <FormField
-                      label="Diagnosis Code"
-                      value={formData.diagnosisCode}
-                      onChange={(v) =>
-                        setFormData({ ...formData, diagnosisCode: v })
-                      }
-                    />
+                    {/* Diagnosis Code - Searchable */}
+                    <div className="relative">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Diagnosis Code</label>
+                      <input
+                        type="text"
+                        value={diagnosisQuery}
+                        onChange={(e) => {
+                          setDiagnosisQuery(e.target.value);
+                          setFormData({ ...formData, diagnosisCode: e.target.value, diagnosisDescription: "" });
+                          setShowDiagnosisDropdown(true);
+                        }}
+                        onFocus={() => { if (diagnosisResults.length > 0) setShowDiagnosisDropdown(true); }}
+                        placeholder="Search ICD-10 code..."
+                        className={autocompleteInputClass}
+                      />
+                      {showDiagnosisDropdown && diagnosisResults.length > 0 && (
+                        <div className={dropdownClass}>
+                          {diagnosisResults.map((c) => (
+                            <button
+                              key={c.code}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setFormData({ ...formData, diagnosisCode: c.code, diagnosisDescription: c.description || c.shortDescription || "" });
+                                setDiagnosisQuery(c.code);
+                                setShowDiagnosisDropdown(false);
+                              }}
+                              className={dropdownItemClass}
+                            >
+                              <span className="font-medium">{c.code}</span> <span className="text-xs text-gray-400">{c.shortDescription || c.description || ""}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <FormField
                       label="Diagnosis Description"
                       value={formData.diagnosisDescription}

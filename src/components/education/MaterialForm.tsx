@@ -85,6 +85,15 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
     if (errors[field]) setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
   };
 
+  const isValidUrl = (url: string): boolean => {
+    try {
+      const u = new URL(url);
+      return u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (!form.title.trim()) e.title = "Title is required";
@@ -93,6 +102,9 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
     }
     if (["video", "pdf", "link"].includes(form.contentType) && !form.externalUrl.trim()) {
       e.externalUrl = "External URL is required for this content type";
+    }
+    if (form.externalUrl.trim() && !isValidUrl(form.externalUrl.trim())) {
+      e.externalUrl = "Please enter a valid URL (e.g. https://example.com)";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
