@@ -511,6 +511,8 @@ export default function AppointmentPage() {
             prev.map((r) => (r.id === row.id ? { ...r, status: newStatus } : r))
           );
         }
+        // Notify other views (e.g. Calendar) that appointment data changed
+        window.dispatchEvent(new Event("appointments-changed"));
       } catch (e: any) {
         console.error(e);
         alert(e.message || "Failed to update status");

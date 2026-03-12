@@ -499,83 +499,12 @@ const AppointmentModal: React.FC = () => {
     }, [open, startDate, combinedStart, combinedEnd, allProviders, apiUrl]);
 
     /* =========================
-     * Provider → valid locations for slot
+     * Always show all locations in the dropdown
      * ======================= */
     useEffect(() => {
-        let cancelled = false;
+        setProviderLocationOptions(allLocations);
+    }, [allLocations]);
 
-        (async () => {
-            if (!providerId) {
-                // Show all locations when no provider selected so the field is accessible
-                setProviderLocationOptions(allLocations);
-                return;
-            }
-
-            try {
-                const res = await fetchWithAuth(`${apiUrl}/api/schedules?status=active&providerId=${providerId}`);
-                const json = await res.json();
-                let schedules: Schedule[] = [];
-                if (json?.success && json?.data) {
-                    schedules = Array.isArray(json.data) ? json.data : (Array.isArray(json.data.content) ? json.data.content : []);
-                } else if (Array.isArray(json?.data)) {
-                    schedules = json.data;
-                }
-
-                // strictly this provider's schedules
-                const providerSchedules = schedules.filter((s) => Number(s.providerId) === Number(providerId));
-
-                const locIds = new Set<string>();
-                providerSchedules.forEach((s) => {
-                    // Check recurrence locationId
-                    if (s.recurrence?.locationId) {
-                        locIds.add(String(s.recurrence.locationId));
-                    }
-                    // Check actorReferences
-                    if (s.actorReferences) {
-                        s.actorReferences.forEach(ref => {
-                            if (String(ref).startsWith('Location/')) {
-                                const id = String(ref).split('/')[1];
-                                if (id) locIds.add(id);
-                            }
-                        });
-                    }
-                });
-
-                // id → label
-                const byId: Record<string, Option<string>> = {};
-                allLocations.forEach((l) => (byId[l.value] = l));
-                const filtered = Array.from(locIds).map((id) => byId[id]).filter(Boolean) as Option<string>[];
-                // Fallback to all locations when no schedule-linked locations found
-                const finalLocations = filtered.length > 0 ? filtered : allLocations;
-
-                if (!cancelled) {
-                    setProviderLocationOptions(finalLocations);
-
-                    // Auto-select if exactly one
-                    if (finalLocations.length === 1) {
-                        setLocationId(finalLocations[0].value);
-                    } else if (locationId && !finalLocations.some((l) => l.value === locationId)) {
-                        // Clear if previous location no longer valid
-                        setLocationId("");
-                    }
-                }
-            } catch (e) {
-                if (!cancelled) {
-                    console.error("Failed to load provider locations", e);
-                    setProviderLocationOptions(allLocations);
-                }
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [providerId, combinedStart, combinedEnd, allLocations, apiUrl, locationId]);
-
-    // Clear location if provider changes
-    useEffect(() => {
-        setLocationId("");
-    }, [providerId]);
 
     /* =========================
      * Actions
@@ -599,7 +528,6 @@ const AppointmentModal: React.FC = () => {
         setStatus("Scheduled");
         setProviderId("");
         setProvidersForDate([]);
-        setProviderLocationOptions([]);
         setLocationId("");
 
         setNotes("");
@@ -979,6 +907,9 @@ const AppointmentModal: React.FC = () => {
                                     <option value="Confirmed">Confirmed</option>
                                     <option value="Checked-in">Checked-in</option>
                                     <option value="Completed">Completed</option>
+                                    <option value="Re-Scheduled">Re-Scheduled</option>
+                                    <option value="No Show">No Show</option>
+                                    <option value="Cancelled">Cancelled</option>
                                 </>
                             )}
                         </select>

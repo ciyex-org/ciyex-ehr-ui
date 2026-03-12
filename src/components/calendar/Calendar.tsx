@@ -1651,7 +1651,7 @@ const Calendar: React.FC = () => {
                                         views={{ timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } } }}
                                         datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
                                         events={events.filter((e) => {
-                                            const eProv = e.extendedProps.providerId;
+                                            const eProv = String(e.extendedProps.providerId || "");
                                             const matchProv = eProv === p.value || !eProv || !visibleProviders.some(vp => vp.value === eProv);
                                             const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(String(e.extendedProps.locationId)));
                                             return matchProv && matchLoc;
@@ -1698,7 +1698,7 @@ const Calendar: React.FC = () => {
                                         }}
                                         datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
                                         events={events.filter((e) => {
-                                            const eProv = e.extendedProps.providerId;
+                                            const eProv = String(e.extendedProps.providerId || "");
                                             const matchProv = eProv === p.value || !eProv || !visibleProviders.some(vp => vp.value === eProv);
                                             const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(String(e.extendedProps.locationId)));
                                             return matchProv && matchLoc;
@@ -1750,7 +1750,7 @@ const Calendar: React.FC = () => {
                                     events={events.filter((e) => {
                                         const matchProv = allProvidersSelected
                                             ? true
-                                            : selectedProviders.includes(e.extendedProps.providerId);
+                                            : selectedProviders.includes(String(e.extendedProps.providerId || ""));
                                         const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(String(e.extendedProps.locationId)));
                                         return matchProv && matchLoc;
                                     })}
