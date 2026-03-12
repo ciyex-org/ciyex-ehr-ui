@@ -40,9 +40,11 @@ export type AppointmentDTO = {
   encounterId?: string;      // populated after auto-encounter creation
   encounterPatientId?: number;
   patientPhone?: string;     // from patient record
-  audit: {
-    createdDate: string;
-    lastModifiedDate: string;
+  providerName?: string;     // from FHIR reference resolution
+  _lastUpdated?: string;     // from FHIR meta.lastUpdated
+  audit?: {
+    createdDate?: string;
+    lastModifiedDate?: string;
   };
 };
 
@@ -525,9 +527,9 @@ export default function AppointmentPage() {
     return rows.filter((r) => {
       const d = new Date(r.appointmentStartDate?.includes("T") ? r.appointmentStartDate : r.appointmentStartDate + "T00:00:00").getTime();
       const matchDate = d >= fromTime && d <= toTime;
-      const matchProvider = provider === "All Providers" || r.providerId === Number(provider);
+      const matchProvider = provider === "All Providers" || String(r.providerId) === String(provider);
       const matchCategory = category === "All Visit Categories" || r.visitType === category;
-      const matchLocation = location === "All Locations" || r.locationId === Number(location);
+      const matchLocation = location === "All Locations" || String(r.locationId) === String(location);
       const matchPatient = !patientName || (r.patientName || "").toLowerCase().includes(patientName.trim().toLowerCase());
       // Hide completed/terminal statuses when toggle is on
       const matchCompleted = !hideCompleted || (() => {
@@ -766,7 +768,7 @@ export default function AppointmentPage() {
 
                   // Wait time for active statuses
                   const showWait = ["arrived", "checked-in"].includes(r.status);
-                  const waitInfo = showWait ? formatWaitTime(r.audit?.lastModifiedDate) : null;
+                  const waitInfo = showWait ? formatWaitTime(r.audit?.lastModifiedDate || r._lastUpdated || "") : null;
 
                   return (
                     <tr
@@ -797,7 +799,7 @@ export default function AppointmentPage() {
 
                       {/* Provider */}
                       <td className="py-1.5 px-3 text-sm">
-                        {providers.find((p) => p.id === r.providerId)?.name || r.providerId}
+                        {r.providerName || providers.find((p) => String(p.id) === String(r.providerId))?.name || "—"}
                       </td>
 
                       {/* Type */}
@@ -1019,7 +1021,7 @@ export default function AppointmentPage() {
           patientId={selectedAppointmentForVideo?.patientId}
           providerId={selectedAppointmentForVideo?.providerId}
           patientName={selectedAppointmentForVideo?.patientName}
-          providerName={providers.find((p) => p.id === selectedAppointmentForVideo?.providerId)?.name}
+          providerName={selectedAppointmentForVideo?.providerName || providers.find((p) => String(p.id) === String(selectedAppointmentForVideo?.providerId))?.name}
           roomName={selectedAppointmentForVideo ? `apt-${selectedAppointmentForVideo.id}` : undefined}
         />
 
