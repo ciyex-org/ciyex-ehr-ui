@@ -15,35 +15,45 @@ export default function ResetPasswordCard() {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-    // 👇 Password visibility toggle states
     const [showCurrent, setShowCurrent] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
     useEffect(() => {
+        // Try multiple localStorage keys to find email
         const storedUser = localStorage.getItem("user");
         if (storedUser) {
             try {
                 const user = JSON.parse(storedUser);
-                setEmail(user.email || "");
-            } catch (error) {
-                console.error("Failed to parse user from localStorage", error);
-            }
+                if (user.email) { setEmail(user.email); return; }
+            } catch { /* ignore */ }
         }
+        const userEmail = localStorage.getItem("userEmail");
+        if (userEmail) setEmail(userEmail);
     }, []);
 
     const handleSave = async () => {
+        setFeedback(null);
+
         if (!currentPassword || !newPassword || !confirmPassword) {
-            alert("All fields are required.");
+            setFeedback({ type: "error", text: "All fields are required." });
             return;
         }
 
         if (newPassword !== confirmPassword) {
-            alert("New passwords do not match.");
+            setFeedback({ type: "error", text: "New passwords do not match." });
             return;
         }
 
+        if (newPassword.length < 8) {
+            setFeedback({ type: "error", text: "New password must be at least 8 characters." });
+            return;
+        }
+
+        setSaving(true);
         try {
             const response = await fetchWithAuth(
                 `${getEnv("NEXT_PUBLIC_API_URL")}/api/users/change-password`,
@@ -60,29 +70,46 @@ export default function ResetPasswordCard() {
                 }
             );
 
-            const result = await response.json();
+            let result: Record<string, unknown> = {};
+            try {
+                result = await response.json();
+            } catch {
+                // response may not be JSON
+            }
 
             if (!response.ok) {
-                alert(result.error || "Failed to change password.");
+                const errorMsg =
+                    (result.error as string) ||
+                    (result.message as string) ||
+                    `Failed to change password (HTTP ${response.status}).`;
+                setFeedback({ type: "error", text: errorMsg });
                 return;
             }
 
             // Optionally update local storage
             const stored = localStorage.getItem("user");
             if (stored) {
-                const user = JSON.parse(stored);
-                const updated = { ...user, email };
-                localStorage.setItem("user", JSON.stringify(updated));
+                try {
+                    const user = JSON.parse(stored);
+                    const updated = { ...user, email };
+                    localStorage.setItem("user", JSON.stringify(updated));
+                } catch { /* ignore */ }
             }
 
-            alert("Password updated successfully.");
-            setIsOpen(false);
+            setFeedback({ type: "success", text: "Password updated successfully." });
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
+            // Auto-close after a short delay
+            setTimeout(() => {
+                setIsOpen(false);
+                setFeedback(null);
+            }, 1500);
         } catch (error) {
             console.error("Error updating password:", error);
-            alert("An unexpected error occurred.");
+            setFeedback({ type: "error", text: "An unexpected error occurred. Please try again." });
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -91,6 +118,7 @@ export default function ResetPasswordCard() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        setFeedback(null);
     };
 
     return (
@@ -194,7 +222,18 @@ export default function ResetPasswordCard() {
                         </p>
                     </div>
 
-                    <form className="flex flex-col">
+                    {/* Feedback message */}
+                    {feedback && (
+                        <div className={`mx-2 mb-4 px-4 py-3 rounded-lg text-sm ${
+                            feedback.type === "success"
+                                ? "bg-green-50 text-green-800 border border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-700"
+                                : "bg-red-50 text-red-800 border border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-700"
+                        }`}>
+                            {feedback.text}
+                        </div>
+                    )}
+
+                    <form onSubmit={(e) => e.preventDefault()} className="flex flex-col">
                         <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 px-2 pb-3">
                             <div>
                                 <Label>Email</Label>
@@ -356,11 +395,11 @@ export default function ResetPasswordCard() {
                         </div>
 
                         <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-                            <Button size="sm" variant="outline" onClick={handleClose}>
+                            <Button size="sm" variant="outline" type="button" onClick={handleClose}>
                                 Close
                             </Button>
-                            <Button size="sm" onClick={handleSave}>
-                                Save Changes
+                            <Button size="sm" type="button" onClick={handleSave} disabled={saving}>
+                                {saving ? "Saving..." : "Save Changes"}
                             </Button>
                         </div>
                     </form>

@@ -7,6 +7,7 @@ import { getEnv } from "@/utils/env";
 import { Prescription, ToastState } from "./types";
 import DrugInteractionCheck from "./DrugInteractionCheck";
 import DatePicker from "@/components/form/date-picker";
+import { usePermissions } from "@/context/PermissionContext";
 
 const apiBase = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
@@ -82,6 +83,8 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 }
 
 export default function PrescriptionFormPanel({ open, onClose, prescription, onSaved, showToast }: Props) {
+  const { hasCategoryWrite } = usePermissions();
+  const canWriteRx = hasCategoryWrite("rx");
   const [form, setForm] = useState<Prescription>(blankPrescription());
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -431,7 +434,12 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition">
             Cancel
           </button>
-          <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+          <button
+            onClick={handleSave}
+            disabled={saving || !canWriteRx}
+            title={!canWriteRx ? "You don't have permission to create or edit prescriptions" : undefined}
+            className="px-5 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
+          >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             {form.id ? "Update" : "Create"} Prescription
           </button>

@@ -6,11 +6,16 @@ import AdminLayout from "@/app/(admin)/layout";
 import LabOrderForm from "@/components/laborder/LabOrderForm";
 import { useSearchParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { usePermissions } from "@/context/PermissionContext";
+import { ShieldX } from "lucide-react";
+import Link from "next/link";
 
 function NewLabOrderContent() {
   const search = useSearchParams();
   const editId = search?.get("editId");
   const patientId = search?.get("patientId");
+  const { hasCategoryWrite, loading: permLoading } = usePermissions();
+  const canWriteOrders = hasCategoryWrite("orders");
 
   const [initial, setInitial] = useState<Record<string, unknown> | undefined>(undefined);
   const [loading, setLoading] = useState(false);
@@ -90,6 +95,28 @@ function NewLabOrderContent() {
     load();
     return () => { mounted = false; };
   }, [editId, patientId]);
+
+  // Block access if user lacks orders write permission
+  if (!permLoading && !canWriteOrders) {
+    return (
+      <AdminLayout>
+        <div className="flex h-full flex-col items-center justify-center gap-6 text-center p-8">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+            <ShieldX className="h-10 w-10 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Access Denied</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-sm">
+              You don&apos;t have permission to create or edit lab orders. Contact your administrator if you believe this is a mistake.
+            </p>
+          </div>
+          <Link href="/labs" className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            Back to Lab Orders
+          </Link>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

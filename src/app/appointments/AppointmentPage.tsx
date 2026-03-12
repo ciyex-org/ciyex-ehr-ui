@@ -13,6 +13,8 @@ import DynamicEncounterForm from "@/components/patients/DynamicEncounterForm";
 import PatientChartPanel from "@/components/patients/PatientChartPanel";
 import Encountersummary from "@/components/encounter/summary/Encountersummary";
 import { usePermissions } from "@/context/PermissionContext";
+import { ShieldX } from "lucide-react";
+import Link from "next/link";
 import * as XLSX from "xlsx";
 
 type PanelState =
@@ -216,9 +218,31 @@ function getDateRange(preset: string): { from: string; to: string } {
 }
 
 export default function AppointmentPage() {
-  const { canWriteResource } = usePermissions();
+  const { canWriteResource, hasCategory, loading: permLoading } = usePermissions();
   const canWriteAppointment = canWriteResource("Appointment");
   const canWriteEncounter = canWriteResource("Encounter");
+
+  // Block access if user lacks scheduling permission
+  if (!permLoading && !hasCategory("scheduling")) {
+    return (
+      <AdminLayout>
+        <div className="flex h-full flex-col items-center justify-center gap-6 text-center p-8">
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+            <ShieldX className="h-10 w-10 text-red-600 dark:text-red-400" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Access Denied</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-sm">
+              You don&apos;t have permission to access appointments. Contact your administrator if you believe this is a mistake.
+            </p>
+          </div>
+          <Link href="/" className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            Go to Dashboard
+          </Link>
+        </div>
+      </AdminLayout>
+    );
+  }
   const [category, setCategory] = useState<string>("All Visit Categories");
   const [categories, setCategories] = useState<string[]>([]);
   const [provider, setProvider] = useState<string>("All Providers");
