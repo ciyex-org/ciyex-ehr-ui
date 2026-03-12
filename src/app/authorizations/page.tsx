@@ -242,19 +242,26 @@ export default function PriorAuthorizationsPage() {
     searchRef.current[key] = setTimeout(fn, delay);
   }
 
+  // Helper to extract array from various API response shapes
+  function extractList(json: any): any[] {
+    if (Array.isArray(json)) return json;
+    if (Array.isArray(json?.data?.content)) return json.data.content;
+    if (Array.isArray(json?.data)) return json.data;
+    if (Array.isArray(json?.content)) return json.content;
+    return [];
+  }
+
   // Patient search
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
     debounceSearch("patient", async () => {
       try {
         const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        if (!res.ok) { console.warn("Patient search failed:", res.status); return; }
         const json = await res.json();
-        let list: typeof patientResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
-        setPatientResults(list);
+        setPatientResults(extractList(json));
         setShowPatientDropdown(true);
-      } catch { /* silent */ }
+      } catch (err) { console.warn("Patient search error:", err); }
     });
   }, [patientQuery]);
 
@@ -264,13 +271,11 @@ export default function PriorAuthorizationsPage() {
     debounceSearch("provider", async () => {
       try {
         const res = await fetchWithAuth(`${base()}/api/providers?search=${encodeURIComponent(providerQuery)}`);
+        if (!res.ok) { console.warn("Provider search failed:", res.status); return; }
         const json = await res.json();
-        let list: typeof providerResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
-        setProviderResults(list);
+        setProviderResults(extractList(json));
         setShowProviderDropdown(true);
-      } catch { /* silent */ }
+      } catch (err) { console.warn("Provider search error:", err); }
     });
   }, [providerQuery]);
 
@@ -280,15 +285,14 @@ export default function PriorAuthorizationsPage() {
     debounceSearch("insurance", async () => {
       try {
         const res = await fetchWithAuth(`${base()}/api/insurance-companies`);
+        if (!res.ok) { console.warn("Insurance search failed:", res.status); return; }
         const json = await res.json();
-        let all: typeof insuranceResults = [];
-        if (Array.isArray(json?.data)) all = json.data;
-        else if (Array.isArray(json?.data?.content)) all = json.data.content;
+        const all = extractList(json);
         const q = insuranceQuery.toLowerCase();
-        const list = all.filter(i => (i.name || i.insuranceName || i.payerName || "").toLowerCase().includes(q));
+        const list = all.filter((i: any) => (i.name || i.insuranceName || i.payerName || i.companyName || "").toLowerCase().includes(q));
         setInsuranceResults(list);
         setShowInsuranceDropdown(true);
-      } catch { /* silent */ }
+      } catch (err) { console.warn("Insurance search error:", err); }
     });
   }, [insuranceQuery]);
 
@@ -298,13 +302,11 @@ export default function PriorAuthorizationsPage() {
     debounceSearch("diagnosis", async () => {
       try {
         const res = await fetchWithAuth(`${base()}/api/global_codes/search?q=${encodeURIComponent(diagnosisQuery)}&codeType=ICD10`);
+        if (!res.ok) { console.warn("Diagnosis search failed:", res.status); return; }
         const json = await res.json();
-        let list: typeof diagnosisResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
-        setDiagnosisResults(list);
+        setDiagnosisResults(extractList(json));
         setShowDiagnosisDropdown(true);
-      } catch { /* silent */ }
+      } catch (err) { console.warn("Diagnosis search error:", err); }
     });
   }, [diagnosisQuery]);
 
@@ -314,13 +316,11 @@ export default function PriorAuthorizationsPage() {
     debounceSearch("procedure", async () => {
       try {
         const res = await fetchWithAuth(`${base()}/api/global_codes/search?q=${encodeURIComponent(procedureQuery)}&codeType=CPT`);
+        if (!res.ok) { console.warn("Procedure search failed:", res.status); return; }
         const json = await res.json();
-        let list: typeof procedureResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
-        setProcedureResults(list);
+        setProcedureResults(extractList(json));
         setShowProcedureDropdown(true);
-      } catch { /* silent */ }
+      } catch (err) { console.warn("Procedure search error:", err); }
     });
   }, [procedureQuery]);
 
@@ -1561,12 +1561,17 @@ function FormField({
       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
         {label}
       </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
+      <div className="relative">
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        {type === "date" && (
+          <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        )}
+      </div>
     </div>
   );
 }

@@ -81,13 +81,13 @@ const ClaimManagementDashboard: React.FC = () => {
       const raw: any[] = Array.isArray(json) ? json : json.data?.content ?? json.data ?? [];
       const data: Claim[] = raw.map((item: any) => ({
         ...item,
-        patientName: item.patientName || "—",
-        payerName: item.payerName || "—",
-        provider: item.provider || "—",
-        diagnosisCode: item.diagnosisCode || "—",
-        policyNumber: item.policyNumber || "—",
-        planName: item.planName || "—",
-        createdOn: item.createdOn || "",
+        patientName: item.patientName || item.patient || item.patientDisplay || (item.patientId ? `Patient #${item.patientId}` : "—"),
+        payerName: item.payerName || item.payer || item.insurer || item.insurerName || item.insuranceCompany || "—",
+        provider: item.provider || item.providerName || item.renderingProvider || item.treatingProviderId || item.billingEntity || "—",
+        diagnosisCode: item.diagnosisCode || item.diagnosis || item.icdCode || item.primaryDiagnosis || "—",
+        policyNumber: item.policyNumber || item.subscriberId || item.memberId || "—",
+        planName: item.planName || item.plan || item.insurancePlan || "—",
+        createdOn: item.createdOn || item.serviceDate || item.dateOfService || "",
       }));
       setClaims(data);
     } catch (e: unknown) {

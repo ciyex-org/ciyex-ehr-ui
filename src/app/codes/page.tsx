@@ -555,26 +555,27 @@ function CodeFormModal({
         </div>
         <div className="px-6 py-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Code *" value={form.code || ""} onChange={(v) => set("code", v)} />
-            <Field label="Code Type" value={form.codeType || ""} onChange={(v) => set("codeType", v)} />
+            <Field label="Code *" value={form.code || ""} onChange={(v) => set("code", v)} placeholder="e.g. 99213" />
+            <Field label="Code Type" value={form.codeType || ""} onChange={(v) => set("codeType", v)} placeholder="e.g. CPT, ICD10" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Modifier" value={form.modifier || ""} onChange={(v) => set("modifier", v)} />
-            <Field label="Category" value={form.category || ""} onChange={(v) => set("category", v)} />
+            <Field label="Modifier" value={form.modifier || ""} onChange={(v) => set("modifier", v)} placeholder="e.g. 25, 59" />
+            <Field label="Category" value={form.category || ""} onChange={(v) => set("category", v)} placeholder="e.g. E&M, Surgery" />
           </div>
-          <Field label="Short Description" value={form.shortDescription || ""} onChange={(v) => set("shortDescription", v)} />
+          <Field label="Short Description" value={form.shortDescription || ""} onChange={(v) => set("shortDescription", v)} placeholder="Brief description of the code" />
           <div>
             <label className="block text-[10px] font-medium text-slate-500 uppercase mb-1">Description</label>
             <textarea
               value={form.description || ""}
               onChange={(e) => set("description", e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              placeholder="Detailed description of the code"
+              className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Fee Standard" value={form.feeStandard?.toString() || ""} onChange={(v) => set("feeStandard", v)} type="number" />
-            <Field label="Related To" value={form.relateTo || ""} onChange={(v) => set("relateTo", v)} />
+            <Field label="Fee Standard" value={form.feeStandard?.toString() || ""} onChange={(v) => set("feeStandard", v)} type="number" placeholder="e.g. 150.00" />
+            <Field label="Related To" value={form.relateTo || ""} onChange={(v) => set("relateTo", v)} placeholder="e.g. parent code" />
           </div>
           <div className="flex gap-6 pt-1">
             <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
@@ -605,7 +606,7 @@ function CodeFormModal({
 
 /* ─────────────────── Field helper ─────────────────── */
 
-function Field({ label, value, onChange, type = "text" }: { label: string; value: string; onChange: (v: string) => void; type?: string }) {
+function Field({ label, value, onChange, type = "text", placeholder }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) {
   return (
     <div>
       <label className="block text-[10px] font-medium text-slate-500 uppercase mb-1">{label}</label>
@@ -613,7 +614,8 @@ function Field({ label, value, onChange, type = "text" }: { label: string; value
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+        placeholder={placeholder}
+        className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
       />
     </div>
   );

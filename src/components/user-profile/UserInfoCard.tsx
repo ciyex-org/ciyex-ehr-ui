@@ -214,7 +214,7 @@ export default function UserInfoCard() {
                                 {saveError}
                             </div>
                         )}
-                        <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
+                        <div className="px-2 pb-3">
                             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                                 <div>
                                     <Label>First Name</Label>
@@ -259,10 +259,10 @@ export default function UserInfoCard() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-                            <Button size="sm" variant="outline" onClick={closeModal}>
+                            <Button size="sm" variant="outline" type="button" onClick={closeModal}>
                                 Close
                             </Button>
-                            <Button size="sm" onClick={handleSave} disabled={saving}>
+                            <Button size="sm" type="button" onClick={handleSave} disabled={saving}>
                                 {saving ? "Saving..." : "Save Changes"}
                             </Button>
                         </div>
