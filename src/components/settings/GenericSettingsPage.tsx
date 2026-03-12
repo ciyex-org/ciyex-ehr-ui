@@ -107,7 +107,8 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                 section.fields[i] = patchedField;
             }
             // Provider photo/image field: restrict to image types only
-            if (/provider/i.test(pageKey) && (keyLower === "photo" || keyLower === "image" || keyLower === "profilephoto" || keyLower === "avatar")) {
+            const keySeg = keyLower.split(".").pop() || keyLower;
+            if (/provider/i.test(pageKey) && (keySeg === "photo" || keySeg === "image" || keySeg === "profilephoto" || keySeg === "avatar")) {
                 section.fields[i] = {
                     ...f,
                     type: "file" as any,
@@ -398,28 +399,30 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                 }
             }
             // Format validation for typed fields and key-based validation
+            // Uses last segment of dot-notation key (e.g. "address.city" → "city")
             for (const section of fieldConfig.sections) {
                 for (const field of section.fields) {
                     const val = formData[field.key];
                     if (typeof val === "string" && val.trim()) {
                         const keyLower = field.key.toLowerCase();
+                        const keySeg = keyLower.split(".").pop() || keyLower; // last segment
                         const labelLower = (field.label || "").toLowerCase();
                         // Email
-                        if ((field.type === "email" || keyLower.includes("email")) && !isValidEmail(val)) errors[field.key] = "Invalid email format";
+                        if ((field.type === "email" || keySeg === "email" || keySeg.includes("email")) && !isValidEmail(val)) errors[field.key] = "Invalid email format";
                         // Phone
-                        if ((field.type === "phone" || keyLower === "phone" || keyLower.includes("phonenumber") || keyLower === "contactphone" || labelLower.includes("phone")) && !isValidPhone(val)) errors[field.key] = "Invalid phone number (digits, spaces, dashes, parentheses only)";
+                        if ((field.type === "phone" || keySeg === "phone" || keySeg === "phonenumber" || keySeg === "mobilenumber" || keySeg === "contactphone" || keySeg === "workphone" || labelLower.includes("phone")) && !isValidPhone(val)) errors[field.key] = "Invalid phone number (digits, spaces, dashes, parentheses only)";
                         // Fax
-                        if (keyLower.includes("fax") && !isValidFax(val)) errors[field.key] = "Invalid fax number";
+                        if ((keySeg === "fax" || keySeg === "faxnumber" || keyLower.includes("fax")) && !isValidFax(val)) errors[field.key] = "Invalid fax number";
                         // URL
-                        if ((keyLower.includes("website") || keyLower.includes("url")) && !isValidUrl(val)) errors[field.key] = "Invalid URL (must start with http:// or https://)";
+                        if ((keySeg === "website" || keySeg.includes("url") || keyLower.includes("website")) && !isValidUrl(val)) errors[field.key] = "Invalid URL (must start with http:// or https://)";
                         // Zip code
-                        if ((keyLower === "zip" || keyLower === "zipcode" || keyLower === "postalcode" || keyLower.includes("zipcode") || labelLower.includes("zip")) && !/^\d{5}(-\d{4})?$/.test(val.trim())) errors[field.key] = "Invalid zip code (must be 5 digits or 5+4 format)";
+                        if ((keySeg === "zip" || keySeg === "zipcode" || keySeg === "postalcode" || labelLower.includes("zip")) && !/^\d{5}(-\d{4})?$/.test(val.trim())) errors[field.key] = "Invalid zip code (must be 5 digits or 5+4 format)";
                         // City (letters, spaces, hyphens, apostrophes only)
-                        if ((keyLower === "city" || labelLower === "city") && !/^[A-Za-z\s\-'.]+$/.test(val.trim())) errors[field.key] = "City must contain only letters, spaces, hyphens, or apostrophes";
+                        if ((keySeg === "city" || labelLower === "city") && !/^[A-Za-z\s\-'.]+$/.test(val.trim())) errors[field.key] = "City must contain only letters, spaces, hyphens, or apostrophes";
                         // State (letters only, 2-50 chars)
-                        if ((keyLower === "state" || labelLower === "state") && !/^[A-Za-z\s\-'.]{2,50}$/.test(val.trim())) errors[field.key] = "Invalid state value";
+                        if ((keySeg === "state" || labelLower === "state") && !/^[A-Za-z\s\-'.]{2,50}$/.test(val.trim())) errors[field.key] = "Invalid state value";
                         // First/Last name (no numbers)
-                        if ((keyLower === "firstname" || keyLower === "lastname" || keyLower === "first_name" || keyLower === "last_name") && !/^[A-Za-z\s\-'.]+$/.test(val.trim())) errors[field.key] = `${field.label} must contain only letters, spaces, hyphens, or apostrophes`;
+                        if ((keySeg === "firstname" || keySeg === "lastname" || keySeg === "first_name" || keySeg === "last_name") && !/^[A-Za-z\s\-'.]+$/.test(val.trim())) errors[field.key] = `${field.label} must contain only letters, spaces, hyphens, or apostrophes`;
                     }
                 }
             }
@@ -752,7 +755,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                                             <tr
                                                 key={record.id || record.fhirId || idx}
                                                 className="hover:bg-gray-50 cursor-pointer"
-                                                onClick={() => handleView(record)}
+                                                onClick={() => canWrite ? handleEdit(record) : handleView(record)}
                                             >
                                                 {cols.map(col => (
                                                     <td key={col.key} className="px-4 py-2.5 text-gray-700">
