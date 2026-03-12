@@ -18,6 +18,8 @@ interface GenericFhirTabProps {
 
 export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProps) {
     const router = useRouter();
+    // Extract base resource type from tabKey (strip subtab suffix like ">Failed" from "claims>Failed")
+    const resourceKey = tabKey.includes(">") ? tabKey.split(">")[0] : tabKey;
     const [fieldConfig, setFieldConfig] = useState<FieldConfig | null>(null);
     const [records, setRecords] = useState<Record<string, any>[]>([]);
     const [loading, setLoading] = useState(true);
@@ -220,7 +222,11 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     // Fetch field config
     const fetchConfig = useCallback(async () => {
         try {
-            const res = await fetchWithAuth(`${API_BASE()}/api/tab-field-config/${tabKey}`);
+            let res = await fetchWithAuth(`${API_BASE()}/api/tab-field-config/${tabKey}`);
+            // If the full tabKey (e.g. "claims>Failed") fails, try the base resource key (e.g. "claims")
+            if (!res.ok && resourceKey !== tabKey) {
+                res = await fetchWithAuth(`${API_BASE()}/api/tab-field-config/${resourceKey}`);
+            }
             if (res.ok) {
                 const json = await res.json();
                 const config = json.data || json;
@@ -243,7 +249,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         } catch (err) {
             console.error("Error fetching field config", err);
         }
-    }, [tabKey]);
+    }, [tabKey, resourceKey]);
 
     // Convert Java date arrays [year, month, day, h, min, s, ns] to ISO strings
     const mapDateArray = (v: any): string | null => {
@@ -697,7 +703,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (storedOrgId) headers["orgId"] = storedOrgId;
             }
             const res = await fetchWithAuth(
-                `${API_BASE()}/api/fhir-resource/${tabKey}/patient/${patientId}?page=${p}&size=${pageSize}`,
+                `${API_BASE()}/api/fhir-resource/${resourceKey}/patient/${patientId}?page=${p}&size=${pageSize}`,
                 { headers }
             );
             if (res.ok) {
@@ -875,7 +881,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
         try {
             const res = await fetchWithAuth(
-                `${API_BASE()}/api/fhir-resource/${tabKey}/patient/${patientId}/${resourceId}`,
+                `${API_BASE()}/api/fhir-resource/${resourceKey}/patient/${patientId}/${resourceId}`,
                 { method: "DELETE" }
             );
             if (res.ok) {
@@ -988,8 +994,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
 
             const url = isEdit
-                ? `${API_BASE()}/api/fhir-resource/${tabKey}/patient/${patientId}/${resourceId}`
-                : `${API_BASE()}/api/fhir-resource/${tabKey}/patient/${patientId}`;
+                ? `${API_BASE()}/api/fhir-resource/${resourceKey}/patient/${patientId}/${resourceId}`
+                : `${API_BASE()}/api/fhir-resource/${resourceKey}/patient/${patientId}`;
 
             const res = await fetchWithAuth(url, {
                 method: isEdit ? "PUT" : "POST",
@@ -1109,28 +1115,53 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
 
         if (value == null) {
-            // For date/datetime fields, try fallback to alternate key patterns
-            const fieldDef = colKey ? findFieldDef(colKey) : undefined;
-            if (fieldDef && (fieldDef.type === "date" || fieldDef.type === "datetime") && record) {
-                const altKeys = [
-                    colKey + "Date", colKey + "DateTime",
-                    colKey?.replace(/Date$/, ""), colKey?.replace(/date$/i, ""),
-                ];
-                for (const alt of altKeys) {
-                    if (alt && record[alt]) {
+            // Try alternate key patterns for common fields
+            if (colKey && record) {
+                // Common alternate key mappings
+                const altKeyMap: Record<string, string[]> = {
+                    end: ["endTime", "endDate", "endDateTime", "appointmentEnd", "appointmentEndTime", "appointmentEndDate"],
+                    room: ["roomName", "roomNumber", "roomId", "locationRoom", "examRoom"],
+                    start: ["startTime", "startDate", "startDateTime", "appointmentStart", "appointmentStartTime", "appointmentStartDate"],
+                    provider: ["providerName", "providerDisplay", "practitionerName", "treatingProvider"],
+                    patient: ["patientName", "patientDisplay"],
+                    location: ["locationName", "locationDisplay"],
+                };
+                const alts = altKeyMap[colKey] || [];
+                // Also try generic suffixes
+                alts.push(colKey + "Name", colKey + "Display", colKey + "Value", colKey + "Text");
+                for (const alt of alts) {
+                    if (record[alt] != null && record[alt] !== "" && record[alt] !== "null") {
                         const altVal = record[alt];
-                        if (Array.isArray(altVal)) {
+                        if (Array.isArray(altVal) && altVal.length >= 3 && typeof altVal[0] === "number" && altVal[0] > 1900) {
                             const converted = mapDateArray(altVal);
-                            if (converted) {
+                            if (converted) return tryFormatDatetime(converted) || converted;
+                        }
+                        return typeof altVal === "object" ? JSON.stringify(altVal) : String(altVal);
+                    }
+                }
+                // For date/datetime fields, try additional fallback patterns
+                const fieldDef = findFieldDef(colKey);
+                if (fieldDef && (fieldDef.type === "date" || fieldDef.type === "datetime")) {
+                    const dateAlts = [
+                        colKey + "Date", colKey + "DateTime",
+                        colKey?.replace(/Date$/, ""), colKey?.replace(/date$/i, ""),
+                    ];
+                    for (const alt of dateAlts) {
+                        if (alt && record[alt]) {
+                            const altVal = record[alt];
+                            if (Array.isArray(altVal)) {
+                                const converted = mapDateArray(altVal);
+                                if (converted) {
+                                    const formatted = fieldDef.type === "date"
+                                        ? tryFormatDate(converted) : tryFormatDatetime(converted);
+                                    if (formatted) return formatted;
+                                }
+                            } else if (typeof altVal === "string") {
                                 const formatted = fieldDef.type === "date"
-                                    ? tryFormatDate(converted) : tryFormatDatetime(converted);
+                                    ? tryFormatDate(altVal)
+                                    : tryFormatDatetime(altVal);
                                 if (formatted) return formatted;
                             }
-                        } else if (typeof altVal === "string") {
-                            const formatted = fieldDef.type === "date"
-                                ? tryFormatDate(altVal)
-                                : tryFormatDatetime(altVal);
-                            if (formatted) return formatted;
                         }
                     }
                 }

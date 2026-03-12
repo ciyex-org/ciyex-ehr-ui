@@ -150,6 +150,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (!form.patientName.trim()) e.patientName = "Patient name is required";
+    else if (!/^[A-Za-z\s\-'.]+$/.test(form.patientName.trim())) e.patientName = "Patient name must contain only letters, spaces, hyphens, apostrophes, or periods";
     if (!form.medicationName.trim()) e.medicationName = "Medication name is required";
     if (!form.sig.trim()) e.sig = "SIG directions are required";
     if (form.prescriberName && !/^[A-Za-z\s\-'.]+$/.test(form.prescriberName.trim())) e.prescriberName = "Prescriber name must contain only letters";

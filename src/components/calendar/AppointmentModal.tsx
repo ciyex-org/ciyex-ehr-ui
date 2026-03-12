@@ -639,8 +639,9 @@ const AppointmentModal: React.FC = () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(dto),
             });
-            const json = await res.json();
-            if (json.success) {
+            let json;
+            try { json = await res.json(); } catch { json = {}; }
+            if (res.ok && json.success !== false) {
                 setOpen(false);
                 resetForm();
 

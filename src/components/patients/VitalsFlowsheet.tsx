@@ -105,10 +105,14 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
         const h = parseFloat(addForm.heightCm || "");
         if (w > 0 && h > 0) {
             const heightM = h / 100;
-            const calculated = (w / (heightM * heightM)).toFixed(1);
-            if (addForm.bmi !== calculated) {
-                setAddForm(prev => ({ ...prev, bmi: calculated }));
+            if (heightM > 0) {
+                const calculated = (w / (heightM * heightM)).toFixed(1);
+                if (addForm.bmi !== calculated) {
+                    setAddForm(prev => ({ ...prev, bmi: calculated }));
+                }
             }
+        } else if (addForm.bmi) {
+            setAddForm(prev => ({ ...prev, bmi: "" }));
         }
     }, [addForm.weightKg, addForm.heightCm]);
 

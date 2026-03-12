@@ -98,11 +98,9 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
     for (const section of patched.sections) {
         for (let i = 0; i < section.fields.length; i++) {
             const f = section.fields[i];
-            // Referral provider settings: ensure organization field is an editable lookup
+            // Referral provider settings: ensure organization field is editable (text input so users can freely type/change)
             if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName" || f.key === "practice" || f.key === "practiceName" || f.key === "organizationDisplay" || /organ|affil|practice/i.test(f.key) || /organ|affil|practice/i.test(f.label || ""))) {
-                // Preserve existing lookupConfig if present (backend may have correct endpoint)
-                const existingLookup = f.lookupConfig || { endpoint: "/api/fhir-resource/referral-practices", displayField: "name", valueField: "name", searchable: true };
-                const patchedField: any = { ...f, type: "lookup" as const, readOnly: false, disabled: false, editable: true, lookupConfig: existingLookup };
+                const patchedField: any = { ...f, type: "text" as const, readOnly: false, disabled: false, editable: true };
                 delete patchedField.readonly;
                 delete patchedField.isReadOnly;
                 section.fields[i] = patchedField;
@@ -115,9 +113,8 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                 section.fields.push({
                     key: "organization",
                     label: "Organization / Affiliation",
-                    type: "lookup",
+                    type: "text",
                     required: false,
-                    lookupConfig: { endpoint: "/api/fhir-resource/referral-practices", displayField: "name", valueField: "name", searchable: true },
                 } as any);
             }
         }

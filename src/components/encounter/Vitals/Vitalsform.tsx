@@ -38,8 +38,14 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
         const h = parseFloat(heightCm);
         if (w > 0 && h > 0) {
             const heightM = h / 100;
-            const calculated = (w / (heightM * heightM)).toFixed(1);
-            setBmi(calculated);
+            if (heightM > 0) {
+                const calculated = (w / (heightM * heightM)).toFixed(1);
+                setBmi(calculated);
+            } else {
+                setBmi("");
+            }
+        } else {
+            setBmi("");
         }
     }, [weightKg, heightCm]);
 

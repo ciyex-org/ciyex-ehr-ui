@@ -581,12 +581,12 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                 >
                                     <option value="">-- No claim (general payment) --</option>
                                     {claims
-                                        .filter((c, i, arr) => c.id && c.claimNumber && arr.findIndex(x => x.id === c.id || x.claimNumber === c.claimNumber) === i)
+                                        .filter((c, i, arr) => (c.id || c.claimNumber) && arr.findIndex(x => (c.id && x.id === c.id) || (c.claimNumber && x.claimNumber === c.claimNumber)) === i)
                                         .map((c) => {
                                         const bal = Number(c.totalCharges || 0) - Number(c.totalPaid || 0);
                                         return (
-                                            <option key={c.id} value={c.id}>
-                                                {c.claimNumber} &bull; Balance: {formatCurrency(bal)}
+                                            <option key={c.id || c.claimNumber} value={c.id || c.claimNumber || ""}>
+                                                {c.claimNumber || `Claim #${c.id}`} &bull; Balance: {formatCurrency(bal)}
                                             </option>
                                         );
                                     })}
@@ -740,10 +740,10 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                             >
                                 <option value="">-- Choose a claim --</option>
                                 {claims
-                                    .filter((c, i, arr) => c.id && c.claimNumber && arr.findIndex(x => x.id === c.id || x.claimNumber === c.claimNumber) === i)
+                                    .filter((c, i, arr) => (c.id || c.claimNumber) && arr.findIndex(x => (c.id && x.id === c.id) || (c.claimNumber && x.claimNumber === c.claimNumber)) === i)
                                     .map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.claimNumber} &bull; {formatDate(c.dateOfService)} &bull; {c.payerName || "No payer"} &bull; {formatCurrency(c.totalCharges)}
+                                    <option key={c.id || c.claimNumber} value={c.id || c.claimNumber || ""}>
+                                        {c.claimNumber || `Claim #${c.id}`} &bull; {formatDate(c.dateOfService)} &bull; {c.payerName || "No payer"} &bull; {formatCurrency(c.totalCharges)}
                                     </option>
                                 ))}
                             </select>

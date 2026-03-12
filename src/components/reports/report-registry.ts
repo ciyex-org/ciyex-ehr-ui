@@ -172,7 +172,9 @@ const patientDemographics: ReportDefinition = {
     const coverageEndpoints = [
       `${apiUrl}/api/coverages?page=0&size=5000`,
       `${apiUrl}/api/fhir-resource/coverage?page=0&size=5000`,
+      `${apiUrl}/api/fhir-resource/insurance-coverage?page=0&size=5000`,
       `${apiUrl}/api/patient-insurances?page=0&size=5000`,
+      `${apiUrl}/api/insurance-coverages?page=0&size=5000`,
     ];
     for (const endpoint of coverageEndpoints) {
       try {
@@ -193,9 +195,10 @@ const patientDemographics: ReportDefinition = {
             fhirPayorName = p?.display || insurerMap[String(p?.reference || "").split("/").pop() || ""] || "";
           }
           const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
-            insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
+            insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || c.insuranceCompany || "")] ||
             c.subscriberPlan || c.insuranceType || c.companyName || c.name ||
-            c.insuranceCompanyName || c.carrier || c.planDisplay || "";
+            c.insuranceCompanyName || c.carrier || c.planDisplay ||
+            c.insuranceCompanyDisplay || c.payorDisplay || c.coverageName || c.policyHolderName || "";
           if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
         }
         if (Object.keys(patInsurance).length > 0) break; // found data, stop trying endpoints
@@ -364,7 +367,7 @@ const labResults: ReportDefinition = {
       },
       tableData: records.map(o => ({
         id: o.id, orderDate: normDate(o.orderDate || o.orderedDate || o.date || o.createdAt || ""), patient: o.patientName || o.patientId || "",
-        testName: o.testName || o.labTestName || o.name || o.orderName || o.testType || o.labTest || o.orderDetail || o.serviceName || o.code || o.loincCode || o.description || o.test || o.title || o.procedureName || o.serviceDisplay || o.codeDisplay || (Array.isArray(o.tests) && o.tests.length > 0 ? (o.tests[0].name || o.tests[0].testName || o.tests[0].display || o.tests.map((t: any) => t.name || t.testName || t.display || "").filter(Boolean).join(", ")) : "") || (Array.isArray(o.items) && o.items.length > 0 ? o.items.map((t: any) => t.name || t.testName || t.display || "").filter(Boolean).join(", ") : "") || (o.orderItems ? (Array.isArray(o.orderItems) ? o.orderItems.map((t: any) => t.name || t.testName || "").filter(Boolean).join(", ") : "") : "") || "", status: o.status || "",
+        testName: o.testName || o.labTestName || o.name || o.orderName || o.testType || o.labTest || o.orderDetail || o.serviceName || (typeof o.code === "string" ? o.code : o.code?.text || o.code?.display || (Array.isArray(o.code?.coding) && o.code.coding.length > 0 ? (o.code.coding[0].display || o.code.coding[0].code) : "")) || o.loincCode || o.description || o.test || o.title || o.procedureName || o.serviceDisplay || o.codeDisplay || o.testDisplay || o.labTestDisplay || o.orderDisplay || (Array.isArray(o.tests) && o.tests.length > 0 ? (o.tests[0].name || o.tests[0].testName || o.tests[0].display || o.tests.map((t: any) => t.name || t.testName || t.display || "").filter(Boolean).join(", ")) : "") || (Array.isArray(o.items) && o.items.length > 0 ? o.items.map((t: any) => t.name || t.testName || t.display || "").filter(Boolean).join(", ") : "") || (o.orderItems ? (Array.isArray(o.orderItems) ? o.orderItems.map((t: any) => t.name || t.testName || "").filter(Boolean).join(", ") : "") : "") || "", status: o.status || "",
         priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || o.provider || "",
       })),
       totalRecords: records.length,

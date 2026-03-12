@@ -126,11 +126,18 @@ const ClaimManagementDashboard: React.FC = () => {
 
       const res = await fetchWithAuth(`/api/all-claims/${modalClaim.id}/status`, {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || "Failed to update status");
+        let errMsg = "Failed to update status";
+        try {
+          const errJson = await res.json();
+          errMsg = errJson.message || errMsg;
+        } catch {
+          try { errMsg = await res.text() || errMsg; } catch { /* use default */ }
+        }
+        throw new Error(errMsg);
       }
       closeModal();
       setSelectedId(null);

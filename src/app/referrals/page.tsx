@@ -325,13 +325,15 @@ function ReferralFormPanel({
         method: isEdit ? "PUT" : "POST",
         body: JSON.stringify(form),
       });
-      const json = await res.json();
-      if (res.ok && json.success) {
+      let json;
+      try { json = await res.json(); } catch { json = {}; }
+      if (res.ok && json.success !== false) {
         showToast({ type: "success", text: isEdit ? "Referral updated" : "Referral created" });
         onSaved();
         onClose();
       } else {
-        showToast({ type: "error", text: json.message || "Failed to save referral" });
+        const errMsg = json.message || (res.status === 500 ? "Server error — please check that all required fields are filled" : "Failed to save referral");
+        showToast({ type: "error", text: errMsg });
       }
     } catch {
       showToast({ type: "error", text: "Network error saving referral" });

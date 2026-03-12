@@ -102,12 +102,15 @@ export default function AuditLogPage() {
     const params = new URLSearchParams();
     params.set("page", String(page));
     params.set("size", String(pageSize));
+    params.set("sort", "createdAt,desc");
     if (search) params.set("q", search);
     if (actionFilter !== "ALL") params.set("action", actionFilter);
     if (resourceTypeFilter !== "ALL") params.set("resourceType", resourceTypeFilter);
     if (userFilter) params.set("userId", userFilter);
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
     return params;
-  }, [page, pageSize, search, actionFilter, resourceTypeFilter, userFilter]);
+  }, [page, pageSize, search, actionFilter, resourceTypeFilter, userFilter, dateFrom, dateTo]);
 
   // Error state
   const [fetchError, setFetchError] = useState<string | null>(null);

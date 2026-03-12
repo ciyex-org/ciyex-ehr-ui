@@ -81,9 +81,23 @@ export default function FaxQueuePage() {
       const json = await res.json();
       if (json.success) {
         const pd: FaxPageData = json.data;
-        setFaxes(pd.content);
+        let content = pd.content;
+        // Client-side search fallback: if backend doesn't filter by q, filter locally
+        if (searchTerm && content && content.length > 0) {
+          const q = searchTerm.toLowerCase();
+          const filtered = content.filter((f: any) =>
+            (f.recipientName || "").toLowerCase().includes(q) ||
+            (f.senderName || "").toLowerCase().includes(q) ||
+            (f.faxNumber || "").toLowerCase().includes(q) ||
+            (f.subject || "").toLowerCase().includes(q) ||
+            (f.patientName || "").toLowerCase().includes(q)
+          );
+          // Only apply client filter if it actually reduces results (i.e., backend didn't filter)
+          if (filtered.length < content.length) content = filtered;
+        }
+        setFaxes(content);
         setTotalPages(pd.totalPages);
-        setTotalElements(pd.totalElements);
+        setTotalElements(searchTerm && content.length < (pd.totalElements || 0) ? content.length : pd.totalElements);
       }
     } catch (err) {
       console.error("Failed to fetch faxes:", err);
