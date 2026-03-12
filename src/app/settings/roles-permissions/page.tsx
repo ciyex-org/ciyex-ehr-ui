@@ -82,6 +82,10 @@ export default function RolesPermissionsPage() {
   };
 
   const handleQuickScopeUpdate = async (role: RolePermission, newScopes: string[]) => {
+    if (role.roleName === "ADMIN" && newScopes.length === 0) {
+      setToast({ type: "error", text: "Cannot remove all FHIR scopes from ADMIN — this would lock out the organization" });
+      return;
+    }
     try {
       const res = await fetchWithAuth(`${API()}/api/admin/roles/${role.id}`, {
         method: "PUT",
@@ -91,6 +95,8 @@ export default function RolesPermissionsPage() {
       if (res.ok && json.success) {
         setToast({ type: "success", text: "FHIR scopes updated" });
         fetchRoles();
+      } else {
+        setToast({ type: "error", text: json.message || "Failed to update FHIR scopes" });
       }
     } catch {
       setToast({ type: "error", text: "Failed to update FHIR scopes" });
@@ -98,6 +104,10 @@ export default function RolesPermissionsPage() {
   };
 
   const handleQuickPermissionUpdate = async (role: RolePermission, newPermissions: string[]) => {
+    if (role.roleName === "ADMIN" && newPermissions.length === 0) {
+      setToast({ type: "error", text: "Cannot remove all permissions from ADMIN — this would lock out the organization" });
+      return;
+    }
     try {
       const res = await fetchWithAuth(`${API()}/api/admin/roles/${role.id}`, {
         method: "PUT",
@@ -107,6 +117,8 @@ export default function RolesPermissionsPage() {
       if (res.ok && json.success) {
         setToast({ type: "success", text: "Permissions updated" });
         fetchRoles();
+      } else {
+        setToast({ type: "error", text: json.message || "Failed to update permissions" });
       }
     } catch {
       setToast({ type: "error", text: "Failed to update permissions" });

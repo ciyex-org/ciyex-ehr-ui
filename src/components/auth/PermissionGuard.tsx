@@ -18,11 +18,31 @@ interface PermissionGuardProps {
  */
 export default function PermissionGuard({ children }: PermissionGuardProps) {
   const pathname = usePathname();
-  const { hasCategory, loading: permLoading } = usePermissions();
+  const { permissions, hasCategory, loading: permLoading } = usePermissions();
   const { pagePermissionMap, isLoading: menuLoading } = useMenu();
 
   // Wait for both permission and menu data
   if (permLoading || menuLoading) return null;
+
+  // If user has zero permissions, block all screens entirely
+  if (permissions.length === 0) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-6 text-center p-8">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+          <ShieldX className="h-10 w-10 text-red-600 dark:text-red-400" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+            No Access
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 max-w-sm">
+            Your account has no permissions configured. Contact your administrator
+            to set up your role and access rights.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Find the required permission for the current path.
   // Try exact match first, then prefix match (longest wins).
