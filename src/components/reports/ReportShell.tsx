@@ -343,7 +343,7 @@ function DynamicDataFilters({
   const activeCount = Object.values(dataFilters).filter(v => v !== "").length;
 
   return (
-    <div className="flex flex-wrap items-end gap-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 relative z-20">
+    <div className="flex flex-wrap items-end gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 relative z-20">
       <div className="flex items-center gap-2 self-center">
         <Filter className="w-4 h-4 text-blue-500" />
         <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Data Filters</span>
@@ -734,10 +734,50 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
   const allCharts = report.charts;
   const totalChartCount = allCharts.length + autoPieCharts.length;
 
+  const hasDateRange = report.filters.some(f => f.type === "dateRange");
+
   return (
     <div className="flex flex-col gap-4">
-      {/* API Filter bar */}
-      <ApiFilterBar report={report} filters={filters} onChange={setFilters} onGenerate={generate} loading={loading} />
+      {/* Unified filter bar: date range + generate + data filters */}
+      <div className="flex flex-wrap items-end gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+        <Filter className="w-4 h-4 text-slate-400 self-center" />
+        {hasDateRange && (
+          <>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-500">From</label>
+              <input type="date" value={(filters.fromDate as string) || ""} onChange={e => setFilters({ ...filters, fromDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-500">To</label>
+              <input type="date" value={(filters.toDate as string) || ""} onChange={e => setFilters({ ...filters, toDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
+            </div>
+          </>
+        )}
+        {/* Data filters inline (after data is loaded) */}
+        {!loading && result && dynamicFilters.map(f => (
+          <div key={f.key} className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-slate-500">{f.label}</label>
+            <select
+              value={dataFilters[f.key] || ""}
+              onChange={e => handleDataFilterChange(f.key, e.target.value)}
+              className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer appearance-auto ${
+                dataFilters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
+              }`}
+            >
+              <option value="">All {f.label}</option>
+              {f.uniqueValues.map(v => <option key={v} value={v}>{v}</option>)}
+            </select>
+          </div>
+        ))}
+        {!loading && result && Object.values(dataFilters).some(v => v !== "") && (
+          <button onClick={() => setDataFilters({})} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+            <X className="w-3 h-3" /> Clear
+          </button>
+        )}
+        <button onClick={generate} disabled={loading} className="px-5 py-1.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition ml-auto">
+          {loading ? "Loading..." : "Generate"}
+        </button>
+      </div>
 
       {/* Error */}
       {error && (
@@ -756,13 +796,6 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
       {/* Results */}
       {!loading && result && (
         <>
-          {/* Dynamic data filters (auto-detected from data) */}
-          <DynamicDataFilters
-            dynamicFilters={dynamicFilters}
-            dataFilters={dataFilters}
-            onChange={handleDataFilterChange}
-            onClear={() => setDataFilters({})}
-          />
 
           {/* KPIs */}
           <KpiCards kpis={filteredKpis} />
