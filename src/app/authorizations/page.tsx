@@ -219,7 +219,7 @@ export default function PriorAuthorizationsPage() {
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
 
   const [providerQuery, setProviderQuery] = useState("");
-  const [providerResults, setProviderResults] = useState<{ id: string; name?: string; firstName?: string; lastName?: string }[]>([]);
+  const [providerResults, setProviderResults] = useState<{ id: string; name?: string; firstName?: string; lastName?: string; identification?: { firstName?: string; lastName?: string; prefix?: string } }[]>([]);
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
 
   const [insuranceQuery, setInsuranceQuery] = useState("");
@@ -256,10 +256,11 @@ export default function PriorAuthorizationsPage() {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
     debounceSearch("patient", async () => {
       try {
-        const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(patientQuery)}&size=20`);
         if (!res.ok) { console.warn("Patient search failed:", res.status); return; }
         const json = await res.json();
-        setPatientResults(extractList(json));
+        const list = extractList(json);
+        setPatientResults(list);
         setShowPatientDropdown(true);
       } catch (err) { console.warn("Patient search error:", err); }
     });
@@ -273,7 +274,13 @@ export default function PriorAuthorizationsPage() {
         const res = await fetchWithAuth(`${base()}/api/providers?search=${encodeURIComponent(providerQuery)}`);
         if (!res.ok) { console.warn("Provider search failed:", res.status); return; }
         const json = await res.json();
-        setProviderResults(extractList(json));
+        const all = extractList(json);
+        const q = providerQuery.toLowerCase();
+        const filtered = all.filter((p: any) => {
+          const name = getProviderDisplayName(p).toLowerCase();
+          return name.includes(q);
+        });
+        setProviderResults(filtered.length > 0 ? filtered : all);
         setShowProviderDropdown(true);
       } catch (err) { console.warn("Provider search error:", err); }
     });
@@ -327,8 +334,14 @@ export default function PriorAuthorizationsPage() {
   const getPatientDisplayName = (p: typeof patientResults[0]) =>
     p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
 
-  const getProviderDisplayName = (p: typeof providerResults[0]) =>
-    p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+  const getProviderDisplayName = (p: typeof providerResults[0]) => {
+    if (p.name) return p.name;
+    const fn = p.firstName || p.identification?.firstName || "";
+    const ln = p.lastName || p.identification?.lastName || "";
+    const prefix = p.identification?.prefix || "";
+    const full = `${prefix ? prefix + " " : ""}${fn} ${ln}`.trim();
+    return full || String(p.id);
+  };
 
   const autocompleteInputClass = "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
   const dropdownClass = "absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg";
@@ -1566,7 +1579,7 @@ function FormField({
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={`w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500${type === "date" ? " [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer pr-9" : ""}`}
         />
         {type === "date" && (
           <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
