@@ -19,8 +19,14 @@ import "flatpickr/dist/flatpickr.css";
 /* =========================
  * Types
  * ======================= */
-type AppointmentStatus = "Scheduled" | "Confirmed" | "Checked-in" | "Completed";
 type Priority = "Routine" | "Urgent";
+
+interface StatusOption {
+    value: string;
+    label: string;
+    color?: string;
+    order?: number;
+}
 
 type Option<T extends string = string> = { value: T; label: string };
 
@@ -231,7 +237,8 @@ const AppointmentModal: React.FC = () => {
     const fpEndRef = useRef<flatpickr.Instance | null>(null);
 
     const [priority, setPriority] = useState<Priority>("Routine");
-    const [status, setStatus] = useState<AppointmentStatus>("Scheduled");
+    const [status, setStatus] = useState<string>("Scheduled");
+    const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
 
     // Providers & locations
     const [allProviders, setAllProviders] = useState<Option<string>[]>([]);
@@ -394,6 +401,24 @@ const AppointmentModal: React.FC = () => {
                 }
             } catch (err) {
                 console.error("Failed to fetch locations", err);
+            }
+        })();
+    }, [apiUrl]);
+
+    // Status options from API (consistent with Appointment page)
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetchWithAuth(`${apiUrl}/api/appointments/status-options`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const opts: StatusOption[] = (data.data || []).map((o: any) =>
+                        typeof o === "string" ? { value: o, label: o } : o
+                    );
+                    if (opts.length > 0) setStatusOptions(opts);
+                }
+            } catch (e) {
+                console.error("Failed to fetch status options:", e);
             }
         })();
     }, [apiUrl]);
@@ -920,15 +945,13 @@ const AppointmentModal: React.FC = () => {
                         <select
                             value={locationId}
                             onChange={(e) => setLocationId(e.target.value)}
-                            disabled={!providerId || providerLocationOptions.length === 0}
+                            disabled={providerLocationOptions.length === 0}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100 disabled:opacity-60"
                         >
                             <option value="">
-                                {!providerId
-                                    ? "Select provider first"
-                                    : providerLocationOptions.length === 0
-                                        ? "No locations for this provider"
-                                        : "Select a location"}
+                                {providerLocationOptions.length === 0
+                                    ? "No locations available"
+                                    : "Select a location"}
                             </option>
                             {providerLocationOptions.map((l) => (
                                 <option key={l.value} value={l.value}>
@@ -943,13 +966,21 @@ const AppointmentModal: React.FC = () => {
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">Status</label>
                         <select
                             value={status}
-                            onChange={(e) => setStatus(e.target.value as AppointmentStatus)}
+                            onChange={(e) => setStatus(e.target.value)}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         >
-                            <option value="Scheduled">Scheduled</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Checked-in">Checked-in</option>
-                            <option value="Completed">Completed</option>
+                            {statusOptions.length > 0 ? (
+                                statusOptions.map((s) => (
+                                    <option key={s.value} value={s.value}>{s.label}</option>
+                                ))
+                            ) : (
+                                <>
+                                    <option value="Scheduled">Scheduled</option>
+                                    <option value="Confirmed">Confirmed</option>
+                                    <option value="Checked-in">Checked-in</option>
+                                    <option value="Completed">Completed</option>
+                                </>
+                            )}
                         </select>
                     </div>
 

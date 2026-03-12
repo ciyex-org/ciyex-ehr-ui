@@ -46,30 +46,38 @@ export default function FilterMultiSelect({
     } else if (selected.length === 1) {
         const match = options.find((o) => o.value === selected[0]);
         displayText = match?.label ?? `1 ${label}`;
+    } else if (selected.length === options.length) {
+        displayText = `All ${label}`;
     } else {
         displayText = `${selected.length} ${label}`;
     }
 
     const toggleAll = () => {
-        onChange([]); // empty = all
+        if (allSelected) {
+            // "All" is checked → uncheck all: explicitly select all so user can deselect individually
+            onChange(options.map((o) => o.value));
+        } else {
+            // Not all selected → select all
+            onChange([]);
+        }
     };
 
     const toggleOption = (value: string) => {
         if (allSelected) {
-            // Currently all → deselect this one (select all others)
+            // Currently showing all (empty array) → deselect this one = select all others explicitly
             onChange(options.filter((o) => o.value !== value).map((o) => o.value));
         } else if (selected.includes(value)) {
             const next = selected.filter((v) => v !== value);
-            // If deselecting would leave nothing, treat as "all"
             if (next.length === 0) {
+                // Deselected everything → back to "all"
                 onChange([]);
             } else {
                 onChange(next);
             }
         } else {
             const next = [...selected, value];
-            // If selecting all options, collapse to "all"
             if (next.length === options.length) {
+                // Selected all individually → collapse to "all"
                 onChange([]);
             } else {
                 onChange(next);
@@ -79,6 +87,9 @@ export default function FilterMultiSelect({
 
     const isChecked = (value: string) =>
         allSelected || selected.includes(value);
+
+    // "All" checkbox is checked when empty array OR when all are explicitly selected
+    const allCheckboxChecked = allSelected || selected.length === options.length;
 
     return (
         <div ref={ref} className="relative">
@@ -114,7 +125,7 @@ export default function FilterMultiSelect({
                     <label className="flex items-center gap-2 border-b border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 cursor-pointer dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">
                         <input
                             type="checkbox"
-                            checked={allSelected}
+                            checked={allCheckboxChecked}
                             onChange={toggleAll}
                             className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
                         />
