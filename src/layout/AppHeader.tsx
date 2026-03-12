@@ -229,7 +229,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search or type command..."
+                                placeholder="Search patients..."
                                 className="h-11 w-full rounded-lg border border-gray-200 pl-9 pr-14 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-blue-500"
                             />
                             <button

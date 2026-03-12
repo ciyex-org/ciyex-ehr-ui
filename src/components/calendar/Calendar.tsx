@@ -902,7 +902,7 @@ const Calendar: React.FC = () => {
                             extendedProps: {
                                 visitType: a.appointmentType,
                                 providerId: String(providerId),
-                                locationId: locationId || undefined,
+                                locationId: locationId ? String(locationId) : "",
                                 status: a.status as AppointmentStatus,
                                 notes: a.reason,
                                 patientId: String(patientId),
@@ -1440,8 +1440,8 @@ const Calendar: React.FC = () => {
                     String(eventStart.getMonth() + 1).padStart(2, '0') + '-' +
                     String(eventStart.getDate()).padStart(2, '0');
                 if (eventDateStr !== cellDateStr) return false;
-                if (!allProvidersSelected && (!e.extendedProps.providerId || !selectedProviders.includes(e.extendedProps.providerId))) return false;
-                if (!allLocationsSelected && (!e.extendedProps.locationId || !selectedLocations.includes(e.extendedProps.locationId))) return false;
+                if (!allProvidersSelected && (!e.extendedProps.providerId || !selectedProviders.includes(String(e.extendedProps.providerId)))) return false;
+                if (!allLocationsSelected && (!e.extendedProps.locationId || !selectedLocations.includes(String(e.extendedProps.locationId)))) return false;
                 return true;
             }).length;
 
@@ -1653,7 +1653,7 @@ const Calendar: React.FC = () => {
                                         events={events.filter((e) => {
                                             const eProv = e.extendedProps.providerId;
                                             const matchProv = eProv === p.value || !eProv || !visibleProviders.some(vp => vp.value === eProv);
-                                            const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
+                                            const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(String(e.extendedProps.locationId)));
                                             return matchProv && matchLoc;
                                         })}
                                         selectable
@@ -1700,7 +1700,7 @@ const Calendar: React.FC = () => {
                                         events={events.filter((e) => {
                                             const eProv = e.extendedProps.providerId;
                                             const matchProv = eProv === p.value || !eProv || !visibleProviders.some(vp => vp.value === eProv);
-                                            const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
+                                            const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(String(e.extendedProps.locationId)));
                                             return matchProv && matchLoc;
                                         })}
                                         selectable
@@ -1748,10 +1748,10 @@ const Calendar: React.FC = () => {
                                     }}
                                     datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
                                     events={events.filter((e) => {
-                                        const matchProv = singleProviderId
-                                            ? (e.extendedProps.providerId === singleProviderId)
-                                            : true;
-                                        const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(e.extendedProps.locationId));
+                                        const matchProv = allProvidersSelected
+                                            ? true
+                                            : selectedProviders.includes(e.extendedProps.providerId);
+                                        const matchLoc = allLocationsSelected || (e.extendedProps.locationId && selectedLocations.includes(String(e.extendedProps.locationId)));
                                         return matchProv && matchLoc;
                                     })}
                                     selectable

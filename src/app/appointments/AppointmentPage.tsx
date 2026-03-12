@@ -4,8 +4,8 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import {
-  Loader2, Video, RefreshCw, Tv, Monitor, Clock,
-  ChevronDown, ArrowRight, ExternalLink, Activity, FilePlus, FileText, Printer,
+  Loader2, Video, Tv, Monitor, Clock,
+  ChevronDown, ArrowRight, ExternalLink, Activity, FilePlus, FileText, Printer, Download,
 } from "lucide-react";
 import VideoCallModal from "@/components/telehealth/VideoCallModal";
 import { SlideOverPanel } from "@/components/ui/slide-over-panel";
@@ -13,6 +13,7 @@ import DynamicEncounterForm from "@/components/patients/DynamicEncounterForm";
 import PatientChartPanel from "@/components/patients/PatientChartPanel";
 import Encountersummary from "@/components/encounter/summary/Encountersummary";
 import { usePermissions } from "@/context/PermissionContext";
+import * as XLSX from "xlsx";
 
 type PanelState =
   | { mode: "closed" }
@@ -123,6 +124,22 @@ function formatWaitTime(lastModified: string): { text: string; color: string } |
   return { text, color };
 }
 
+/** Calculate duration between start and end time strings (HH:mm) */
+function calcDuration(startTime: string, endTime: string): string {
+  if (!startTime || !endTime) return "";
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return "";
+  const totalMins = (eh * 60 + em) - (sh * 60 + sm);
+  if (totalMins <= 0) return "";
+  if (totalMins >= 60) {
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${totalMins} mins`;
+}
+
 const fetchPatientInfo = async (id: number): Promise<{ name: string; phone?: string }> => {
   try {
     const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
@@ -159,6 +176,45 @@ const REFRESH_OPTIONS = [
   { label: "60s", value: 60000 },
 ];
 
+/** Date preset options for the date filter dropdown */
+const DATE_PRESETS = [
+  { label: "Today", value: "today" },
+  { label: "Last Week", value: "last_week" },
+  { label: "Last Month", value: "last_month" },
+  { label: "Last Year", value: "last_year" },
+  { label: "All Time", value: "all_time" },
+];
+
+function getDateRange(preset: string): { from: string; to: string } {
+  const now = new Date();
+  const fmt = (d: Date) => `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
+  const today = fmt(now);
+
+  switch (preset) {
+    case "today":
+      return { from: today, to: today };
+    case "last_week": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 7);
+      return { from: fmt(d), to: today };
+    }
+    case "last_month": {
+      const d = new Date(now);
+      d.setMonth(d.getMonth() - 1);
+      return { from: fmt(d), to: today };
+    }
+    case "last_year": {
+      const d = new Date(now);
+      d.setFullYear(d.getFullYear() - 1);
+      return { from: fmt(d), to: today };
+    }
+    case "all_time":
+      return { from: "", to: "" };
+    default:
+      return { from: today, to: today };
+  }
+}
+
 export default function AppointmentPage() {
   const { canWriteResource } = usePermissions();
   const canWriteAppointment = canWriteResource("Appointment");
@@ -169,13 +225,9 @@ export default function AppointmentPage() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [location, setLocation] = useState<string>("All Locations");
   const [locations, setLocations] = useState<Location[]>([]);
+  const [datePreset, setDatePreset] = useState<string>("today");
   const [from, setFrom] = useState<string>(() => typeof window !== "undefined" ? todayFormatted() : "");
-  const [to, setTo] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
-  });
+  const [to, setTo] = useState<string>(() => typeof window !== "undefined" ? todayFormatted() : "");
   const [patientName, setPatientName] = useState("");
   const [rows, setRows] = useState<AppointmentDTO[]>([]);
 
@@ -229,6 +281,22 @@ export default function AppointmentPage() {
   }, []);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Close dropdowns on outside click (#13)
+  const refreshRef = useRef<HTMLDivElement>(null);
+  const tvRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (refreshRef.current && !refreshRef.current.contains(e.target as Node)) {
+        setRefreshOpen(false);
+      }
+      if (tvRef.current && !tvRef.current.contains(e.target as Node)) {
+        setTvOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Fetch status options (with metadata)
   useEffect(() => {
@@ -323,8 +391,6 @@ export default function AppointmentPage() {
     })();
   }, []);
 
-  // from/to are initialized with todayFormatted() in useState — no extra effect needed
-
   // Appointments loader — silent=true skips loading spinner (used by auto-refresh)
   const loadAppointments = useCallback(async (silent = false) => {
     if (!silent) setLoadingAppointments(true);
@@ -392,13 +458,14 @@ export default function AppointmentPage() {
     return () => clearInterval(t);
   }, [refreshInterval, loadAppointments]);
 
-  const onRefresh = () => loadAppointments(rows.length > 0); // silent if data already shown
   const onPrint = () => window.print();
 
-  const setTodayFilter = () => {
-    const t = todayFormatted();
-    setFrom(t);
-    setTo(t);
+  // Handle date preset change (#5)
+  const handleDatePreset = (preset: string) => {
+    setDatePreset(preset);
+    const range = getDateRange(preset);
+    setFrom(range.from);
+    setTo(range.to);
     setCurrentPage(1);
   };
 
@@ -564,6 +631,29 @@ export default function AppointmentPage() {
     return type.includes("telehealth") || type.includes("virtual") || type.includes("video");
   };
 
+  // Export to Excel (#16)
+  const exportToExcel = () => {
+    const data = filtered.map((r) => ({
+      "Date": formatToMMDDYYYY(r.appointmentStartDate),
+      "Start Time": r.appointmentStartTime || "",
+      "End Time": r.appointmentEndTime || "",
+      "Duration": calcDuration(r.appointmentStartTime, r.appointmentEndTime),
+      "Patient": r.patientName || "",
+      "MRN": r.patientId,
+      "Phone": r.patientPhone || "",
+      "Provider": r.providerName || providers.find((p) => String(p.id) === String(r.providerId))?.name || "",
+      "Location": locations.find((l) => String(l.id) === String(r.locationId))?.name || "",
+      "Type": r.visitType || "",
+      "Status": getStatusOption(r.status)?.label || r.status,
+      "Room": r.room || "",
+      "Reason": r.reason || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Appointments");
+    XLSX.writeFile(wb, `appointments_${todayISO()}.xlsx`);
+  };
+
   // Render status badge with config-driven color
   const renderStatusBadge = (status: string) => {
     const opt = getStatusOption(status);
@@ -589,7 +679,7 @@ export default function AppointmentPage() {
     <AdminLayout>
       <div className="text-gray-800 dark:text-gray-200">
         {/* Header */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 no-print">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold">Appointments</h1>
             <span className="text-sm text-gray-500">
@@ -597,21 +687,13 @@ export default function AppointmentPage() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {/* Today button */}
-            <button
-              onClick={setTodayFilter}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-            >
-              Today
-            </button>
-
             {/* Auto-refresh dropdown */}
-            <div className="relative">
+            <div ref={refreshRef} className="relative">
               <button
                 onClick={() => setRefreshOpen(!refreshOpen)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-blue-500" : refreshInterval ? "text-green-500" : "text-gray-400"}`} />
+                <svg className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-blue-500" : refreshInterval ? "text-green-500" : "text-gray-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6M1 20v-6h6" strokeLinecap="round" strokeLinejoin="round"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 {REFRESH_OPTIONS.find((o) => o.value === refreshInterval)?.label || "Off"}
                 <ChevronDown className="w-3 h-3" />
               </button>
@@ -632,20 +714,19 @@ export default function AppointmentPage() {
               )}
             </div>
 
-            <button
-              onClick={onRefresh}
-              disabled={loadingAppointments || refreshing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loadingAppointments || refreshing ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
-            <button onClick={onPrint} className="px-3 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
+            <button onClick={onPrint} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
+              <Printer className="w-3.5 h-3.5" />
               Print
             </button>
 
+            {/* Excel Export (#16) */}
+            <button onClick={exportToExcel} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800">
+              <Download className="w-3.5 h-3.5" />
+              Export
+            </button>
+
             {/* TV dropdown */}
-            <div className="relative">
+            <div ref={tvRef} className="relative">
               <button
                 onClick={() => setTvOpen(!tvOpen)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -676,8 +757,14 @@ export default function AppointmentPage() {
           </div>
         </div>
 
-        {/* Filters — compact single row */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
+        {/* Filters — compact single row (#5, #6, #11) */}
+        <div className="flex flex-wrap items-center gap-2 mb-3 no-print">
+          {/* Date preset dropdown (#5) */}
+          <select value={datePreset} onChange={(e) => handleDatePreset(e.target.value)}
+            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 max-w-30">
+            {DATE_PRESETS.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
+          </select>
+
           <select value={category} onChange={(e) => setCategory(e.target.value)}
             className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 max-w-35">
             <option value="All Visit Categories">All Types</option>
@@ -699,18 +786,13 @@ export default function AppointmentPage() {
               locations.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
           </select>
 
-          <input type="text" placeholder="From" value={from} onChange={(e) => setFrom(e.target.value)}
-            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 w-25" />
-
-          <input type="text" placeholder="To" value={to} onChange={(e) => setTo(e.target.value)}
-            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 w-25" />
-
+          {/* Status filter (#6 — label changed to "All Status") */}
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
             className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 max-w-30"
           >
-            <option value="All">All Statuses</option>
+            <option value="All">All Status</option>
             {statusOptions.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
@@ -730,20 +812,20 @@ export default function AppointmentPage() {
           </label>
         </div>
 
-        {/* Table */}
-        <div ref={tableRef} className="overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ maxHeight: 'calc(100vh - 270px)' }}>
+        {/* Table (#7, #8, #9, #10, #14, #15) */}
+        <div ref={tableRef} className="print-appointment-table overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ maxHeight: 'calc(100vh - 270px)' }}>
           <table className="w-full table-auto">
             <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-5">
               <tr>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Time</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">End</th>
+                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Patient</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Provider</th>
+                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Location</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Room</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Wait</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase no-print">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -770,6 +852,7 @@ export default function AppointmentPage() {
                   // Wait time for active statuses
                   const showWait = ["arrived", "checked-in"].includes(r.status);
                   const waitInfo = showWait ? formatWaitTime(r.audit?.lastModifiedDate || r._lastUpdated || "") : null;
+                  const duration = calcDuration(r.appointmentStartTime, r.appointmentEndTime);
 
                   return (
                     <tr
@@ -778,15 +861,15 @@ export default function AppointmentPage() {
                         isCancelled ? "opacity-50" : ""
                       }`}
                     >
-                      {/* Time */}
+                      {/* Date (#8 — Date first with start-end time + duration) */}
                       <td className="py-1.5 px-3 text-sm whitespace-nowrap">
-                        <div className="font-medium">{r.appointmentStartTime || "—"}</div>
-                        <div className="text-xs text-gray-400">{formatToMMDDYYYY(r.appointmentStartDate)}</div>
-                      </td>
-
-                      {/* End */}
-                      <td className="py-1.5 px-3 text-sm whitespace-nowrap">
-                        {r.appointmentEndTime || "—"}
+                        <div className="font-medium">{formatToMMDDYYYY(r.appointmentStartDate)}</div>
+                        <div className="text-xs text-gray-500">
+                          {r.appointmentStartTime || "—"} - {r.appointmentEndTime || "—"}
+                        </div>
+                        {duration && (
+                          <div className="text-xs text-gray-400">{duration}</div>
+                        )}
                       </td>
 
                       {/* Patient */}
@@ -803,9 +886,14 @@ export default function AppointmentPage() {
                         )}
                       </td>
 
-                      {/* Provider */}
+                      {/* Provider (#9 — always show name, never raw ID) */}
                       <td className="py-1.5 px-3 text-sm">
                         {r.providerName || providers.find((p) => String(p.id) === String(r.providerId))?.name || "—"}
+                      </td>
+
+                      {/* Location (#10) */}
+                      <td className="py-1.5 px-3 text-sm">
+                        {locations.find((l) => String(l.id) === String(r.locationId))?.name || "—"}
                       </td>
 
                       {/* Type */}
@@ -906,7 +994,7 @@ export default function AppointmentPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-1.5 px-3 text-sm">
+                      <td className="py-1.5 px-3 text-sm no-print">
                         <div className="flex items-center gap-1.5">
                           {isVirtualAppointment(r.visitType) && (
                             <button
@@ -977,7 +1065,7 @@ export default function AppointmentPage() {
 
         {/* Status summary bar */}
         {!loadingAppointments && filtered.length > 0 && (
-          <div className="flex items-center gap-4 mt-1 px-2 text-xs text-gray-500">
+          <div className="flex items-center gap-4 mt-1 px-2 text-xs text-gray-500 no-print">
             {statusOptions
               .filter((s) => s.color)
               .map((s) => {
@@ -994,7 +1082,7 @@ export default function AppointmentPage() {
         )}
 
         {/* Pagination */}
-        <div className="mt-1 flex items-center justify-between px-3 py-1.5 border-t bg-white dark:bg-gray-900 dark:border-gray-700 text-sm rounded-b-lg">
+        <div className="mt-1 flex items-center justify-between px-3 py-1.5 border-t bg-white dark:bg-gray-900 dark:border-gray-700 text-sm rounded-b-lg no-print">
           <div className="flex items-center gap-3">
             <button disabled={currentPage === 1 || loadingAppointments} onClick={handlePrevious}
               className="px-3 py-1.5 border rounded disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 text-sm">

@@ -810,3 +810,22 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
 .text-\[13px\] { font-size: calc(13px * var(--text-scale, 1)); }
 .text-\[15px\] { font-size: calc(15px * var(--text-scale, 1)); }
 
+/* Print styles — only show appointment table */
+@media print {
+  body * { visibility: hidden !important; }
+  .print-appointment-table,
+  .print-appointment-table * { visibility: visible !important; }
+  .print-appointment-table {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .print-appointment-table table {
+    width: 100% !important;
+  }
+  .no-print { display: none !important; }
+}
+
