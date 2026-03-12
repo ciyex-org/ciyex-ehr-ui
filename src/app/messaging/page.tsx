@@ -21,6 +21,7 @@ export default function MessagingPage() {
   const [replyingTo, setReplyingTo] = useState<MessageItem | null>(null);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [availableUsers, setAvailableUsers] = useState<{ id: string; name: string }[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Derive current user from token
   const currentUser = useMemo(() => {
@@ -98,23 +99,32 @@ export default function MessagingPage() {
   // Load available users (for DM user picker + channel creation)
   const loadUsers = useCallback(async () => {
     try {
-      const res = await fetchWithAuth(`${API_URL()}/api/providers?status=ACTIVE`);
+      const res = await fetchWithAuth(`${API_URL()}/api/providers?status=ACTIVE&size=200`);
       if (res.ok) {
         const json = await res.json();
-        const providers = json.data || json.content || json || [];
-        const users = (Array.isArray(providers) ? providers : [])
+        // Handle both paginated { data: { content: [...] } } and flat { data: [...] } responses
+        const payload = json.data || json;
+        const providers = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.content)
+            ? payload.content
+            : [];
+        const users = providers
           .map((p: Record<string, unknown>) => {
             // Use keycloakUserId (Keycloak subject UUID) as the user ID for messaging
             const systemAccess = p.systemAccess as Record<string, unknown> | undefined;
             const keycloakId = systemAccess?.keycloakUserId
               ? String(systemAccess.keycloakUserId)
-              : "";
-            const name = p.identification
-              ? `${(p.identification as Record<string, string>).firstName || ""} ${(p.identification as Record<string, string>).lastName || ""}`.trim()
+              : (p["systemAccess.keycloakUserId"] ? String(p["systemAccess.keycloakUserId"]) : "");
+            // Fallback: use provider fhirId if no keycloak ID
+            const userId = keycloakId || (p.fhirId ? String(p.fhirId) : (p.id ? String(p.id) : ""));
+            const identification = p.identification as Record<string, string> | undefined;
+            const name = identification
+              ? `${identification.firstName || ""} ${identification.lastName || ""}`.trim()
               : String(p.name || p.displayName || "Unknown");
-            return { id: keycloakId, name };
+            return { id: userId, name };
           })
-          .filter((u: { id: string; name: string }) => u.id); // Only include users with a Keycloak account
+          .filter((u: { id: string; name: string }) => u.id && u.name && u.name !== "Unknown");
         setAvailableUsers(users);
       }
     } catch {
@@ -150,6 +160,11 @@ export default function MessagingPage() {
     setReplyingTo(null);
   }, []);
 
+  const showError = useCallback((msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(null), 5000);
+  }, []);
+
   const handleStartDm = useCallback(async (targetUserId: string, targetUserName: string) => {
     try {
       const channel = await api.startDm(targetUserId, targetUserName);
@@ -157,11 +172,14 @@ export default function MessagingPage() {
         // Reload channels to include the new/existing DM
         await loadChannels();
         dispatch({ type: "SET_ACTIVE_CHANNEL", channelId: channel.id });
+      } else {
+        showError("Failed to start conversation. Please try again.");
       }
     } catch (err) {
       console.error("Failed to start DM:", err);
+      showError("Failed to start conversation. Please try again.");
     }
-  }, [loadChannels]);
+  }, [loadChannels, showError]);
 
   const handleSendMessage = useCallback(async (content: string) => {
     if (!state.activeChannelId) return;
@@ -179,8 +197,9 @@ export default function MessagingPage() {
       setReplyingTo(null);
     } catch (err) {
       console.error("Failed to send message:", err);
+      showError("Failed to send message. Please try again.");
     }
-  }, [state.activeChannelId, replyingTo, loadMessages]);
+  }, [state.activeChannelId, replyingTo, loadMessages, showError]);
 
   const handleSendThreadReply = useCallback(async (content: string) => {
     if (!state.activeChannelId || !state.activeThreadId) return;
@@ -261,10 +280,11 @@ export default function MessagingPage() {
         dispatch({ type: "SET_ACTIVE_CHANNEL", channelId: channel.id });
       }
       loadChannels();
-    } catch {
-      console.error("Failed to create channel");
+    } catch (err) {
+      console.error("Failed to create channel:", err);
+      showError("Failed to create channel. Please try again.");
     }
-  }, [loadChannels]);
+  }, [loadChannels, showError]);
 
   const handleAttachFile = useCallback(async (files: File[]) => {
     if (!state.activeChannelId || files.length === 0) return;
@@ -316,6 +336,13 @@ export default function MessagingPage() {
   return (
     <AdminLayout>
       <div className="flex h-full overflow-hidden bg-white dark:bg-gray-900">
+        {/* Error banner */}
+        {error && (
+          <div className="absolute top-2 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700 shadow-md">
+            {error}
+            <button onClick={() => setError(null)} className="ml-3 font-medium hover:text-red-900">&times;</button>
+          </div>
+        )}
         {/* Channel Sidebar — DMs first */}
         <ChannelSidebar
           channels={state.channels}

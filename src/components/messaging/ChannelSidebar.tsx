@@ -70,7 +70,7 @@ export default function ChannelSidebar({
   };
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+    <div className="relative flex h-full w-64 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
       {/* Header */}
       <div className="flex h-[49px] items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
         <div className="flex items-center gap-2">
