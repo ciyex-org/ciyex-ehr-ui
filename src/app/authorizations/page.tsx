@@ -223,7 +223,7 @@ export default function PriorAuthorizationsPage() {
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
 
   const [insuranceQuery, setInsuranceQuery] = useState("");
-  const [insuranceResults, setInsuranceResults] = useState<{ id: string; name?: string; insuranceName?: string; payerName?: string; insuranceId?: string }[]>([]);
+  const [insuranceResults, setInsuranceResults] = useState<{ id: string; name?: string; insuranceName?: string; payerName?: string; payerId?: string; externalId?: string; fhirId?: string }[]>([]);
   const [showInsuranceDropdown, setShowInsuranceDropdown] = useState(false);
 
   const [diagnosisQuery, setDiagnosisQuery] = useState("");
@@ -315,7 +315,7 @@ export default function PriorAuthorizationsPage() {
     if (!procedureQuery.trim() || procedureQuery.length < 2) { setProcedureResults([]); return; }
     debounceSearch("procedure", async () => {
       try {
-        const res = await fetchWithAuth(`${base()}/api/global_codes/search?q=${encodeURIComponent(procedureQuery)}&codeType=CPT`);
+        const res = await fetchWithAuth(`${base()}/api/global_codes/search?q=${encodeURIComponent(procedureQuery)}&codeType=CPT4`);
         if (!res.ok) { console.warn("Procedure search failed:", res.status); return; }
         const json = await res.json();
         setProcedureResults(extractList(json));
@@ -1040,13 +1040,13 @@ export default function PriorAuthorizationsPage() {
                                 type="button"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => {
-                                  setFormData({ ...formData, insuranceName: displayName, insuranceId: ins.insuranceId || String(ins.id) });
+                                  setFormData({ ...formData, insuranceName: displayName, insuranceId: ins.payerId || ins.externalId || ins.fhirId || String(ins.id) });
                                   setInsuranceQuery(displayName);
                                   setShowInsuranceDropdown(false);
                                 }}
                                 className={dropdownItemClass}
                               >
-                                {displayName} <span className="text-xs text-gray-400">({ins.insuranceId || ins.id})</span>
+                                {displayName} <span className="text-xs text-gray-400">({ins.payerId || ins.externalId || ins.id})</span>
                               </button>
                             );
                           })}
