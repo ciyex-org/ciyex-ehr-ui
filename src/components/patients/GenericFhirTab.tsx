@@ -691,8 +691,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         setLoading(true);
         setError(null);
         try {
+            const headers: HeadersInit = {};
+            if (typeof window !== "undefined") {
+                const storedOrgId = localStorage.getItem("orgId");
+                if (storedOrgId) headers["orgId"] = storedOrgId;
+            }
             const res = await fetchWithAuth(
-                `${API_BASE()}/api/fhir-resource/${tabKey}/patient/${patientId}?page=${p}&size=${pageSize}`
+                `${API_BASE()}/api/fhir-resource/${tabKey}/patient/${patientId}?page=${p}&size=${pageSize}`,
+                { headers }
             );
             if (res.ok) {
                 const json = await res.json();

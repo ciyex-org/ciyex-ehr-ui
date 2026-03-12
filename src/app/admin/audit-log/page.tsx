@@ -109,36 +109,58 @@ export default function AuditLogPage() {
     return params;
   }, [page, pageSize, search, actionFilter, resourceTypeFilter, userFilter]);
 
+  // Error state
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   // Fetch logs
   const fetchLogs = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params = buildParams();
-      const res = await fetchWithAuth(apiUrl(`/api/audit-log?${params.toString()}`));
-      if (!res.ok) throw new Error("Failed to fetch audit logs");
+      // Try primary endpoint first
+      let res = await fetchWithAuth(apiUrl(`/api/audit-log?${params.toString()}`));
+      // Fallback endpoints if primary fails
+      if (!res.ok) {
+        const fallbacks = [
+          apiUrl(`/api/audit-logs?${params.toString()}`),
+          apiUrl(`/api/admin/audit-log?${params.toString()}`),
+          apiUrl(`/api/fhir-resource/audit-log?${params.toString()}`),
+        ];
+        for (const fb of fallbacks) {
+          try {
+            const fbRes = await fetchWithAuth(fb);
+            if (fbRes.ok) { res = fbRes; break; }
+          } catch { /* try next */ }
+        }
+      }
+      if (!res.ok) throw new Error(`Failed to fetch audit logs (HTTP ${res.status})`);
       const json = await res.json();
       const responseData = json.data ?? json;
       if (json.success !== false && responseData) {
-        const content: AuditLogEntry[] = responseData.content ?? (Array.isArray(responseData) ? responseData : []);
+        const content: AuditLogEntry[] = responseData.content ?? (Array.isArray(responseData) ? responseData : responseData.items ?? responseData.records ?? []);
         setLogs(content);
-        setTotalElements(responseData.totalElements ?? content.length ?? 0);
-        setTotalPages(responseData.totalPages ?? (content.length > 0 ? 1 : 0));
+        setTotalElements(responseData.totalElements ?? responseData.total ?? content.length ?? 0);
+        setTotalPages(responseData.totalPages ?? (responseData.totalElements ? Math.ceil(responseData.totalElements / pageSize) : (content.length > 0 ? 1 : 0)));
 
         // Collect distinct resource types for filter dropdown (use functional update to avoid stale closure)
         const newTypes = content
           .map((entry: AuditLogEntry) => entry.resourceType)
           .filter((rt): rt is string => Boolean(rt));
         setResourceTypes((prev) => Array.from(new Set([...prev, ...newTypes])).sort());
+      } else {
+        throw new Error(json.message || "Failed to fetch audit logs");
       }
     } catch (err) {
       console.error("Failed to fetch audit logs:", err);
+      setFetchError(err instanceof Error ? err.message : "Failed to fetch audit logs");
       setLogs([]);
       setTotalElements(0);
       setTotalPages(0);
     } finally {
       setLoading(false);
     }
-  }, [buildParams]);
+  }, [buildParams, pageSize]);
 
   useEffect(() => {
     fetchLogs();
@@ -271,6 +293,16 @@ export default function AuditLogPage() {
             onExport={handleExport}
           />
         </div>
+
+        {/* Error banner */}
+        {fetchError && (
+          <div className="flex-shrink-0 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300 flex items-center justify-between">
+            <span>{fetchError}</span>
+            <button onClick={fetchLogs} className="ml-3 px-3 py-1 bg-red-100 dark:bg-red-900/40 rounded hover:bg-red-200 dark:hover:bg-red-900/60 text-xs font-medium">
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Table */}
         <AuditTable

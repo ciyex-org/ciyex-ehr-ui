@@ -1776,11 +1776,48 @@ export default function DynamicFormRenderer({
     }
 
     if (field.type === "computed") {
+      let computedValue = value;
+      // Auto-calculate BMI from weight and height fields in formData
+      if (/bmi/i.test(field.key) || /body.?mass/i.test(field.label || "")) {
+        const w = parseFloat(formData.weightKg ?? formData.weight ?? formData.Weight ?? formData.weightLbs ?? "");
+        const h = parseFloat(formData.heightCm ?? formData.height ?? formData.Height ?? formData.heightIn ?? "");
+        if (w > 0 && h > 0) {
+          // Assume cm and kg by default; convert if field key hints at lbs/inches
+          const isLbs = /lbs|pounds/i.test(String(formData.weightUnit ?? ""));
+          const isInches = /in|inches/i.test(String(formData.heightUnit ?? ""));
+          const weightKg = isLbs ? w * 0.453592 : w;
+          const heightM = isInches ? h * 0.0254 : h / 100;
+          if (heightM > 0) {
+            computedValue = (weightKg / (heightM * heightM)).toFixed(1);
+            // Persist the computed value back to formData
+            if (String(formData[field.key]) !== computedValue) {
+              setTimeout(() => onChange(field.key, computedValue), 0);
+            }
+          }
+        }
+      }
+      // Evaluate generic computeExpression if present and no special handler matched
+      if (computedValue == null && field.computeExpression) {
+        try {
+          const expr = field.computeExpression.replace(/\{(\w+)\}/g, (_: string, k: string) => {
+            const v = formData[k];
+            return v != null ? String(v) : "0";
+          });
+          computedValue = new Function(`return (${expr})`)();
+          if (typeof computedValue === "number") computedValue = computedValue.toFixed(1);
+          if (String(formData[field.key]) !== String(computedValue)) {
+            setTimeout(() => onChange(field.key, computedValue), 0);
+          }
+        } catch { /* ignore invalid expressions */ }
+      }
+      const bmiVal = /bmi/i.test(field.key) ? parseFloat(String(computedValue)) : NaN;
+      const bmiStatus = !isNaN(bmiVal) ? (bmiVal < 18.5 ? { label: "Underweight", color: "text-blue-600" } : bmiVal < 25 ? { label: "Normal", color: "text-green-600" } : bmiVal < 30 ? { label: "Overweight", color: "text-amber-600" } : { label: "Obese", color: "text-red-600" }) : null;
       return (
         <div key={field.key} className={`col-span-${field.colSpan || 1}`}>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{field.label}</label>
           <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-            {value != null ? value : "-"}
+            {computedValue != null && computedValue !== "" ? computedValue : "-"}
+            {bmiStatus && <span className={`ml-2 text-xs font-medium ${bmiStatus.color}`}>({bmiStatus.label})</span>}
           </span>
         </div>
       );

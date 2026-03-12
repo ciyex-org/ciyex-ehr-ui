@@ -99,11 +99,12 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
         for (let i = 0; i < section.fields.length; i++) {
             const f = section.fields[i];
             // Referral provider settings: ensure organization field is an editable lookup
-            if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName")) {
+            if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName" || f.key === "practice" || f.key === "practiceName" || f.key === "organizationDisplay" || /organ|affil|practice/i.test(f.key) || /organ|affil|practice/i.test(f.label || ""))) {
                 // Preserve existing lookupConfig if present (backend may have correct endpoint)
                 const existingLookup = f.lookupConfig || { endpoint: "/api/fhir-resource/referral-practices", displayField: "name", valueField: "name", searchable: true };
-                const patchedField = { ...f, type: "lookup" as const, readOnly: false, disabled: false, lookupConfig: existingLookup };
-                delete (patchedField as any).readonly;
+                const patchedField: any = { ...f, type: "lookup" as const, readOnly: false, disabled: false, editable: true, lookupConfig: existingLookup };
+                delete patchedField.readonly;
+                delete patchedField.isReadOnly;
                 section.fields[i] = patchedField;
             }
         }

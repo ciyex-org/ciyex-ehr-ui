@@ -581,7 +581,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                 >
                                     <option value="">-- No claim (general payment) --</option>
                                     {claims
-                                        .filter((c, i, arr) => c.id && c.claimNumber && arr.findIndex(x => x.id === c.id) === i)
+                                        .filter((c, i, arr) => c.id && c.claimNumber && arr.findIndex(x => x.id === c.id || x.claimNumber === c.claimNumber) === i)
                                         .map((c) => {
                                         const bal = Number(c.totalCharges || 0) - Number(c.totalPaid || 0);
                                         return (
@@ -740,7 +740,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                             >
                                 <option value="">-- Choose a claim --</option>
                                 {claims
-                                    .filter((c, i, arr) => c.id && c.claimNumber && arr.findIndex(x => x.id === c.id) === i)
+                                    .filter((c, i, arr) => c.id && c.claimNumber && arr.findIndex(x => x.id === c.id || x.claimNumber === c.claimNumber) === i)
                                     .map((c) => (
                                     <option key={c.id} value={c.id}>
                                         {c.claimNumber} &bull; {formatDate(c.dateOfService)} &bull; {c.payerName || "No payer"} &bull; {formatCurrency(c.totalCharges)}

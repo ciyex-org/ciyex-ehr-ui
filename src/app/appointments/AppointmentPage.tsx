@@ -549,7 +549,7 @@ export default function AppointmentPage() {
     });
   }, [rows, from, to, provider, category, location, patientName, hideCompleted, statusOptions]);
 
-  const colCount = 8;
+  const colCount = 9;
   const total = filtered.length;
   const handlePrevious = () => currentPage > 1 && setCurrentPage(currentPage - 1);
   const handleNext = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
@@ -736,6 +736,7 @@ export default function AppointmentPage() {
             <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-5">
               <tr>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Time</th>
+                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">End</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Patient</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Provider</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
@@ -781,6 +782,11 @@ export default function AppointmentPage() {
                       <td className="py-1.5 px-3 text-sm whitespace-nowrap">
                         <div className="font-medium">{r.appointmentStartTime || "—"}</div>
                         <div className="text-xs text-gray-400">{formatToMMDDYYYY(r.appointmentStartDate)}</div>
+                      </td>
+
+                      {/* End */}
+                      <td className="py-1.5 px-3 text-sm whitespace-nowrap">
+                        {r.appointmentEndTime || "—"}
                       </td>
 
                       {/* Patient */}

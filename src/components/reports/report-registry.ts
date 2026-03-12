@@ -194,7 +194,8 @@ const patientDemographics: ReportDefinition = {
           }
           const insName = c.payerName || c.insurerName || c.planName || fhirPayorName ||
             insurerMap[String(c.insuranceCompanyId || c.payerId || c.insurer || "")] ||
-            c.subscriberPlan || c.insuranceType || c.companyName || c.name || "";
+            c.subscriberPlan || c.insuranceType || c.companyName || c.name ||
+            c.insuranceCompanyName || c.carrier || c.planDisplay || "";
           if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
         }
         if (Object.keys(patInsurance).length > 0) break; // found data, stop trying endpoints
@@ -238,7 +239,7 @@ const patientDemographics: ReportDefinition = {
           dob,
           ageGroup: ageGroup(dob),
           status: p.status || "Active",
-          insurance: patInsurance[String(p.id)] || p.insurance || p.insurancePlan || "",
+          insurance: patInsurance[String(p.id)] || patInsurance[String(p.fhirId)] || p.insurance || p.insurancePlan || p.insuranceName || p.primaryInsurance || p.insuranceCompany || "",
         };
       }),
       totalRecords: records.length,
@@ -363,7 +364,7 @@ const labResults: ReportDefinition = {
       },
       tableData: records.map(o => ({
         id: o.id, orderDate: normDate(o.orderDate || o.orderedDate || o.date || o.createdAt || ""), patient: o.patientName || o.patientId || "",
-        testName: o.testName || o.labTestName || o.name || o.orderName || o.testType || o.labTest || o.orderDetail || o.serviceName || o.code || o.loincCode || o.description || o.test || o.title || "", status: o.status || "",
+        testName: o.testName || o.labTestName || o.name || o.orderName || o.testType || o.labTest || o.orderDetail || o.serviceName || o.code || o.loincCode || o.description || o.test || o.title || o.procedureName || o.serviceDisplay || o.codeDisplay || (Array.isArray(o.tests) && o.tests.length > 0 ? (o.tests[0].name || o.tests[0].testName || o.tests[0].display || o.tests.map((t: any) => t.name || t.testName || t.display || "").filter(Boolean).join(", ")) : "") || (Array.isArray(o.items) && o.items.length > 0 ? o.items.map((t: any) => t.name || t.testName || t.display || "").filter(Boolean).join(", ") : "") || (o.orderItems ? (Array.isArray(o.orderItems) ? o.orderItems.map((t: any) => t.name || t.testName || "").filter(Boolean).join(", ") : "") : "") || "", status: o.status || "",
         priority: o.priority || "Routine", provider: o.providerName || o.orderingProvider || o.orderedBy || o.practitionerName || o.provider || "",
       })),
       totalRecords: records.length,
