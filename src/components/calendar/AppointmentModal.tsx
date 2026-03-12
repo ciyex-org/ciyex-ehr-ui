@@ -383,22 +383,30 @@ const AppointmentModal: React.FC = () => {
         })();
     }, [apiUrl]);
 
-    // All locations
+    // All locations — try /api/locations first, fallback to /api/fhir-resource/facilities
     useEffect(() => {
         (async () => {
-            try {
-                const res = await fetchWithAuth(`${apiUrl}/api/locations`);
+            const tryParse = async (res: Response): Promise<Location[]> => {
                 const json = await res.json();
-                // Handle multiple response formats
                 const locationData = json?.data?.content || json?.data || json?.content || (Array.isArray(json) ? json : []);
-                const list: Location[] = Array.isArray(locationData) ? locationData : [];
-                if (list.length > 0) {
-                    const opts = list.map((l) => ({
-                        value: String(l.id),
-                        label: `${l.name || ""}${l.address ? ` - ${l.address}` : ""}`,
-                    }));
-                    setAllLocations(opts);
+                return Array.isArray(locationData) ? locationData : [];
+            };
+            try {
+                let list: Location[] = [];
+                const res = await fetchWithAuth(`${apiUrl}/api/locations`);
+                if (res.ok) list = await tryParse(res);
+                // Fallback: try generic FHIR facilities endpoint
+                if (list.length === 0) {
+                    const res2 = await fetchWithAuth(`${apiUrl}/api/fhir-resource/facilities?size=100`);
+                    if (res2.ok) list = await tryParse(res2);
                 }
+                const opts = list
+                    .filter((l) => l.id)
+                    .map((l) => ({
+                        value: String(l.id),
+                        label: `${l.name || ""}${l.address ? ` - ${l.address}` : ""}`.trim() || `Location #${l.id}`,
+                    }));
+                setAllLocations(opts);
             } catch (err) {
                 console.error("Failed to fetch locations", err);
             }

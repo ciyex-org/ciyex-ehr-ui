@@ -216,6 +216,32 @@ export default function Campaigns() {
               </div>
             )}
 
+            {/* Recipients */}
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
+                Recipients
+              </label>
+              <textarea
+                rows={3}
+                value={
+                  form.targetCriteria?.recipientEmails
+                    ? String(form.targetCriteria.recipientEmails)
+                    : ""
+                }
+                onChange={(e) =>
+                  updateForm("targetCriteria", {
+                    ...(form.targetCriteria || {}),
+                    recipientEmails: e.target.value,
+                  })
+                }
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                placeholder="Enter recipient emails, one per line or comma-separated"
+              />
+              <p className="text-xs text-slate-400 mt-1">
+                Enter patient emails separated by commas or newlines
+              </p>
+            </div>
+
             {/* Body */}
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">

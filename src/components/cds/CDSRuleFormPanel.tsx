@@ -42,7 +42,8 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
 
   useEffect(() => {
     if (rule) {
-      setForm({ ...rule });
+      // Normalize active/isActive field from backend (Java may return 'active' instead of 'isActive')
+      setForm({ ...rule, isActive: rule.isActive ?? (rule as any).active ?? false });
     } else {
       setForm({
         name: "", description: "", ruleType: "preventive_screening", category: "preventive",
@@ -243,7 +244,7 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
           <div className="flex items-center gap-3">
             <label className="relative inline-flex items-center cursor-pointer">
               <input
-                type="checkbox" checked={form.isActive ?? true}
+                type="checkbox" checked={form.isActive ?? false}
                 onChange={(e) => set("isActive", e.target.checked)}
                 className="sr-only peer"
               />

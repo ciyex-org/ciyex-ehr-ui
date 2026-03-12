@@ -98,12 +98,29 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
     for (const section of patched.sections) {
         for (let i = 0; i < section.fields.length; i++) {
             const f = section.fields[i];
+            const keyLower = f.key.toLowerCase();
             // Referral provider settings: ensure organization field is editable (text input so users can freely type/change)
             if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName" || f.key === "practice" || f.key === "practiceName" || f.key === "organizationDisplay" || /organ|affil|practice/i.test(f.key) || /organ|affil|practice/i.test(f.label || ""))) {
                 const patchedField: any = { ...f, type: "text" as const, readOnly: false, disabled: false, editable: true };
                 delete patchedField.readonly;
                 delete patchedField.isReadOnly;
                 section.fields[i] = patchedField;
+            }
+            // Provider photo/image field: restrict to image types only
+            if (/provider/i.test(pageKey) && (keyLower === "photo" || keyLower === "image" || keyLower === "profilephoto" || keyLower === "avatar")) {
+                section.fields[i] = {
+                    ...f,
+                    type: "file" as any,
+                    fileConfig: {
+                        ...(f as any).fileConfig,
+                        allowedTypes: ["image/jpeg", "image/png", "image/gif", "image/webp", "jpg", "jpeg", "png", "gif", "webp"],
+                        maxSizeMB: 5,
+                    },
+                } as any;
+            }
+            // Referral provider specialty: ensure it's a select/combobox if it has options
+            if (/referral.*provider/i.test(pageKey) && keyLower === "specialty" && f.type === "text") {
+                section.fields[i] = { ...f, type: "combobox" as any } as any;
             }
         }
         // Referral providers: add organization field if it doesn't exist
@@ -380,15 +397,29 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                     }
                 }
             }
-            // Format validation for typed fields
+            // Format validation for typed fields and key-based validation
             for (const section of fieldConfig.sections) {
                 for (const field of section.fields) {
                     const val = formData[field.key];
                     if (typeof val === "string" && val.trim()) {
-                        if (field.type === "email" && !isValidEmail(val)) errors[field.key] = "Invalid email format";
-                        if (field.type === "phone" && !isValidPhone(val)) errors[field.key] = "Invalid phone number";
-                        if ((field.key.toLowerCase().includes("fax")) && !isValidFax(val)) errors[field.key] = "Invalid fax number";
-                        if ((field.key.toLowerCase().includes("website") || field.key.toLowerCase().includes("url")) && !isValidUrl(val)) errors[field.key] = "Invalid URL (must start with http:// or https://)";
+                        const keyLower = field.key.toLowerCase();
+                        const labelLower = (field.label || "").toLowerCase();
+                        // Email
+                        if ((field.type === "email" || keyLower.includes("email")) && !isValidEmail(val)) errors[field.key] = "Invalid email format";
+                        // Phone
+                        if ((field.type === "phone" || keyLower === "phone" || keyLower.includes("phonenumber") || keyLower === "contactphone" || labelLower.includes("phone")) && !isValidPhone(val)) errors[field.key] = "Invalid phone number (digits, spaces, dashes, parentheses only)";
+                        // Fax
+                        if (keyLower.includes("fax") && !isValidFax(val)) errors[field.key] = "Invalid fax number";
+                        // URL
+                        if ((keyLower.includes("website") || keyLower.includes("url")) && !isValidUrl(val)) errors[field.key] = "Invalid URL (must start with http:// or https://)";
+                        // Zip code
+                        if ((keyLower === "zip" || keyLower === "zipcode" || keyLower === "postalcode" || keyLower.includes("zipcode") || labelLower.includes("zip")) && !/^\d{5}(-\d{4})?$/.test(val.trim())) errors[field.key] = "Invalid zip code (must be 5 digits or 5+4 format)";
+                        // City (letters, spaces, hyphens, apostrophes only)
+                        if ((keyLower === "city" || labelLower === "city") && !/^[A-Za-z\s\-'.]+$/.test(val.trim())) errors[field.key] = "City must contain only letters, spaces, hyphens, or apostrophes";
+                        // State (letters only, 2-50 chars)
+                        if ((keyLower === "state" || labelLower === "state") && !/^[A-Za-z\s\-'.]{2,50}$/.test(val.trim())) errors[field.key] = "Invalid state value";
+                        // First/Last name (no numbers)
+                        if ((keyLower === "firstname" || keyLower === "lastname" || keyLower === "first_name" || keyLower === "last_name") && !/^[A-Za-z\s\-'.]+$/.test(val.trim())) errors[field.key] = `${field.label} must contain only letters, spaces, hyphens, or apostrophes`;
                     }
                 }
             }

@@ -163,13 +163,19 @@ export default function CalendarColorSettings() {
             try {
                 const res = await fetchWithAuth(`${API}/api/fhir-resource/providers?size=100`);
                 const json = await res.json();
-                if (json?.success && json?.data?.content) {
-                    const opts = (json.data.content as Record<string, unknown>[])
-                        .filter((p) => p["systemAccess.status"] === "true" || p["systemAccess.status"] === "ACTIVE")
-                        .map((p) => ({
-                            value: String(p.id),
-                            label: `${p["identification.firstName"] || ""} ${p["identification.lastName"] || ""}`.trim(),
-                        }));
+                const content = json?.data?.content || json?.data || (Array.isArray(json) ? json : []);
+                if (Array.isArray(content) && content.length > 0) {
+                    const opts = (content as Record<string, unknown>[])
+                        .map((p) => {
+                            const first = p["identification.firstName"] || (p.identification as any)?.firstName || p.firstName || "";
+                            const last = p["identification.lastName"] || (p.identification as any)?.lastName || p.lastName || "";
+                            const label = `${first} ${last}`.trim();
+                            return {
+                                value: String(p.id || p.fhirId),
+                                label: label || p.name as string || p.displayName as string || `Provider #${p.id}`,
+                            };
+                        })
+                        .filter((o) => o.value && o.label);
                     setProviderOptions(opts);
                 }
             } catch (err) {

@@ -186,7 +186,38 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
   const [form, setForm] = useState<Consent>(blankConsent());
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (open) setForm(consent ? { ...consent } : blankConsent()); }, [open, consent]);
+  // Patient search
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: number; firstName?: string; lastName?: string; fullName?: string; name?: string; identification?: { firstName?: string; lastName?: string } | null }[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const c = consent ? { ...consent } : blankConsent();
+      setForm(c);
+      setPatientQuery(c.patientName || "");
+      setPatientResults([]);
+      setShowPatientDropdown(false);
+    }
+  }, [open, consent]);
+
+  // Debounced patient search
+  useEffect(() => {
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl(`/api/patients?search=${encodeURIComponent(patientQuery)}`));
+        const json = await res.json();
+        let list: any[] = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(list.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [patientQuery]);
+
   useEffect(() => {
     if (!open) return;
     const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -196,6 +227,21 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
   }, [open, onClose]);
 
   const set = (field: keyof Consent, value: string | number) => setForm((p) => ({ ...p, [field]: value }));
+
+  const getPatientDisplayName = (p: any) => {
+    if (p.fullName) return p.fullName;
+    if (p.name) return p.name;
+    const first = (p.firstName ?? p.identification?.firstName ?? "").trim();
+    const last = (p.lastName ?? p.identification?.lastName ?? "").trim();
+    return `${first} ${last}`.trim();
+  };
+
+  const selectPatient = (p: any) => {
+    const name = getPatientDisplayName(p);
+    setForm((prev) => ({ ...prev, patientId: p.id, patientName: name }));
+    setPatientQuery(name);
+    setShowPatientDropdown(false);
+  };
 
   const handleSave = async () => {
     if (!form.patientName.trim()) { showToast({ type: "error", text: "Patient name is required" }); return; }
@@ -232,13 +278,39 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
+            <div className="sm:col-span-2 relative">
               <label className={labelCls}>Patient Name *</label>
-              <input className={inputCls} value={form.patientName} onChange={(e) => set("patientName", e.target.value)} placeholder="Enter patient name" />
+              <input
+                className={inputCls}
+                value={patientQuery}
+                onChange={(e) => {
+                  setPatientQuery(e.target.value);
+                  set("patientName", e.target.value);
+                  set("patientId", "");
+                  setShowPatientDropdown(true);
+                }}
+                onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
+                placeholder="Search patient by name..."
+              />
+              {showPatientDropdown && patientResults.length > 0 && (
+                <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg max-h-48 overflow-auto">
+                  {patientResults.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectPatient(p)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-100"
+                    >
+                      {getPatientDisplayName(p)} <span className="text-xs text-gray-400">#{p.id}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className={labelCls}>Patient ID *</label>
-              <input className={inputCls} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="Enter patient ID" />
+              <input className={inputCls} value={form.patientId} readOnly placeholder="Auto-filled from search" />
             </div>
             <div>
               <label className={labelCls}>Consent Type</label>

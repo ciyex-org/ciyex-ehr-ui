@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Loader2, Send } from "lucide-react";
 import { SendFaxForm, FaxCategory, CATEGORY_LABELS, FaxMessage } from "./types";
 import { isValidFax } from "@/utils/validation";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 
 interface Props {
   open: boolean;
@@ -23,6 +25,31 @@ const EMPTY_FORM: SendFaxForm = {
 };
 
 export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Props) {
+  const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<any[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+
+  // Debounced patient search
+  useEffect(() => {
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(`${apiUrl}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const json = await res.json();
+        let list: any[] = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(list.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [patientQuery, apiUrl]);
+
+  const getPatientName = (p: any) =>
+    p.fullName || p.name || `${p.firstName ?? p.identification?.firstName ?? ""} ${p.lastName ?? p.identification?.lastName ?? ""}`.trim();
+
   const [form, setForm] = useState<SendFaxForm>(() => {
     if (resendFax) {
       return {
@@ -41,8 +68,11 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
   const [faxError, setFaxError] = useState("");
 
   // Reset form when panel opens with a new resendFax or fresh
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
+      setPatientQuery(resendFax?.patientName || "");
+      setPatientResults([]);
+      setShowPatientDropdown(false);
       if (resendFax) {
         setForm({
           recipientName: resendFax.recipientName || "",
@@ -167,19 +197,44 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
             />
           </div>
 
-          {/* Patient Name */}
-          <div>
+          {/* Patient Name - with search */}
+          <div className="relative">
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
               Patient Name
               <span className="text-gray-400 ml-1">(optional)</span>
             </label>
             <input
               type="text"
-              value={form.patientName}
-              onChange={(e) => update("patientName", e.target.value)}
+              value={patientQuery || form.patientName}
+              onChange={(e) => {
+                setPatientQuery(e.target.value);
+                update("patientName", e.target.value);
+                setShowPatientDropdown(true);
+              }}
+              onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
               className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="John Doe"
+              placeholder="Search patient by name..."
             />
+            {showPatientDropdown && patientResults.length > 0 && (
+              <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg max-h-48 overflow-auto">
+                {patientResults.map((p: any) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      const name = getPatientName(p);
+                      update("patientName", name);
+                      setPatientQuery(name);
+                      setShowPatientDropdown(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-100"
+                  >
+                    {getPatientName(p)} <span className="text-xs text-gray-400">#{p.id}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Category */}
