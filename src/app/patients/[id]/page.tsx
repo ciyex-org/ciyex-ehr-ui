@@ -581,9 +581,9 @@ export default function PatientDashboardPage() {
             <div className="pageScroll bg-gray-50 h-full -m-4 md:-m-6 flex flex-col">
                 {/* Patient header bar */}
                 <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-                    <div className="flex items-center justify-between px-4 py-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
                         {/* Left: back + patient info */}
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                             <Link
                                 href="/patients"
                                 className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
@@ -593,24 +593,24 @@ export default function PatientDashboardPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                                 </svg>
                             </Link>
-                            <div className="flex items-center gap-2.5 min-w-0">
-                                <h1 className="text-base font-semibold text-gray-900 truncate">
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
+                                <h1 className="text-base font-semibold text-gray-900 truncate max-w-[200px] sm:max-w-none">
                                     {patient.firstName} {patient.lastName}
                                 </h1>
                                 {patient.mrn && (
                                     <span className="text-xs text-gray-400 shrink-0">MRN: {patient.mrn}</span>
                                 )}
-                                <span className="text-gray-300 shrink-0">|</span>
+                                <span className="text-gray-300 shrink-0 hidden sm:inline">|</span>
                                 <span className="text-xs text-gray-500 shrink-0">
                                     {formatDateLocal(patient.dateOfBirth)} ({calculateAgeLocal(patient.dateOfBirth)}y)
                                 </span>
                                 {patient.gender && (
                                     <>
-                                        <span className="text-gray-300 shrink-0">|</span>
+                                        <span className="text-gray-300 shrink-0 hidden sm:inline">|</span>
                                         <span className="text-xs text-gray-500 shrink-0">{patient.gender}</span>
                                     </>
                                 )}
-                                <span className="text-gray-300 shrink-0">|</span>
+                                <span className="text-gray-300 shrink-0 hidden sm:inline">|</span>
                                 <span className="text-xs text-gray-500 shrink-0">{patient.phoneNumber || "\u2014"}</span>
                                 {patient.status && (
                                     <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${
@@ -624,20 +624,22 @@ export default function PatientDashboardPage() {
                             </div>
                         </div>
                         {/* Right: action buttons */}
-                        <div className="flex items-center gap-2 shrink-0 ml-4">
+                        <div className="flex items-center gap-2 shrink-0">
                             <Link
                                 href={`/patients/${patient.id}/encounters/new`}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-md hover:bg-blue-700"
                             >
                                 <Plus className="w-3.5 h-3.5" />
-                                New Encounter
+                                <span className="hidden sm:inline">New Encounter</span>
+                                <span className="sm:hidden">Encounter</span>
                             </Link>
                             <button
                                 onClick={() => onTabClick("appointments")}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-gray-600 text-xs font-medium rounded-md border border-gray-300 hover:bg-gray-50"
                             >
                                 <CalendarDays className="w-3.5 h-3.5" />
-                                Schedule Appointment
+                                <span className="hidden sm:inline">Schedule Appointment</span>
+                                <span className="sm:hidden">Schedule</span>
                             </button>
                             <PluginSlot name="patient-chart:action-bar" context={{ patientId: patient.id }} as="fragment" />
                         </div>
