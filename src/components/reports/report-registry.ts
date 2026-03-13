@@ -168,20 +168,16 @@ const patientDemographics: ReportDefinition = {
       insurerMap[String(co.id)] = co.name || co.companyName || "";
       if (co.fhirId) insurerMap[String(co.fhirId)] = co.name || co.companyName || "";
     }
-    // Try multiple coverage/insurance endpoints
+    // Try bulk coverage endpoints first (with beneficiary→patient mapping)
     const coverageEndpoints = [
-      `${apiUrl}/api/coverages?page=0&size=5000`,
-      `${apiUrl}/api/fhir-resource/coverage?page=0&size=5000`,
       `${apiUrl}/api/fhir-resource/insurance-coverage?page=0&size=5000`,
-      `${apiUrl}/api/patient-insurances?page=0&size=5000`,
-      `${apiUrl}/api/insurance-coverages?page=0&size=5000`,
+      `${apiUrl}/api/coverages?page=0&size=5000`,
     ];
     for (const endpoint of coverageEndpoints) {
       try {
         const coverages = await safeFetch(endpoint, fetchFn);
         if (coverages.length === 0) continue;
         for (const c of coverages) {
-          // FHIR Coverage: beneficiary is "Patient/{id}", extract the ID
           let pid = String(c.patientId || c.beneficiaryId || c.patientFhirId || "");
           if (!pid && c.beneficiary) {
             const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
@@ -192,7 +188,6 @@ const patientDemographics: ReportDefinition = {
             if (subRef.includes("Patient/")) pid = subRef.split("Patient/").pop() || "";
           }
           if (!pid) continue;
-          // Handle FHIR payor array: payor[0].display or payor[0].reference
           let fhirPayorName = "";
           if (Array.isArray(c.payor) && c.payor.length > 0) {
             const p = c.payor[0];
@@ -205,8 +200,27 @@ const patientDemographics: ReportDefinition = {
             c.insuranceCompanyDisplay || c.payorDisplay || c.coverageName || c.policyHolderName || "";
           if (insName && !patInsurance[pid]) patInsurance[pid] = insName;
         }
-        if (Object.keys(patInsurance).length > 0) break; // found data, stop trying endpoints
+        if (Object.keys(patInsurance).length > 0) break;
       } catch { /* endpoint may not exist */ }
+    }
+    // If bulk endpoints didn't map coverages to patients, fetch per-patient (batch of 20 concurrent)
+    if (Object.keys(patInsurance).length === 0 && records.length > 0) {
+      const batchSize = 20;
+      for (let i = 0; i < records.length; i += batchSize) {
+        const batch = records.slice(i, i + batchSize);
+        const results = await Promise.allSettled(
+          batch.map(p => safeFetch(
+            `${apiUrl}/api/fhir-resource/insurance-coverage/patient/${p.id}?page=0&size=1`, fetchFn
+          ).then(covs => ({ pid: String(p.id), covs })))
+        );
+        for (const r of results) {
+          if (r.status === "fulfilled" && r.value.covs.length > 0) {
+            const c = r.value.covs[0];
+            const insName = c.payerName || c.planName || c.insuranceType || c.companyName || "";
+            if (insName) patInsurance[r.value.pid] = insName;
+          }
+        }
+      }
     }
     // Also try to extract insurance from patient records directly
     for (const p of records) {
