@@ -182,10 +182,14 @@ const patientDemographics: ReportDefinition = {
         if (coverages.length === 0) continue;
         for (const c of coverages) {
           // FHIR Coverage: beneficiary is "Patient/{id}", extract the ID
-          let pid = String(c.patientId || c.beneficiaryId || "");
+          let pid = String(c.patientId || c.beneficiaryId || c.patientFhirId || "");
           if (!pid && c.beneficiary) {
             const benRef = typeof c.beneficiary === "string" ? c.beneficiary : c.beneficiary?.reference || "";
             if (benRef.includes("Patient/")) pid = benRef.split("Patient/").pop() || "";
+          }
+          if (!pid && c.subscriber) {
+            const subRef = typeof c.subscriber === "string" ? c.subscriber : c.subscriber?.reference || "";
+            if (subRef.includes("Patient/")) pid = subRef.split("Patient/").pop() || "";
           }
           if (!pid) continue;
           // Handle FHIR payor array: payor[0].display or payor[0].reference

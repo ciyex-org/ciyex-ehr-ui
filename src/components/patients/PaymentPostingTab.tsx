@@ -131,8 +131,9 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     const [cardExpiry, setCardExpiry] = useState("");
     const [cardCvc, setCardCvc] = useState("");
 
-    // Fetch claims from RCM
+    // Fetch claims from RCM with FHIR fallback
     const fetchClaims = useCallback(async () => {
+        // Try RCM service first
         try {
             const res = await fetchWithAuth(
                 `/api/app-proxy/ciyex-rcm/api/rcm/claims/patient/${patientId}`
@@ -141,10 +142,40 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                 const data = await res.json();
                 const pageData = data.data || data;
                 const content = pageData.content || (Array.isArray(pageData) ? pageData : []);
-                setClaims(content);
+                if (content.length > 0) {
+                    setClaims(content);
+                    return;
+                }
             }
         } catch {
-            // RCM may not be available
+            // RCM may not be available, try FHIR fallback
+        }
+        // Fallback: fetch claims from FHIR resource
+        try {
+            const res = await fetchWithAuth(
+                `/api/fhir-resource/billing/patient/${patientId}?page=0&size=100`
+            );
+            if (res.ok) {
+                const data = await res.json();
+                const pageData = data.data || data;
+                const content = pageData.content || (Array.isArray(pageData) ? pageData : []);
+                if (content.length > 0) {
+                    // Map FHIR claims to ClaimSummary format
+                    const mapped = content.map((c: any) => ({
+                        id: c.id || c.fhirId,
+                        claimNumber: c.claimNumber || c.id || c.fhirId,
+                        dateOfService: c.serviceDate || c.dateOfService || c.created || "",
+                        payerName: c.payerName || c.insurer || c.insurerDisplay || "",
+                        totalCharges: c.totalAmount || c.amount || c.total || 0,
+                        providerName: c.provider || c.providerName || c.providerDisplay || "",
+                        status: c.status || "",
+                    }));
+                    setClaims(mapped);
+                    return;
+                }
+            }
+        } catch {
+            // ignore
         }
     }, [patientId]);
 
@@ -529,7 +560,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
                             >
                                 <Plus className="w-3.5 h-3.5" />
-                                Post Insurance
+                                Post Payment
                             </button>
                         </div>
                     )}

@@ -1810,15 +1810,30 @@ export default function DynamicFormRenderer({
           }
         } catch { /* ignore invalid expressions */ }
       }
-      const bmiVal = /bmi/i.test(field.key) ? parseFloat(String(computedValue)) : NaN;
+      const isBmiField = /bmi/i.test(field.key) || /body.?mass/i.test(field.label || "");
+      const bmiVal = isBmiField ? parseFloat(String(computedValue)) : NaN;
       const bmiStatus = !isNaN(bmiVal) ? (bmiVal < 18.5 ? { label: "Underweight", color: "text-blue-600" } : bmiVal < 25 ? { label: "Normal", color: "text-green-600" } : bmiVal < 30 ? { label: "Overweight", color: "text-amber-600" } : { label: "Obese", color: "text-red-600" }) : null;
+      const hasComputedValue = computedValue != null && computedValue !== "" && computedValue !== "0";
       return (
         <div key={field.key} className={`col-span-${field.colSpan || 1}`}>
           <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{field.label}</label>
-          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-            {computedValue != null && computedValue !== "" ? computedValue : "-"}
-            {bmiStatus && <span className={`ml-2 text-xs font-medium ${bmiStatus.color}`}>({bmiStatus.label})</span>}
-          </span>
+          {hasComputedValue ? (
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              {computedValue}
+              {bmiStatus && <span className={`ml-2 text-xs font-medium ${bmiStatus.color}`}>({bmiStatus.label})</span>}
+            </span>
+          ) : readOnly ? (
+            <span className="text-sm text-gray-400">{isBmiField ? "Enter weight & height to calculate" : "-"}</span>
+          ) : (
+            <input
+              type="number"
+              step="0.1"
+              value={value || ""}
+              onChange={(e) => onChange(field.key, e.target.value)}
+              placeholder={isBmiField ? "Auto-calculated or enter manually" : "Enter value"}
+              className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          )}
         </div>
       );
     }

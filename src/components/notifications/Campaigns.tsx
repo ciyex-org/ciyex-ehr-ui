@@ -88,9 +88,14 @@ export default function Campaigns() {
     if (!form) return;
     setSaving(true);
     try {
+      // Backend expects targetCriteria as a JSON string, not an object
+      const payload = { ...form };
+      if (payload.targetCriteria && typeof payload.targetCriteria === "object") {
+        (payload as any).targetCriteria = JSON.stringify(payload.targetCriteria);
+      }
       const res = await fetchWithAuth("/api/notifications/campaigns", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       showToast(res.ok, res.ok ? "Campaign created" : "Create failed");
       if (res.ok) {

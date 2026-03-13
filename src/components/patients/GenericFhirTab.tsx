@@ -316,6 +316,10 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.start == null && r.dateTime != null) r.start = r.dateTime;
         if (r.start == null && r.startDate != null) r.start = r.startDate;
         if (r.end == null && r.appointmentEnd != null) r.end = r.appointmentEnd;
+        if (r.end == null && r.appointmentEndDate != null) {
+            // Combine appointmentEndDate + appointmentEndTime into a datetime string
+            r.end = r.appointmentEndTime ? `${r.appointmentEndDate}T${r.appointmentEndTime}` : r.appointmentEndDate;
+        }
         if (r.end == null && r.endDate != null) r.end = r.endDate;
         // Calculate end from start + minutesDuration (FHIR standard)
         if (r.end == null && r.start != null && (r.minutesDuration != null || r.duration != null || r.durationMinutes != null)) {
