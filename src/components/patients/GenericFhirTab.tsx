@@ -190,6 +190,18 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "id", searchable: true } };
                     }
                 }
+                // Encounters: ensure patient field is a patient lookup
+                if ((tabKey === "encounters" || tabKey === "encounter") && (f.key === "patient" || f.key === "patientId" || f.key === "patientName" || f.key === "subject")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/patients", displayField: "name", valueField: "id", searchable: true } };
+                    }
+                }
+                // Encounters: ensure provider field is a provider lookup
+                if ((tabKey === "encounters" || tabKey === "encounter") && (f.key === "provider" || f.key === "practitioner" || f.key === "providerId")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
                 // Appointments: ensure provider/practitioner field is a provider lookup
                 if (tabKey === "appointments" && (f.key === "provider" || f.key === "providerId" || f.key === "practitioner" || f.key === "practitionerId")) {
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
@@ -986,7 +998,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         setError(null);
         try {
             const isEdit = (mode === "edit") && selectedRecord;
-            const resourceId = isEdit ? (selectedRecord!.id || selectedRecord!.fhirId) : null;
+            const resourceId = isEdit ? (selectedRecord!.fhirId || selectedRecord!.id) : null;
 
             // Pre-save: include orgId header for tenant partitioning (fixes issue 22 reports)
             const saveHeaders: HeadersInit = { "Content-Type": "application/json" };
@@ -1033,9 +1045,25 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (payload.relationshipType && !payload.relationType) payload.relationType = payload.relationshipType;
                 if (payload.relatedPersonName && !payload.relatedPatientName) payload.relatedPatientName = payload.relatedPersonName;
             }
-            if (tabKey === "issues" || tabKey === "conditions" || tabKey === "problems") {
+            if (tabKey === "issues" || tabKey === "conditions" || tabKey === "problems" || tabKey === "medicalproblems" || tabKey === "medical-problems") {
                 if (payload.onsetDate && !payload.onsetDateTime) payload.onsetDateTime = payload.onsetDate;
                 if (payload.onset && !payload.onsetDate) payload.onsetDate = payload.onset;
+                // Ensure code/condition has coding system to prevent 422 "Coding has no system"
+                if (payload.code && typeof payload.code === "string") {
+                    payload.code = wrapCoding(payload.code, "http://snomed.info/sct");
+                }
+                if (payload.condition && typeof payload.condition === "string") {
+                    payload.condition = wrapCoding(payload.condition, "http://snomed.info/sct");
+                }
+                if (!payload.clinicalStatus) {
+                    payload.clinicalStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-clinical", code: "active", display: "Active" }] };
+                }
+                if (!payload.verificationStatus) {
+                    payload.verificationStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-ver-status", code: "confirmed", display: "Confirmed" }] };
+                }
+                if (!payload.category) {
+                    payload.category = [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "problem-list-item", display: "Problem List Item" }] }];
+                }
             }
             if (tabKey === "allergies") {
                 if (payload.severity && !payload.criticality) payload.criticality = payload.severity;
@@ -1070,22 +1098,40 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (payload.type && typeof payload.type === "string") {
                     payload.type = [wrapCoding(payload.type, "http://terminology.hl7.org/CodeSystem/v3-RoleCode")];
                 }
+                // Wrap any coding-like string fields
+                if (payload.physicalType && typeof payload.physicalType === "string") {
+                    payload.physicalType = wrapCoding(payload.physicalType, "http://terminology.hl7.org/CodeSystem/location-physical-type");
+                }
+                if (!payload.status) payload.status = "active";
             }
 
-            // Issue 7: Clinical alerts — add system to code and ensure required fields
+            // Issue 7: Clinical alerts — add system to code and ensure required fields (Flag resource)
             if (tabKey === "clinical-alerts" || tabKey === "alerts" || tabKey === "clinicalalerts") {
                 if (payload.code && typeof payload.code === "string") {
                     payload.code = wrapCoding(payload.code, "http://snomed.info/sct");
                 }
                 if (!payload.status) payload.status = "active";
+                // Flag.subject is required (minimum = 1)
+                if (!payload.subject) {
+                    payload.subject = { reference: `Patient/${patientId}` };
+                }
                 if (!payload.category) {
-                    payload.category = [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "encounter-diagnosis", display: "Encounter Diagnosis" }] }];
+                    payload.category = [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/flag-category", code: "clinical", display: "Clinical" }] }];
                 }
-                if (!payload.verificationStatus) {
-                    payload.verificationStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-ver-status", code: "confirmed" }] };
+                // Validate end date is not before start date
+                if (payload.startDate && payload.endDate && payload.endDate < payload.startDate) {
+                    setValidationErrors({ endDate: "End date cannot be earlier than start date" });
+                    setError("End date cannot be earlier than start date");
+                    setSaving(false);
+                    return;
                 }
-                if (!payload.clinicalStatus) {
-                    payload.clinicalStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-clinical", code: "active" }] };
+                if (payload.period) {
+                    if (typeof payload.period === "object") {
+                        if (!payload.period.start && payload.startDate) payload.period.start = payload.startDate;
+                        if (!payload.period.end && payload.endDate) payload.period.end = payload.endDate;
+                    }
+                } else if (payload.startDate || payload.endDate) {
+                    payload.period = { start: payload.startDate, end: payload.endDate };
                 }
             }
 
@@ -1105,6 +1151,38 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 }
             }
 
+            // Referral tab — ServiceRequest.intent is required
+            if (tabKey === "referral" || tabKey === "referrals") {
+                if (!payload.intent) payload.intent = "order";
+                if (!payload.status) payload.status = "active";
+                if (!payload.subject) payload.subject = { reference: `Patient/${patientId}` };
+                if (payload.code && typeof payload.code === "string") {
+                    payload.code = wrapCoding(payload.code, "http://snomed.info/sct");
+                }
+                if (payload.reasonCode && typeof payload.reasonCode === "string") {
+                    payload.reasonCode = [wrapCoding(payload.reasonCode, "http://snomed.info/sct")];
+                }
+            }
+
+            // Medication tab — MedicationRequest.intent is required
+            if (tabKey === "medications" || tabKey === "medication") {
+                if (!payload.intent) payload.intent = "order";
+                if (!payload.status) payload.status = "active";
+                if (!payload.subject) payload.subject = { reference: `Patient/${patientId}` };
+                if (payload.medicationCodeableConcept && typeof payload.medicationCodeableConcept === "string") {
+                    payload.medicationCodeableConcept = wrapCoding(payload.medicationCodeableConcept, "http://www.nlm.nih.gov/research/umls/rxnorm");
+                }
+                if (payload.medication_name && typeof payload.medication_name === "string" && !payload.medicationCodeableConcept) {
+                    payload.medicationCodeableConcept = wrapCoding(payload.medication_name, "http://www.nlm.nih.gov/research/umls/rxnorm");
+                }
+            }
+
+            // Education tab — ensure proper structure
+            if (tabKey === "education" || tabKey === "patient-education") {
+                if (!payload.status) payload.status = "completed";
+                if (!payload.subject) payload.subject = { reference: `Patient/${patientId}` };
+            }
+
             // Issue 9 via generic tab: Appointments — add participant + wrap appointmentType
             if (tabKey === "appointments") {
                 if (payload.appointmentType && typeof payload.appointmentType === "string") {
@@ -1117,7 +1195,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
 
             // Issue 4: Insurance Coverage — ensure period/coding structures
-            if (tabKey === "insurance-coverage") {
+            if (tabKey === "insurance-coverage" || tabKey === "insurance") {
                 if (payload.policyEffectiveDate && !payload.coverageStartDate) payload.coverageStartDate = payload.policyEffectiveDate;
                 if (payload.policyEndDate && !payload.coverageEndDate) payload.coverageEndDate = payload.policyEndDate;
                 if (payload.effectiveDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.effectiveDate;
@@ -1127,6 +1205,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 // Wrap type in CodeableConcept if it's a plain string
                 if (payload.type && typeof payload.type === "string") {
                     payload.type = wrapCoding(payload.type, "http://terminology.hl7.org/CodeSystem/v3-ActCode");
+                }
+                // Wrap class/planType in CodeableConcept if it's a plain string
+                if (payload.class && typeof payload.class === "string") {
+                    payload.class = [{ type: wrapCoding("plan", "http://terminology.hl7.org/CodeSystem/coverage-class"), value: payload.class }];
+                }
+                // Wrap relationship coding
+                if (payload.relationship && typeof payload.relationship === "string") {
+                    payload.relationship = wrapCoding(payload.relationship, "http://terminology.hl7.org/CodeSystem/subscriber-relationship");
                 }
             }
 
@@ -1240,7 +1326,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 setSuccessMsg(`Record ${label} successfully`);
                 setTimeout(() => setSuccessMsg(null), 3000);
                 // Brief delay for FHIR server search indexing after create/update
-                if (!isEdit) await new Promise(r => setTimeout(r, 3000));
+                await new Promise(r => setTimeout(r, isEdit ? 1000 : 3000));
+                setPage(0);
                 await fetchRecords(0);
             } else {
                 const err = await res.json().catch(() => null);

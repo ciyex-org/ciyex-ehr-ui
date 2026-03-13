@@ -832,29 +832,39 @@ const AppointmentModal: React.FC = () => {
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             Start time
                         </label>
-                        <input
-                            type="time"
-                            step="60"
-                            value={startTime}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setStartTime(val);
-                                if (val) setEndTime(addMinutes(val, 15));
-                            }}
-                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                        />
+                        <div className="relative">
+                            <input
+                                type="time"
+                                step="60"
+                                value={startTime}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setStartTime(val);
+                                    if (val) setEndTime(addMinutes(val, 15));
+                                }}
+                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </span>
+                        </div>
                     </div>
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             End time
                         </label>
-                        <input
-                            type="time"
-                            step="60"
-                            value={endTime}
-                            onChange={(e) => setEndTime(e.target.value)}
-                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                        />
+                        <div className="relative">
+                            <input
+                                type="time"
+                                step="60"
+                                value={endTime}
+                                onChange={(e) => setEndTime(e.target.value)}
+                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                            />
+                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </span>
+                        </div>
                     </div>
 
                     {/* Priority */}

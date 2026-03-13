@@ -108,8 +108,13 @@ export default function PatientListPage() {
     };
 
     useEffect(() => {
-        const recent = JSON.parse(localStorage.getItem("recentPatients") || "[]");
-        setRecentPatients(recent);
+        const recent: Patient[] = JSON.parse(localStorage.getItem("recentPatients") || "[]");
+        // Filter out deleted/inactive patients from recent list
+        const filtered = recent.filter((p) => p.status !== "Inactive" && p.status !== "Deleted");
+        if (filtered.length !== recent.length) {
+            localStorage.setItem("recentPatients", JSON.stringify(filtered));
+        }
+        setRecentPatients(filtered);
     }, []);
 
     const formatDate = (dateString: string) => {
@@ -270,6 +275,12 @@ export default function PatientListPage() {
             );
             const body = await res.json();
             if (!body.success) throw new Error(body.message || "Failed to update status");
+            // Remove deactivated patients from recent list
+            if (newStatus === "Inactive") {
+                const updatedRecent = recentPatients.filter((p) => p.id !== patient.id);
+                setRecentPatients(updatedRecent);
+                localStorage.setItem("recentPatients", JSON.stringify(updatedRecent));
+            }
             fetchPatients(currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter);
         } catch (err: unknown) {
             alert(err instanceof Error ? err.message : "Failed to toggle status");
@@ -373,8 +384,11 @@ export default function PatientListPage() {
                             <option value="all">All</option>
                             <option value="male">Male</option>
                             <option value="female">Female</option>
+                            <option value="non-binary">Non-binary</option>
+                            <option value="third gender">Third Gender</option>
                             <option value="other">Other</option>
                             <option value="unknown">Unknown</option>
+                            <option value="prefer not to say">Prefer not to say</option>
                         </select>
                     </div>
 
@@ -642,12 +656,29 @@ export default function PatientListPage() {
                                     className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.gender ? "border-red-400" : ""}`}
                                 >
                                     <option value="">Select gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                    <option value="unknown">Unknown</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Non-binary">Non-binary</option>
+                                    <option value="Third Gender">Third Gender</option>
+                                    <option value="Other">Other</option>
+                                    <option value="Unknown">Unknown</option>
+                                    <option value="Prefer not to say">Prefer not to say</option>
                                 </select>
                                 {addErrors.gender && <p className="text-xs text-red-500 mt-1">{addErrors.gender}</p>}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Status</label>
+                                <select
+                                    value={newPatient.status || "Active"}
+                                    onChange={(e) => setNewPatient({ ...newPatient, status: e.target.value })}
+                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
                             </div>
                         </div>
 
@@ -774,10 +805,13 @@ export default function PatientListPage() {
                                         className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     >
                                         <option value="">Select gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
-                                        <option value="unknown">Unknown</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Non-binary">Non-binary</option>
+                                        <option value="Third Gender">Third Gender</option>
+                                        <option value="Other">Other</option>
+                                        <option value="Unknown">Unknown</option>
+                                        <option value="Prefer not to say">Prefer not to say</option>
                                     </select>
                                 </div>
                             </div>

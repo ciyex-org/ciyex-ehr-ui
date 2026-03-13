@@ -509,7 +509,7 @@ export default function AddPatient() {
                 employerName: formData.employerInfo.name,
                 employerAddress: [formData.employerInfo.address1, formData.employerInfo.address2, formData.employerInfo.city, formData.employerInfo.state, formData.employerInfo.zip].filter(Boolean).join(", "),
                 // Ensure patient is active by default and has an MRN
-                status: "true",
+                status: formData.personalInfo.status || "Active",
                 medicalRecordNumber: "MRN-" + Date.now(),
             };
             // Remove undefined/empty values
@@ -657,8 +657,22 @@ export default function AddPatient() {
                                         <option value="">Select</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
+                                        <option value="Non-binary">Non-binary</option>
+                                        <option value="Third Gender">Third Gender</option>
                                         <option value="Other">Other</option>
+                                        <option value="Unknown">Unknown</option>
                                         <option value="Prefer not to say">Prefer not to say</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        value={formData.personalInfo.status}
+                                        onChange={(e) => handleChange("personalInfo", "status", e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
                                     </select>
                                 </div>
                                 <div>
@@ -1734,7 +1748,11 @@ export default function AddPatient() {
                                                 <option value="">Select</option>
                                                 <option value="Male">Male</option>
                                                 <option value="Female">Female</option>
+                                                <option value="Non-binary">Non-binary</option>
+                                                <option value="Third Gender">Third Gender</option>
                                                 <option value="Other">Other</option>
+                                                <option value="Unknown">Unknown</option>
+                                                <option value="Prefer not to say">Prefer not to say</option>
                                             </select>
                                         </div>
                                     </div>
@@ -2048,7 +2066,11 @@ export default function AddPatient() {
                                                 <option value="">Select</option>
                                                 <option value="Male">Male</option>
                                                 <option value="Female">Female</option>
+                                                <option value="Non-binary">Non-binary</option>
+                                                <option value="Third Gender">Third Gender</option>
                                                 <option value="Other">Other</option>
+                                                <option value="Unknown">Unknown</option>
+                                                <option value="Prefer not to say">Prefer not to say</option>
                                             </select>
                                         </div>
                                     </div>
@@ -2313,7 +2335,11 @@ export default function AddPatient() {
                                                 <option value="">Select</option>
                                                 <option value="Male">Male</option>
                                                 <option value="Female">Female</option>
+                                                <option value="Non-binary">Non-binary</option>
+                                                <option value="Third Gender">Third Gender</option>
                                                 <option value="Other">Other</option>
+                                                <option value="Unknown">Unknown</option>
+                                                <option value="Prefer not to say">Prefer not to say</option>
                                             </select>
                                         </div>
                                     </div>

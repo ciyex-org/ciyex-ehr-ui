@@ -95,6 +95,7 @@ export default function EditPatientPage() {
                     dateOfBirth: formData.dateOfBirth,
                     gender: formData.gender,
                     ssn: formData.ssn,
+                    status: formData.status,
                 }),
             });
 
@@ -205,8 +206,24 @@ export default function EditPatientPage() {
                             <option value="">Select</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
+                            <option value="Non-binary">Non-binary</option>
+                            <option value="Third Gender">Third Gender</option>
                             <option value="Other">Other</option>
+                            <option value="Unknown">Unknown</option>
                             <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
+                        <select
+                            id="status"
+                            name="status"
+                            value={formData.status || "Active"}
+                            onChange={handleChange}
+                            className="mt-1 block w-full p-2 border rounded-md"
+                        >
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
                         </select>
                     </div>
                     <div className="mb-4">
