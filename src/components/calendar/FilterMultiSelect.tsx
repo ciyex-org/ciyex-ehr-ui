@@ -51,11 +51,14 @@ export default function FilterMultiSelect({
         ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
         : options;
 
+    // Empty array = "all" (show everything); non-empty = only those selected
     const allSelected = selected.length === 0;
+    // Check if ALL options are explicitly selected
+    const allExplicit = selected.length === options.length;
 
     // Build display text
     let displayText: string;
-    if (allSelected) {
+    if (allSelected || allExplicit) {
         displayText = `All ${label}`;
     } else if (selected.length === 1) {
         const match = options.find((o) => o.value === selected[0]);
@@ -65,38 +68,39 @@ export default function FilterMultiSelect({
     }
 
     const toggleAll = () => {
-        // Always reset to "all" (empty array = show everything)
-        onChange([]);
+        if (allSelected || allExplicit) {
+            // Currently all checked → uncheck all (set to special "none" state)
+            onChange(["__none__"]);
+        } else {
+            // Not all selected → select all
+            onChange([]);
+        }
     };
+
+    const noneSelected = selected.length === 1 && selected[0] === "__none__";
 
     const toggleOption = (value: string) => {
         if (allSelected) {
-            // Currently "all" → user unchecks one → select all EXCEPT that one
+            // "All" mode → deselect one = explicitly select all EXCEPT this one
             onChange(options.filter((o) => o.value !== value).map((o) => o.value));
+        } else if (noneSelected) {
+            // Nothing selected → select just this one
+            onChange([value]);
         } else if (selected.includes(value)) {
             const next = selected.filter((v) => v !== value);
-            if (next.length === 0) {
-                // Deselected everything → back to "all"
-                onChange([]);
-            } else {
-                onChange(next);
-            }
+            onChange(next.length === 0 ? ["__none__"] : next);
         } else {
             const next = [...selected, value];
-            if (next.length === options.length) {
-                // Selected all individually → collapse to "all"
-                onChange([]);
-            } else {
-                onChange(next);
-            }
+            // If all individually selected → collapse to "all"
+            onChange(next.length === options.length ? [] : next);
         }
     };
 
     const isChecked = (value: string) =>
-        allSelected || selected.includes(value);
+        allSelected || (!noneSelected && selected.includes(value));
 
-    // "All" checkbox is checked only when truly all are selected (empty array)
-    const allCheckboxChecked = allSelected;
+    // "All" checkbox checked when all are shown
+    const allCheckboxChecked = allSelected || allExplicit;
 
     return (
         <div ref={ref} className="relative">

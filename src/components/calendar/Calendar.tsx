@@ -577,12 +577,15 @@ const Calendar: React.FC = () => {
     const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
     const [locations, setLocations] = useState<{ value: string; label: string }[]>([]);
     const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-    // Convenience: true when nothing is filtered
+    // Convenience: true when nothing is filtered (empty array = all; ["__none__"] = none)
+    const noneProvidersSelected = selectedProviders.length === 1 && selectedProviders[0] === "__none__";
+    const noneLocationsSelected = selectedLocations.length === 1 && selectedLocations[0] === "__none__";
     const allProvidersSelected = selectedProviders.length === 0;
     const allLocationsSelected = selectedLocations.length === 0;
     // Providers visible in multi-column day view
     const visibleProviders = useMemo(() => {
         const nonAll = providers.filter((p) => p.value !== "all");
+        if (noneProvidersSelected) return [];
         if (allProvidersSelected) return nonAll;
         return nonAll.filter((p) => selectedProviders.includes(p.value));
     }, [providers, allProvidersSelected, selectedProviders]);
