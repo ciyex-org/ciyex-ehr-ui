@@ -375,13 +375,13 @@ export default function Campaigns() {
                   </td>
                   <td className="px-4 py-3">{campaignStatusBadge(c.status)}</td>
                   <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-300">
-                    {(c.totalRecipients != null && c.totalRecipients > 0) ? c.totalRecipients : ((c.sentCount || 0) + (c.failedCount || 0)) > 0 ? ((c.sentCount || 0) + (c.failedCount || 0)) : (c as any).recipientCount || (c as any).targetCount || (Array.isArray((c as any).targetPatientIds) ? (c as any).targetPatientIds.length : null) || (Array.isArray((c as any).recipients) ? (c as any).recipients.length : null) || "-"}
+                    {c.totalRecipients != null ? c.totalRecipients : (c.sentCount ?? 0) + (c.failedCount ?? 0)}
                   </td>
                   <td className="px-4 py-3 text-center text-green-600 dark:text-green-400 font-medium">
-                    {c.sentCount || "-"}
+                    {c.sentCount ?? 0}
                   </td>
                   <td className="px-4 py-3 text-center text-red-600 dark:text-red-400 font-medium">
-                    {c.failedCount || "-"}
+                    {c.failedCount ?? 0}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
