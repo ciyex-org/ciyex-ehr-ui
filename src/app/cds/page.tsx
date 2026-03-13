@@ -211,9 +211,8 @@ export default function CDSPage() {
   };
 
   const handleToggle = async (rule: CDSRule) => {
-    const res = await fetchWithAuth(`${API()}/api/cds/rules/${rule.id}`, {
-      method: "PUT",
-      body: JSON.stringify({ ...rule, isActive: !rule.isActive }),
+    const res = await fetchWithAuth(`${API()}/api/cds/rules/${rule.id}/toggle`, {
+      method: "POST",
     });
     if (res.ok) {
       setToast({ type: "success", text: rule.isActive ? "Rule deactivated" : "Rule activated" });
