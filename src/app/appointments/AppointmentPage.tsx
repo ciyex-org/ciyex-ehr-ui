@@ -783,65 +783,73 @@ export default function AppointmentPage() {
           </div>
         </div>
 
-        {/* Filters — compact single row (#5, #6, #11) */}
-        <div className="flex flex-wrap items-center gap-2 mb-3 no-print">
-          {/* Date preset dropdown (#5) */}
-          <select value={datePreset} onChange={(e) => handleDatePreset(e.target.value)}
-            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 max-w-30">
-            {DATE_PRESETS.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
-          </select>
-
-          <select value={category} onChange={(e) => setCategory(e.target.value)}
-            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 max-w-35">
-            <option value="All Visit Categories">All Types</option>
-            {loadingCategories ? <option disabled>Loading...</option> :
-              categories.map((c, idx) => (<option key={idx} value={c}>{c}</option>))}
-          </select>
-
-          <select value={provider} onChange={(e) => setProvider(e.target.value)}
-            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 max-w-35">
-            <option value="All Providers">All Providers</option>
-            {loadingProviders ? <option disabled>Loading...</option> :
-              providers.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-          </select>
-
-          <select value={location} onChange={(e) => setLocation(e.target.value)}
-            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 max-w-35">
-            <option value="All Locations">All Locations</option>
-            {loadingLocations ? <option disabled>Loading...</option> :
-              locations.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
-          </select>
-
-          {/* Status filter (#6 — label changed to "All Status") */}
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 max-w-30"
-          >
-            <option value="All">All Status</option>
-            {statusOptions.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </select>
-
-          <input type="text" placeholder="Patient Name" value={patientName} onChange={(e) => setPatientName(e.target.value)}
-            className="rounded border px-2 py-1.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 w-30" />
-
-          <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={hideCompleted}
-              onChange={(e) => setHideCompleted(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            Hide completed
-          </label>
-        </div>
-
         {/* Table (#7, #8, #9, #10, #14, #15) */}
-        <div ref={tableRef} className="print-appointment-table overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ maxHeight: 'calc(100vh - 270px)' }}>
+        <div ref={tableRef} className="print-appointment-table overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md" style={{ maxHeight: 'calc(100vh - 220px)' }}>
           <table className="w-full table-auto">
             <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-5">
+              {/* Filter row — each dropdown aligned above its column */}
+              <tr className="no-print">
+                <th className="py-1.5 px-3">
+                  <select value={datePreset} onChange={(e) => handleDatePreset(e.target.value)}
+                    className="w-full rounded border px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 font-normal">
+                    {DATE_PRESETS.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
+                  </select>
+                </th>
+                <th className="py-1.5 px-3">
+                  <input type="text" placeholder="Search patient..." value={patientName} onChange={(e) => setPatientName(e.target.value)}
+                    className="w-full rounded border px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 font-normal" />
+                </th>
+                <th className="py-1.5 px-3">
+                  <select value={provider} onChange={(e) => setProvider(e.target.value)}
+                    className="w-full rounded border px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 font-normal">
+                    <option value="All Providers">All Providers</option>
+                    {loadingProviders ? <option disabled>Loading...</option> :
+                      providers.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
+                  </select>
+                </th>
+                <th className="py-1.5 px-3">
+                  <select value={location} onChange={(e) => setLocation(e.target.value)}
+                    className="w-full rounded border px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 font-normal">
+                    <option value="All Locations">All Locations</option>
+                    {loadingLocations ? <option disabled>Loading...</option> :
+                      locations.map((l) => (<option key={l.id} value={l.id}>{l.name}</option>))}
+                  </select>
+                </th>
+                <th className="py-1.5 px-3">
+                  <select value={category} onChange={(e) => setCategory(e.target.value)}
+                    className="w-full rounded border px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 font-normal">
+                    <option value="All Visit Categories">All Types</option>
+                    {loadingCategories ? <option disabled>Loading...</option> :
+                      categories.map((c, idx) => (<option key={idx} value={c}>{c}</option>))}
+                  </select>
+                </th>
+                <th className="py-1.5 px-3">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                    className="w-full rounded border px-1.5 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 font-normal"
+                  >
+                    <option value="All">All Status</option>
+                    {statusOptions.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                </th>
+                <th className="py-1.5 px-3"></th>
+                <th className="py-1.5 px-3">
+                  <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap cursor-pointer select-none font-normal">
+                    <input
+                      type="checkbox"
+                      checked={hideCompleted}
+                      onChange={(e) => setHideCompleted(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Hide done
+                  </label>
+                </th>
+                <th className="py-1.5 px-3"></th>
+              </tr>
+              {/* Column headers */}
               <tr>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
                 <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Patient</th>

@@ -204,7 +204,7 @@ interface Patient {
     identification?: { firstName?: string | null; lastName?: string | null } | null;
 }
 
-type AppointmentStatus = 'Scheduled' | 'Confirmed' | 'Checked-in' | 'Completed';
+type AppointmentStatus = 'Scheduled' | 'Confirmed' | 'Checked-in' | 'Completed' | 'Re-Scheduled' | 'No Show' | 'Cancelled';
 type Priority = 'Routine' | 'Urgent';
 
 interface CalendarEvent extends EventInput {
@@ -472,6 +472,9 @@ const statusOptions: Option<AppointmentStatus>[] = [
     { value: 'Confirmed', label: 'Confirmed' },
     { value: 'Checked-in', label: 'Checked-in' },
     { value: 'Completed', label: 'Completed' },
+    { value: 'Re-Scheduled', label: 'Re-Scheduled' },
+    { value: 'No Show', label: 'No Show' },
+    { value: 'Cancelled', label: 'Cancelled' },
 ];
 
 const priorityOptions: Option<Priority>[] = [
@@ -1433,14 +1436,33 @@ const Calendar: React.FC = () => {
 
             const patientName = xp?.patientName || eventInfo.event.title;
             const visitType = xp?.visitType || '';
+            const status = xp?.status || '';
             const startTime = eventInfo.event.start
                 ? eventInfo.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '';
+
+            // Status badge color mapping
+            const statusColors: Record<string, string> = {
+                'Scheduled': 'bg-blue-500',
+                'Confirmed': 'bg-green-500',
+                'Checked-in': 'bg-emerald-500',
+                'Completed': 'bg-purple-500',
+                'Re-Scheduled': 'bg-yellow-500',
+                'No Show': 'bg-orange-500',
+                'Cancelled': 'bg-red-500',
+            };
+            const badgeClass = statusColors[status] || 'bg-gray-400';
 
             return (
                 <div className="fc-event-main rounded-sm px-1.5 py-0.5 text-xs leading-tight overflow-hidden">
                     <div className="font-semibold text-white truncate">{patientName}</div>
                     <div className="text-white/80 truncate text-[10px]">{startTime} {visitType}</div>
+                    {status && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${badgeClass}`}></span>
+                            <span className="text-white/90 text-[9px] truncate">{status}</span>
+                        </div>
+                    )}
                 </div>
             );
         },

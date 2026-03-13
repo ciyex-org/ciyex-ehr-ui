@@ -422,7 +422,7 @@ const AppointmentModal: React.FC = () => {
                     const data = await res.json();
                     const opts: StatusOption[] = (data.data || []).map((o: any) =>
                         typeof o === "string" ? { value: o, label: o } : o
-                    );
+                    ).sort((a: StatusOption, b: StatusOption) => (a.order ?? 0) - (b.order ?? 0));
                     if (opts.length > 0) setStatusOptions(opts);
                 }
             } catch (e) {

@@ -23,7 +23,9 @@ export default function FilterMultiSelect({
     onChange,
 }: FilterMultiSelectProps) {
     const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState("");
     const ref = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLInputElement>(null);
 
     // Click-outside to close
     useEffect(() => {
@@ -31,11 +33,23 @@ export default function FilterMultiSelect({
         const handler = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) {
                 setOpen(false);
+                setSearch("");
             }
         };
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
     }, [open]);
+
+    // Auto-focus search when opened
+    useEffect(() => {
+        if (open && searchRef.current) {
+            setTimeout(() => searchRef.current?.focus(), 50);
+        }
+    }, [open]);
+
+    const filteredOptions = search
+        ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
+        : options;
 
     const allSelected = selected.length === 0;
 
@@ -46,25 +60,18 @@ export default function FilterMultiSelect({
     } else if (selected.length === 1) {
         const match = options.find((o) => o.value === selected[0]);
         displayText = match?.label ?? `1 ${label}`;
-    } else if (selected.length === options.length) {
-        displayText = `All ${label}`;
     } else {
         displayText = `${selected.length} ${label}`;
     }
 
     const toggleAll = () => {
-        if (allSelected) {
-            // "All" is checked → uncheck all: explicitly select all so user can deselect individually
-            onChange(options.map((o) => o.value));
-        } else {
-            // Not all selected → select all
-            onChange([]);
-        }
+        // Always reset to "all" (empty array = show everything)
+        onChange([]);
     };
 
     const toggleOption = (value: string) => {
         if (allSelected) {
-            // Currently showing all (empty array) → deselect this one = select all others explicitly
+            // Currently "all" → user unchecks one → select all EXCEPT that one
             onChange(options.filter((o) => o.value !== value).map((o) => o.value));
         } else if (selected.includes(value)) {
             const next = selected.filter((v) => v !== value);
@@ -88,8 +95,8 @@ export default function FilterMultiSelect({
     const isChecked = (value: string) =>
         allSelected || selected.includes(value);
 
-    // "All" checkbox is checked when empty array OR when all are explicitly selected
-    const allCheckboxChecked = allSelected || selected.length === options.length;
+    // "All" checkbox is checked only when truly all are selected (empty array)
+    const allCheckboxChecked = allSelected;
 
     return (
         <div ref={ref} className="relative">
@@ -120,33 +127,55 @@ export default function FilterMultiSelect({
             </button>
 
             {open && (
-                <div className="absolute left-0 top-full z-50 mt-1 w-64 max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-dark-900">
-                    {/* All toggle */}
-                    <label className="flex items-center gap-2 border-b border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 cursor-pointer dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">
-                        <input
-                            type="checkbox"
-                            checked={allCheckboxChecked}
-                            onChange={toggleAll}
-                            className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
-                        />
-                        All {label}
-                    </label>
+                <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-dark-900">
+                    {/* Search input */}
+                    {options.length > 5 && (
+                        <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                            <input
+                                ref={searchRef}
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder={`Search ${label.toLowerCase()}...`}
+                                className="w-full rounded border border-gray-300 px-2 py-1 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-600 dark:bg-dark-900 dark:text-gray-100"
+                            />
+                        </div>
+                    )}
 
-                    {/* Individual options */}
-                    {options.map((opt) => (
-                        <label
-                            key={opt.value}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer dark:text-gray-200 dark:hover:bg-gray-800"
-                        >
+                    {/* All toggle */}
+                    {!search && (
+                        <label className="flex items-center gap-2 border-b border-gray-200 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 cursor-pointer dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">
                             <input
                                 type="checkbox"
-                                checked={isChecked(opt.value)}
-                                onChange={() => toggleOption(opt.value)}
+                                checked={allCheckboxChecked}
+                                onChange={toggleAll}
                                 className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
                             />
-                            <span className="truncate">{opt.label}</span>
+                            All {label}
                         </label>
-                    ))}
+                    )}
+
+                    {/* Individual options */}
+                    <div className="max-h-60 overflow-y-auto">
+                        {filteredOptions.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-400">No matches</div>
+                        ) : (
+                            filteredOptions.map((opt) => (
+                                <label
+                                    key={opt.value}
+                                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer dark:text-gray-200 dark:hover:bg-gray-800"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={isChecked(opt.value)}
+                                        onChange={() => toggleOption(opt.value)}
+                                        className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
+                                    />
+                                    <span className="truncate">{opt.label}</span>
+                                </label>
+                            ))
+                        )}
+                    </div>
                 </div>
             )}
         </div>
