@@ -2,7 +2,16 @@
 
 import React, { useState, useEffect } from "react";
 import { X, Save, Loader2 } from "lucide-react";
-import { UserResponse, CreateUserRequest, UpdateUserRequest, SYSTEM_ROLES } from "./types";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
+import { UserResponse, CreateUserRequest, UpdateUserRequest } from "./types";
+
+const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
+
+interface RoleOption {
+  value: string;
+  label: string;
+}
 
 interface Props {
   open: boolean;
@@ -20,6 +29,30 @@ export default function UserFormPanel({ open, editUser, onClose, onSave }: Props
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
   const [generatePrint, setGeneratePrint] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
+
+  // Fetch roles from API when panel opens
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const fetchRoles = async () => {
+      setLoadingRoles(true);
+      try {
+        const res = await fetchWithAuth(`${API()}/api/admin/roles`);
+        const json = await res.json();
+        if (!cancelled && res.ok && json.success && Array.isArray(json.data)) {
+          setRoles(json.data.filter((r: any) => r.isActive !== false).map((r: any) => ({
+            value: r.roleName,
+            label: r.roleLabel || r.roleName,
+          })));
+        }
+      } catch { /* keep existing roles */ }
+      finally { if (!cancelled) setLoadingRoles(false); }
+    };
+    fetchRoles();
+    return () => { cancelled = true; };
+  }, [open]);
 
   useEffect(() => {
     if (editUser) {
@@ -75,10 +108,17 @@ export default function UserFormPanel({ open, editUser, onClose, onSave }: Props
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role *</label>
             <select value={roleName} onChange={(e) => setRoleName(e.target.value)} required
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm">
-              {SYSTEM_ROLES.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
+              disabled={loadingRoles}
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm disabled:opacity-60">
+              {loadingRoles ? (
+                <option>Loading roles...</option>
+              ) : roles.length > 0 ? (
+                roles.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))
+              ) : (
+                <option value={roleName}>{roleName}</option>
+              )}
             </select>
           </div>
 

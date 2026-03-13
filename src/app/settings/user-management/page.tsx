@@ -7,7 +7,7 @@ import {
   Users, UserPlus, Search, Loader2, CheckCircle2, AlertTriangle, X,
   Stethoscope, HeartPulse,
 } from "lucide-react";
-import { UserResponse, CreateUserRequest, UpdateUserRequest, ResetPasswordResponse, SYSTEM_ROLES } from "@/components/user-management/types";
+import { UserResponse, CreateUserRequest, UpdateUserRequest, ResetPasswordResponse } from "@/components/user-management/types";
 import UserTable from "@/components/user-management/UserTable";
 import UserFormPanel from "@/components/user-management/UserFormPanel";
 import ResetPasswordModal from "@/components/user-management/ResetPasswordModal";
@@ -49,7 +49,31 @@ function AddUserLookupPanel({
   const [generatePrint, setGeneratePrint] = useState(false);
   const [manualEmail, setManualEmail] = useState("");
   const [saving, setSaving] = useState(false);
+  const [roles, setRoles] = useState<{ value: string; label: string }[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch roles from API when panel opens
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const fetchRoles = async () => {
+      setLoadingRoles(true);
+      try {
+        const res = await fetchWithAuth(`${API()}/api/admin/roles`);
+        const json = await res.json();
+        if (!cancelled && res.ok && json.success && Array.isArray(json.data)) {
+          setRoles(json.data.filter((r: any) => r.isActive !== false).map((r: any) => ({
+            value: r.roleName,
+            label: r.roleLabel || r.roleName,
+          })));
+        }
+      } catch { /* keep existing roles */ }
+      finally { if (!cancelled) setLoadingRoles(false); }
+    };
+    fetchRoles();
+    return () => { cancelled = true; };
+  }, [open]);
 
   // Reset state when opening/closing
   useEffect(() => {
@@ -141,7 +165,6 @@ function AddUserLookupPanel({
 
   if (!open) return null;
 
-  const staffRoles = SYSTEM_ROLES; // Show all roles including PATIENT
   const isPatientTab = tab === "patients";
 
   return (
@@ -256,11 +279,17 @@ function AddUserLookupPanel({
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role</label>
               <select value={roleName} onChange={(e) => setRoleName(e.target.value)}
-                disabled={isPatientTab}
+                disabled={isPatientTab || loadingRoles}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm disabled:opacity-60">
-                {staffRoles.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
+                {loadingRoles ? (
+                  <option>Loading roles...</option>
+                ) : roles.length > 0 ? (
+                  roles.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))
+                ) : (
+                  <option value={roleName}>{roleName}</option>
+                )}
               </select>
             </div>
           )}
