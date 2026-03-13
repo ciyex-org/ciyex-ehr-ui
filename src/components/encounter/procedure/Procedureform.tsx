@@ -308,8 +308,15 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
 
         try {
             if (editing?.id) {
-                const bodyArray = procedures.map(proc => ({
-                    cpt4: proc.cpt4.trim(),
+                const bodyArray = procedures.map(proc => {
+                    const cptCode = proc.cpt4.trim();
+                    return {
+                    cpt4: cptCode,
+                    // Add code as FHIR CodeableConcept with CPT system (fixes Coding has no system)
+                    code: cptCode ? {
+                        coding: [{ system: "http://www.ama-assn.org/go/cpt", code: cptCode, display: proc.description.trim() || cptCode }],
+                        text: proc.description.trim() || cptCode,
+                    } : undefined,
                     description: proc.description.trim(),
                     units: proc.units !== "" ? Number(proc.units) : 1,
                     rate: proc.rate || "0",
@@ -322,7 +329,8 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                     ...(proc.providername ? { providername: proc.providername.trim() } : {}),
                     ...(proc.datePerformed ? { datePerformed: proc.datePerformed } : {}),
                     ...(proc.priceLevelTitle !== "" ? { priceLevelTitle: priceLevels.find(pl => pl.id === proc.priceLevelTitle)?.title } : {})
-                }));
+                    };
+                });
 
                 const res = await fetchWithOrg(`/api/procedures/${patientId}/${encounterId}/${editing.id}`, {
                     method: "PUT",
@@ -332,10 +340,17 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                 if (!res.ok || !json.success) throw new Error(json.message || "Save failed");
                 onSaved(json.data!);
             } else {
-                const bodyArray = procedures.map(proc => ({
+                const bodyArray = procedures.map(proc => {
+                    const cptCode = proc.cpt4.trim();
+                    return {
                     patientId,
                     encounterId,
-                    cpt4: proc.cpt4.trim(),
+                    cpt4: cptCode,
+                    // Add code as FHIR CodeableConcept with CPT system (fixes Coding has no system)
+                    code: cptCode ? {
+                        coding: [{ system: "http://www.ama-assn.org/go/cpt", code: cptCode, display: proc.description.trim() || cptCode }],
+                        text: proc.description.trim() || cptCode,
+                    } : undefined,
                     description: proc.description.trim(),
                     units: proc.units !== "" ? Number(proc.units) : 1,
                     rate: proc.rate || "0",
@@ -348,7 +363,8 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
                     ...(proc.providername ? { providername: proc.providername.trim() } : {}),
                     ...(proc.datePerformed ? { datePerformed: proc.datePerformed } : {}),
                     ...(proc.priceLevelTitle !== "" ? { priceLevelTitle: priceLevels.find(pl => pl.id === proc.priceLevelTitle)?.title } : {})
-                }));
+                    };
+                });
 
                 const res = await fetchWithOrg(`/api/procedures/${patientId}/${encounterId}`, {
                     method: "POST",

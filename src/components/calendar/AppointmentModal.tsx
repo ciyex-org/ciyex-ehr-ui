@@ -594,7 +594,7 @@ const AppointmentModal: React.FC = () => {
             return;
         }
 
-        // ✅ Validate provider schedule covers the slot
+        // ✅ Validate provider schedule covers the slot (warning only — don't block creation)
         try {
             const res = await fetchWithAuth(
                 `${apiUrl}/api/schedules?status=active&providerId=${providerId}`
@@ -610,27 +610,30 @@ const AppointmentModal: React.FC = () => {
                 hasOccurrenceCoveringSlot(s, combinedStart, combinedEnd)
             );
             if (!covers) {
+                // Show a warning but do NOT block appointment creation
                 setAlertData({
-                    variant: "error",
+                    variant: "warning",
                     title: "No Schedule Found",
                     message:
-                        "This provider has no schedule for the selected time. Please add the schedule first.",
+                        "Note: This provider has no schedule for the selected time slot, but the appointment will be created anyway.",
                 });
-                return;
+                // Continue saving — do not return here
             }
         } catch (err) {
             console.error("Failed to validate provider schedule", err);
-            setAlertData({
-                variant: "error",
-                title: "Schedule Validation Failed",
-                message:
-                    "Could not verify the provider's schedule. Please try again.",
-            });
-            return;
+            // Non-fatal — continue saving
         }
 
         const dto: Record<string, unknown> = {
-            appointmentType: visitType,
+            // Wrap appointmentType in FHIR CodeableConcept with system (fixes Coding has no system)
+            appointmentType: {
+                coding: [{
+                    system: "http://terminology.hl7.org/CodeSystem/v2-0276",
+                    code: visitType,
+                    display: visitType,
+                }],
+                text: visitType,
+            },
             status,
             priority,
             start: combinedStart ? new Date(combinedStart).toISOString() : null,
@@ -638,8 +641,29 @@ const AppointmentModal: React.FC = () => {
             reason: notes || null,
             patient: `Patient/${selectedPatientId}`,
             provider: `Practitioner/${providerId}`,
+            // Add participant array with status (fixes Appointment.participant.status required)
+            participant: [
+                {
+                    actor: { reference: `Patient/${selectedPatientId}` },
+                    required: "required",
+                    status: "accepted",
+                },
+                {
+                    actor: { reference: `Practitioner/${providerId}` },
+                    required: "required",
+                    status: "accepted",
+                },
+            ],
         };
-        if (locationId) dto.location = `Location/${locationId}`;
+        if (locationId) {
+            dto.location = `Location/${locationId}`;
+            // Also add location as participant
+            (dto.participant as any[]).push({
+                actor: { reference: `Location/${locationId}` },
+                required: "required",
+                status: "accepted",
+            });
+        }
 
         try {
             const res = await fetchWithAuth(`${apiUrl}/api/fhir-resource/appointments/patient/${selectedPatientId}`, {

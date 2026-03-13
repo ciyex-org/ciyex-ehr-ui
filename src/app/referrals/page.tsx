@@ -321,9 +321,11 @@ function ReferralFormPanel({
       const base = apiBase();
       const isEdit = !!form.id;
       const url = isEdit ? `${base}/api/referrals/${form.id}` : `${base}/api/referrals`;
+      // Add ServiceRequest.intent (required by FHIR R4)
+      const payload = { ...form, intent: (form as any).intent || "referral", status: (form as any).status || "active" };
       const res = await fetchWithAuth(url, {
         method: isEdit ? "PUT" : "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       let json;
       try { json = await res.json(); } catch { json = {}; }

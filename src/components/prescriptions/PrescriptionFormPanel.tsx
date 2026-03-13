@@ -172,9 +172,11 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       const url = isEdit
         ? `${apiBase()}/api/prescriptions/${form.id}`
         : `${apiBase()}/api/prescriptions`;
+      // Add MedicationRequest.intent (required by FHIR R4)
+      const payload = { ...form, intent: (form as any).intent || "order", status: form.status || "active" };
       const res = await fetchWithAuth(url, {
         method: isEdit ? "PUT" : "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (res.ok && json.success) {

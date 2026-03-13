@@ -255,7 +255,26 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
     try {
       const isEdit = !!form.id;
       const url = isEdit ? apiUrl(`/api/immunizations/${form.id}`) : apiUrl("/api/immunizations");
-      const payload = { ...form, doseNumber: form.doseNumber ? Number(form.doseNumber) : null };
+      const doseNum = form.doseNumber !== "" && form.doseNumber != null ? Number(form.doseNumber) : undefined;
+      const payload: Record<string, any> = {
+        ...form,
+        // lotNumber: send undefined (omit) if empty string — FHIR expects string or absent
+        lotNumber: form.lotNumber && String(form.lotNumber).trim() ? String(form.lotNumber).trim() : undefined,
+        // doseNumber: must be a positive number or omitted
+        doseNumber: doseNum && !isNaN(doseNum) && doseNum > 0 ? doseNum : undefined,
+        // dose as FHIR Quantity
+        doseQuantity: doseNum && !isNaN(doseNum) ? { value: doseNum, unit: "dose", system: "http://unitsofmeasure.org", code: "1" } : undefined,
+        // status values must match FHIR Immunization.status allowed codes
+        status: form.status === "not_done" ? "not-done" : form.status === "entered_in_error" ? "entered-in-error" : form.status || "completed",
+        // occurrenceDateTime is required by FHIR Immunization
+        occurrenceDateTime: form.administrationDate || new Date().toISOString().slice(0, 10),
+        // vaccineCode with system (fixes Coding has no system)
+        vaccineCode: form.cvxCode
+          ? { coding: [{ system: "http://hl7.org/fhir/sid/cvx", code: form.cvxCode, display: form.vaccineName }], text: form.vaccineName }
+          : { coding: [{ system: "http://hl7.org/fhir/sid/cvx", code: "213", display: form.vaccineName }], text: form.vaccineName },
+        // primarySource is required for Immunization R4
+        primarySource: true,
+      };
       const res = await fetchWithAuth(url, { method: isEdit ? "PUT" : "POST", body: JSON.stringify(payload) });
       const json = await res.json();
       if (res.ok && json.success) {

@@ -359,6 +359,24 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.createdDate != null && r.identifiedDate == null) r.identifiedDate = r.createdDate;
         if (r._lastUpdated != null && r.identifiedDate == null) r.identifiedDate = r._lastUpdated;
 
+        // --- Documents: normalize FHIR DocumentReference nested content structure ---
+        if (r.content && Array.isArray(r.content) && r.content.length > 0) {
+            const att = r.content[0]?.attachment;
+            if (att) {
+                if (r.title == null && att.title) r.title = att.title;
+                if (r.documentTitle == null && att.title) r.documentTitle = att.title;
+                if (r.attachment == null) r.attachment = att.url || att.data || null;
+                if (r.contentType == null && att.contentType) r.contentType = att.contentType;
+            }
+        }
+        // Author display from FHIR author array
+        if (r.author == null && Array.isArray(r.author) === false && r.author === undefined) {
+            if (Array.isArray(r.author) && (r.author as any[]).length > 0) {
+                r.author = (r.author as any[])[0]?.display || (r.author as any[])[0]?.reference || null;
+            }
+        }
+        if (r.author == null && r.authorName != null) r.author = r.authorName;
+
         // --- Documents: title fallback, documentTitle, documentDate, category normalization ---
         if (r.title == null && r.description != null) r.title = r.description;
         if (r.title == null && r.noteText != null) r.title = typeof r.noteText === "string" && r.noteText.length > 60 ? r.noteText.substring(0, 60) + "…" : r.noteText;
@@ -818,21 +836,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         setFormData((prev) => ({ ...prev, [key]: value }));
 
         // If a file field with uploadEndpoint received a value, the upload endpoint
-        // already created the record (e.g., DocumentController creates the FHIR resource).
-        // Auto-complete to avoid a duplicate POST from handleSave.
+        // already stored the file. Show a notification but DO NOT auto-close the form
+        // so the user can still fill in title, author, date, etc. before saving.
         if (value && fieldConfig?.features?.fileUpload?.uploadEndpoint) {
             const fileField = fieldConfig?.sections
                 ?.flatMap((s) => s.fields)
                 .find((f) => f.key === key && f.type === "file");
             if (fileField) {
-                setSuccessMsg("Document uploaded successfully");
-                setTimeout(() => setSuccessMsg(null), 3000);
-                setTimeout(async () => {
-                    await fetchRecords(0);
-                    setMode("list");
-                    setFormData({});
-                    setSelectedRecord(null);
-                }, 2000);
+                setSuccessMsg("File uploaded — please complete the remaining fields and click Save.");
+                setTimeout(() => setSuccessMsg(null), 5000);
+                // Do NOT auto-close; user must click Save explicitly
             }
         }
     };
@@ -975,6 +988,20 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             const isEdit = (mode === "edit") && selectedRecord;
             const resourceId = isEdit ? (selectedRecord!.id || selectedRecord!.fhirId) : null;
 
+            // Pre-save: include orgId header for tenant partitioning (fixes issue 22 reports)
+            const saveHeaders: HeadersInit = { "Content-Type": "application/json" };
+            if (typeof window !== "undefined") {
+                const storedOrgId = localStorage.getItem("orgId");
+                if (storedOrgId) saveHeaders["orgId"] = storedOrgId;
+            }
+
+            // Helper: wrap plain string/code into a FHIR CodeableConcept with system
+            const wrapCoding = (value: any, system: string): any => {
+                if (!value || typeof value === "object") return value;
+                const str = String(value);
+                return { coding: [{ system, code: str, display: str }], text: str };
+            };
+
             // Pre-save field mapping: ensure backend receives expected field names
             const payload = { ...formData };
             if (tabKey === "visit-notes") {
@@ -1012,6 +1039,178 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
             if (tabKey === "allergies") {
                 if (payload.severity && !payload.criticality) payload.criticality = payload.severity;
+                // Issue 3: wrap allergyName/code in CodeableConcept with system
+                const allergySystem = "http://snomed.info/sct";
+                const rawAllergyCode = payload.allergyName || payload.substance || payload.code;
+                if (rawAllergyCode && typeof rawAllergyCode === "string") {
+                    if (!payload.code || typeof payload.code === "string") {
+                        payload.code = wrapCoding(rawAllergyCode, allergySystem);
+                    }
+                    if (!payload.substance || typeof payload.substance === "string") {
+                        payload.substance = wrapCoding(rawAllergyCode, allergySystem);
+                    }
+                }
+                // Wrap reaction manifestation coding if present
+                if (payload.reaction && typeof payload.reaction === "string") {
+                    payload.reaction = [{ manifestation: [wrapCoding(payload.reaction, allergySystem)] }];
+                }
+                // Ensure verificationStatus and clinicalStatus have systems
+                if (!payload.verificationStatus) {
+                    payload.verificationStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification", code: "confirmed" }] };
+                }
+                if (!payload.clinicalStatus) {
+                    payload.clinicalStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", code: "active" }] };
+                }
+                if (!payload.category) payload.category = ["medication"];
+                if (!payload.type) payload.type = "allergy";
+            }
+
+            // Issue 6: Facility — wrap type in CodeableConcept with system
+            if (tabKey === "facility" || tabKey === "facilities") {
+                if (payload.type && typeof payload.type === "string") {
+                    payload.type = [wrapCoding(payload.type, "http://terminology.hl7.org/CodeSystem/v3-RoleCode")];
+                }
+            }
+
+            // Issue 7: Clinical alerts — add system to code and ensure required fields
+            if (tabKey === "clinical-alerts" || tabKey === "alerts" || tabKey === "clinicalalerts") {
+                if (payload.code && typeof payload.code === "string") {
+                    payload.code = wrapCoding(payload.code, "http://snomed.info/sct");
+                }
+                if (!payload.status) payload.status = "active";
+                if (!payload.category) {
+                    payload.category = [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "encounter-diagnosis", display: "Encounter Diagnosis" }] }];
+                }
+                if (!payload.verificationStatus) {
+                    payload.verificationStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-ver-status", code: "confirmed" }] };
+                }
+                if (!payload.clinicalStatus) {
+                    payload.clinicalStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-clinical", code: "active" }] };
+                }
+            }
+
+            // Issue 8: Encounters — ensure reasonForVisit/reason is not empty
+            if (tabKey === "encounters" || tabKey === "encounter") {
+                if (!payload.status) payload.status = "finished";
+                if (!payload.class) {
+                    payload.class = { system: "http://terminology.hl7.org/CodeSystem/v3-ActCode", code: "AMB", display: "ambulatory" };
+                }
+                if (!payload.type) {
+                    payload.type = [wrapCoding("11429006", "http://snomed.info/sct")];
+                }
+                // Reason for visit: ensure it's present
+                if (!payload.reasonCode && (payload.reasonForVisit || payload.reason)) {
+                    const rv = payload.reasonForVisit || payload.reason;
+                    payload.reasonCode = [wrapCoding(typeof rv === "string" ? rv : "General Consultation", "http://snomed.info/sct")];
+                }
+            }
+
+            // Issue 9 via generic tab: Appointments — add participant + wrap appointmentType
+            if (tabKey === "appointments") {
+                if (payload.appointmentType && typeof payload.appointmentType === "string") {
+                    payload.appointmentType = wrapCoding(payload.appointmentType, "http://terminology.hl7.org/CodeSystem/v2-0276");
+                }
+                if (!payload.participant) {
+                    const patRef = payload.patient || `Patient/${patientId}`;
+                    payload.participant = [{ actor: { reference: patRef }, required: "required", status: "accepted" }];
+                }
+            }
+
+            // Issue 4: Insurance Coverage — ensure period/coding structures
+            if (tabKey === "insurance-coverage") {
+                if (payload.policyEffectiveDate && !payload.coverageStartDate) payload.coverageStartDate = payload.policyEffectiveDate;
+                if (payload.policyEndDate && !payload.coverageEndDate) payload.coverageEndDate = payload.policyEndDate;
+                if (payload.effectiveDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.effectiveDate;
+                if (payload.endDate && !payload.policyEndDate) payload.policyEndDate = payload.endDate;
+                if (payload.startDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.startDate;
+                if (!payload.status) payload.status = "active";
+                // Wrap type in CodeableConcept if it's a plain string
+                if (payload.type && typeof payload.type === "string") {
+                    payload.type = wrapCoding(payload.type, "http://terminology.hl7.org/CodeSystem/v3-ActCode");
+                }
+            }
+
+            // Issue 5: Documents — fix title mapping, prevent auto-save confusion
+            if (tabKey === "documents") {
+                if (payload.documentDate && !payload.date) payload.date = payload.documentDate;
+                if (payload.date && !payload.documentDate) payload.documentDate = payload.date;
+                if (payload.documentTitle && !payload.title) payload.title = payload.documentTitle;
+                if (payload.title && !payload.documentTitle) payload.documentTitle = payload.title;
+                if (payload.title && !payload.description) payload.description = payload.title;
+                if (!payload.status) payload.status = "current";
+                if (!payload.docStatus) payload.docStatus = "final";
+            }
+
+            // Issue 12: Labs — ensure testName is a string (not long/number)
+            if (tabKey === "labs") {
+                if (payload.testName != null) payload.testName = String(payload.testName);
+                if (payload.code != null && typeof payload.code === "number") payload.code = String(payload.code);
+                if (!payload.status) payload.status = "final";
+            }
+
+            // Issue 15: History — add QuestionnaireResponse.status
+            if (tabKey === "history" || tabKey === "medicalhistory" || tabKey === "medical-history") {
+                if (!payload.status) payload.status = "completed";
+                if (!payload.questionnaire) payload.questionnaire = "http://example.org/Questionnaire/medical-history";
+            }
+
+            // Issue 16: Billing — add diagnosis.sequence and provider
+            if (tabKey === "billing") {
+                if (payload.diagnosis && Array.isArray(payload.diagnosis)) {
+                    payload.diagnosis = payload.diagnosis.map((d: any, i: number) => ({
+                        ...d, sequence: d.sequence || (i + 1),
+                    }));
+                } else if (payload.diagnosisCode || payload.icdCode) {
+                    const code = payload.diagnosisCode || payload.icdCode;
+                    payload.diagnosis = [{
+                        sequence: 1,
+                        diagnosisCodeableConcept: wrapCoding(code, "http://hl7.org/fhir/sid/icd-10"),
+                    }];
+                }
+                if (!payload.provider) payload.provider = { reference: `Organization/1` };
+                if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
+                if (!payload.use) payload.use = "claim";
+                if (!payload.status) payload.status = "active";
+                if (!payload.priority) payload.priority = wrapCoding("normal", "http://terminology.hl7.org/CodeSystem/processpriority");
+            }
+
+            // Issues 17, 21: Claims & Transactions — add Claim.provider
+            if (tabKey === "claims" || tabKey === "transactions") {
+                if (!payload.provider) payload.provider = { reference: `Organization/1` };
+                if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
+                if (!payload.use) payload.use = "claim";
+                if (!payload.status) payload.status = "active";
+                if (!payload.priority) payload.priority = wrapCoding("normal", "http://terminology.hl7.org/CodeSystem/processpriority");
+            }
+
+            // Issue 18: Claim Submissions — add Claim.provider
+            if (tabKey === "submissions" || tabKey === "claim-submissions") {
+                if (!payload.provider) payload.provider = { reference: `Organization/1` };
+                if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
+                if (!payload.use) payload.use = "claim";
+                if (!payload.status) payload.status = "active";
+            }
+
+            // Issue 19: Denials — add ClaimResponse.type
+            if (tabKey === "denials" || tabKey === "claim-denials") {
+                if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
+                if (!payload.status) payload.status = "active";
+                if (!payload.outcome) payload.outcome = "queued";
+            }
+
+            // Issue 20: ERA/Remittance — add ExplanationOfBenefit.type
+            if (tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance") {
+                if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
+                if (!payload.status) payload.status = "active";
+                if (!payload.outcome) payload.outcome = "queued";
+                if (!payload.use) payload.use = "claim";
+            }
+
+            // Issue 22: Reports — include orgId to fix HAPI partition identification
+            if (tabKey === "report" || tabKey === "reports") {
+                const storedOrgId2 = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
+                if (storedOrgId2 && !payload.orgId) payload.orgId = storedOrgId2;
+                if (!payload.status) payload.status = "final";
             }
 
             const url = isEdit
@@ -1020,7 +1219,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
             const res = await fetchWithAuth(url, {
                 method: isEdit ? "PUT" : "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: saveHeaders,
                 body: JSON.stringify(payload),
             });
 
