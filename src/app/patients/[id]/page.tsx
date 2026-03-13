@@ -368,6 +368,14 @@ export default function PatientDashboardPage() {
                 const message = err instanceof Error ? err.message : "An unknown error occurred";
                 setError(message);
                 if (message.includes("401")) router.push("/login");
+                // Remove deleted patient from recent patients list
+                try {
+                    const recent: { id: string | number }[] = JSON.parse(localStorage.getItem("recentPatients") || "[]");
+                    const cleaned = recent.filter((p) => String(p.id) !== String(id));
+                    if (cleaned.length !== recent.length) {
+                        localStorage.setItem("recentPatients", JSON.stringify(cleaned));
+                    }
+                } catch { /* ignore localStorage errors */ }
             } finally {
                 setLoading(false);
             }
