@@ -359,10 +359,27 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.createdDate != null && r.identifiedDate == null) r.identifiedDate = r.createdDate;
         if (r._lastUpdated != null && r.identifiedDate == null) r.identifiedDate = r._lastUpdated;
 
-        // --- Documents: title fallback, documentTitle, documentDate ---
+        // --- Documents: title fallback, documentTitle, documentDate, category normalization ---
         if (r.title == null && r.description != null) r.title = r.description;
         if (r.title == null && r.noteText != null) r.title = typeof r.noteText === "string" && r.noteText.length > 60 ? r.noteText.substring(0, 60) + "…" : r.noteText;
         if (r.title != null && r.documentTitle == null) r.documentTitle = r.title;
+        // Normalize category: convert label format ("Clinical Note") to slug ("clinical-note") for select fields
+        if (r.category != null && typeof r.category === "string" && /\s/.test(r.category)) {
+            const catLabelToSlug: Record<string, string> = {
+                "clinical note": "clinical-note",
+                "discharge summary": "discharge-summary",
+                "lab report": "lab-report",
+                "imaging report": "imaging",
+                "consent form": "consent",
+                "referral letter": "referral",
+                "insurance document": "insurance",
+                "identification": "identification",
+                "prescription": "prescription",
+                "other": "other",
+            };
+            const slug = catLabelToSlug[r.category.toLowerCase()];
+            if (slug) r.category = slug;
+        }
         if (r.date != null && r.documentDate == null) r.documentDate = r.date;
         if (r.createdDate != null && r.documentDate == null) r.documentDate = r.createdDate;
         if (r.authored != null && r.documentDate == null) r.documentDate = r.authored;
