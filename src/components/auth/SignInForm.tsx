@@ -665,9 +665,9 @@ export default function SignInForm() {
                         </a>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                             By signing in, you agree to our{" "}
-                            <a href="#" className="font-medium text-blue-600 hover:underline dark:text-blue-400">Terms</a>
+                            <a href="https://ciyex.org/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">Terms</a>
                             {" & "}
-                            <a href="#" className="font-medium text-blue-600 hover:underline dark:text-blue-400">Privacy Policy</a>.
+                            <a href="https://ciyex.org/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline dark:text-blue-400">Privacy Policy</a>.
                         </p>
                     </div>
                 </div>
