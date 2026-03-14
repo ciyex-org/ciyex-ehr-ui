@@ -119,9 +119,41 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                     },
                 } as any;
             }
-            // Referral provider specialty: ensure it's a select/combobox if it has options
-            if (/referral.*provider/i.test(pageKey) && keyLower === "specialty" && f.type === "text") {
-                section.fields[i] = { ...f, type: "combobox" as any } as any;
+            // Referral provider specialty: always show as combobox with standard options,
+            // regardless of original type (handles hidden, text, select, showWhen-blocked, etc.)
+            if (/referral/i.test(pageKey) && (keyLower === "specialty" || keyLower === "speciality" || keyLower === "specialization")) {
+                const defaultSpecialtyOptions = [
+                    { value: "Cardiology", label: "Cardiology" },
+                    { value: "Dermatology", label: "Dermatology" },
+                    { value: "Endocrinology", label: "Endocrinology" },
+                    { value: "Gastroenterology", label: "Gastroenterology" },
+                    { value: "General Surgery", label: "General Surgery" },
+                    { value: "Hematology", label: "Hematology" },
+                    { value: "Infectious Disease", label: "Infectious Disease" },
+                    { value: "Internal Medicine", label: "Internal Medicine" },
+                    { value: "Nephrology", label: "Nephrology" },
+                    { value: "Neurology", label: "Neurology" },
+                    { value: "OB/GYN", label: "OB/GYN" },
+                    { value: "Oncology", label: "Oncology" },
+                    { value: "Ophthalmology", label: "Ophthalmology" },
+                    { value: "Orthopedics", label: "Orthopedics" },
+                    { value: "Otolaryngology (ENT)", label: "Otolaryngology (ENT)" },
+                    { value: "Pediatrics", label: "Pediatrics" },
+                    { value: "Psychiatry", label: "Psychiatry" },
+                    { value: "Pulmonology", label: "Pulmonology" },
+                    { value: "Radiology", label: "Radiology" },
+                    { value: "Rheumatology", label: "Rheumatology" },
+                    { value: "Urology", label: "Urology" },
+                    { value: "Other", label: "Other" },
+                ];
+                const patchedSpecialty: any = {
+                    ...f,
+                    type: "combobox" as any,
+                    options: (f.options && f.options.length > 0) ? f.options : defaultSpecialtyOptions,
+                };
+                delete patchedSpecialty.showWhen; // always show, never conditionally hidden
+                delete patchedSpecialty.hidden;
+                section.fields[i] = patchedSpecialty;
             }
         }
         // Referral providers: add organization field if it doesn't exist
@@ -133,6 +165,40 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                     label: "Organization / Affiliation",
                     type: "text",
                     required: false,
+                } as any);
+            }
+            // Add specialty field if missing entirely
+            const hasSpecialtyField = section.fields.some(f => ["specialty", "speciality", "specialization"].includes(f.key.toLowerCase()));
+            if (!hasSpecialtyField && section.fields.some(f => f.key === "firstName" || f.key === "name" || f.key === "lastName" || f.key === "npi")) {
+                section.fields.push({
+                    key: "specialty",
+                    label: "Specialty",
+                    type: "combobox" as any,
+                    required: false,
+                    options: [
+                        { value: "Cardiology", label: "Cardiology" },
+                        { value: "Dermatology", label: "Dermatology" },
+                        { value: "Endocrinology", label: "Endocrinology" },
+                        { value: "Gastroenterology", label: "Gastroenterology" },
+                        { value: "General Surgery", label: "General Surgery" },
+                        { value: "Hematology", label: "Hematology" },
+                        { value: "Infectious Disease", label: "Infectious Disease" },
+                        { value: "Internal Medicine", label: "Internal Medicine" },
+                        { value: "Nephrology", label: "Nephrology" },
+                        { value: "Neurology", label: "Neurology" },
+                        { value: "OB/GYN", label: "OB/GYN" },
+                        { value: "Oncology", label: "Oncology" },
+                        { value: "Ophthalmology", label: "Ophthalmology" },
+                        { value: "Orthopedics", label: "Orthopedics" },
+                        { value: "Otolaryngology (ENT)", label: "Otolaryngology (ENT)" },
+                        { value: "Pediatrics", label: "Pediatrics" },
+                        { value: "Psychiatry", label: "Psychiatry" },
+                        { value: "Pulmonology", label: "Pulmonology" },
+                        { value: "Radiology", label: "Radiology" },
+                        { value: "Rheumatology", label: "Rheumatology" },
+                        { value: "Urology", label: "Urology" },
+                        { value: "Other", label: "Other" },
+                    ],
                 } as any);
             }
         }
