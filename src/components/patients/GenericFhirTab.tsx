@@ -334,7 +334,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             for (const rx of r.reaction) {
                 if (Array.isArray(rx?.manifestation)) {
                     for (const m of rx.manifestation) {
-                        const d = m?.coding?.[0]?.display || m?.coding?.[0]?.code || (typeof m?.text === "string" ? m.text : null);
+                        const d = m?.coding?.[0]?.display || (typeof m?.text === "string" ? m.text : null) || m?.coding?.[0]?.code || null;
                         if (d) manifList.push(d);
                     }
                 } else if (typeof rx?.description === "string") {
