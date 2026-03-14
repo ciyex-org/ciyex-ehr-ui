@@ -544,6 +544,10 @@ const Calendar: React.FC = () => {
     const [selectedPatientName, setSelectedPatientName] = useState<string>('');
     const [patientSearching, setPatientSearching] = useState<boolean>(false);
     const [showPatientDropdown, setShowPatientDropdown] = useState<boolean>(false);
+    // Quick Create Patient form in appointment modal
+    const [showCreatePatient, setShowCreatePatient] = useState(false);
+    const [createPatientSaving, setCreatePatientSaving] = useState(false);
+    const [newPt, setNewPt] = useState({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phoneNumber: '', status: 'Active' });
 
     // Priority / Provider / Location / Status
     const [appointmentPriority, setAppointmentPriority] = useState<Priority>('Routine');
@@ -1406,6 +1410,34 @@ const Calendar: React.FC = () => {
             setIsSaving(false);
         }
     };
+    const handleCreatePatientAndSelect = async () => {
+        if (!newPt.firstName || !newPt.lastName || !newPt.dateOfBirth || !newPt.phoneNumber || !newPt.gender) return;
+        setCreatePatientSaving(true);
+        try {
+            const res = await fetchWithAuth(`${apiUrl}/api/patients`, {
+                method: 'POST',
+                body: JSON.stringify(newPt),
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                const created = json.data;
+                const name = `${created.firstName || newPt.firstName} ${created.lastName || newPt.lastName}`.trim();
+                setSelectedPatientId(String(created.id));
+                setSelectedPatientName(name);
+                setShowCreatePatient(false);
+                setNewPt({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phoneNumber: '', status: 'Active' });
+                setShowPatientDropdown(false);
+                setPatientQuery('');
+            } else {
+                alert(json.message || 'Failed to create patient');
+            }
+        } catch {
+            alert('Failed to create patient');
+        } finally {
+            setCreatePatientSaving(false);
+        }
+    };
+
     const resetModalFields = () => {
         setVisitType('Consultation');
         setPatientQuery('');
@@ -1424,6 +1456,8 @@ const Calendar: React.FC = () => {
         setEndTime('');
         setAppointmentNotes('');
         setShowPatientDropdown(false);
+        setShowCreatePatient(false);
+        setNewPt({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phoneNumber: '', status: 'Active' });
         setSelectedEvent(null);
         setIsSaving(false); // Reset saving state
     };
@@ -1931,14 +1965,88 @@ const Calendar: React.FC = () => {
                                                             );
                                                         })}
                                                         {patientResults.length === 0 && (
-                                                            <li className="px-3 py-2 text-sm text-gray-500">No matches</li>
+                                                            <li className="px-3 py-2 text-sm text-gray-500">
+                                                                No matches —{' '}
+                                                                <button
+                                                                    type="button"
+                                                                    className="text-blue-600 hover:underline font-medium"
+                                                                    onMouseDown={(e) => e.preventDefault()}
+                                                                    onClick={() => { setShowCreatePatient(true); setShowPatientDropdown(false); }}
+                                                                >
+                                                                    Create New Patient
+                                                                </button>
+                                                            </li>
                                                         )}
                                                     </ul>
                                                 )}
                                             </div>
                                         )}
+                                        {/* Quick Create Patient button when no search has been done yet */}
+                                        {!showPatientDropdown && !selectedPatientId && (
+                                            <button
+                                                type="button"
+                                                className="mt-1 text-xs text-blue-600 hover:underline"
+                                                onClick={() => setShowCreatePatient(true)}
+                                            >
+                                                + Create New Patient
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
+
+                                {/* Inline Create New Patient Form */}
+                                {showCreatePatient && (
+                                    <div className="sm:col-span-2 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-800 p-4 space-y-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">Create New Patient</span>
+                                            <button type="button" onClick={() => setShowCreatePatient(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">First Name*</label>
+                                                <input type="text" value={newPt.firstName} onChange={(e) => setNewPt(p => ({ ...p, firstName: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                            </div>
+                                            <div>
+                                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Last Name*</label>
+                                                <input type="text" value={newPt.lastName} onChange={(e) => setNewPt(p => ({ ...p, lastName: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                            </div>
+                                            <div>
+                                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Date of Birth*</label>
+                                                <input type="date" value={newPt.dateOfBirth} onChange={(e) => setNewPt(p => ({ ...p, dateOfBirth: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                            </div>
+                                            <div>
+                                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Gender*</label>
+                                                <select value={newPt.gender} onChange={(e) => setNewPt(p => ({ ...p, gender: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100">
+                                                    <option value="">Select</option>
+                                                    <option value="Male">Male</option>
+                                                    <option value="Female">Female</option>
+                                                    <option value="Non-binary">Non-binary</option>
+                                                    <option value="Third Gender">Third Gender</option>
+                                                    <option value="Other">Other</option>
+                                                    <option value="Unknown">Unknown</option>
+                                                    <option value="Prefer not to say">Prefer not to say</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Phone Number*</label>
+                                                <input type="tel" value={newPt.phoneNumber} onChange={(e) => setNewPt(p => ({ ...p, phoneNumber: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                            </div>
+                                            <div>
+                                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Status</label>
+                                                <select value={newPt.status} onChange={(e) => setNewPt(p => ({ ...p, status: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100">
+                                                    <option value="Active">Active</option>
+                                                    <option value="Inactive">Inactive</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-1">
+                                            <button type="button" onClick={() => setShowCreatePatient(false)} className="px-3 py-1.5 text-xs rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50">Cancel</button>
+                                            <button type="button" onClick={handleCreatePatientAndSelect} disabled={createPatientSaving || !newPt.firstName || !newPt.lastName || !newPt.dateOfBirth || !newPt.phoneNumber || !newPt.gender} className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+                                                {createPatientSaving ? 'Creating...' : 'Create & Select Patient'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Row 2: Start / End Dates (MM/DD/YYYY UI) */}
                                 <div>
@@ -1982,24 +2090,34 @@ const Calendar: React.FC = () => {
                                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                         Appointment start time
                                     </label>
-                                    <input
-                                        type="time"
-                                        value={startTime}
-                                        onChange={(e) => setStartTime(e.target.value)}
-                                        className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="time"
+                                            value={startTime}
+                                            onChange={(e) => setStartTime(e.target.value)}
+                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div>
                                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                         Appointment end time
                                     </label>
-                                    <input
-                                        type="time"
-                                        value={endTime}
-                                        onChange={(e) => setEndTime(e.target.value)}
-                                        className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type="time"
+                                            value={endTime}
+                                            onChange={(e) => setEndTime(e.target.value)}
+                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                        />
+                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        </span>
+                                    </div>
                                 </div>
 
                                 {/* Row 4: Priority / Provider */}

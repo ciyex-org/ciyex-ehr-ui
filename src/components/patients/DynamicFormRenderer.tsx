@@ -391,7 +391,9 @@ function LookupField({
           style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
         >
           {results.map((item, idx) => {
-            const display = item[field.lookupConfig!.displayField] || item.name || item.label;
+            const display = item[field.lookupConfig!.displayField] ||
+              (item.firstName && item.lastName ? `${item.firstName} ${item.lastName}`.trim() : null) ||
+              item.firstName || item.lastName || item.name || item.label || item.display;
             const val = item[field.lookupConfig!.valueField] || item.id;
             return (
               <button
