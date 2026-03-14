@@ -342,7 +342,7 @@ function DmRow({ channel, isActive, onClick }: { channel: Channel; isActive: boo
         <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm ${getAvatarGradient(channel.id)}`}>
           {getInitials(channel.name)}
         </div>
-        {channel.type === "dm" && <PresenceDot status="online" />}
+        {/* Presence dot removed — no real-time presence tracking yet */}
         {channel.type === "group_dm" && (
           <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[8px] font-bold text-gray-600 ring-2 ring-white dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-900">
             <Users className="h-2.5 w-2.5" />
