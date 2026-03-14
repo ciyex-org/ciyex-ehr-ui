@@ -147,7 +147,7 @@ export default function MessageLog() {
               <div><span className="text-slate-500">Channel:</span> {detail.channelType}</div>
               <div><span className="text-slate-500">Status:</span> {statusBadge(detail.status)}</div>
               <div><span className="text-slate-500">Recipient:</span> {detail.recipientName || detail.recipient}</div>
-              <div><span className="text-slate-500">Sent At:</span> {fmtDate(detail.sentAt)}</div>
+              <div><span className="text-slate-500">Sent At:</span> {fmtDate(detail.sentAt || detail.createdAt)}</div>
               {detail.patientName && (
                 <div><span className="text-slate-500">Patient:</span> {detail.patientName}</div>
               )}
@@ -276,7 +276,7 @@ export default function MessageLog() {
                   className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    {fmtDate(log.sentAt)}
+                    {fmtDate(log.sentAt || log.createdAt)}
                   </td>
                   <td className="px-4 py-3">
                     <span

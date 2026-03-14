@@ -79,6 +79,7 @@ export interface NotificationLog {
   metadata?: Record<string, unknown>;
   sentAt: string;
   deliveredAt?: string;
+  createdAt?: string;
 }
 
 export interface NotificationStats {

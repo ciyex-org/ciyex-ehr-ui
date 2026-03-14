@@ -648,7 +648,8 @@ export default function AppointmentPage() {
       const d = new Date(r.appointmentStartDate?.includes("T") ? r.appointmentStartDate : r.appointmentStartDate + "T00:00:00").getTime();
       const matchDate = d >= fromTime && d <= toTime;
       const matchProvider = provider === "All Providers" || String(r.providerId) === String(provider);
-      const matchCategory = category === "All Visit Categories" || r.visitType === category;
+      const visitTypeStr = typeof r.visitType === "object" && r.visitType !== null ? ((r.visitType as any).text || (r.visitType as any).coding?.[0]?.display || "") : (r.visitType || "");
+      const matchCategory = category === "All Visit Categories" || visitTypeStr === category;
       const matchLocation = location === "All Locations" || String(r.locationId) === String(location);
       const matchPatient = !patientName || (r.patientName || "").toLowerCase().includes(patientName.trim().toLowerCase());
       // Hide completed/terminal statuses when toggle is on
@@ -696,7 +697,7 @@ export default function AppointmentPage() {
       "Phone": r.patientPhone || "",
       "Provider": r.providerName || providers.find((p) => String(p.id) === String(r.providerId))?.name || "",
       "Location": locations.find((l) => String(l.id) === String(r.locationId))?.name || "",
-      "Type": r.visitType || "",
+      "Type": typeof r.visitType === "object" && r.visitType !== null ? ((r.visitType as any).text || (r.visitType as any).coding?.[0]?.display || "") : (r.visitType || ""),
       "Status": getStatusOption(r.status)?.label || r.status,
       "Room": r.room || "",
       "Reason": r.reason || "",
@@ -966,7 +967,7 @@ export default function AppointmentPage() {
                       </td>
 
                       {/* Type */}
-                      <td className="py-1.5 px-3 text-sm">{r.visitType}</td>
+                      <td className="py-1.5 px-3 text-sm">{typeof r.visitType === "object" && r.visitType !== null ? ((r.visitType as any).text || (r.visitType as any).coding?.[0]?.display || (r.visitType as any).coding?.[0]?.code || "—") : (r.visitType || "—")}</td>
 
                       {/* Status — badge + workflow button */}
                       <td className="py-1.5 px-3 text-sm">

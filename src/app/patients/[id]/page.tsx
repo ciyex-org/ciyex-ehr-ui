@@ -604,10 +604,10 @@ export default function PatientDashboardPage() {
             {/* Negate AdminLayout padding so chart goes full-bleed */}
             <div className="pageScroll bg-gray-50 h-full -m-4 md:-m-6 flex flex-col">
                 {/* Patient header bar */}
-                <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+                <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm overflow-hidden">
                     <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
                         {/* Left: back + patient info */}
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-3 min-w-0 overflow-hidden">
                             <Link
                                 href="/patients"
                                 className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
@@ -617,8 +617,8 @@ export default function PatientDashboardPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                                 </svg>
                             </Link>
-                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
-                                <h1 className="text-base font-semibold text-gray-900 truncate max-w-[180px] sm:max-w-none dark:text-white">
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0 overflow-hidden">
+                                <h1 className="text-base font-semibold text-gray-900 truncate max-w-[160px] sm:max-w-[280px] md:max-w-none dark:text-white">
                                     {patient.firstName} {patient.lastName}
                                 </h1>
                                 {patient.mrn && (
@@ -634,8 +634,8 @@ export default function PatientDashboardPage() {
                                         <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{patient.gender}</span>
                                     </>
                                 )}
-                                <span className="text-gray-300 shrink-0 hidden sm:inline">|</span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{patient.phoneNumber || "\u2014"}</span>
+                                <span className="text-gray-300 shrink-0 hidden md:inline">|</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0 hidden md:inline">{patient.phoneNumber || "\u2014"}</span>
                                 {patient.status && (
                                     <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${
                                         patient.status === "Active" ? "bg-green-50 text-green-700" :
