@@ -146,15 +146,15 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                     { value: "Urology", label: "Urology" },
                     { value: "Other", label: "Other" },
                 ];
-                const patchedSpecialty: any = {
-                    ...f,
+                // Replace entire field config with clean object — avoids backend format issues
+                // (wrong options shape, optionsSource endpoint, showWhen conditions, etc.)
+                section.fields[i] = {
+                    key: f.key,
+                    label: f.label || "Specialty",
                     type: "combobox" as any,
-                    options: (f.options && f.options.length > 0) ? f.options : defaultSpecialtyOptions,
-                };
-                delete patchedSpecialty.showWhen; // always show, never conditionally hidden
-                delete patchedSpecialty.hidden;
-                delete patchedSpecialty.optionsSource; // use static options, not dynamic endpoint
-                section.fields[i] = patchedSpecialty;
+                    required: f.required || false,
+                    options: defaultSpecialtyOptions,
+                } as any;
             }
         }
         // Referral providers: add organization field if it doesn't exist
