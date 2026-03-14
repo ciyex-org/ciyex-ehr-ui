@@ -9,6 +9,8 @@ type PermissionContextType = {
   loading: boolean;
   /** FHIR resource types the user can write (e.g. ["Appointment", "Patient"]) */
   writableResources: string[];
+  /** FHIR resource types the user can read (e.g. ["Communication", "Patient"]) */
+  readableResources: string[];
   /** Exact match: user has this specific permission key */
   hasPermission: (key: string) => boolean;
   /** Category match: user has ANY permission starting with `category.` */
@@ -17,6 +19,8 @@ type PermissionContextType = {
   hasCategoryWrite: (category: string) => boolean;
   /** Check if user can write a specific FHIR resource type (e.g. "Practitioner") */
   canWriteResource: (resourceType: string) => boolean;
+  /** Check if user can read a specific FHIR resource type (e.g. "Communication") */
+  canReadResource: (resourceType: string) => boolean;
   /** Refresh permissions from server */
   refreshPermissions: () => Promise<void>;
 };
@@ -48,6 +52,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [permissions, setPermissions] = useState<string[]>(cached.permissions);
   const [role, setRole] = useState(cached.role);
   const [writableResources, setWritableResources] = useState<string[]>([]);
+  const [readableResources, setReadableResources] = useState<string[]>([]);
   const [loading, setLoading] = useState(!cached.role); // skip loading if we have cached data
 
   const fetchPermissions = useCallback(async () => {
@@ -78,6 +83,7 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setPermissions(json.data.permissions || []);
         setRole(json.data.role || "");
         setWritableResources(json.data.writableResources || []);
+        setReadableResources(json.data.readableResources || []);
       }
     } catch (err) {
       console.warn("Failed to fetch permissions:", err);
@@ -144,6 +150,12 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     [writableResources]
   );
 
+  const canReadResource = useCallback(
+    (resourceType: string) =>
+      readableResources.includes(resourceType) || writableResources.includes(resourceType),
+    [readableResources, writableResources]
+  );
+
   return (
     <PermissionContext.Provider
       value={{
@@ -151,10 +163,12 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         role,
         loading,
         writableResources,
+        readableResources,
         hasPermission,
         hasCategory,
         hasCategoryWrite,
         canWriteResource,
+        canReadResource,
         refreshPermissions: fetchPermissions,
       }}
     >

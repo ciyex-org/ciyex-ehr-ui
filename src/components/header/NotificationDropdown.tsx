@@ -5,6 +5,7 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { useRouter } from "next/navigation";
+import { usePermissions } from "@/context/PermissionContext";
 
 const API_URL = () => getEnv("NEXT_PUBLIC_API_URL") || "";
 
@@ -33,6 +34,8 @@ export default function NotificationDropdown() {
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const router = useRouter();
+    const { canReadResource } = usePermissions();
+    const canReadMessages = canReadResource("Communication");
 
     function toggleDropdown() {
         setIsOpen(!isOpen);
@@ -64,8 +67,9 @@ export default function NotificationDropdown() {
         return () => window.removeEventListener("app-notification", handler);
     }, []);
 
-    // Poll for unread messages from messaging channels
+    // Poll for unread messages from messaging channels (only if user has Communication scope)
     const checkUnreadMessages = useCallback(async () => {
+        if (!canReadMessages) return;
         try {
             const res = await fetchWithAuth(`${API_URL()}/api/channels`);
             if (!res.ok) return;
@@ -110,7 +114,7 @@ export default function NotificationDropdown() {
         } catch {
             // silently fail
         }
-    }, []);
+    }, [canReadMessages]);
 
     useEffect(() => {
         checkUnreadMessages();
@@ -253,7 +257,7 @@ export default function NotificationDropdown() {
                         ))
                     )}
                 </ul>
-                {notifications.some((n) => n.type === "message") && (
+                {canReadMessages && notifications.some((n) => n.type === "message") && (
                     <div className="border-t border-gray-100 pt-2 mt-auto">
                         <button
                             onClick={() => { router.push("/messaging"); closeDropdown(); }}
