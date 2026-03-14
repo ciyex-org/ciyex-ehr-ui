@@ -328,6 +328,22 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.severity === "null" || r.severity === "undefined" || r.severity === "") r.severity = null;
         // Also clear reaction if it's the literal "null" string
         if (r.reaction === "null" || r.reaction === "undefined") r.reaction = null;
+        // Extract reaction display from FHIR manifestation so table shows readable text
+        if (r.reactionDisplay == null && Array.isArray(r.reaction) && r.reaction.length > 0) {
+            const manifList: string[] = [];
+            for (const rx of r.reaction) {
+                if (Array.isArray(rx?.manifestation)) {
+                    for (const m of rx.manifestation) {
+                        const d = m?.coding?.[0]?.display || m?.coding?.[0]?.code || (typeof m?.text === "string" ? m.text : null);
+                        if (d) manifList.push(d);
+                    }
+                } else if (typeof rx?.description === "string") {
+                    manifList.push(rx.description);
+                }
+            }
+            if (manifList.length > 0) r.reactionDisplay = manifList.join(", ");
+        }
+        if (r.reactionDisplay == null && typeof r.reaction === "string" && r.reaction !== "null") r.reactionDisplay = r.reaction;
         if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
         if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
 
