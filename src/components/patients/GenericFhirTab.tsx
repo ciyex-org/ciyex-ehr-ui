@@ -339,6 +339,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     }
                 } else if (typeof rx?.description === "string") {
                     manifList.push(rx.description);
+                } else if (typeof rx?.substance === "object" && rx.substance) {
+                    // Fallback: extract from substance if no manifestation/description
+                    const sub = rx.substance;
+                    const d = sub?.coding?.[0]?.display || (typeof sub?.text === "string" ? sub.text : null) || sub?.coding?.[0]?.code || null;
+                    if (d) manifList.push(String(d));
+                } else if (typeof rx?.severity === "string") {
+                    manifList.push(rx.severity);
+                } else if (typeof rx === "string") {
+                    manifList.push(rx);
                 }
             }
             if (manifList.length > 0) r.reactionDisplay = manifList.join(", ");
@@ -912,7 +921,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             if (res.ok) {
                 const json = await res.json();
                 const data = json.data || {};
-                const content = (data.content || []).map(normalizeRecord);
+                const content = (data.content || []).map((rec: Record<string, any>) => { try { return normalizeRecord(rec); } catch { return rec; } });
                 const isSingle = data.singleRecord === true;
                 setSingleRecord(isSingle);
                 setRecords(content);
@@ -1765,6 +1774,23 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     if (first.coding || first.text) {
                         const d = first.coding?.[0]?.display || first.coding?.[0]?.code || (typeof first.text === "string" ? first.text : null);
                         if (typeof d === "string") return d;
+                    }
+                    // FHIR AllergyIntolerance reaction array [{manifestation, severity, description, substance}]
+                    if ("manifestation" in first || "severity" in first || "description" in first) {
+                        const parts: string[] = [];
+                        for (const rx of value) {
+                            if (Array.isArray(rx?.manifestation)) {
+                                for (const m of rx.manifestation) {
+                                    const d = m?.coding?.[0]?.display || (typeof m?.text === "string" ? m.text : null) || m?.coding?.[0]?.code;
+                                    if (d) parts.push(String(d));
+                                }
+                            } else if (typeof rx?.description === "string") {
+                                parts.push(rx.description);
+                            } else if (typeof rx?.severity === "string") {
+                                parts.push(rx.severity);
+                            }
+                        }
+                        if (parts.length > 0) return parts.join(", ");
                     }
                     // Code-lookup items array: [{code, description, ...}]
                     if (typeof first.code === "string") {
