@@ -1,7 +1,7 @@
 "use client";
 import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
 import AdminLayout from "@/app/(admin)/layout";
@@ -68,6 +68,7 @@ const emptyPatient: Omit<Patient, "id"> = {
 
 export default function PatientListPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { canWriteResource } = usePermissions();
     const canWritePatient = canWriteResource("Patient");
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -80,7 +81,7 @@ export default function PatientListPage() {
     const [totalPages, setTotalPages] = useState<number>(1);
     const [totalItems, setTotalItems] = useState<number>(0);
 
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(() => searchParams?.get("search") || "");
     const [showInactive, setShowInactive] = useState(false);
     const [genderFilter, setGenderFilter] = useState("all");
 
