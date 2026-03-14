@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import DatePicker from "@/components/DatePicker";
 import PluginSlot from "@/components/plugins/PluginSlot";
+import { usePermissions } from "@/context/PermissionContext";
 import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
 import {
     Dialog,
@@ -26,6 +27,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingPatientId, setEditingPatientId] = useState<number | null>(null);
     const { toggleSidebar } = useSidebar();
+    const { canWriteResource } = usePermissions();
+    const canWritePatient = canWriteResource("Patient");
+    const canWriteAppointment = canWriteResource("Appointment");
     const inputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
@@ -310,7 +314,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                         </div>
                     </div>
 
-                    {/* Patient button */}
+                    {/* Patient button — only for users with Patient write scope */}
+                    {canWritePatient && (
                     <button
                         onClick={() => {
                             resetForm();
@@ -327,8 +332,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                             <circle className="fill-[#6EBAFF]" cx="15" cy="9" r="6" />
                         </svg>
                     </button>
+                    )}
 
-                    {/* Appointment button */}
+                    {/* Appointment button — only for users with Appointment write scope */}
+                    {canWriteAppointment && (
                     <button
                         onClick={() => window.dispatchEvent(new Event("open-appointment-modal"))}
                         className="inline-flex items-center gap-1.5 rounded-md bg-blue-100 text-blue-700 px-3 py-1.5 text-sm font-medium hover:bg-blue-200"
@@ -348,6 +355,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                             <line x1="16" y1="2" x2="16" y2="6" />
                         </svg>
                     </button>
+                    )}
 
                     {/* Plugin-injected header actions */}
                     <PluginSlot name="global:header-action" as="fragment" />
