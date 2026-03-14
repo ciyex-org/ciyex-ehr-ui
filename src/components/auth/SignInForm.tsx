@@ -390,13 +390,9 @@ export default function SignInForm() {
                                         <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">
                                             {error}
                                             {!discoverResult?.exists && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => router.push("/signup")}
-                                                    className="block mt-2 text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                                                >
-                                                    Create an account
-                                                </button>
+                                                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                                                    Contact your practice administrator to get an account.
+                                                </p>
                                             )}
                                         </div>
                                     )}
@@ -665,7 +661,7 @@ export default function SignInForm() {
                             href="/signup"
                             className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                         >
-                            New to Ciyex? Create an account
+                            Register a new practice
                         </a>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                             By signing in, you agree to our{" "}
