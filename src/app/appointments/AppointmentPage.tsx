@@ -126,6 +126,33 @@ function formatWaitTime(lastModified: string): { text: string; color: string } |
   return { text, color };
 }
 
+/** Extract display text from a FHIR CodeableConcept or raw Java toString string */
+function normalizeVisitType(raw: unknown): string {
+  if (!raw) return "";
+  // Already a plain string — check if it's a Java object toString like "{coding=[...], text=Telehealth}"
+  if (typeof raw === "string") {
+    // Try to extract text= value from Java toString format
+    const textMatch = raw.match(/\btext=([^,}]+)/);
+    if (textMatch) return textMatch[1].trim();
+    // Try to extract display= value from coding array
+    const displayMatch = raw.match(/\bdisplay=([^,}\]]+)/);
+    if (displayMatch) return displayMatch[1].trim();
+    return raw;
+  }
+  // It's an object (proper JSON)
+  if (typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    if (obj.text && typeof obj.text === "string") return obj.text;
+    const coding = obj.coding;
+    if (Array.isArray(coding) && coding.length > 0) {
+      const first = coding[0] as Record<string, unknown>;
+      if (first.display && typeof first.display === "string") return first.display;
+      if (first.code && typeof first.code === "string") return first.code;
+    }
+  }
+  return String(raw);
+}
+
 /** Calculate duration between start and end time strings (HH:mm) */
 function calcDuration(startTime: string, endTime: string): string {
   if (!startTime || !endTime) return "";
@@ -446,7 +473,7 @@ export default function AppointmentPage() {
         const enriched = await Promise.all(
           content.map(async (appt) => {
             const info = await fetchPatientInfo(appt.patientId);
-            return { ...appt, patientName: info.name, patientPhone: info.phone };
+            return { ...appt, patientName: info.name, patientPhone: info.phone, visitType: normalizeVisitType((appt as any).visitType) };
           })
         );
         setRows(enriched);
