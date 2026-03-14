@@ -1614,7 +1614,13 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
         // Reference fields: check {key}Display BEFORE null check (Display may exist even when raw ref is missing)
         if (colKey && record && record[colKey + "Display"]) {
-            return record[colKey + "Display"];
+            const dv = record[colKey + "Display"];
+            if (typeof dv === "string") return dv;
+            // If display is an object (e.g., CodeableConcept), extract text
+            if (dv && typeof dv === "object") {
+                const extracted = dv.coding?.[0]?.display || dv.coding?.[0]?.code || (typeof dv.text === "string" ? dv.text : null);
+                if (extracted) return String(extracted);
+            }
         }
 
         if (value == null) {
@@ -1775,7 +1781,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
             // FHIR Reference
             if (value.reference && typeof value.reference === "string") {
-                return value.display || value.reference.split("/").pop() || value.reference;
+                const disp = typeof value.display === "string" ? value.display : null;
+                return disp || value.reference.split("/").pop() || value.reference;
             }
             return JSON.stringify(value);
         }
@@ -2032,7 +2039,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                                                 key={col.key}
                                                 className="px-4 py-2.5 text-gray-700 dark:text-gray-300"
                                             >
-                                                {formatValue(record[col.key], col.key, record)}
+                                                {(() => { const fv = formatValue(record[col.key], col.key, record); return (fv !== null && typeof fv === "object" && !("$$typeof" in (fv as object))) ? JSON.stringify(fv) : fv; })()}
                                             </td>
                                         ))}
                                         <td className="px-4 py-2.5 text-right">
