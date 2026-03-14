@@ -153,6 +153,7 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                 };
                 delete patchedSpecialty.showWhen; // always show, never conditionally hidden
                 delete patchedSpecialty.hidden;
+                delete patchedSpecialty.optionsSource; // use static options, not dynamic endpoint
                 section.fields[i] = patchedSpecialty;
             }
         }
