@@ -93,10 +93,11 @@ export default function ChannelSidebar({
     const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
     return bTime - aTime;
   };
-  const dmChannels = filtered.filter((c) => c.type === "dm" || c.type === "group_dm").sort(sortByActivity);
+  const dmChannels = filtered.filter((c) => c.type === "dm").sort(sortByActivity);
   const publicChannels = filtered.filter((c) => c.type === "public");
   const privateChannels = filtered.filter((c) => c.type === "private");
-  const allChannels = [...publicChannels, ...privateChannels];
+  const groupChannels = filtered.filter((c) => c.type === "group_dm");
+  const allChannels = [...publicChannels, ...privateChannels, ...groupChannels];
 
   const filteredUsers = useMemo(() => {
     if (!userSearch.trim()) return availableUsers.filter((u) => u.id !== currentUserId);

@@ -75,7 +75,7 @@ export default function ChannelCreateModal({ isOpen, onClose, onCreate, availabl
               {([
                 { value: "public", icon: Hash, label: "Public" },
                 { value: "private", icon: Lock, label: "Private" },
-                { value: "group_dm", icon: Users, label: "Group DM" },
+                { value: "group_dm", icon: Users, label: "Group" },
               ] as const).map(({ value, icon: Icon, label }) => (
                 <button
                   key={value}
