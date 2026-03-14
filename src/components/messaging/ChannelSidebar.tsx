@@ -328,11 +328,11 @@ function SectionHeader({
 }
 
 function ChannelRow({ channel, isActive, onClick }: { channel: Channel; isActive: boolean; onClick: () => void }) {
-  const Icon = channel.type === "public" ? Hash : channel.type === "group_dm" ? Users : Lock;
+  const Icon = channel.type === "public" ? Hash : Lock;
   return (
     <button
       onClick={onClick}
-      className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-all ${
+      className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
         isActive
           ? "bg-brand-50 text-brand-700 shadow-sm ring-1 ring-brand-100 dark:bg-brand-900/30 dark:text-brand-300 dark:ring-brand-800/50"
           : "text-gray-700 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-gray-800/80"
@@ -343,11 +343,27 @@ function ChannelRow({ channel, isActive, onClick }: { channel: Channel; isActive
       }`}>
         <Icon className={`h-3.5 w-3.5 ${isActive ? "text-brand-600 dark:text-brand-400" : "text-gray-400"}`} />
       </div>
-      <span className={`min-w-0 truncate ${channel.unreadCount > 0 ? "font-semibold" : "font-medium"}`}>
-        {channel.name}
-      </span>
+      <div className="min-w-0 flex-1 text-left">
+        <div className="flex items-center justify-between">
+          <span className={`truncate text-sm ${channel.unreadCount > 0 ? "font-semibold" : "font-medium"}`}>
+            {channel.name}
+          </span>
+          {(channel.lastMessageAt || channel.lastMessage?.createdAt) && (
+            <span className="ml-2 shrink-0 text-[11px] text-gray-400">
+              {formatTimeShort(channel.lastMessageAt || channel.lastMessage?.createdAt)}
+            </span>
+          )}
+        </div>
+        {(channel.lastMessagePreview || channel.lastMessage?.content) && (
+          <p className={`mt-0.5 truncate text-xs text-left ${
+            channel.unreadCount > 0 ? "text-gray-600 dark:text-gray-400" : "text-gray-400 dark:text-gray-500"
+          }`}>
+            {channel.lastMessagePreview || channel.lastMessage?.content}
+          </p>
+        )}
+      </div>
       {channel.unreadCount > 0 && (
-        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white shadow-sm">
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white shadow-sm">
           {channel.unreadCount > 99 ? "99+" : channel.unreadCount}
         </span>
       )}
