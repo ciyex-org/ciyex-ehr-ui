@@ -624,17 +624,21 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.performedDate != null && r.datePerformed == null) r.datePerformed = r.performedDate;
         if (r.serviceDate != null && r.datePerformed == null) r.datePerformed = r.serviceDate;
         if (r.createdDate != null && r.datePerformed == null) r.datePerformed = r.createdDate;
-        if (r.code != null && r.cptCode == null) {
-            if (typeof r.code === "string") r.cptCode = r.code;
-            else if (r.code?.coding?.[0]?.code) r.cptCode = r.code.coding[0].code;
-            else if (r.code?.text) r.cptCode = r.code.text;
-        }
-        if (r.procedureCode != null && r.cptCode == null) r.cptCode = r.procedureCode;
-        if (r.serviceCode != null && r.cptCode == null) r.cptCode = r.serviceCode;
-        // Convert cptCode string to code-lookup array so the CodeLookup component can display it in edit mode
-        if (r.cptCode && typeof r.cptCode === "string") {
-            const desc = r.code?.coding?.[0]?.display || r.code?.text || r.cptCode;
-            r.cptCode = [{ code: r.cptCode, description: typeof desc === "string" ? desc : r.cptCode, units: 1, modifier: "" }];
+        // Only normalize cptCode for procedure-like tabs; don't run on Location/Facility records
+        if (tabKey === "procedures" || tabKey === "procedure") {
+            if (r.code != null && r.cptCode == null) {
+                if (typeof r.code === "string") r.cptCode = r.code;
+                else if (r.code?.coding?.[0]?.code) r.cptCode = r.code.coding[0].code;
+                else if (r.code?.text) r.cptCode = r.code.text;
+            }
+            if (r.procedureCode != null && r.cptCode == null) r.cptCode = r.procedureCode;
+            if (r.serviceCode != null && r.cptCode == null) r.cptCode = r.serviceCode;
+            // Convert cptCode string to code-lookup array so the CodeLookup component can display it in edit mode
+            if (r.cptCode && typeof r.cptCode === "string") {
+                const rawCode = r.code;
+                const desc = (rawCode?.coding?.[0]?.display) || (typeof rawCode?.text === "string" ? rawCode.text : null) || r.cptCode;
+                r.cptCode = [{ code: r.cptCode, description: typeof desc === "string" ? desc : r.cptCode, units: 1, modifier: "" }];
+            }
         }
         // Reverse: ensure field-config keys are populated
         if (r.datePerformed != null && r.performedDate == null) r.performedDate = r.datePerformed;
@@ -667,9 +671,12 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.originalClaimRef && typeof r.originalClaimRef === "string" && /^[A-Z][a-zA-Z]+\//.test(r.originalClaimRef)) {
             r.originalClaimRef = r.originalClaimRef.split("/").pop() || r.originalClaimRef;
         }
-        // claimType from FHIR type CodeableConcept (used by ERA / denial / submissions)
-        if (r.claimType == null && r.type != null) {
-            if (typeof r.type === "object" && (r.type.coding || r.type.text)) {
+        // claimType from FHIR type CodeableConcept (ERA / denial / submissions only)
+        const isClaimsTab = tabKey === "era" || tabKey === "denials" || tabKey === "claim-denials"
+            || tabKey === "submissions" || tabKey === "claim-submissions" || tabKey === "eob"
+            || tabKey === "remittance" || tabKey === "era-remittance" || tabKey === "claims" || tabKey === "transactions";
+        if (isClaimsTab && r.claimType == null && r.type != null) {
+            if (typeof r.type === "object" && !Array.isArray(r.type) && (r.type.coding || r.type.text)) {
                 const d0 = Array.isArray(r.type.coding) ? r.type.coding[0] : null;
                 r.claimType = (typeof d0?.display === "string" ? d0.display : null)
                     || (typeof d0?.code === "string" ? d0.code : null)
@@ -860,7 +867,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.locationDisplay == null && r.location != null && typeof r.location === "string" && !r.location.includes("/")) r.locationDisplay = r.location;
 
         return r;
-    }, []);
+    }, [tabKey]);
 
     // Fetch records with pagination
     const fetchRecords = useCallback(async (p = page) => {
@@ -1710,29 +1717,42 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             if (cMatch && !cMatch[1].startsWith("{") && !cMatch[1].startsWith("[")) return cMatch[1].trim();
         }
 
-        if (typeof value === "object") {
+        if (value !== null && typeof value === "object") {
+            // Array first (before CodeableConcept check, since arrays are also "object")
+            if (Array.isArray(value)) {
+                if (value.length === 0) return "-";
+                const first = value[0];
+                if (first != null && typeof first === "object") {
+                    // Array of CodeableConcepts
+                    if (first.coding || first.text) {
+                        const d = first.coding?.[0]?.display || first.coding?.[0]?.code || (typeof first.text === "string" ? first.text : null);
+                        if (typeof d === "string") return d;
+                    }
+                    // Code-lookup items array: [{code, description, ...}]
+                    if (typeof first.code === "string") {
+                        return value.map((v: any) => (typeof v?.code === "string" ? v.code : "")).filter(Boolean).join(", ");
+                    }
+                }
+                // Plain string/number array
+                if (typeof first === "string" || typeof first === "number") {
+                    return value.slice(0, 3).join(", ");
+                }
+                return JSON.stringify(value);
+            }
             // FHIR CodeableConcept: { coding: [...], text: ... }
             if (value.coding || value.text) {
-                const d0 = Array.isArray(value.coding) ? value.coding[0] : null;
-                if (d0) {
-                    const disp = typeof d0.display === "string" ? d0.display
-                        : (d0.display?.coding?.[0]?.display || d0.display?.text);
-                    if (disp) return typeof disp === "string" ? disp : String(disp);
-                    const code = typeof d0.code === "string" ? d0.code
-                        : (d0.code?.coding?.[0]?.code || d0.code?.text);
-                    if (code) return typeof code === "string" ? code : String(code);
-                }
-                if (typeof value.text === "string") return value.text;
-                if (value.text?.coding?.[0]?.display) return value.text.coding[0].display;
-            }
-            // Array of CodeableConcepts
-            if (Array.isArray(value) && value.length > 0) {
-                if (value[0]?.coding || value[0]?.text) {
-                    const d = value[0]?.coding?.[0]?.display || value[0]?.coding?.[0]?.code || value[0]?.text;
-                    if (typeof d === "string") return d;
-                }
-                // Code-lookup items array: [{code, description, ...}]
-                if (value[0]?.code) return value.map((v: any) => v.code || "").filter(Boolean).join(", ");
+                try {
+                    const d0 = Array.isArray(value.coding) ? value.coding[0] : null;
+                    if (d0) {
+                        const disp = typeof d0.display === "string" ? d0.display
+                            : (typeof d0.display === "object" ? (d0.display?.text || d0.display?.coding?.[0]?.display) : null);
+                        if (typeof disp === "string") return disp;
+                        const code = typeof d0.code === "string" ? d0.code
+                            : (typeof d0.code === "object" ? (d0.code?.text || d0.code?.coding?.[0]?.code) : null);
+                        if (typeof code === "string") return code;
+                    }
+                    if (typeof value.text === "string") return value.text;
+                } catch { /* fall through to JSON.stringify */ }
             }
             if (value.line1) {
                 return [value.line1, value.city, value.state].filter(Boolean).join(", ");
