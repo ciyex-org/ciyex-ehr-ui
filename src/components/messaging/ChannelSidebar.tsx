@@ -328,7 +328,7 @@ function SectionHeader({
 }
 
 function ChannelRow({ channel, isActive, onClick }: { channel: Channel; isActive: boolean; onClick: () => void }) {
-  const Icon = channel.type === "private" ? Lock : Hash;
+  const Icon = channel.type === "public" ? Hash : channel.type === "group_dm" ? Users : Lock;
   return (
     <button
       onClick={onClick}
