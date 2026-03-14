@@ -46,6 +46,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
     const [errorMessage, setErrorMessage] = useState("");
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [searchTerm, setSearchTerm] = useState("");
+    const [searchResults, setSearchResults] = useState<{ id: number; firstName: string; lastName: string; dateOfBirth?: string }[]>([]);
+    const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const searchRef = useRef<HTMLDivElement>(null);
 
     const resetForm = () => {
         setFormData({
@@ -159,11 +163,52 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
         }
     };
 
+    // Debounced patient search for header dropdown
+    useEffect(() => {
+        if (!searchTerm.trim()) {
+            setSearchResults([]);
+            setShowSearchDropdown(false);
+            return;
+        }
+        const t = setTimeout(async () => {
+            setSearchLoading(true);
+            try {
+                const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
+                const res = await fetchWithAuth(`${apiUrl}/api/patients?search=${encodeURIComponent(searchTerm.trim())}&size=10`);
+                const json = await res.json();
+                const list = json?.data?.content || json?.data || [];
+                setSearchResults(Array.isArray(list) ? list : []);
+                setShowSearchDropdown(true);
+            } catch {
+                setSearchResults([]);
+            } finally {
+                setSearchLoading(false);
+            }
+        }, 300);
+        return () => clearTimeout(t);
+    }, [searchTerm]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+                setShowSearchDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const runSearch = useCallback(() => {
-        if (searchTerm.trim()) {
+        if (!searchTerm.trim()) return;
+        setShowSearchDropdown(false);
+        if (searchResults.length === 1) {
+            setSearchTerm("");
+            router.push(`/patients/${searchResults[0].id}`);
+        } else {
             router.push(`/patients?search=${encodeURIComponent(searchTerm.trim())}`);
         }
-    }, [searchTerm, router]);
+    }, [searchTerm, searchResults, router]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -209,28 +254,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                 {/* Right section: search + actions grouped together */}
                 <div className="flex items-center gap-3 flex-1 justify-end">
                     {/* Search box */}
-                    <div className="max-w-md w-full">
+                    <div className="max-w-md w-full" ref={searchRef}>
                         <div className="relative">
-        <span className="absolute inset-y-0 left-3 flex items-center">
-          <svg
-              className="w-4 h-4 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-          >
-            <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"
-            />
-          </svg>
-        </span>
+                            <span className="absolute inset-y-0 left-3 flex items-center">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" />
+                                </svg>
+                            </span>
                             <input
                                 ref={inputRef}
                                 type="text"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => { setSearchTerm(e.target.value); }}
+                                onFocus={() => searchResults.length > 0 && setShowSearchDropdown(true)}
                                 placeholder="Search patients..."
                                 className="h-11 w-full rounded-lg border border-gray-200 pl-9 pr-14 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-blue-500"
                             />
@@ -240,6 +276,37 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                             >
                                 ⌘ K
                             </button>
+                            {showSearchDropdown && (
+                                <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:bg-dark-900 dark:border-gray-700">
+                                    {searchLoading ? (
+                                        <div className="px-4 py-3 text-sm text-gray-500">Searching...</div>
+                                    ) : searchResults.length === 0 ? (
+                                        <div className="px-4 py-3 text-sm text-gray-500">No patients found</div>
+                                    ) : (
+                                        <ul className="max-h-64 overflow-auto py-1">
+                                            {searchResults.map((p) => (
+                                                <li
+                                                    key={p.id}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => {
+                                                        setSearchTerm("");
+                                                        setShowSearchDropdown(false);
+                                                        router.push(`/patients/${p.id}`);
+                                                    }}
+                                                    className="cursor-pointer px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-white/10"
+                                                >
+                                                    <div className="font-medium text-gray-800 dark:text-gray-100">
+                                                        {p.firstName} {p.lastName}
+                                                    </div>
+                                                    {p.dateOfBirth && (
+                                                        <div className="text-xs text-gray-500">DOB: {p.dateOfBirth}</div>
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
