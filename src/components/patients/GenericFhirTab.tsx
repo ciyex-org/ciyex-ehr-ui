@@ -190,6 +190,20 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "id", searchable: true } };
                     }
                 }
+                // Immunizations: vaccineCode as CVX code-lookup; lotNumber and dose optional
+                if ((tabKey === "immunizations" || tabKey === "immunization") && (f.key === "vaccineCode" || f.key === "vaccine" || f.key === "vaccineName")) {
+                    if (f.type !== "code-lookup" || !f.codeLookupConfig) {
+                        section.fields[i] = { ...f, type: "code-lookup", codeLookupConfig: f.codeLookupConfig || { codeSystem: "CVX", allowMultiple: false, placeholder: "Search CVX vaccine codes..." } };
+                    }
+                }
+                if ((tabKey === "immunizations" || tabKey === "immunization") && (f.key === "lotNumber" || f.key === "dose" || f.key === "doseQuantity" || f.key === "doseNumber" || f.key === "doseNumberPositive")) {
+                    // These fields are optional in FHIR Immunization — don't block save
+                    if (f.required) section.fields[i] = { ...f, required: false };
+                }
+                // Encounters: reasonForVisit is optional (we supply default in payload)
+                if ((tabKey === "encounters" || tabKey === "encounter") && (f.key === "reasonForVisit" || f.key === "reason" || f.key === "reasonCode")) {
+                    if (f.required) section.fields[i] = { ...f, required: false };
+                }
                 // Encounters: ensure patient field is a patient lookup
                 if ((tabKey === "encounters" || tabKey === "encounter") && (f.key === "patient" || f.key === "patientId" || f.key === "patientName" || f.key === "subject")) {
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
@@ -307,6 +321,20 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
         if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
 
+        // --- Encounter: reasonForVisit from reasonCode/reason ---
+        if (r.reasonForVisit == null) {
+            if (Array.isArray(r.reasonCode) && r.reasonCode.length > 0) {
+                const rc = r.reasonCode[0];
+                r.reasonForVisit = rc?.coding?.[0]?.display || rc?.coding?.[0]?.code || rc?.text || null;
+            } else if (r.reasonCode && typeof r.reasonCode === "object") {
+                r.reasonForVisit = r.reasonCode?.coding?.[0]?.display || r.reasonCode?.coding?.[0]?.code || r.reasonCode?.text || null;
+            }
+            if (r.reasonForVisit == null && r.reason != null) {
+                if (typeof r.reason === "string") r.reasonForVisit = r.reason;
+                else if (Array.isArray(r.reason)) r.reasonForVisit = r.reason[0]?.coding?.[0]?.display || r.reason[0]?.coding?.[0]?.code || r.reason[0]?.text || null;
+            }
+        }
+
         // --- Encounter period ---
         if (r.period != null && typeof r.period === "object") {
             if (r.period.start != null && r.startDate == null) r.startDate = r.period.start;
@@ -361,6 +389,46 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 const tp = iso.split("T")[1]?.replace(/Z$/, "")?.substring(0, 5);
                 if (tp) { if (r.appointmentEndTime == null) r.appointmentEndTime = tp; if (r.endTime == null) r.endTime = tp; }
             }
+        }
+
+        // --- Appointment: extract display text from appointmentType / serviceType / visitType ---
+        // Helper to extract text from a CodeableConcept or Java-toString string
+        const extractCcDisplay = (v: any): string | null => {
+            if (!v) return null;
+            if (typeof v === "string" && v.includes("coding=")) {
+                // Java toString format: {coding=[{system=..., code=X, display=X}], text=X}
+                const m = v.match(/\bdisplay=([^,}\]]+)/);
+                if (m && !m[1].startsWith("{") && !m[1].startsWith("[")) return m[1].trim();
+                const t = v.match(/\btext=([^,}\]]+)/);
+                if (t && !t[1].startsWith("{") && !t[1].startsWith("[")) return t[1].trim();
+                const c = v.match(/\bcode=([^,}\]]+)/);
+                if (c && !c[1].startsWith("{") && !c[1].startsWith("[")) return c[1].trim();
+                return null;
+            }
+            if (typeof v === "object") {
+                const d0 = Array.isArray(v.coding) ? v.coding[0] : null;
+                if (d0) {
+                    const disp = typeof d0.display === "string" ? d0.display : extractCcDisplay(d0.display);
+                    if (disp) return disp;
+                    const code = typeof d0.code === "string" ? d0.code : extractCcDisplay(d0.code);
+                    if (code) return code;
+                }
+                if (typeof v.text === "string") return v.text;
+                if (v.text && typeof v.text === "object") return extractCcDisplay(v.text);
+            }
+            return null;
+        };
+        if (r.appointmentType != null && r.visitType == null) {
+            const d = extractCcDisplay(r.appointmentType);
+            if (d) { r.visitType = d; r.appointmentTypeDisplay = d; }
+        }
+        if (r.serviceType != null && r.visitType == null) {
+            const st = Array.isArray(r.serviceType) ? r.serviceType[0] : r.serviceType;
+            const d = extractCcDisplay(st);
+            if (d) r.visitType = d;
+        }
+        if (r.visitType != null && typeof r.visitType !== "string") {
+            r.visitType = extractCcDisplay(r.visitType) || null;
         }
 
         // --- Clinical-alerts: identifiedDate ---
@@ -488,6 +556,27 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.marital_status != null && r.maritalStatus == null) r.maritalStatus = r.marital_status;
         if (r.maritalStatusCode != null && r.maritalStatus == null) r.maritalStatus = r.maritalStatusCode;
 
+        // --- Immunization ---
+        if (r.occurrenceDateTime != null && r.date == null) r.date = r.occurrenceDateTime;
+        if (r.doseQuantity != null && r.dose == null) {
+            if (typeof r.doseQuantity === "object") {
+                r.dose = r.doseQuantity.value ?? null;
+                if (r.doseUnit == null) r.doseUnit = r.doseQuantity.unit || r.doseQuantity.code || null;
+            } else if (typeof r.doseQuantity === "number") {
+                r.dose = r.doseQuantity;
+            }
+        }
+        if (r.doseNumber != null && r.dose == null) r.dose = r.doseNumber;
+        if (r.doseNumberPositive != null && r.dose == null) r.dose = r.doseNumberPositive;
+        // vaccineCode display
+        if (r.vaccineCode != null && r.vaccineName == null) {
+            if (typeof r.vaccineCode === "object") {
+                r.vaccineName = r.vaccineCode?.coding?.[0]?.display || r.vaccineCode?.coding?.[0]?.code || r.vaccineCode?.text || null;
+            } else if (typeof r.vaccineCode === "string") {
+                r.vaccineName = r.vaccineCode;
+            }
+        }
+
         // --- Labs ---
         if (r.effectiveDateTime != null && r.collectionDate == null) r.collectionDate = r.effectiveDateTime;
         if (r.effectiveDate != null && r.collectionDate == null) r.collectionDate = r.effectiveDate;
@@ -542,6 +631,11 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
         if (r.procedureCode != null && r.cptCode == null) r.cptCode = r.procedureCode;
         if (r.serviceCode != null && r.cptCode == null) r.cptCode = r.serviceCode;
+        // Convert cptCode string to code-lookup array so the CodeLookup component can display it in edit mode
+        if (r.cptCode && typeof r.cptCode === "string") {
+            const desc = r.code?.coding?.[0]?.display || r.code?.text || r.cptCode;
+            r.cptCode = [{ code: r.cptCode, description: typeof desc === "string" ? desc : r.cptCode, units: 1, modifier: "" }];
+        }
         // Reverse: ensure field-config keys are populated
         if (r.datePerformed != null && r.performedDate == null) r.performedDate = r.datePerformed;
         if (r.performedDate != null && r.datePerformed == null) r.datePerformed = r.performedDate;
@@ -566,6 +660,31 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.originalClaimReference == null && r.request != null) r.originalClaimReference = typeof r.request === "string" ? r.request : (r.request?.reference || r.request?.display);
         if (r.originalClaimReference == null && r.claimReference != null) r.originalClaimReference = r.claimReference;
         if (r.originalClaimReference == null && r.originalClaimId != null) r.originalClaimReference = r.originalClaimId;
+        // Bidirectional: field config may use either spelling
+        if (r.originalClaimRef == null && r.originalClaimReference != null) r.originalClaimRef = r.originalClaimReference;
+        if (r.originalClaimReference == null && r.originalClaimRef != null) r.originalClaimReference = r.originalClaimRef;
+        // Strip FHIR reference prefix (e.g. "Claim/123" → "123") for cleaner display
+        if (r.originalClaimRef && typeof r.originalClaimRef === "string" && /^[A-Z][a-zA-Z]+\//.test(r.originalClaimRef)) {
+            r.originalClaimRef = r.originalClaimRef.split("/").pop() || r.originalClaimRef;
+        }
+        // claimType from FHIR type CodeableConcept (used by ERA / denial / submissions)
+        if (r.claimType == null && r.type != null) {
+            if (typeof r.type === "object" && (r.type.coding || r.type.text)) {
+                const d0 = Array.isArray(r.type.coding) ? r.type.coding[0] : null;
+                r.claimType = (typeof d0?.display === "string" ? d0.display : null)
+                    || (typeof d0?.code === "string" ? d0.code : null)
+                    || (typeof r.type.text === "string" ? r.type.text : null) || null;
+            } else if (typeof r.type === "string" && r.type.includes("coding=")) {
+                const m = r.type.match(/\bdisplay=([^,}\]]+)/);
+                if (m && !m[1].startsWith("{")) r.claimType = m[1].trim();
+                else {
+                    const t = r.type.match(/\bcode=([^,}\]]+)/);
+                    if (t && !t[1].startsWith("{")) r.claimType = t[1].trim();
+                }
+            } else if (typeof r.type === "string" && !r.type.includes("{")) {
+                r.claimType = r.type;
+            }
+        }
 
         // --- Claims: service from / service to dates ---
         if (r.serviceFrom == null && r.billablePeriodStart != null) r.serviceFrom = r.billablePeriodStart;
@@ -1151,7 +1270,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 }
             }
 
-            // Issue 8: Encounters — ensure reasonForVisit/reason is not empty
+            // Encounters — ensure required FHIR fields are present
             if (tabKey === "encounters" || tabKey === "encounter") {
                 if (!payload.status) payload.status = "finished";
                 if (!payload.class) {
@@ -1160,11 +1279,33 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (!payload.type) {
                     payload.type = [wrapCoding("11429006", "http://snomed.info/sct")];
                 }
-                // Reason for visit: ensure it's present
-                if (!payload.reasonCode && (payload.reasonForVisit || payload.reason)) {
+                // Reason for visit: wrap as reasonCode if provided, otherwise supply a default so backend doesn't reject
+                if (!payload.reasonCode) {
                     const rv = payload.reasonForVisit || payload.reason;
-                    payload.reasonCode = [wrapCoding(typeof rv === "string" ? rv : "General Consultation", "http://snomed.info/sct")];
+                    const rvStr = typeof rv === "string" ? rv.trim() : "";
+                    payload.reasonCode = [wrapCoding(rvStr || "General Consultation", "http://snomed.info/sct")];
                 }
+            }
+
+            // Immunization tab — wrap vaccineCode, format doseQuantity
+            if (tabKey === "immunizations" || tabKey === "immunization") {
+                if (!payload.status) payload.status = "completed";
+                if (!payload.occurrenceDateTime) {
+                    payload.occurrenceDateTime = payload.date || payload.occurrenceDate || new Date().toISOString().slice(0, 10);
+                }
+                // vaccineCode must have a system
+                if (payload.vaccineCode && typeof payload.vaccineCode === "string") {
+                    payload.vaccineCode = wrapCoding(payload.vaccineCode, "http://hl7.org/fhir/sid/cvx");
+                } else if (Array.isArray(payload.vaccineCode) && payload.vaccineCode.length > 0 && payload.vaccineCode[0]?.code) {
+                    // code-lookup array → CodeableConcept
+                    const vc = payload.vaccineCode[0];
+                    payload.vaccineCode = { coding: [{ system: "http://hl7.org/fhir/sid/cvx", code: vc.code, display: vc.description || vc.code }], text: vc.description || vc.code };
+                }
+                // doseQuantity: wrap plain number as FHIR Quantity
+                if (payload.dose !== undefined && payload.dose !== null && payload.dose !== "") {
+                    payload.doseQuantity = { value: Number(payload.dose), unit: payload.doseUnit || "mL", system: "http://unitsofmeasure.org", code: payload.doseUnit || "mL" };
+                }
+                if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
             }
 
             // Referral tab — ServiceRequest.intent is required
@@ -1241,6 +1382,22 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (payload.title && !payload.description) payload.description = payload.title;
                 if (!payload.status) payload.status = "current";
                 if (!payload.docStatus) payload.docStatus = "final";
+            }
+
+            // Procedures — convert code-lookup array back to FHIR Procedure.code
+            if (tabKey === "procedures") {
+                if (!payload.status) payload.status = "completed";
+                const cptArr = Array.isArray(payload.cptCode) ? payload.cptCode : (Array.isArray(payload.procedureCode) ? payload.procedureCode : null);
+                if (cptArr && cptArr.length > 0) {
+                    const cptItem = cptArr[0];
+                    const cptCodeStr = cptItem.code || "";
+                    const cptDesc = cptItem.description || cptCodeStr;
+                    payload.code = { coding: [{ system: "http://www.ama-assn.org/go/cpt", code: cptCodeStr, display: cptDesc }], text: cptDesc };
+                    payload.cptCode = cptCodeStr;
+                } else if (typeof payload.cptCode === "string" && payload.cptCode) {
+                    payload.code = { coding: [{ system: "http://www.ama-assn.org/go/cpt", code: payload.cptCode, display: payload.cptCode }], text: payload.cptCode };
+                }
+                if (!payload.subject) payload.subject = { reference: `Patient/${patientId}` };
             }
 
             // Issue 12: Labs — ensure testName is a string (not long/number)
@@ -1543,9 +1700,46 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             );
         }
 
+        // Detect Java toString of FHIR CodeableConcept (e.g. "{coding=[{system=..., code=X, display=X}], text=X}")
+        if (typeof value === "string" && value.startsWith("{") && value.includes("coding=")) {
+            const dMatch = value.match(/\bdisplay=([^,}\]]+)/);
+            if (dMatch && !dMatch[1].startsWith("{") && !dMatch[1].startsWith("[")) return dMatch[1].trim();
+            const tMatch = value.match(/\btext=([^,}\]]+)/);
+            if (tMatch && !tMatch[1].startsWith("{") && !tMatch[1].startsWith("[")) return tMatch[1].trim();
+            const cMatch = value.match(/\bcode=([^,}\]]+)/);
+            if (cMatch && !cMatch[1].startsWith("{") && !cMatch[1].startsWith("[")) return cMatch[1].trim();
+        }
+
         if (typeof value === "object") {
+            // FHIR CodeableConcept: { coding: [...], text: ... }
+            if (value.coding || value.text) {
+                const d0 = Array.isArray(value.coding) ? value.coding[0] : null;
+                if (d0) {
+                    const disp = typeof d0.display === "string" ? d0.display
+                        : (d0.display?.coding?.[0]?.display || d0.display?.text);
+                    if (disp) return typeof disp === "string" ? disp : String(disp);
+                    const code = typeof d0.code === "string" ? d0.code
+                        : (d0.code?.coding?.[0]?.code || d0.code?.text);
+                    if (code) return typeof code === "string" ? code : String(code);
+                }
+                if (typeof value.text === "string") return value.text;
+                if (value.text?.coding?.[0]?.display) return value.text.coding[0].display;
+            }
+            // Array of CodeableConcepts
+            if (Array.isArray(value) && value.length > 0) {
+                if (value[0]?.coding || value[0]?.text) {
+                    const d = value[0]?.coding?.[0]?.display || value[0]?.coding?.[0]?.code || value[0]?.text;
+                    if (typeof d === "string") return d;
+                }
+                // Code-lookup items array: [{code, description, ...}]
+                if (value[0]?.code) return value.map((v: any) => v.code || "").filter(Boolean).join(", ");
+            }
             if (value.line1) {
                 return [value.line1, value.city, value.state].filter(Boolean).join(", ");
+            }
+            // FHIR Reference
+            if (value.reference && typeof value.reference === "string") {
+                return value.display || value.reference.split("/").pop() || value.reference;
             }
             return JSON.stringify(value);
         }
