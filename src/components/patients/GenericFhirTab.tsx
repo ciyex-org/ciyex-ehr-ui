@@ -882,6 +882,34 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.to == null && r.patientName != null) r.to = r.patientName;
         if (r.to == null && r.toPatientName != null) r.to = r.toPatientName;
 
+        // --- Facility / Location: flatten FHIR CodeableConcept fields to simple strings ---
+        if (tabKey === "facility" || tabKey === "facilities" || tabKey === "location" || tabKey === "locations" || tabKey === "serviceLocation" || tabKey === "serviceLocations") {
+            // type: CodeableConcept[] → simple string code
+            if (r.type != null && typeof r.type !== "string") {
+                if (Array.isArray(r.type)) {
+                    const first = r.type[0];
+                    r.type = first?.coding?.[0]?.code || first?.coding?.[0]?.display || first?.text || (typeof first === "string" ? first : JSON.stringify(first));
+                } else if (typeof r.type === "object") {
+                    r.type = r.type?.coding?.[0]?.code || r.type?.coding?.[0]?.display || r.type?.text || "";
+                }
+            }
+            // physicalType: CodeableConcept → simple string code
+            if (r.physicalType != null && typeof r.physicalType !== "string") {
+                if (typeof r.physicalType === "object" && !Array.isArray(r.physicalType)) {
+                    r.physicalType = r.physicalType?.coding?.[0]?.code || r.physicalType?.coding?.[0]?.display || r.physicalType?.text || "";
+                }
+            }
+            // address: FHIR Address object → text string
+            if (r.address != null && typeof r.address === "object" && !Array.isArray(r.address)) {
+                r.address = r.address.text || [r.address.line?.join(", "), r.address.city, r.address.state, r.address.postalCode].filter(Boolean).join(", ") || "";
+            }
+            // telecom: extract phone from telecom array
+            if (r.phone == null && Array.isArray(r.telecom)) {
+                const phoneTelecom = r.telecom.find((t: any) => t.system === "phone") || r.telecom[0];
+                if (phoneTelecom?.value) r.phone = phoneTelecom.value;
+            }
+        }
+
         // --- Documents: reverse mapping for save (documentDate → date) ---
         if (r.date == null && r.documentDate != null) r.date = r.documentDate;
 
