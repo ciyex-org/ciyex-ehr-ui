@@ -391,11 +391,7 @@ export default function PatientListPage() {
                             <option value="all">All</option>
                             <option value="male">Male</option>
                             <option value="female">Female</option>
-                            <option value="non-binary">Non-binary</option>
-                            <option value="third gender">Third Gender</option>
-                            <option value="other">Other</option>
                             <option value="unknown">Unknown</option>
-                            <option value="prefer not to say">Prefer not to say</option>
                         </select>
                     </div>
 
@@ -665,11 +661,7 @@ export default function PatientListPage() {
                                     <option value="">Select gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
-                                    <option value="Non-binary">Non-binary</option>
-                                    <option value="Third Gender">Third Gender</option>
-                                    <option value="Other">Other</option>
                                     <option value="Unknown">Unknown</option>
-                                    <option value="Prefer not to say">Prefer not to say</option>
                                 </select>
                                 {addErrors.gender && <p className="text-xs text-red-500 mt-1">{addErrors.gender}</p>}
                             </div>
@@ -814,11 +806,7 @@ export default function PatientListPage() {
                                         <option value="">Select gender</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
-                                        <option value="Non-binary">Non-binary</option>
-                                        <option value="Third Gender">Third Gender</option>
-                                        <option value="Other">Other</option>
                                         <option value="Unknown">Unknown</option>
-                                        <option value="Prefer not to say">Prefer not to say</option>
                                     </select>
                                 </div>
                             </div>

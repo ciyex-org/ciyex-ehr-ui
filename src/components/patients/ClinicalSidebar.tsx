@@ -174,7 +174,7 @@ export default function ClinicalSidebar({
                     >
                         <ShieldAlert className="w-3 h-3 shrink-0 text-red-400" />
                         <span className="flex-1 text-left truncate">
-                            {!loaded ? "..." : allergies.length === 0 ? "NKA" : allergies.slice(0, 2).map(a => a.allergyName || a.substance).join(", ")}
+                            {!loaded ? "..." : allergies.length === 0 ? <span title="No Known Allergies">NKA (No Known Allergies)</span> : allergies.slice(0, 2).map(a => a.allergyName || a.substance).join(", ")}
                         </span>
                         {allergies.length > 0 && (
                             <span className="px-1 py-0.5 rounded bg-red-50 text-red-600 text-[10px] font-medium">{allergies.length}</span>

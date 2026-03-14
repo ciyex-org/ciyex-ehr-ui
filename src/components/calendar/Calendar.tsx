@@ -467,7 +467,7 @@ type Option<T extends string = string> = { value: T; label: string };
 
 
 
-const statusOptions: Option<AppointmentStatus>[] = [
+const FALLBACK_STATUS_OPTIONS: Option<AppointmentStatus>[] = [
     { value: 'Scheduled', label: 'Scheduled' },
     { value: 'Confirmed', label: 'Confirmed' },
     { value: 'Checked-in', label: 'Checked-in' },
@@ -512,6 +512,9 @@ const Calendar: React.FC = () => {
     }
 
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
+    // Status options loaded from API (consistent with Appointment page)
+    const [statusOptions, setStatusOptions] = useState<Option<AppointmentStatus>[]>(FALLBACK_STATUS_OPTIONS);
 
     const [alertData, setAlertData] = useState<{
         variant: "success" | "error" | "warning" | "info";
@@ -766,20 +769,42 @@ const Calendar: React.FC = () => {
 
 
 
-    // Fetch locations via generic FHIR endpoint
+    // Fetch locations — try /api/locations first (same as Appointments page), fallback to FHIR facilities
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetchWithAuth(`${apiUrl}/api/fhir-resource/facilities?size=100`);
-                const json = await res.json();
-                // Handle multiple response formats: { success, data: { content } } or { data: [...] } or { content: [...] }
-                const content = json?.data?.content || json?.data || json?.content || [];
-                const list = Array.isArray(content) ? content as FhirLocation[] : [];
-                if (list.length > 0) {
-                    const opts = list.map((l) => ({
-                        value: String(l.id),
-                        label: `${l.name || ''}${l['address.line1'] || l.address?.line1 ? ` - ${l['address.line1'] || l.address?.line1}` : ''}`,
-                    }));
+                let opts: { value: string; label: string }[] = [];
+
+                // Try /api/locations first (consistent with Appointments page)
+                const res = await fetchWithAuth(`${apiUrl}/api/locations`);
+                if (res.ok) {
+                    const json = await res.json();
+                    const payload = json?.data || json;
+                    const ld = payload?.content || (Array.isArray(payload) ? payload : []);
+                    const list = Array.isArray(ld) ? ld : [];
+                    if (list.length > 0) {
+                        opts = list.filter((l: any) => l.id).map((l: any) => ({
+                            value: String(l.id),
+                            label: l.name || `Location #${l.id}`,
+                        }));
+                    }
+                }
+
+                // Fallback to FHIR facilities if /api/locations returned nothing
+                if (opts.length === 0) {
+                    const res2 = await fetchWithAuth(`${apiUrl}/api/fhir-resource/facilities?size=100`);
+                    if (res2.ok) {
+                        const json2 = await res2.json();
+                        const content = json2?.data?.content || json2?.data || json2?.content || [];
+                        const list = Array.isArray(content) ? content as FhirLocation[] : [];
+                        opts = list.filter((l) => l.id).map((l) => ({
+                            value: String(l.id),
+                            label: `${l.name || ''}${l['address.line1'] ? ` - ${l['address.line1']}` : ''}`.trim() || `Location #${l.id}`,
+                        }));
+                    }
+                }
+
+                if (opts.length > 0) {
                     setLocations([{ value: 'all', label: 'All Locations' }, ...opts]);
                 }
             } catch (e) {
@@ -877,6 +902,24 @@ const Calendar: React.FC = () => {
                 }
             } catch (e) {
                 console.error('Failed to load color config', e);
+            }
+        })();
+    }, [apiUrl]);
+
+    // Load status options from API (consistent with Appointment page)
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetchWithAuth(`${apiUrl}/api/appointments/status-options`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const opts = (data.data || []).map((o: any) =>
+                        typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label }
+                    ).filter((o: any) => o.value);
+                    if (opts.length > 0) setStatusOptions(opts);
+                }
+            } catch (e) {
+                console.error("Failed to fetch status options:", e);
             }
         })();
     }, [apiUrl]);
@@ -1382,6 +1425,9 @@ const Calendar: React.FC = () => {
                 // ✅ Re-fetch all appointments to keep calendar consistent
                 await loadAppointments();
 
+                // Notify other views (e.g. Appointments page) that data changed
+                window.dispatchEvent(new Event("appointments-changed"));
+
                 setAlertData({
                     variant: "success",
                     title: selectedEvent ? "Updated" : "Created",
@@ -1791,6 +1837,7 @@ const Calendar: React.FC = () => {
                                         select={(info) => handleDateSelect(info, p.value)}
                                         eventClick={handleEventClick}
                                         eventContent={renderEventContent}
+                                        dayCellContent={dayCellContent}
                                     />
                                 </div>
                             );
@@ -2020,11 +2067,7 @@ const Calendar: React.FC = () => {
                                                     <option value="">Select</option>
                                                     <option value="Male">Male</option>
                                                     <option value="Female">Female</option>
-                                                    <option value="Non-binary">Non-binary</option>
-                                                    <option value="Third Gender">Third Gender</option>
-                                                    <option value="Other">Other</option>
                                                     <option value="Unknown">Unknown</option>
-                                                    <option value="Prefer not to say">Prefer not to say</option>
                                                 </select>
                                             </div>
                                             <div>
@@ -2062,6 +2105,15 @@ const Calendar: React.FC = () => {
                                             setStartDate(d || '');
                                             setStartTime(t || '');
                                             setStartDateInput(d ? d.split('-').reverse().join('/') : '');
+                                            // Auto-calculate end time: +15 minutes from start
+                                            if (d && t) {
+                                                const startDt = new Date(`${d}T${t}`);
+                                                const endDt = new Date(startDt.getTime() + 15 * 60 * 1000);
+                                                const endD = `${endDt.getFullYear()}-${String(endDt.getMonth() + 1).padStart(2, '0')}-${String(endDt.getDate()).padStart(2, '0')}`;
+                                                const endT = `${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`;
+                                                if (!endDate) { setEndDate(endD); setEndDateInput(endD.split('-').reverse().join('/')); }
+                                                if (!endTime) setEndTime(endT);
+                                            }
                                         }}
                                         className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                     />

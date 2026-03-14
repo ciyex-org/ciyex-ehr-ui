@@ -344,10 +344,18 @@ export default function AppointmentPage() {
       if (tvRef.current && !tvRef.current.contains(e.target as Node)) {
         setTvOpen(false);
       }
+      // Close status/room inline dropdowns when clicking outside their select elements
+      const target = e.target as HTMLElement;
+      if (editingStatusId !== null && !target.closest('[data-status-edit]')) {
+        setEditingStatusId(null);
+      }
+      if (editingRoomId !== null && !target.closest('[data-room-edit]')) {
+        setEditingRoomId(null);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [editingStatusId, editingRoomId]);
 
   // Fetch status options (with metadata)
   useEffect(() => {
@@ -447,9 +455,11 @@ export default function AppointmentPage() {
     if (!silent) setLoadingAppointments(true);
     if (silent) setRefreshing(true);
     try {
+      // Use larger page size for "All Time" to avoid missing data
+      const effectivePageSize = datePreset === "all_time" ? Math.max(pageSize, 100) : pageSize;
       const params = new URLSearchParams({
         page: String(currentPage - 1),
-        size: String(pageSize),
+        size: String(effectivePageSize),
       });
       if (statusFilter && statusFilter !== "All") params.set("status", statusFilter);
       // Pass date range for server-side FHIR filtering
@@ -491,7 +501,7 @@ export default function AppointmentPage() {
       if (!silent) setLoadingAppointments(false);
       setRefreshing(false);
     }
-  }, [currentPage, pageSize, statusFilter, from, to]);
+  }, [currentPage, pageSize, statusFilter, from, to, datePreset]);
 
   useEffect(() => { loadAppointments(); }, [loadAppointments]);
 
@@ -973,7 +983,7 @@ export default function AppointmentPage() {
                       <td className="py-1.5 px-3 text-sm">
                         <div className="flex items-center gap-1.5">
                           {editingStatusId === r.id ? (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" data-status-edit>
                               <select
                                 autoFocus
                                 defaultValue={r.status}
@@ -1023,6 +1033,7 @@ export default function AppointmentPage() {
                       <td className="py-1.5 px-3 text-sm">
                         {editingRoomId === r.id ? (
                           <select
+                            data-room-edit
                             autoFocus
                             defaultValue={r.room || ""}
                             className="rounded border px-2 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 min-w-20"

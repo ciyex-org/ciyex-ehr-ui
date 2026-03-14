@@ -417,9 +417,25 @@ export default function PatientDashboardPage() {
     const formatDateLocal = (date: string) => date ? new Date(date.includes("T") ? date : date + "T00:00:00").toLocaleDateString() : "\u2014";
     const calculateAgeLocal = (dob: string) => {
         if (!dob) return "\u2014";
-        const ageDifMs = Date.now() - new Date(dob.includes("T") ? dob : dob + "T00:00:00").getTime();
-        const ageDate = new Date(ageDifMs);
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
+        const birth = new Date(dob.includes("T") ? dob : dob + "T00:00:00");
+        const now = new Date();
+        let years = now.getFullYear() - birth.getFullYear();
+        let months = now.getMonth() - birth.getMonth();
+        let days = now.getDate() - birth.getDate();
+        if (days < 0) {
+            months--;
+            const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+            days += prevMonth.getDate();
+        }
+        if (months < 0) {
+            years--;
+            months += 12;
+        }
+        const parts: string[] = [];
+        if (years > 0) parts.push(`${years}Y`);
+        if (months > 0) parts.push(`${months}M`);
+        if (days > 0 || parts.length === 0) parts.push(`${days}D`);
+        return parts.join(" ");
     };
 
     if (loading) {
@@ -626,7 +642,7 @@ export default function PatientDashboardPage() {
                                 )}
                                 <span className="text-gray-300 shrink-0 hidden sm:inline">|</span>
                                 <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
-                                    {formatDateLocal(patient.dateOfBirth)} ({calculateAgeLocal(patient.dateOfBirth)}y)
+                                    {formatDateLocal(patient.dateOfBirth)} ({calculateAgeLocal(patient.dateOfBirth)})
                                 </span>
                                 {patient.gender && (
                                     <>

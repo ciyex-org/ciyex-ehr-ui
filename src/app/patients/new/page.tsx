@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
-import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
+import { isValidName, isValidPhone, isValidEmail, isValidUSPhone, formatUSPhone } from "@/utils/validation";
 import { usePermissions } from "@/context/PermissionContext";
 
 // Define interfaces for your form data structure
@@ -483,7 +483,9 @@ export default function AddPatient() {
         const errs: Record<string, string> = {};
         if (formData.personalInfo.firstName && !isValidName(formData.personalInfo.firstName)) errs.firstName = "Name must contain only letters";
         if (formData.personalInfo.lastName && !isValidName(formData.personalInfo.lastName)) errs.lastName = "Name must contain only letters";
-        if (formData.contactInfo.cellPhone && !isValidPhone(formData.contactInfo.cellPhone)) errs.cellPhone = "Enter a valid phone number";
+        if (!formData.contactInfo.cellPhone) errs.cellPhone = "Mobile number is required";
+        else if (!isValidUSPhone(formData.contactInfo.cellPhone)) errs.cellPhone = "Enter a valid 10-digit US phone number";
+        if (formData.contactInfo.homePhone && !isValidUSPhone(formData.contactInfo.homePhone)) errs.homePhone = "Enter a valid 10-digit US phone number";
         if (formData.contactInfo.email && !isValidEmail(formData.contactInfo.email)) errs.email = "Enter a valid email address";
         if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
         setFormErrors({});
@@ -657,11 +659,7 @@ export default function AddPatient() {
                                         <option value="">Select</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
-                                        <option value="Non-binary">Non-binary</option>
-                                        <option value="Third Gender">Third Gender</option>
-                                        <option value="Other">Other</option>
                                         <option value="Unknown">Unknown</option>
-                                        <option value="Prefer not to say">Prefer not to say</option>
                                     </select>
                                 </div>
                                 <div>
@@ -894,10 +892,11 @@ export default function AddPatient() {
                                             </select>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.contactInfo.homePhone}
-                                                onChange={(e) => handleChange("contactInfo", "homePhone", e.target.value)}
-                                                className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                required
+                                                onChange={(e) => handleChange("contactInfo", "homePhone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
+                                                className={`flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.homePhone ? "border-red-400" : ""}`}
                                             />
                                         </div>
                                     </div>
@@ -911,18 +910,19 @@ export default function AddPatient() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Cell Phone</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Cell Phone <span className="text-red-500">*</span></label>
                                         <div className="flex">
                                             <select className="w-20 px-2 py-2 border border-gray-300 rounded-l-md bg-gray-100 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
                                                 <option>US +1</option>
                                             </select>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.contactInfo.cellPhone}
-                                                onChange={(e) => handleChange("contactInfo", "cellPhone", e.target.value)}
-                                                pattern="[+]?[\d\s().\-]{7,20}"
-                                                title="Enter a valid phone number"
-                                                className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                onChange={(e) => handleChange("contactInfo", "cellPhone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
+                                                title="Enter a valid 10-digit US phone number"
+                                                className={`flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.cellPhone ? "border-red-400" : ""}`}
                                             />
                                         </div>
                                         {formErrors.cellPhone && <p className="text-xs text-red-500 mt-1">{formErrors.cellPhone}</p>}
@@ -1748,11 +1748,7 @@ export default function AddPatient() {
                                                 <option value="">Select</option>
                                                 <option value="Male">Male</option>
                                                 <option value="Female">Female</option>
-                                                <option value="Non-binary">Non-binary</option>
-                                                <option value="Third Gender">Third Gender</option>
-                                                <option value="Other">Other</option>
                                                 <option value="Unknown">Unknown</option>
-                                                <option value="Prefer not to say">Prefer not to say</option>
                                             </select>
                                         </div>
                                     </div>
@@ -2066,11 +2062,7 @@ export default function AddPatient() {
                                                 <option value="">Select</option>
                                                 <option value="Male">Male</option>
                                                 <option value="Female">Female</option>
-                                                <option value="Non-binary">Non-binary</option>
-                                                <option value="Third Gender">Third Gender</option>
-                                                <option value="Other">Other</option>
                                                 <option value="Unknown">Unknown</option>
-                                                <option value="Prefer not to say">Prefer not to say</option>
                                             </select>
                                         </div>
                                     </div>
@@ -2335,11 +2327,7 @@ export default function AddPatient() {
                                                 <option value="">Select</option>
                                                 <option value="Male">Male</option>
                                                 <option value="Female">Female</option>
-                                                <option value="Non-binary">Non-binary</option>
-                                                <option value="Third Gender">Third Gender</option>
-                                                <option value="Other">Other</option>
                                                 <option value="Unknown">Unknown</option>
-                                                <option value="Prefer not to say">Prefer not to say</option>
                                             </select>
                                         </div>
                                     </div>

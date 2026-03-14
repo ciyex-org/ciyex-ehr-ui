@@ -206,11 +206,7 @@ export default function EditPatientPage() {
                             <option value="">Select</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
-                            <option value="Non-binary">Non-binary</option>
-                            <option value="Third Gender">Third Gender</option>
-                            <option value="Other">Other</option>
                             <option value="Unknown">Unknown</option>
-                            <option value="Prefer not to say">Prefer not to say</option>
                         </select>
                     </div>
                     <div className="mb-4">

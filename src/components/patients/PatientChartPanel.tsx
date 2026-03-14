@@ -161,7 +161,18 @@ export default function PatientChartPanel({ patientId }: PatientChartPanelProps)
   const fmt = (d?: string) => (d ? new Date(d).toLocaleDateString() : "—");
   const age = (dob?: string) => {
     if (!dob) return "—";
-    return Math.abs(new Date(Date.now() - new Date(dob).getTime()).getUTCFullYear() - 1970);
+    const birth = new Date(dob.includes("T") ? dob : dob + "T00:00:00");
+    const now = new Date();
+    let years = now.getFullYear() - birth.getFullYear();
+    let months = now.getMonth() - birth.getMonth();
+    let days = now.getDate() - birth.getDate();
+    if (days < 0) { months--; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+    if (months < 0) { years--; months += 12; }
+    const parts: string[] = [];
+    if (years > 0) parts.push(`${years}Y`);
+    if (months > 0) parts.push(`${months}M`);
+    if (days > 0 || parts.length === 0) parts.push(`${days}D`);
+    return parts.join(" ");
   };
 
   if (loading) {
@@ -206,7 +217,7 @@ export default function PatientChartPanel({ patientId }: PatientChartPanelProps)
         {patient.mrn && <span className="text-xs text-gray-400">MRN: {patient.mrn}</span>}
         <span className="text-gray-300">|</span>
         <span className="text-xs text-gray-500">
-          {fmt(patient.dateOfBirth)} ({age(patient.dateOfBirth)}y)
+          {fmt(patient.dateOfBirth)} ({age(patient.dateOfBirth)})
         </span>
         {patient.gender && (
           <>

@@ -99,7 +99,7 @@ export default function AllergiesSummary({
                 <button type="button" onClick={() => onNavigate ? onNavigate("allergies") : (window.location.search = "?tab=allergies")} className="text-xs text-blue-600 hover:underline">View all</button>
             </div>
             {items.length === 0 ? (
-                <p className="text-gray-500 text-sm">No allergies recorded</p>
+                <p className="text-gray-500 text-sm" title="NKA = No Known Allergies">NKA — No Known Allergies</p>
             ) : (
                 <ul className="space-y-1 text-sm">
                     {items.slice(0, 3).map((a) => (

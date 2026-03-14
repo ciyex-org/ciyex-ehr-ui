@@ -824,6 +824,7 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
     top: 0 !important;
     width: 100% !important;
     max-height: none !important;
+    height: auto !important;
     overflow: visible !important;
     border: none !important;
     box-shadow: none !important;
@@ -836,6 +837,11 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
     border: 1px solid #ddd !important;
     padding: 4px 8px !important;
     font-size: 11px !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  .print-appointment-table thead {
+    display: table-header-group !important;
   }
 
   /* Hide non-data elements: action buttons, icons, no-print sections */
@@ -848,5 +854,7 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
   /* Hide all SVG icons inside table for clean print */
   .print-appointment-table svg { display: none !important; }
   .print-appointment-table button { all: unset !important; display: inline !important; }
+
+  @page { margin: 0.5in; }
 }
 
