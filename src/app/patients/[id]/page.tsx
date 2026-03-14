@@ -359,7 +359,23 @@ export default function PatientDashboardPage() {
                         : JSON.parse(text);
 
                 if (data.success) {
-                    setPatient(data.data as Patient);
+                    const raw = data.data as Record<string, any>;
+                    // Normalize MRN from various field names the backend may use
+                    if (!raw.mrn) {
+                        raw.mrn =
+                            raw.medicalRecordNumber ||
+                            raw.medicalRecordNo ||
+                            raw.mrnNumber ||
+                            raw.patientMRN ||
+                            (Array.isArray(raw.identifier)
+                                ? (raw.identifier.find((i: any) =>
+                                    (i.type?.coding?.[0]?.code || i.system || "").toLowerCase().includes("mr")
+                                  )?.value || raw.identifier[0]?.value)
+                                : null) ||
+                            raw.id ||
+                            null;
+                    }
+                    setPatient(raw as Patient);
                 } else {
                     throw new Error(data.message || "Failed to fetch patient");
                 }
@@ -602,24 +618,24 @@ export default function PatientDashboardPage() {
                                 </svg>
                             </Link>
                             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
-                                <h1 className="text-base font-semibold text-gray-900 truncate max-w-[200px] sm:max-w-none">
+                                <h1 className="text-base font-semibold text-gray-900 truncate max-w-[180px] sm:max-w-none dark:text-white">
                                     {patient.firstName} {patient.lastName}
                                 </h1>
                                 {patient.mrn && (
-                                    <span className="text-xs text-gray-400 shrink-0">MRN: {patient.mrn}</span>
+                                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400 shrink-0 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">MRN: {patient.mrn}</span>
                                 )}
                                 <span className="text-gray-300 shrink-0 hidden sm:inline">|</span>
-                                <span className="text-xs text-gray-500 shrink-0">
+                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
                                     {formatDateLocal(patient.dateOfBirth)} ({calculateAgeLocal(patient.dateOfBirth)}y)
                                 </span>
                                 {patient.gender && (
                                     <>
                                         <span className="text-gray-300 shrink-0 hidden sm:inline">|</span>
-                                        <span className="text-xs text-gray-500 shrink-0">{patient.gender}</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{patient.gender}</span>
                                     </>
                                 )}
                                 <span className="text-gray-300 shrink-0 hidden sm:inline">|</span>
-                                <span className="text-xs text-gray-500 shrink-0">{patient.phoneNumber || "\u2014"}</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{patient.phoneNumber || "\u2014"}</span>
                                 {patient.status && (
                                     <span className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${
                                         patient.status === "Active" ? "bg-green-50 text-green-700" :

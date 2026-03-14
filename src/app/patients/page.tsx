@@ -110,7 +110,10 @@ export default function PatientListPage() {
     useEffect(() => {
         const recent: Patient[] = JSON.parse(localStorage.getItem("recentPatients") || "[]");
         // Filter out deleted/inactive patients from recent list
-        const filtered = recent.filter((p) => p.status !== "Inactive" && p.status !== "Deleted");
+        const filtered = recent.filter((p) => {
+            const s = (p.status || "").toLowerCase();
+            return s !== "inactive" && s !== "deleted" && s !== "inactive" && s !== "deceased";
+        });
         if (filtered.length !== recent.length) {
             localStorage.setItem("recentPatients", JSON.stringify(filtered));
         }
@@ -171,7 +174,10 @@ export default function PatientListPage() {
                 }
 
                 const pageData = body.data;
-                setPatients(pageData.content || []);
+                const content = (pageData.content || []).filter(
+                    (p: Patient) => (p.status || "").toLowerCase() !== "deleted"
+                );
+                setPatients(content);
                 setTotalPages(Math.max(1, pageData.totalPages ?? 1));
                 setTotalItems(pageData.totalElements ?? (pageData.content?.length ?? 0));
                 setCurrentPage((pageData.number ?? (page - 1)) + 1);

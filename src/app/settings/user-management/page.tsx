@@ -422,14 +422,23 @@ export default function UserManagementPage() {
   const handleSendResetEmail = async (user: UserResponse) => {
     try {
       const res = await fetchWithAuth(`${API()}/api/admin/users/${user.id}/send-reset-email`, { method: "POST" });
-      const json = await res.json();
+      let json: any = {};
+      try { json = await res.json(); } catch { /* non-JSON response */ }
       if (res.ok && json.success) {
-        setToast({ type: "success", text: "Password reset email sent" });
+        setToast({ type: "success", text: "Password reset email sent successfully" });
       } else {
-        setToast({ type: "error", text: json.message || "Failed to send email" });
+        const errMsg = json.message || json.error || `HTTP ${res.status}`;
+        const isConfigError = errMsg.toLowerCase().includes("smtp") || errMsg.toLowerCase().includes("mail") || errMsg.toLowerCase().includes("connection") || errMsg.toLowerCase().includes("config");
+        setToast({
+          type: "error",
+          text: isConfigError
+            ? `Email not configured: ${errMsg}. Check SMTP settings in System → Settings.`
+            : `Failed to send email: ${errMsg}`,
+        });
       }
-    } catch {
-      setToast({ type: "error", text: "Failed to send email" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Network error";
+      setToast({ type: "error", text: `Failed to send email: ${msg}. Check your network connection.` });
     }
   };
 
@@ -487,13 +496,13 @@ export default function UserManagementPage() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-[10000] rounded-lg shadow-lg border px-4 py-3 text-sm flex items-center gap-3 ${
+        <div className={`fixed top-4 right-4 z-[10000] rounded-lg shadow-lg border px-4 py-3 text-sm flex items-start gap-3 max-w-md ${
           toast.type === "success"
             ? "bg-green-50 border-green-300 text-green-900 dark:bg-green-900/30 dark:border-green-700 dark:text-green-200"
             : "bg-red-50 border-red-300 text-red-900 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200"
         }`}>
-          {toast.type === "success" ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-          <span>{toast.text}</span>
+          {toast.type === "success" ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" /> : <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />}
+          <span className="break-words">{toast.text}</span>
           <button onClick={() => setToast(null)} className="ml-2"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}

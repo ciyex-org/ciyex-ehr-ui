@@ -1093,16 +1093,32 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (!payload.type) payload.type = "allergy";
             }
 
-            // Issue 6: Facility — wrap type in CodeableConcept with system
-            if (tabKey === "facility" || tabKey === "facilities") {
+            // Issue 6: Facility / Location — wrap type in CodeableConcept with system
+            if (tabKey === "facility" || tabKey === "facilities" || tabKey === "location" || tabKey === "locations" || tabKey === "serviceLocation" || tabKey === "serviceLocations") {
                 if (payload.type && typeof payload.type === "string") {
                     payload.type = [wrapCoding(payload.type, "http://terminology.hl7.org/CodeSystem/v3-RoleCode")];
+                } else if (Array.isArray(payload.type)) {
+                    payload.type = payload.type.map((t: any) =>
+                        typeof t === "string" ? wrapCoding(t, "http://terminology.hl7.org/CodeSystem/v3-RoleCode") : t
+                    );
                 }
-                // Wrap any coding-like string fields
+                // Wrap physicalType coding
                 if (payload.physicalType && typeof payload.physicalType === "string") {
                     payload.physicalType = wrapCoding(payload.physicalType, "http://terminology.hl7.org/CodeSystem/location-physical-type");
                 }
+                // Ensure all coding arrays have a system field
+                const ensureSystem = (obj: any, defaultSystem: string) => {
+                    if (!obj || typeof obj !== "object") return obj;
+                    if (Array.isArray(obj.coding)) {
+                        obj.coding = obj.coding.map((c: any) => (!c.system ? { ...c, system: defaultSystem } : c));
+                    }
+                    return obj;
+                };
+                if (payload.type && Array.isArray(payload.type)) {
+                    payload.type = payload.type.map((t: any) => ensureSystem(t, "http://terminology.hl7.org/CodeSystem/v3-RoleCode"));
+                }
                 if (!payload.status) payload.status = "active";
+                if (!payload.mode) payload.mode = "instance";
             }
 
             // Issue 7: Clinical alerts — add system to code and ensure required fields (Flag resource)

@@ -128,7 +128,9 @@ export default function AuditLogPage() {
         const fallbacks = [
           apiUrl(`/api/audit-logs?${params.toString()}`),
           apiUrl(`/api/admin/audit-log?${params.toString()}`),
+          apiUrl(`/api/admin/audit?${params.toString()}`),
           apiUrl(`/api/fhir-resource/audit-log?${params.toString()}`),
+          apiUrl(`/api/system/audit-log?${params.toString()}`),
         ];
         for (const fb of fallbacks) {
           try {
@@ -264,7 +266,7 @@ export default function AuditLogPage() {
             <div>
               <h1 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Audit Log</h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {totalElements.toLocaleString()} total entries
+                {loading ? "Loading…" : fetchError ? "Failed to load entries" : `${totalElements.toLocaleString()} total entries`}
               </p>
             </div>
           </div>

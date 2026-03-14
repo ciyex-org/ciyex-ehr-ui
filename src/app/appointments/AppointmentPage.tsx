@@ -883,9 +883,17 @@ export default function AppointmentPage() {
                   const hasNext = statusOpt?.nextStatus;
                   const nextOpt = hasNext ? getStatusOption(hasNext) : undefined;
 
-                  // Wait time for active statuses
-                  const showWait = ["arrived", "checked-in"].includes(r.status);
-                  const waitInfo = showWait ? formatWaitTime(r.audit?.lastModifiedDate || r._lastUpdated || "") : null;
+                  // Wait time for all active (non-terminal, non-cancelled) statuses
+                  const waitStatusOpt = getStatusOption(r.status);
+                  const showWait = !isCancelled && !waitStatusOpt?.terminal;
+                  // Use audit timestamp, meta timestamp, or appointment start datetime as fallback
+                  const waitTimestamp = r.audit?.lastModifiedDate || r._lastUpdated ||
+                    (r.appointmentStartDate && r.appointmentStartTime
+                      ? `${r.appointmentStartDate}T${r.appointmentStartTime}`
+                      : r.appointmentStartDate
+                        ? `${r.appointmentStartDate}T00:00:00`
+                        : "");
+                  const waitInfo = showWait ? formatWaitTime(waitTimestamp) : null;
                   const duration = calcDuration(r.appointmentStartTime, r.appointmentEndTime);
 
                   return (
