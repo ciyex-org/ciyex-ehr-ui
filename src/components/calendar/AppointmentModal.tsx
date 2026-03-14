@@ -267,45 +267,7 @@ const AppointmentModal: React.FC = () => {
     }, [alertData]);
 
 
-    // Flatpickr init/destroy tied to modal open state
-    useEffect(() => {
-        if (!open) {
-            fpStartRef.current?.destroy();
-            fpEndRef.current?.destroy();
-            fpStartRef.current = null;
-            fpEndRef.current = null;
-            return;
-        }
-        // Small delay so DOM refs are mounted inside the dialog
-        const timer = setTimeout(() => {
-            if (startDateRef.current && !fpStartRef.current) {
-                fpStartRef.current = flatpickr(startDateRef.current, {
-                    dateFormat: "m/d/Y",
-                    allowInput: true,
-                    onChange: ([d]) => {
-                        if (!d) return;
-                        const iso = d.toISOString().slice(0, 10);
-                        setStartDate(iso);
-                        setStartDateInput(iso);
-                        if (!endDate) { setEndDate(iso); setEndDateInput(iso); fpEndRef.current?.setDate(d, false); }
-                    },
-                });
-            }
-            if (endDateRef.current && !fpEndRef.current) {
-                fpEndRef.current = flatpickr(endDateRef.current, {
-                    dateFormat: "m/d/Y",
-                    allowInput: true,
-                    onChange: ([d]) => {
-                        if (!d) return;
-                        const iso = d.toISOString().slice(0, 10);
-                        setEndDate(iso);
-                        setEndDateInput(iso);
-                    },
-                });
-            }
-        }, 100);
-        return () => clearTimeout(timer);
-    }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+    // (flatpickr replaced by datetime-local inputs)
 
     const combinedStart = useMemo(() => combineLocal(startDate, startTime), [startDate, startTime]);
     const combinedEnd = useMemo(() => combineLocal(endDate, endTime), [endDate, endTime]);
@@ -791,80 +753,44 @@ const AppointmentModal: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Dates */}
+                    {/* Start Date+Time */}
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Appointment Start date
+                            Appointment Start
                         </label>
-                        <div className="relative">
-                            <input
-                                ref={startDateRef}
-                                type="text"
-                                placeholder="Pick a date"
-                                readOnly
-                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            </span>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Appointment End date
-                        </label>
-                        <div className="relative">
-                            <input
-                                ref={endDateRef}
-                                type="text"
-                                placeholder="Pick a date"
-                                readOnly
-                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            </span>
-                        </div>
+                        <input
+                            type="datetime-local"
+                            value={startDate && startTime ? `${startDate}T${startTime}` : ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                const [d, t] = val ? val.split('T') : ['', ''];
+                                setStartDate(d || '');
+                                setStartDateInput(d || '');
+                                setStartTime(t || '');
+                                if (!endDate && d) { setEndDate(d); setEndDateInput(d); }
+                                if (!endTime && t) setEndTime(addMinutes(t, 15));
+                            }}
+                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                        />
                     </div>
 
-                    {/* Times */}
+                    {/* End Date+Time */}
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Start time
+                            Appointment End
                         </label>
-                        <div className="relative">
-                            <input
-                                type="time"
-                                step="60"
-                                value={startTime}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setStartTime(val);
-                                    if (val) setEndTime(addMinutes(val, 15));
-                                }}
-                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </span>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            End time
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="time"
-                                step="60"
-                                value={endTime}
-                                onChange={(e) => setEndTime(e.target.value)}
-                                className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </span>
-                        </div>
+                        <input
+                            type="datetime-local"
+                            value={endDate && endTime ? `${endDate}T${endTime}` : ''}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                const [d, t] = val ? val.split('T') : ['', ''];
+                                setEndDate(d || '');
+                                setEndDateInput(d || '');
+                                setEndTime(t || '');
+                            }}
+                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                        />
                     </div>
 
                     {/* Priority */}

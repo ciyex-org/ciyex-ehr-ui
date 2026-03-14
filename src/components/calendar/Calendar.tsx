@@ -2048,20 +2048,20 @@ const Calendar: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Row 2: Start / End Dates (MM/DD/YYYY UI) */}
+                                {/* Row 2: Start / End Date+Time (combined datetime-local) */}
                                 <div>
                                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                        Appointment Start date
+                                        Appointment Start
                                     </label>
                                     <input
-                                        type="text"
-                                        placeholder="MM/DD/YYYY"
-                                        maxLength={10}
-                                        value={startDateInput}
+                                        type="datetime-local"
+                                        value={startDate && startTime ? `${startDate}T${startTime}` : ''}
                                         onChange={(e) => {
-                                            const formatted = formatInputToMMDDYYYY(e.target.value);
-                                            setStartDateInput(formatted);
-                                            setStartDate(toISODateFromMMDDYYYY(formatted)); // ISO for logic
+                                            const val = e.target.value; // "YYYY-MM-DDTHH:mm"
+                                            const [d, t] = val ? val.split('T') : ['', ''];
+                                            setStartDate(d || '');
+                                            setStartTime(t || '');
+                                            setStartDateInput(d ? d.split('-').reverse().join('/') : '');
                                         }}
                                         className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                     />
@@ -2069,55 +2069,20 @@ const Calendar: React.FC = () => {
 
                                 <div>
                                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                        Appointment End date
+                                        Appointment End
                                     </label>
                                     <input
-                                        type="text"
-                                        placeholder="MM/DD/YYYY"
-                                        maxLength={10}
-                                        value={endDateInput}
+                                        type="datetime-local"
+                                        value={endDate && endTime ? `${endDate}T${endTime}` : ''}
                                         onChange={(e) => {
-                                            const formatted = formatInputToMMDDYYYY(e.target.value);
-                                            setEndDateInput(formatted);
-                                            setEndDate(toISODateFromMMDDYYYY(formatted)); // ISO for logic
+                                            const val = e.target.value;
+                                            const [d, t] = val ? val.split('T') : ['', ''];
+                                            setEndDate(d || '');
+                                            setEndTime(t || '');
+                                            setEndDateInput(d ? d.split('-').reverse().join('/') : '');
                                         }}
                                         className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                     />
-                                </div>
-
-                                {/* Row 3: Start / End Times */}
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                        Appointment start time
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="time"
-                                            value={startTime}
-                                            onChange={(e) => setStartTime(e.target.value)}
-                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                        />
-                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                        Appointment end time
-                                    </label>
-                                    <div className="relative">
-                                        <input
-                                            type="time"
-                                            value={endTime}
-                                            onChange={(e) => setEndTime(e.target.value)}
-                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 pr-8 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                        />
-                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        </span>
-                                    </div>
                                 </div>
 
                                 {/* Row 4: Priority / Provider */}
