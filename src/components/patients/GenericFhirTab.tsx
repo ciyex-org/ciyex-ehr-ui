@@ -58,35 +58,45 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     // Derive list columns from field config: use showInTable fields first, then fallback to first non-group fields
     const listColumns = useCallback((): { key: string; label: string }[] => {
         if (!fieldConfig?.sections?.length) return [];
-        // First: collect fields marked with showInTable
-        const marked: { key: string; label: string }[] = [];
-        for (const section of fieldConfig.sections) {
-            for (const field of section.fields) {
-                if ((field as any).showInTable) {
-                    marked.push({ key: field.key, label: field.label });
+        try {
+            // First: collect fields marked with showInTable
+            const marked: { key: string; label: string }[] = [];
+            for (const section of fieldConfig.sections) {
+                if (!Array.isArray(section?.fields)) continue;
+                for (const field of section.fields) {
+                    if (!field) continue;
+                    if ((field as any).showInTable) {
+                        marked.push({ key: field.key, label: field.label });
+                    }
                 }
             }
-        }
-        if (marked.length > 0) return marked.slice(0, 8);
-        // Fallback: first 6 non-group fields
-        const cols: { key: string; label: string }[] = [];
-        for (const section of fieldConfig.sections) {
-            for (const field of section.fields) {
-                if (field.type === "group" || field.type === "computed" || field.type === "textarea" || field.type === "address" || field.type === "hidden") continue;
-                cols.push({ key: field.key, label: field.label });
-                if (cols.length >= 6) return cols;
+            if (marked.length > 0) return marked.slice(0, 8);
+            // Fallback: first 6 non-group fields
+            const cols: { key: string; label: string }[] = [];
+            for (const section of fieldConfig.sections) {
+                if (!Array.isArray(section?.fields)) continue;
+                for (const field of section.fields) {
+                    if (!field) continue;
+                    if (field.type === "group" || field.type === "computed" || field.type === "textarea" || field.type === "address" || field.type === "hidden") continue;
+                    cols.push({ key: field.key, label: field.label });
+                    if (cols.length >= 6) return cols;
+                }
             }
+            return cols;
+        } catch {
+            return [];
         }
-        return cols;
     }, [fieldConfig]);
 
     // Patch field config to fix missing lookupConfig / field types that cause search to break
     const patchFieldConfig = useCallback((fc: FieldConfig): FieldConfig => {
         if (!fc?.sections) return fc;
-        const patched = { ...fc, sections: fc.sections.map(s => ({ ...s, fields: s.fields.map(f => ({ ...f })) })) };
+        const patched = { ...fc, sections: fc.sections.map(s => ({ ...s, fields: Array.isArray(s.fields) ? s.fields.map(f => ({ ...f })) : [] })) };
         for (const section of patched.sections) {
+            if (!Array.isArray(section.fields)) continue;
             for (let i = 0; i < section.fields.length; i++) {
                 const f = section.fields[i];
+                if (!f) continue;
                 // Messaging: ensure "to" / "recipient" field is a patient lookup
                 if (tabKey === "messaging" && (f.key === "to" || f.key === "recipient" || f.key === "toPatient")) {
                     if (f.type !== "lookup" || !f.lookupConfig) {
@@ -1079,7 +1089,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (fieldConfig?.sections) {
             const errors: Record<string, string> = {};
             for (const section of fieldConfig.sections) {
+                if (!Array.isArray(section?.fields)) continue;
                 for (const field of section.fields) {
+                    if (!field) continue;
                     if (field.required) {
                         const val = formData[field.key];
                         if (val == null || (typeof val === "string" && val.trim() === "") || (Array.isArray(val) && val.length === 0)) {
@@ -1090,7 +1102,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
             // Format validation for typed fields
             for (const section of fieldConfig.sections) {
+                if (!Array.isArray(section?.fields)) continue;
                 for (const field of section.fields) {
+                    if (!field) continue;
                     const val = formData[field.key];
                     if (typeof val === "string" && val.trim()) {
                         if (field.type === "email" && !isValidEmail(val)) errors[field.key] = "Invalid email format";
@@ -1107,8 +1121,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 );
                 if (!hasPayerName) {
                     // Find first insurer/payer field from config to attach error
-                    const payerField = fieldConfig.sections.flatMap(s => s.fields).find(
-                        f => /payer|insurer|company/i.test(f.key)
+                    const payerField = fieldConfig.sections.flatMap(s => Array.isArray(s.fields) ? s.fields : []).find(
+                        f => f && /payer|insurer|company/i.test(f.key)
                     );
                     if (payerField) errors[payerField.key] = `${payerField.label} is required`;
                 }
@@ -1545,7 +1559,8 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const findFieldDef = (key: string): FieldDef | undefined => {
         if (!fieldConfig?.sections) return undefined;
         for (const section of fieldConfig.sections) {
-            const found = section.fields.find((f) => f.key === key);
+            if (!Array.isArray(section?.fields)) continue;
+            const found = section.fields.find((f) => f?.key === key);
             if (found) return found;
         }
         return undefined;
@@ -1587,6 +1602,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
 
     // Format display value for list table
     const formatValue = (value: any, colKey?: string, record?: Record<string, any>): React.ReactNode => {
+        try {
         // Treat literal "null" / "undefined" strings as missing
         if (value === "null" || value === "undefined") value = null;
 
@@ -1765,6 +1781,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         }
         const str = String(value);
         return str.length > 50 ? str.substring(0, 50) + "..." : str;
+        } catch { return "-"; }
     };
 
     // Filter records by search term (flatten nested objects for deep search)
