@@ -11,7 +11,7 @@ interface Props {
   onCreateChannel: () => void;
   onStartDm: (userId: string, userName: string) => void;
   currentUserId: string;
-  availableUsers: { id: string; name: string }[];
+  availableUsers: { id: string; name: string; type?: "patient" | "provider"; dob?: string; subtitle?: string }[];
 }
 
 const AVATAR_GRADIENTS = [
@@ -255,7 +255,25 @@ export default function ChannelSidebar({
                   <span className="block truncate text-sm font-medium text-gray-900 dark:text-white">
                     {user.name}
                   </span>
+                  {(user.type || user.dob || user.subtitle) && (
+                    <span className="block truncate text-xs text-gray-400 mt-0.5">
+                      {user.type === "patient" && user.dob
+                        ? `Patient · DOB: ${user.dob}`
+                        : user.type === "patient"
+                        ? "Patient"
+                        : user.subtitle || "Provider"}
+                    </span>
+                  )}
                 </div>
+                {user.type && (
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    user.type === "patient"
+                      ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                      : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+                  }`}>
+                    {user.type === "patient" ? "Patient" : "Provider"}
+                  </span>
+                )}
               </button>
             ))}
             {filteredUsers.length === 0 && (

@@ -20,7 +20,7 @@ export default function MessagingPage() {
   const [state, dispatch] = useReducer(messagingReducer, initialState);
   const [replyingTo, setReplyingTo] = useState<MessageItem | null>(null);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<{ id: string; name: string }[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<{ id: string; name: string; type?: "patient" | "provider"; dob?: string; subtitle?: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   // Derive current user from token
@@ -100,10 +100,11 @@ export default function MessagingPage() {
   // Fetches ALL org members: providers, staff, AND patients
   const loadUsers = useCallback(async () => {
     try {
-      const allUsers: { id: string; name: string }[] = [];
+      type UserEntry = { id: string; name: string; type?: "patient" | "provider"; dob?: string; subtitle?: string };
+      const allUsers: UserEntry[] = [];
       const seenIds = new Set<string>();
 
-      const extractUser = (p: Record<string, unknown>): { id: string; name: string } | null => {
+      const extractUser = (p: Record<string, unknown>, userType?: "patient" | "provider"): UserEntry | null => {
         const systemAccess = p.systemAccess as Record<string, unknown> | undefined;
         const keycloakId = systemAccess?.keycloakUserId
           ? String(systemAccess.keycloakUserId)
@@ -114,7 +115,12 @@ export default function MessagingPage() {
           ? `${identification.firstName || ""} ${identification.lastName || ""}`.trim()
           : String(p.name || p.displayName || "Unknown");
         if (!userId || !name || name === "Unknown") return null;
-        return { id: userId, name };
+        // Extract DOB for patients
+        const dob = identification?.dateOfBirth || (p.dateOfBirth ? String(p.dateOfBirth) : undefined);
+        // Extract specialty/title for providers
+        const profDetails = p.professionalDetails as Record<string, string> | undefined;
+        const subtitle = profDetails?.specialty || (p.specialty ? String(p.specialty) : undefined);
+        return { id: userId, name, type: userType, dob, subtitle };
       };
 
       const extractList = (json: Record<string, unknown>) => {
@@ -136,7 +142,7 @@ export default function MessagingPage() {
       if (providersRes.status === "fulfilled" && providersRes.value.ok) {
         const json = await providersRes.value.json();
         for (const p of extractList(json)) {
-          const user = extractUser(p as Record<string, unknown>);
+          const user = extractUser(p as Record<string, unknown>, "provider");
           if (user && !seenIds.has(user.id)) {
             seenIds.add(user.id);
             allUsers.push(user);
@@ -148,7 +154,7 @@ export default function MessagingPage() {
       if (patientsRes.status === "fulfilled" && patientsRes.value.ok) {
         const json = await patientsRes.value.json();
         for (const p of extractList(json)) {
-          const user = extractUser(p as Record<string, unknown>);
+          const user = extractUser(p as Record<string, unknown>, "patient");
           if (user && !seenIds.has(user.id)) {
             seenIds.add(user.id);
             allUsers.push(user);
