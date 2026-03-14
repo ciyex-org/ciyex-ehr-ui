@@ -352,7 +352,18 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
             if (manifList.length > 0) r.reactionDisplay = manifList.join(", ");
         }
-        if (r.reactionDisplay == null && typeof r.reaction === "string" && r.reaction !== "null") r.reactionDisplay = r.reaction;
+        if (r.reactionDisplay == null && typeof r.reaction === "string" && r.reaction !== "null") {
+            const raw = r.reaction;
+            // Parse Java toString format: [{manifestation=[{coding=[{..., display=X}], text=X}]}]
+            if (raw.includes("manifestation=") || raw.includes("coding=") || raw.includes("display=")) {
+                const textMatch = raw.match(/\btext=([^,}\]]+)/);
+                const displayMatch = raw.match(/\bdisplay=([^,}\]]+)/);
+                const extracted = (textMatch?.[1] || displayMatch?.[1] || "").trim();
+                r.reactionDisplay = extracted || raw;
+            } else {
+                r.reactionDisplay = raw;
+            }
+        }
         if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
         if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
 
@@ -1754,8 +1765,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             );
         }
 
-        // Detect Java toString of FHIR CodeableConcept (e.g. "{coding=[{system=..., code=X, display=X}], text=X}")
-        if (typeof value === "string" && value.startsWith("{") && value.includes("coding=")) {
+        // Detect Java toString of FHIR CodeableConcept or reaction array
+        // e.g. "{coding=[{system=..., code=X, display=X}], text=X}" or "[{manifestation=[...]}]"
+        if (typeof value === "string" && (value.startsWith("{") || value.startsWith("[")) && (value.includes("coding=") || value.includes("manifestation=") || value.includes("display="))) {
             const dMatch = value.match(/\bdisplay=([^,}\]]+)/);
             if (dMatch && !dMatch[1].startsWith("{") && !dMatch[1].startsWith("[")) return dMatch[1].trim();
             const tMatch = value.match(/\btext=([^,}\]]+)/);
