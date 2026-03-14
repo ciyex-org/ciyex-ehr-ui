@@ -85,7 +85,15 @@ export default function ChannelSidebar({
     return channels.filter((c) => c.name.toLowerCase().includes(q));
   }, [channels, search]);
 
-  const dmChannels = filtered.filter((c) => c.type === "dm" || c.type === "group_dm");
+  const sortByActivity = (a: Channel, b: Channel) => {
+    const aUnread = a.unreadCount > 0 ? 1 : 0;
+    const bUnread = b.unreadCount > 0 ? 1 : 0;
+    if (bUnread !== aUnread) return bUnread - aUnread;
+    const aTime = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+    const bTime = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+    return bTime - aTime;
+  };
+  const dmChannels = filtered.filter((c) => c.type === "dm" || c.type === "group_dm").sort(sortByActivity);
   const publicChannels = filtered.filter((c) => c.type === "public");
   const privateChannels = filtered.filter((c) => c.type === "private");
   const allChannels = [...publicChannels, ...privateChannels];
