@@ -144,20 +144,14 @@ export default function MessagingPage() {
         }
       }
 
-      // Process patients/demographics
+      // Process patients/demographics — use same extractUser logic to prefer keycloakUserId
       if (patientsRes.status === "fulfilled" && patientsRes.value.ok) {
         const json = await patientsRes.value.json();
         for (const p of extractList(json)) {
-          const rec = p as Record<string, unknown>;
-          // Patient records use different field structure
-          const fhirId = rec.fhirId ? String(rec.fhirId) : (rec.id ? String(rec.id) : "");
-          const identification = rec.identification as Record<string, string> | undefined;
-          const firstName = identification?.firstName || (rec as Record<string, string>).firstName || "";
-          const lastName = identification?.lastName || (rec as Record<string, string>).lastName || "";
-          const name = `${firstName} ${lastName}`.trim();
-          if (fhirId && name && !seenIds.has(fhirId)) {
-            seenIds.add(fhirId);
-            allUsers.push({ id: fhirId, name });
+          const user = extractUser(p as Record<string, unknown>);
+          if (user && !seenIds.has(user.id)) {
+            seenIds.add(user.id);
+            allUsers.push(user);
           }
         }
       }
