@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useReducer, useCallback, useEffect, useState, useMemo } from "react";
+import { useReducer, useCallback, useEffect, useState, useMemo } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import ChannelSidebar from "@/components/messaging/ChannelSidebar";
 import MessagePanel from "@/components/messaging/MessagePanel";
@@ -10,7 +10,7 @@ import ChannelCreateModal from "@/components/messaging/ChannelCreateModal";
 import MessageSearch from "@/components/messaging/MessageSearch";
 import { messagingReducer, initialState } from "@/components/messaging/messagingReducer";
 import * as api from "@/components/messaging/messagingApi";
-import type { Channel, MessageItem, ChannelMember } from "@/components/messaging/types";
+import type { MessageItem, ChannelMember } from "@/components/messaging/types";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 
@@ -371,7 +371,8 @@ export default function MessagingPage() {
 
   return (
     <AdminLayout>
-      <div className="flex h-full overflow-hidden bg-white dark:bg-gray-900">
+      {/* Negative margins cancel AdminLayout's p-4/p-6 padding; calc height fills remaining viewport */}
+      <div className="-m-4 md:-m-6 flex overflow-hidden bg-white dark:bg-gray-900" style={{ height: 'calc(100vh - 64px)' }}>
         {/* Error banner */}
         {error && (
           <div className="absolute top-2 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700 shadow-md">
