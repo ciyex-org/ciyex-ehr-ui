@@ -1,0 +1,51 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]: Ciyex | Signin
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e18]:
+        - img "Ciyex" [ref=e19]
+        - heading "Ciyex EHR" [level=1] [ref=e20]
+        - paragraph [ref=e21]: Open Source Public Health Infrastructure
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - img [ref=e24]
+            - generic [ref=e26]: HIPAA-compliant with enterprise-grade security
+          - generic [ref=e27]:
+            - img [ref=e28]
+            - generic [ref=e30]: FHIR R4 interoperable health data exchange
+          - generic [ref=e31]:
+            - img [ref=e32]
+            - generic [ref=e34]: Patient charting, scheduling & e-prescribing
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - generic [ref=e38]: Cloud-native with self-hosting option
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - heading "Sign In" [level=2] [ref=e43]
+            - paragraph [ref=e44]: Enter your email to continue
+          - generic [ref=e45]:
+            - generic [ref=e46]:
+              - generic [ref=e47]: Email
+              - textbox "Email" [active] [ref=e48]:
+                - /placeholder: you@example.com
+            - button "Continue" [disabled] [ref=e49]
+        - generic [ref=e50]:
+          - link "New to Ciyex? Create an account" [ref=e51] [cursor=pointer]:
+            - /url: /signup
+          - paragraph [ref=e52]:
+            - text: By signing in, you agree to our
+            - link "Terms" [ref=e53] [cursor=pointer]:
+              - /url: "#"
+            - text: "&"
+            - link "Privacy Policy" [ref=e54] [cursor=pointer]:
+              - /url: "#"
+            - text: .
+    - button [ref=e56] [cursor=pointer]:
+      - img [ref=e57]
+```

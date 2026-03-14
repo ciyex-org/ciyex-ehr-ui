@@ -31,19 +31,21 @@ export default function ThreadPanel({
   if (!parentMessage) return null;
 
   return (
-    <div className="flex h-full w-80 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <div className="flex h-full w-[340px] flex-col border-l border-gray-200/80 bg-white dark:border-gray-800 dark:bg-gray-950">
       {/* Header */}
-      <div className="flex h-[49px] items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-gray-500" />
+      <div className="flex h-14 items-center justify-between border-b border-gray-200/80 px-5 dark:border-gray-800">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+            <MessageSquare className="h-3.5 w-3.5 text-gray-500" />
+          </div>
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Thread</h3>
-          <span className="text-xs text-gray-400">
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500 dark:bg-gray-800">
             {replies.length} {replies.length === 1 ? "reply" : "replies"}
           </span>
         </div>
         <button
           onClick={onClose}
-          className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
         >
           <X className="h-4 w-4" />
         </button>
@@ -69,12 +71,12 @@ export default function ThreadPanel({
 
         {/* Reply count divider */}
         {replies.length > 0 && (
-          <div className="flex items-center gap-3 px-5 py-2">
-            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+          <div className="flex items-center gap-4 px-6 py-3">
+            <div className="h-px flex-1 bg-gray-200/80 dark:bg-gray-800" />
             <span className="text-xs font-medium text-gray-400">
               {replies.length} {replies.length === 1 ? "reply" : "replies"}
             </span>
-            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+            <div className="h-px flex-1 bg-gray-200/80 dark:bg-gray-800" />
           </div>
         )}
 

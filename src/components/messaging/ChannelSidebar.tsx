@@ -14,19 +14,54 @@ interface Props {
   availableUsers: { id: string; name: string }[];
 }
 
-function PresenceDot({ status }: { status?: string }) {
-  const color =
-    status === "online" ? "bg-green-500" :
-    status === "away" ? "bg-yellow-500" :
-    status === "dnd" ? "bg-red-500" : "bg-gray-400";
-  return <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-gray-900 ${color}`} />;
+const AVATAR_GRADIENTS = [
+  "bg-gradient-to-br from-violet-500 to-purple-600",
+  "bg-gradient-to-br from-sky-500 to-blue-600",
+  "bg-gradient-to-br from-emerald-500 to-teal-600",
+  "bg-gradient-to-br from-amber-500 to-orange-600",
+  "bg-gradient-to-br from-rose-500 to-pink-600",
+  "bg-gradient-to-br from-indigo-500 to-blue-700",
+  "bg-gradient-to-br from-cyan-500 to-teal-600",
+  "bg-gradient-to-br from-fuchsia-500 to-purple-700",
+];
+
+function getAvatarGradient(id: string) {
+  const hash = Math.abs(id.split("").reduce((a, b) => a + b.charCodeAt(0), 0));
+  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
 }
 
-function ChannelIcon({ type }: { type: Channel["type"] }) {
-  if (type === "private") return <Lock className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
-  if (type === "dm") return null;
-  if (type === "group_dm") return <Users className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
-  return <Hash className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
+function getInitials(name: string) {
+  return name
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
+function formatTimeShort(dateStr?: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  if (diff < 86400000 && d.getDate() === now.getDate()) {
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  if (diff < 604800000) {
+    return d.toLocaleDateString([], { weekday: "short" });
+  }
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function PresenceDot({ status }: { status?: string }) {
+  const color =
+    status === "online" ? "bg-green-400" :
+    status === "away" ? "bg-yellow-400" :
+    status === "dnd" ? "bg-red-400" : "bg-gray-300";
+  return (
+    <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-gray-900 ${color}`} />
+  );
 }
 
 export default function ChannelSidebar({
@@ -70,16 +105,18 @@ export default function ChannelSidebar({
   };
 
   return (
-    <div className="relative flex h-full w-64 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+    <div className="relative flex h-full w-[300px] flex-col border-r border-gray-200/80 bg-gradient-to-b from-slate-50 to-white dark:from-gray-900 dark:to-gray-950 dark:border-gray-800">
       {/* Header */}
-      <div className="flex h-[49px] items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-brand-500" />
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Messaging</h2>
+      <div className="flex h-14 items-center justify-between px-5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-sm">
+            <MessageSquare className="h-4 w-4 text-white" />
+          </div>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">Messages</h2>
         </div>
         <button
           onClick={() => setShowUserPicker(true)}
-          className="rounded-md p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+          className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition-all hover:bg-brand-100 hover:shadow-sm dark:bg-brand-900/30 dark:text-brand-400 dark:hover:bg-brand-900/50"
           title="New message"
         >
           <PenSquare className="h-4 w-4" />
@@ -87,26 +124,26 @@ export default function ChannelSidebar({
       </div>
 
       {/* Search */}
-      <div className="px-3 py-2">
+      <div className="px-4 pb-3">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-8 pr-8 text-xs text-gray-900 placeholder-gray-400 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+            className="w-full rounded-xl border-0 bg-gray-100/80 py-2 pl-9 pr-9 text-sm text-gray-900 placeholder-gray-400 outline-none ring-1 ring-gray-200/50 transition-all focus:bg-white focus:ring-2 focus:ring-brand-400/50 dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-700 dark:focus:bg-gray-800 dark:focus:ring-brand-500/50"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <X className="h-3.5 w-3.5" />
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Conversation list — Channels first, then DMs */}
-      <div className="flex-1 overflow-y-auto px-2">
+      {/* Conversation list */}
+      <div className="flex-1 overflow-y-auto px-3">
         {/* Channels section */}
         <SectionHeader
           label="Channels"
@@ -116,15 +153,15 @@ export default function ChannelSidebar({
           action={
             <button
               onClick={(e) => { e.stopPropagation(); onCreateChannel(); }}
-              className="rounded p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              className="rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
               title="Create channel"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-3.5 w-3.5" />
             </button>
           }
         />
         {expandedSections.channels && (
-          <div className="mb-2">
+          <div className="mb-3 space-y-0.5">
             {allChannels.map((ch) => (
               <ChannelRow
                 key={ch.id}
@@ -134,7 +171,7 @@ export default function ChannelSidebar({
               />
             ))}
             {allChannels.length === 0 && (
-              <p className="px-2 py-1 text-xs text-gray-400">No channels yet</p>
+              <p className="px-3 py-2 text-xs text-gray-400">No channels yet</p>
             )}
           </div>
         )}
@@ -147,7 +184,7 @@ export default function ChannelSidebar({
           onToggle={() => toggleSection("dms")}
         />
         {expandedSections.dms && (
-          <div className="mb-2">
+          <div className="mb-3 space-y-0.5">
             {dmChannels.map((ch) => (
               <DmRow
                 key={ch.id}
@@ -159,10 +196,12 @@ export default function ChannelSidebar({
             {dmChannels.length === 0 && (
               <button
                 onClick={() => setShowUserPicker(true)}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-gray-400 transition-colors hover:bg-gray-100/80 hover:text-gray-600 dark:hover:bg-gray-800"
               >
-                <PenSquare className="h-3.5 w-3.5" />
-                Start a conversation
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600">
+                  <PenSquare className="h-4 w-4" />
+                </div>
+                <span>Start a conversation</span>
               </button>
             )}
           </div>
@@ -172,62 +211,65 @@ export default function ChannelSidebar({
       {/* User picker overlay */}
       {showUserPicker && (
         <div className="absolute inset-0 z-50 flex flex-col bg-white dark:bg-gray-900">
-          <div className="flex items-center gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">New message</h3>
+          <div className="flex h-14 items-center gap-3 px-5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-sm">
+              <PenSquare className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">New Message</h3>
+              <p className="text-xs text-gray-400">
+                {filteredUsers.length} {filteredUsers.length === 1 ? "person" : "people"} available
+              </p>
+            </div>
             <button
               onClick={() => { setShowUserPicker(false); setUserSearch(""); }}
-              className="ml-auto rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="flex h-8 w-8 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="px-3 py-2">
+          <div className="px-4 pb-3">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
-                placeholder="Search people..."
-                className="w-full rounded-md border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-xs text-gray-900 placeholder-gray-400 outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                placeholder="Search by name..."
+                className="w-full rounded-xl border-0 bg-gray-100/80 py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 outline-none ring-1 ring-gray-200/50 transition-all focus:bg-white focus:ring-2 focus:ring-brand-400/50 dark:bg-gray-800 dark:text-gray-100 dark:ring-gray-700"
                 autoFocus
               />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto px-2">
-            {filteredUsers.map((user) => {
-              const initials = user.name
-                .split(/\s+/)
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((w) => w[0])
-                .join("")
-                .toUpperCase();
-              const colors = [
-                "bg-gradient-to-br from-pink-500 to-pink-600",
-                "bg-gradient-to-br from-green-500 to-green-600",
-                "bg-gradient-to-br from-purple-500 to-purple-600",
-                "bg-gradient-to-br from-orange-500 to-orange-600",
-                "bg-gradient-to-br from-indigo-500 to-indigo-600",
-              ];
-              const colorIdx = Math.abs(user.id.split("").reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
-              return (
-                <button
-                  key={user.id}
-                  onClick={() => handlePickUser(user)}
-                  className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-                >
-                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${colors[colorIdx]}`}>
-                    {initials}
-                  </div>
-                  <span>{user.name}</span>
-                </button>
-              );
-            })}
+          <div className="flex-1 overflow-y-auto px-3">
+            {filteredUsers.map((user) => (
+              <button
+                key={user.id}
+                onClick={() => handlePickUser(user)}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm ${getAvatarGradient(user.id)}`}>
+                  {getInitials(user.name)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-gray-900 dark:text-white">
+                    {user.name}
+                  </span>
+                </div>
+              </button>
+            ))}
             {filteredUsers.length === 0 && (
-              <p className="px-2 py-4 text-center text-xs text-gray-400">
-                {userSearch ? "No users found" : "No other users available"}
-              </p>
+              <div className="flex flex-col items-center py-12 text-center">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800">
+                  <Search className="h-6 w-6 text-gray-300 dark:text-gray-600" />
+                </div>
+                <p className="text-sm font-medium text-gray-500">
+                  {userSearch ? "No people found" : "No people available"}
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {userSearch ? "Try a different search term" : ""}
+                </p>
+              </div>
             )}
           </div>
         </div>
@@ -242,14 +284,16 @@ function SectionHeader({
   label: string; count: number; expanded: boolean; onToggle: () => void; action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center">
+    <div className="flex items-center py-1">
       <button
         onClick={onToggle}
-        className="flex flex-1 items-center gap-1 rounded px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        className="flex flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 transition-colors hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
       >
         {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         {label}
-        <span className="ml-auto text-[10px] font-normal text-gray-400">{count}</span>
+        <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:bg-gray-800">
+          {count}
+        </span>
       </button>
       {action}
     </div>
@@ -257,21 +301,26 @@ function SectionHeader({
 }
 
 function ChannelRow({ channel, isActive, onClick }: { channel: Channel; isActive: boolean; onClick: () => void }) {
+  const Icon = channel.type === "private" ? Lock : Hash;
   return (
     <button
       onClick={onClick}
-      className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+      className={`group flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-all ${
         isActive
-          ? "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
-          : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+          ? "bg-brand-50 text-brand-700 shadow-sm ring-1 ring-brand-100 dark:bg-brand-900/30 dark:text-brand-300 dark:ring-brand-800/50"
+          : "text-gray-700 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:bg-gray-800/80"
       }`}
     >
-      <ChannelIcon type={channel.type} />
-      <span className={`truncate ${channel.unreadCount > 0 ? "font-semibold" : "font-normal"}`}>
+      <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
+        isActive ? "bg-brand-100 dark:bg-brand-800/50" : "bg-gray-100 dark:bg-gray-800"
+      }`}>
+        <Icon className={`h-3.5 w-3.5 ${isActive ? "text-brand-600 dark:text-brand-400" : "text-gray-400"}`} />
+      </div>
+      <span className={`min-w-0 truncate ${channel.unreadCount > 0 ? "font-semibold" : "font-medium"}`}>
         {channel.name}
       </span>
       {channel.unreadCount > 0 && (
-        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white">
+        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white shadow-sm">
           {channel.unreadCount > 99 ? "99+" : channel.unreadCount}
         </span>
       )}
@@ -280,44 +329,50 @@ function ChannelRow({ channel, isActive, onClick }: { channel: Channel; isActive
 }
 
 function DmRow({ channel, isActive, onClick }: { channel: Channel; isActive: boolean; onClick: () => void }) {
-  const initials = channel.name
-    .split(/[\s,]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-
-  const colors = [
-    "bg-gradient-to-br from-pink-500 to-pink-600",
-    "bg-gradient-to-br from-green-500 to-green-600",
-    "bg-gradient-to-br from-purple-500 to-purple-600",
-    "bg-gradient-to-br from-orange-500 to-orange-600",
-    "bg-gradient-to-br from-indigo-500 to-indigo-600",
-  ];
-  const colorIdx = Math.abs(channel.id.split("").reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
-
   return (
     <button
       onClick={onClick}
-      className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+      className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 transition-all ${
         isActive
-          ? "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
-          : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+          ? "bg-brand-50 shadow-sm ring-1 ring-brand-100 dark:bg-brand-900/30 dark:ring-brand-800/50"
+          : "hover:bg-gray-100/80 dark:hover:bg-gray-800/80"
       }`}
     >
       <div className="relative shrink-0">
-        <div className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white ${colors[colorIdx]}`}>
-          {initials}
+        <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm ${getAvatarGradient(channel.id)}`}>
+          {getInitials(channel.name)}
         </div>
         {channel.type === "dm" && <PresenceDot status="online" />}
+        {channel.type === "group_dm" && (
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[8px] font-bold text-gray-600 ring-2 ring-white dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-900">
+            <Users className="h-2.5 w-2.5" />
+          </span>
+        )}
       </div>
-      <span className={`truncate ${channel.unreadCount > 0 ? "font-semibold" : "font-normal"}`}>
-        {channel.name}
-      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between">
+          <span className={`truncate text-sm ${
+            channel.unreadCount > 0 ? "font-semibold text-gray-900 dark:text-white" : "font-medium text-gray-700 dark:text-gray-300"
+          }`}>
+            {channel.name}
+          </span>
+          {(channel.lastMessageAt || channel.lastMessage?.createdAt) && (
+            <span className="ml-2 shrink-0 text-[11px] text-gray-400">
+              {formatTimeShort(channel.lastMessageAt || channel.lastMessage?.createdAt)}
+            </span>
+          )}
+        </div>
+        {(channel.lastMessagePreview || channel.lastMessage?.content) && (
+          <p className={`mt-0.5 truncate text-xs ${
+            channel.unreadCount > 0 ? "text-gray-600 dark:text-gray-400" : "text-gray-400 dark:text-gray-500"
+          }`}>
+            {channel.lastMessagePreview || channel.lastMessage?.content}
+          </p>
+        )}
+      </div>
       {channel.unreadCount > 0 && (
-        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white">
-          {channel.unreadCount}
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white shadow-sm">
+          {channel.unreadCount > 99 ? "99+" : channel.unreadCount}
         </span>
       )}
     </button>

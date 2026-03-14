@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ciyex EHR — RBAC Role Test Report</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; background: #f9fafb; color: #111827; }
+    h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .meta { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+    h2 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; border-bottom: 2px solid #e5e7eb; padding-bottom: 6px; }
+    .legend { display: flex; gap: 16px; margin-bottom: 16px; font-size: 13px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    table { border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); width: 100%; }
+    th { background: #f8fafc; font-weight: 600; }
+    tr:hover td { background: #fafafa; }
+    .overflow-table { overflow-x: auto; }
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .stat-card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
+    .stat-card .value { font-size: 32px; font-weight: 700; }
+    .stat-card .label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Ciyex EHR — RBAC Role Test Report</h1>
+  <p class="meta">Generated: 3/11/2026, 2:30:39 PM | Base URL: https://app-dev.ciyex.org | 5/6 roles tested successfully</p>
+
+  <div class="legend">
+    <div class="legend-item">✅ <b>ALLOWED</b> — user can access the page</div>
+    <div class="legend-item">🔒 <b>DENIED</b> — PermissionGuard blocked access (Access Denied screen)</div>
+    <div class="legend-item">⚠️ <b>NOT_FOUND</b> — route returns 404 (not implemented)</div>
+    <div class="legend-item">❌ <b>ERROR</b> — test error (network, timeout, etc.)</div>
+  </div>
+
+  <div class="stat-grid">
+      <div class="stat-card"><div class="value" style="color:#16a34a">96</div><div class="label">Pages Accessible ✅</div></div>
+      <div class="stat-card"><div class="value" style="color:#dc2626">44</div><div class="label">Access Denied 🔒</div></div>
+      <div class="stat-card"><div class="value" style="color:#d97706">0</div><div class="label">Not Found ⚠️</div></div>
+      <div class="stat-card"><div class="value" style="color:#6b7280">140</div><div class="label">Total Checks</div></div>
+    </div>
+
+  <h2>Permission Matrix (Role × Page)</h2>
+  <div class="overflow-table">
+    <table>
+      <thead>
+        <tr>
+          <th style="border:1px solid #d1d5db;padding:8px 12px;background:#f8fafc;text-align:left;white-space:nowrap">Role / User</th>
+          <th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Calendar<br><span style="font-size:9px;color:#6b7280">(scheduling)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Appointments<br><span style="font-size:9px;color:#6b7280">(scheduling)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Patients<br><span style="font-size:9px;color:#6b7280">(demographics)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">All Encounters<br><span style="font-size:9px;color:#6b7280">(chart)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Prescriptions<br><span style="font-size:9px;color:#6b7280">(rx)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Lab Orders<br><span style="font-size:9px;color:#6b7280">(orders)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Lab Results<br><span style="font-size:9px;color:#6b7280">(orders)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Immunizations<br><span style="font-size:9px;color:#6b7280">(rx)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Care Plans<br><span style="font-size:9px;color:#6b7280">(chart)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Referrals<br><span style="font-size:9px;color:#6b7280">(chart)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">CDS Alerts<br><span style="font-size:9px;color:#6b7280">(chart)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Consents<br><span style="font-size:9px;color:#6b7280">(chart)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Doc Scanning<br><span style="font-size:9px;color:#6b7280">(documents)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Messaging<br><span style="font-size:9px;color:#6b7280">(messaging)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Notifications<br><span style="font-size:9px;color:#6b7280">(messaging)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Fax<br><span style="font-size:9px;color:#6b7280">(messaging)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Payments<br><span style="font-size:9px;color:#6b7280">(billing)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Claim Management<br><span style="font-size:9px;color:#6b7280">(billing)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Reports<br><span style="font-size:9px;color:#6b7280">(reports)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">User Management<br><span style="font-size:9px;color:#6b7280">(admin)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Roles & Permissions<br><span style="font-size:9px;color:#6b7280">(admin)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Settings<br><span style="font-size:9px;color:#6b7280">(admin)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Audit Log<br><span style="font-size:9px;color:#6b7280">(admin)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Tasks<br><span style="font-size:9px;color:#16a34a">(open)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Recall<br><span style="font-size:9px;color:#16a34a">(open)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Ciyex Hub<br><span style="font-size:9px;color:#16a34a">(open)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Kiosk<br><span style="font-size:9px;color:#16a34a">(open)</span></th><th style="border:1px solid #d1d5db;padding:6px 8px;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:100px;font-size:11px;font-weight:600;text-align:left">Dashboard<br><span style="font-size:9px;color:#16a34a">(open)</span></th>
+          <th style="border:1px solid #d1d5db;padding:8px 12px;background:#f8fafc;text-align:left">Permissions</th>
+          <th style="border:1px solid #d1d5db;padding:8px 12px;background:#f8fafc;text-align:left">Nav Items</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+      <td style="white-space:nowrap;font-weight:bold;padding:8px 12px;border:1px solid #e5e7eb">
+        SUPER_ADMIN
+        
+        <br><span style="font-weight:normal;font-size:11px;color:#6b7280">michael.chen@example.com</span>
+        <br><span style="font-size:10px;color:#9333ea">role: SUPER_ADMIN</span>
+        <br><span style="font-size:10px;color:#16a34a">✓ logged in</span>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__calendar__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__appointments__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__patients__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__all_encounters__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__prescriptions__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__lab_orders__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__lab_results__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__immunizations__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__care_plans__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__referrals__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__cds_alerts__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__consents__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__doc_scanning__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__messaging__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__notifications__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__fax__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__payments__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__claim_management__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__reports__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__user_management__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__roles___permissions__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__settings__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__audit_log__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__tasks__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__recall__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__ciyex_hub__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__kiosk__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/super_admin__dashboard__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:180px">
+      scheduling.read, scheduling.write, demographics.read, demographics.write, chart.read, chart.write, chart.sign, orders.read, orders.create, orders.sign, rx.read, rx.prescribe, billing.read, billing.write, billing.submit, admin.users, admin.settings, admin.roles, documents.read, documents.write... (+4)
+    </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:160px">
+      
+    </td></tr><tr>
+      <td style="white-space:nowrap;font-weight:bold;padding:8px 12px;border:1px solid #e5e7eb">
+        PROVIDER
+        
+        <br><span style="font-weight:normal;font-size:11px;color:#6b7280">emily.chen@riverside-medical.com</span>
+        <br><span style="font-size:10px;color:#9333ea">role: PROVIDER</span>
+        <br><span style="font-size:10px;color:#16a34a">✓ logged in</span>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__calendar__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__appointments__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__patients__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__all_encounters__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__prescriptions__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__lab_orders__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__lab_results__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__immunizations__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__care_plans__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__referrals__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__cds_alerts__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__consents__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__doc_scanning__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__messaging__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__notifications__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__fax__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/provider__payments__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/provider__claim_management__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__reports__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/provider__user_management__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/provider__roles___permissions__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/provider__settings__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__audit_log__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__tasks__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__recall__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__ciyex_hub__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__kiosk__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/provider__dashboard__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:180px">
+      scheduling.read, scheduling.write, demographics.read, demographics.write, chart.read, chart.write, chart.sign, orders.read, orders.create, orders.sign, rx.read, rx.prescribe, documents.read, documents.write, messaging.read, messaging.send, reports.read
+    </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:160px">
+      
+    </td></tr><tr>
+      <td style="white-space:nowrap;font-weight:bold;padding:8px 12px;border:1px solid #e5e7eb">
+        NURSE
+        
+        <br><span style="font-weight:normal;font-size:11px;color:#6b7280">nurse.johnson@sunrisefamilymedicine.com</span>
+        <br><span style="font-size:10px;color:#9333ea">role: NURSE</span>
+        <br><span style="font-size:10px;color:#16a34a">✓ logged in</span>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/nurse__calendar__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/nurse__appointments__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__patients__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__all_encounters__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__prescriptions__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__lab_orders__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__lab_results__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__immunizations__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__care_plans__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__referrals__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__cds_alerts__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__consents__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__doc_scanning__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__messaging__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__notifications__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__fax__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/nurse__payments__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/nurse__claim_management__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/nurse__reports__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/nurse__user_management__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/nurse__roles___permissions__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/nurse__settings__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__audit_log__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__tasks__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__recall__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__ciyex_hub__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__kiosk__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/nurse__dashboard__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:180px">
+      demographics.read, demographics.write, chart.read, chart.write, orders.read, rx.read, documents.read, documents.write, messaging.read, messaging.send
+    </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:160px">
+      
+    </td></tr><tr>
+      <td style="white-space:nowrap;font-weight:bold;padding:8px 12px;border:1px solid #e5e7eb">
+        FRONT_DESK
+        
+        <br><span style="font-weight:normal;font-size:11px;color:#6b7280">frontdesk.brown@sunrisefamilymedicine.com</span>
+        <br><span style="font-size:10px;color:#9333ea">role: FRONT_DESK</span>
+        <br><span style="font-size:10px;color:#16a34a">✓ logged in</span>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__calendar__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__appointments__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__patients__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__all_encounters__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__prescriptions__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__lab_orders__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__lab_results__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__immunizations__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__care_plans__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__referrals__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__cds_alerts__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__consents__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__doc_scanning__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__messaging__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__notifications__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__fax__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__payments__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__claim_management__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__reports__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__user_management__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__roles___permissions__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/front_desk__settings__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__audit_log__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__tasks__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__recall__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__ciyex_hub__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__kiosk__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/front_desk__dashboard__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:180px">
+      demographics.read, scheduling.read, scheduling.write
+    </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:160px">
+      
+    </td></tr><tr>
+      <td style="white-space:nowrap;font-weight:bold;padding:8px 12px;border:1px solid #e5e7eb">
+        BILLING
+        
+        <br><span style="font-weight:normal;font-size:11px;color:#6b7280">billing.davis@sunrisefamilymedicine.com</span>
+        <br><span style="font-size:10px;color:#9333ea">role: BILLING</span>
+        <br><span style="font-size:10px;color:#16a34a">✓ logged in</span>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__calendar__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__appointments__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__patients__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__all_encounters__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__prescriptions__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__lab_orders__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__lab_results__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__immunizations__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__care_plans__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__referrals__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__cds_alerts__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__consents__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__doc_scanning__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__messaging__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__notifications__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__fax__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__payments__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__claim_management__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__reports__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__user_management__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__roles___permissions__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#dc2626;padding:6px 8px">
+        🔒<br><a href="rbac-screenshots/billing__settings__DENIED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__audit_log__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__tasks__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__recall__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__ciyex_hub__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__kiosk__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;text-align:center;color:#16a34a;padding:6px 8px">
+        ✅<br><a href="rbac-screenshots/billing__dashboard__ALLOWED.png" target="_blank" style="font-size:10px;color:#3b82f6">screenshot</a>
+      </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:180px">
+      billing.read, billing.write, billing.submit, reports.read
+    </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:160px">
+      
+    </td></tr><tr>
+      <td style="white-space:nowrap;font-weight:bold;padding:8px 12px;border:1px solid #e5e7eb">
+        PATIENT
+        
+        <br><span style="font-weight:normal;font-size:11px;color:#6b7280">jennifer.martinez@example.com</span>
+        
+        <br><span style="font-size:10px;color:#dc2626">✗ login failed: API auth failed (invalid credentials or user not found)</span>
+      </td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;text-align:center">—</td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:180px">
+      
+    </td><td style="border:1px solid #e5e7eb;padding:6px 8px;font-size:10px;max-width:160px">
+      
+    </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Route Summary</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left">Route</th>
+        <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left">Path</th>
+        <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:left">Required Permission</th>
+        <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center">Allowed</th>
+        <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center">Denied</th>
+        <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center">Not Found</th>
+        <th style="border:1px solid #d1d5db;padding:8px 12px;text-align:center">Error</th>
+      </tr>
+    </thead>
+    <tbody><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Calendar</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/calendar</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">scheduling</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Appointments</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/appointments</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">scheduling</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Patients</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/patients</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">demographics</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">All Encounters</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/all-encounters</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">chart</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Prescriptions</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/prescriptions</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">rx</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Lab Orders</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/labs/orders</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">orders</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Lab Results</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/labs/results</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">orders</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Immunizations</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/immunizations</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">rx</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Care Plans</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/care-plans</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">chart</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Referrals</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/referrals</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">chart</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">CDS Alerts</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/cds</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">chart</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Consents</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/consents</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">chart</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Doc Scanning</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/document-scanning</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">documents</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Messaging</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/messaging</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">messaging</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Notifications</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/notifications</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">messaging</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Fax</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/fax</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">messaging</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Payments</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/payments</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">billing</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">2 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">3 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Claim Management</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/patients/claim-management</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">billing</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">2 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">3 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Reports</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/reports</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">reports</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">3 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">2 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">User Management</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/settings/user-management</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">admin</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">1 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">4 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Roles & Permissions</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/settings/roles-permissions</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">admin</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">1 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">4 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Settings</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/settings</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">admin</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">1 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">4 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Audit Log</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/admin/audit-log</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">admin</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Tasks</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/tasks</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">— (open)</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Recall</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/recall</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">— (open)</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Ciyex Hub</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/hub</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">— (open)</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Kiosk</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/kiosk</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">— (open)</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr><tr>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-weight:500">Dashboard</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;color:#6b7280">/dashboard</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;font-size:11px">— (open)</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#16a34a;text-align:center">5 ✅</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#dc2626;text-align:center">0 🔒</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#d97706;text-align:center">0 ⚠️</td>
+      <td style="border:1px solid #e5e7eb;padding:6px 10px;color:#9333ea;text-align:center">0 ❌</td>
+    </tr></tbody>
+  </table>
+
+  <h2>Per-Role Permission Details</h2>
+  
+    <details style="margin-bottom:12px;background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <summary style="cursor:pointer;font-weight:600;font-size:15px">
+        SUPER_ADMIN — michael.chen@example.com
+        <span style="color:#16a34a;font-size:12px;font-weight:normal"> (logged in)</span>
+      </summary>
+      <div style="margin-top:12px;font-size:13px">
+        <p><b>Role from API:</b> SUPER_ADMIN | <b>Super Admin:</b> No</p>
+        <p><b>Permissions (24):</b> scheduling.read, scheduling.write, demographics.read, demographics.write, chart.read, chart.write, chart.sign, orders.read, orders.create, orders.sign, rx.read, rx.prescribe, billing.read, billing.write, billing.submit, admin.users, admin.settings, admin.roles, documents.read, documents.write, messaging.read, messaging.send, reports.read, reports.write</p>
+        <p><b>Nav items visible:</b> —</p>
+      </div>
+    </details>
+  
+    <details style="margin-bottom:12px;background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <summary style="cursor:pointer;font-weight:600;font-size:15px">
+        PROVIDER — emily.chen@riverside-medical.com
+        <span style="color:#16a34a;font-size:12px;font-weight:normal"> (logged in)</span>
+      </summary>
+      <div style="margin-top:12px;font-size:13px">
+        <p><b>Role from API:</b> PROVIDER | <b>Super Admin:</b> No</p>
+        <p><b>Permissions (17):</b> scheduling.read, scheduling.write, demographics.read, demographics.write, chart.read, chart.write, chart.sign, orders.read, orders.create, orders.sign, rx.read, rx.prescribe, documents.read, documents.write, messaging.read, messaging.send, reports.read</p>
+        <p><b>Nav items visible:</b> —</p>
+      </div>
+    </details>
+  
+    <details style="margin-bottom:12px;background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <summary style="cursor:pointer;font-weight:600;font-size:15px">
+        NURSE — nurse.johnson@sunrisefamilymedicine.com
+        <span style="color:#16a34a;font-size:12px;font-weight:normal"> (logged in)</span>
+      </summary>
+      <div style="margin-top:12px;font-size:13px">
+        <p><b>Role from API:</b> NURSE | <b>Super Admin:</b> No</p>
+        <p><b>Permissions (10):</b> demographics.read, demographics.write, chart.read, chart.write, orders.read, rx.read, documents.read, documents.write, messaging.read, messaging.send</p>
+        <p><b>Nav items visible:</b> —</p>
+      </div>
+    </details>
+  
+    <details style="margin-bottom:12px;background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <summary style="cursor:pointer;font-weight:600;font-size:15px">
+        FRONT_DESK — frontdesk.brown@sunrisefamilymedicine.com
+        <span style="color:#16a34a;font-size:12px;font-weight:normal"> (logged in)</span>
+      </summary>
+      <div style="margin-top:12px;font-size:13px">
+        <p><b>Role from API:</b> FRONT_DESK | <b>Super Admin:</b> No</p>
+        <p><b>Permissions (3):</b> demographics.read, scheduling.read, scheduling.write</p>
+        <p><b>Nav items visible:</b> —</p>
+      </div>
+    </details>
+  
+    <details style="margin-bottom:12px;background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <summary style="cursor:pointer;font-weight:600;font-size:15px">
+        BILLING — billing.davis@sunrisefamilymedicine.com
+        <span style="color:#16a34a;font-size:12px;font-weight:normal"> (logged in)</span>
+      </summary>
+      <div style="margin-top:12px;font-size:13px">
+        <p><b>Role from API:</b> BILLING | <b>Super Admin:</b> No</p>
+        <p><b>Permissions (4):</b> billing.read, billing.write, billing.submit, reports.read</p>
+        <p><b>Nav items visible:</b> —</p>
+      </div>
+    </details>
+  
+    <details style="margin-bottom:12px;background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <summary style="cursor:pointer;font-weight:600;font-size:15px">
+        PATIENT — jennifer.martinez@example.com
+        <span style="color:#dc2626;font-size:12px;font-weight:normal"> (login failed)</span>
+      </summary>
+      <div style="margin-top:12px;font-size:13px">
+        <p><b>Role from API:</b> — | <b>Super Admin:</b> No</p>
+        <p><b>Permissions (0):</b> —</p>
+        <p><b>Nav items visible:</b> —</p>
+      </div>
+    </details>
+  
+
+</body>
+</html>

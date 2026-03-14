@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useMemo, useCallback } from "react";
-import { Hash, Lock, Users, Pin, Search, Info, Star } from "lucide-react";
+import { Hash, Lock, Users, Search, Info, MessageSquarePlus, Send } from "lucide-react";
 import MessageItemComponent from "./MessageItem";
 import ComposeBar from "./ComposeBar";
 import type { Channel, MessageItem } from "./types";
@@ -25,11 +25,12 @@ interface Props {
   onAttachFile?: (files: File[]) => void;
 }
 
-function ChannelIcon({ type }: { type: Channel["type"] }) {
-  if (type === "private") return <Lock className="h-4 w-4 text-gray-500" />;
+function ChannelIcon({ type, className }: { type: Channel["type"]; className?: string }) {
+  const cls = className || "h-4 w-4 text-gray-500";
+  if (type === "private") return <Lock className={cls} />;
   if (type === "dm") return null;
-  if (type === "group_dm") return <Users className="h-4 w-4 text-gray-500" />;
-  return <Hash className="h-4 w-4 text-gray-500" />;
+  if (type === "group_dm") return <Users className={cls} />;
+  return <Hash className={cls} />;
 }
 
 export default function MessagePanel({
@@ -86,16 +87,16 @@ export default function MessagePanel({
 
   if (!channel) {
     return (
-      <div className="flex flex-1 items-center justify-center bg-white dark:bg-gray-900">
+      <div className="flex flex-1 items-center justify-center bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-50 dark:bg-brand-900/20">
-            <Hash className="h-8 w-8 text-brand-500" />
+          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-brand-50 to-brand-100 shadow-sm dark:from-brand-900/30 dark:to-brand-800/20">
+            <MessageSquarePlus className="h-9 w-9 text-brand-500" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Select a channel
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Welcome to Messaging
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Choose a channel from the sidebar to start messaging
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-gray-500">
+            Select a conversation from the sidebar or start a new message to begin communicating securely.
           </p>
         </div>
       </div>
@@ -103,32 +104,37 @@ export default function MessagePanel({
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-white dark:bg-gray-900">
+    <div className="flex flex-1 flex-col bg-white dark:bg-gray-950">
       {/* Channel header */}
-      <div className="flex h-[49px] items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <ChannelIcon type={channel.type} />
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-            {channel.name}
-          </h3>
-          {channel.topic && (
-            <>
-              <span className="text-gray-300 dark:text-gray-600">|</span>
-              <span className="truncate text-xs text-gray-500">{channel.topic}</span>
-            </>
+      <div className="flex h-14 items-center justify-between border-b border-gray-200/80 px-5 dark:border-gray-800">
+        <div className="flex items-center gap-3">
+          {(channel.type === "dm" || channel.type === "group_dm") ? (
+            <DmAvatar name={channel.name} size="sm" />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
+              <ChannelIcon type={channel.type} className="h-4 w-4 text-gray-500" />
+            </div>
           )}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              {channel.type === "dm" || channel.type === "group_dm" ? channel.name : `#${channel.name}`}
+            </h3>
+            {channel.topic && (
+              <p className="truncate text-xs text-gray-400">{channel.topic}</p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={onToggleSearch}
-            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
             title="Search messages"
           >
             <Search className="h-4 w-4" />
           </button>
           <button
             onClick={onToggleDetail}
-            className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800"
             title="Channel details"
           >
             <Info className="h-4 w-4" />
@@ -140,21 +146,21 @@ export default function MessagePanel({
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {/* Channel welcome */}
         {messages.length > 0 && (
-          <div className="px-5 pb-4 pt-6">
+          <div className="px-6 pb-4 pt-8">
             {channel.type === "dm" || channel.type === "group_dm" ? (
               <DmAvatar name={channel.name} size="lg" />
             ) : (
-              <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800">
-                <ChannelIcon type={channel.type} />
+              <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 shadow-sm dark:from-gray-800 dark:to-gray-900">
+                <ChannelIcon type={channel.type} className="h-6 w-6 text-gray-400" />
               </div>
             )}
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
               {channel.type === "dm" || channel.type === "group_dm" ? channel.name : `#${channel.name}`}
             </h2>
             {channel.description && (
-              <p className="mt-0.5 text-sm text-gray-500">{channel.description}</p>
+              <p className="mt-1 text-sm text-gray-500">{channel.description}</p>
             )}
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-gray-400">
               {channel.type === "dm"
                 ? `This is the beginning of your conversation with ${channel.name}.`
                 : `This is the very beginning of the #${channel.name} channel.`}
@@ -166,12 +172,12 @@ export default function MessagePanel({
         {groupedMessages.map((group) => (
           <div key={group.date}>
             {/* Date divider */}
-            <div className="sticky top-0 z-10 flex items-center gap-3 px-5 py-2">
-              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
-              <span className="rounded-full border border-gray-200 bg-white px-3 py-0.5 text-xs font-medium text-gray-500 dark:border-gray-700 dark:bg-gray-900">
+            <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-3">
+              <div className="h-px flex-1 bg-gray-200/80 dark:bg-gray-800" />
+              <span className="rounded-full bg-white px-3.5 py-1 text-xs font-medium text-gray-500 shadow-sm ring-1 ring-gray-200/50 dark:bg-gray-900 dark:ring-gray-700">
                 {group.date}
               </span>
-              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+              <div className="h-px flex-1 bg-gray-200/80 dark:bg-gray-800" />
             </div>
 
             {/* Messages */}
@@ -197,7 +203,11 @@ export default function MessagePanel({
         {messages.length === 0 && (
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
-              <p className="text-sm text-gray-500">No messages yet. Start the conversation!</p>
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50 dark:bg-gray-800">
+                <Send className="h-7 w-7 text-gray-300 dark:text-gray-600" />
+              </div>
+              <p className="text-sm font-medium text-gray-500">No messages yet</p>
+              <p className="mt-1 text-xs text-gray-400">Send the first message to start the conversation</p>
             </div>
           </div>
         )}
@@ -205,9 +215,9 @@ export default function MessagePanel({
 
       {/* Typing indicator */}
       {typingUsers.length > 0 && (
-        <div className="px-5 py-1">
+        <div className="px-6 py-1.5">
           <p className="text-xs text-gray-400">
-            <span className="font-medium">{typingUsers.join(", ")}</span>{" "}
+            <span className="font-medium text-gray-500">{typingUsers.join(", ")}</span>{" "}
             {typingUsers.length === 1 ? "is" : "are"} typing
             <span className="ml-0.5 inline-flex gap-0.5">
               <span className="animate-bounce text-xs" style={{ animationDelay: "0ms" }}>.</span>
@@ -238,17 +248,17 @@ function DmAvatar({ name, size = "lg" }: { name: string; size?: "lg" | "sm" }) {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
-  const colors = [
-    "bg-gradient-to-br from-pink-500 to-pink-600",
-    "bg-gradient-to-br from-green-500 to-green-600",
-    "bg-gradient-to-br from-purple-500 to-purple-600",
-    "bg-gradient-to-br from-orange-500 to-orange-600",
-    "bg-gradient-to-br from-indigo-500 to-indigo-600",
+  const AVATAR_GRADIENTS = [
+    "bg-gradient-to-br from-violet-500 to-purple-600",
+    "bg-gradient-to-br from-sky-500 to-blue-600",
+    "bg-gradient-to-br from-emerald-500 to-teal-600",
+    "bg-gradient-to-br from-amber-500 to-orange-600",
+    "bg-gradient-to-br from-rose-500 to-pink-600",
   ];
-  const colorIdx = Math.abs(name.split("").reduce((a, b) => a + b.charCodeAt(0), 0)) % colors.length;
-  const sizeClass = size === "lg" ? "mb-2 h-12 w-12 text-lg" : "h-8 w-8 text-xs";
+  const colorIdx = Math.abs(name.split("").reduce((a, b) => a + b.charCodeAt(0), 0)) % AVATAR_GRADIENTS.length;
+  const sizeClass = size === "lg" ? "mb-3 h-14 w-14 text-lg shadow-md" : "h-8 w-8 text-xs shadow-sm";
   return (
-    <div className={`flex items-center justify-center rounded-full font-bold text-white ${colors[colorIdx]} ${sizeClass}`}>
+    <div className={`flex items-center justify-center rounded-full font-bold text-white ${AVATAR_GRADIENTS[colorIdx]} ${sizeClass}`}>
       {initials}
     </div>
   );

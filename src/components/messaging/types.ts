@@ -9,6 +9,8 @@ export interface Channel {
   memberCount: number;
   unreadCount: number;
   lastMessage?: MessageItem;
+  lastMessageAt?: string;
+  lastMessagePreview?: string;
   members?: ChannelMember[];
   isMuted?: boolean;
 }

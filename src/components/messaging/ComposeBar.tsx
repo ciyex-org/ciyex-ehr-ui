@@ -26,7 +26,7 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
     onSend(trimmed);
     setContent("");
     if (textareaRef.current) {
-      textareaRef.current.style.height = "40px";
+      textareaRef.current.style.height = "44px";
     }
   }, [content, onSend]);
 
@@ -40,7 +40,7 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
   const handleInput = () => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = "40px";
+    el.style.height = "44px";
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
   };
 
@@ -70,46 +70,46 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white px-4 pb-4 pt-2 dark:border-gray-700 dark:bg-gray-900">
+    <div className="border-t border-gray-200/80 bg-white px-5 pb-4 pt-3 dark:border-gray-800 dark:bg-gray-950">
       {/* Reply preview */}
       {replyingTo && (
-        <div className="mb-2 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 dark:border-brand-800 dark:bg-brand-900/20">
-          <div className="h-full w-0.5 rounded-full bg-brand-500" />
+        <div className="mb-3 flex items-center gap-3 rounded-xl border border-brand-200/60 bg-brand-50/50 px-4 py-2.5 dark:border-brand-800/40 dark:bg-brand-900/20">
+          <div className="h-8 w-1 rounded-full bg-brand-500" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-brand-700 dark:text-brand-300">
+            <p className="text-xs font-semibold text-brand-700 dark:text-brand-300">
               Replying to {replyingTo.senderName}
             </p>
             <p className="truncate text-xs text-gray-500">{replyingTo.content}</p>
           </div>
           <button
             onClick={onCancelReply}
-            className="shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-700"
+            className="shrink-0 rounded-lg p-1 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-700"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
 
       {/* Formatting toolbar */}
       {showFormatting && (
-        <div className="mb-1 flex items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 dark:border-gray-700 dark:bg-gray-800">
+        <div className="mb-2 flex items-center gap-0.5 rounded-xl border border-gray-200/80 bg-gray-50/80 px-2.5 py-1.5 dark:border-gray-700 dark:bg-gray-800">
           <FormatButton icon={<Bold className="h-3.5 w-3.5" />} title="Bold" onClick={() => insertFormatting("**", "**")} />
           <FormatButton icon={<Italic className="h-3.5 w-3.5" />} title="Italic" onClick={() => insertFormatting("_", "_")} />
           <FormatButton icon={<Code className="h-3.5 w-3.5" />} title="Code" onClick={() => insertFormatting("`", "`")} />
           <FormatButton icon={<List className="h-3.5 w-3.5" />} title="List" onClick={() => insertFormatting("\n- ", "")} />
           <FormatButton icon={<Link2 className="h-3.5 w-3.5" />} title="Link" onClick={() => insertFormatting("[", "](url)")} />
-          <div className="mx-1 h-4 w-px bg-gray-300 dark:bg-gray-600" />
+          <div className="mx-1.5 h-4 w-px bg-gray-300/60 dark:bg-gray-600" />
           <FormatButton icon={<AtSign className="h-3.5 w-3.5" />} title="Mention" onClick={() => insertFormatting("@", "")} />
         </div>
       )}
 
       {/* Input area */}
-      <div className="flex items-end gap-2 rounded-xl border border-gray-300 bg-white px-3 py-1.5 focus-within:border-brand-400 focus-within:ring-1 focus-within:ring-brand-400 dark:border-gray-600 dark:bg-gray-800">
+      <div className="flex items-end gap-2 rounded-2xl border border-gray-200/80 bg-gray-50/50 px-4 py-2 transition-all focus-within:border-brand-300 focus-within:bg-white focus-within:shadow-sm focus-within:ring-2 focus-within:ring-brand-100 dark:border-gray-700 dark:bg-gray-800/50 dark:focus-within:border-brand-600 dark:focus-within:ring-brand-900/30">
         {/* Left actions */}
-        <div className="mb-1 flex items-center gap-0.5">
+        <div className="mb-1.5 flex items-center gap-0.5">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-200/80 hover:text-gray-600 dark:hover:bg-gray-700"
             title="Attach file"
           >
             <Paperclip className="h-4 w-4" />
@@ -123,7 +123,7 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
           />
           <button
             onClick={() => setShowFormatting(!showFormatting)}
-            className={`rounded p-1 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+            className={`rounded-lg p-1.5 transition-colors hover:bg-gray-200/80 dark:hover:bg-gray-700 ${
               showFormatting ? "text-brand-500" : "text-gray-400 hover:text-gray-600"
             }`}
             title="Formatting"
@@ -139,15 +139,15 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
           onChange={(e) => setContent(e.target.value)}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder={`Message #${channelName}`}
+          placeholder={`Message ${channelName.startsWith("#") ? channelName : "#" + channelName}...`}
           rows={1}
-          className="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent py-2 text-sm text-gray-900 placeholder-gray-400 outline-none dark:text-gray-100"
+          className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent py-2.5 text-sm leading-relaxed text-gray-900 placeholder-gray-400 outline-none dark:text-gray-100"
         />
 
         {/* Right actions */}
-        <div className="mb-1 flex items-center gap-0.5">
+        <div className="mb-1.5 flex items-center gap-0.5">
           <button
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-200/80 hover:text-gray-600 dark:hover:bg-gray-700"
             title="Emoji"
           >
             <Smile className="h-4 w-4" />
@@ -155,9 +155,9 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
           <button
             onClick={handleSend}
             disabled={!content.trim()}
-            className={`rounded-lg p-1.5 transition-colors ${
+            className={`rounded-xl p-2 transition-all ${
               content.trim()
-                ? "bg-brand-500 text-white hover:bg-brand-600"
+                ? "bg-brand-500 text-white shadow-sm hover:bg-brand-600 hover:shadow-md active:scale-95"
                 : "text-gray-300 dark:text-gray-600"
             }`}
             title="Send message"
@@ -167,12 +167,12 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
         </div>
       </div>
 
-      <p className="mt-1 text-center text-[10px] text-gray-400">
-        <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px] dark:border-gray-600 dark:bg-gray-800">
+      <p className="mt-1.5 text-center text-[10px] text-gray-400">
+        <kbd className="rounded-md border border-gray-200/80 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] dark:border-gray-700 dark:bg-gray-800">
           Enter
         </kbd>{" "}
         to send,{" "}
-        <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px] dark:border-gray-600 dark:bg-gray-800">
+        <kbd className="rounded-md border border-gray-200/80 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] dark:border-gray-700 dark:bg-gray-800">
           Shift+Enter
         </kbd>{" "}
         for new line
@@ -185,7 +185,7 @@ function FormatButton({ icon, title, onClick }: { icon: React.ReactNode; title: 
   return (
     <button
       onClick={onClick}
-      className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-700"
+      className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-200/80 hover:text-gray-600 dark:hover:bg-gray-700"
       title={title}
     >
       {icon}

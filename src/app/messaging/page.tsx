@@ -97,36 +97,72 @@ export default function MessagingPage() {
   }, []);
 
   // Load available users (for DM user picker + channel creation)
+  // Fetches ALL org members: providers, staff, AND patients
   const loadUsers = useCallback(async () => {
     try {
-      const res = await fetchWithAuth(`${API_URL()}/api/providers?status=ACTIVE&size=200`);
-      if (res.ok) {
-        const json = await res.json();
-        // Handle both paginated { data: { content: [...] } } and flat { data: [...] } responses
+      const allUsers: { id: string; name: string }[] = [];
+      const seenIds = new Set<string>();
+
+      const extractUser = (p: Record<string, unknown>): { id: string; name: string } | null => {
+        const systemAccess = p.systemAccess as Record<string, unknown> | undefined;
+        const keycloakId = systemAccess?.keycloakUserId
+          ? String(systemAccess.keycloakUserId)
+          : (p["systemAccess.keycloakUserId"] ? String(p["systemAccess.keycloakUserId"]) : "");
+        const userId = keycloakId || (p.fhirId ? String(p.fhirId) : (p.id ? String(p.id) : ""));
+        const identification = p.identification as Record<string, string> | undefined;
+        const name = identification
+          ? `${identification.firstName || ""} ${identification.lastName || ""}`.trim()
+          : String(p.name || p.displayName || "Unknown");
+        if (!userId || !name || name === "Unknown") return null;
+        return { id: userId, name };
+      };
+
+      const extractList = (json: Record<string, unknown>) => {
         const payload = json.data || json;
-        const providers = Array.isArray(payload)
+        return Array.isArray(payload)
           ? payload
-          : Array.isArray(payload?.content)
-            ? payload.content
+          : Array.isArray((payload as Record<string, unknown>)?.content)
+            ? (payload as Record<string, unknown[]>).content
             : [];
-        const users = providers
-          .map((p: Record<string, unknown>) => {
-            // Use keycloakUserId (Keycloak subject UUID) as the user ID for messaging
-            const systemAccess = p.systemAccess as Record<string, unknown> | undefined;
-            const keycloakId = systemAccess?.keycloakUserId
-              ? String(systemAccess.keycloakUserId)
-              : (p["systemAccess.keycloakUserId"] ? String(p["systemAccess.keycloakUserId"]) : "");
-            // Fallback: use provider fhirId if no keycloak ID
-            const userId = keycloakId || (p.fhirId ? String(p.fhirId) : (p.id ? String(p.id) : ""));
-            const identification = p.identification as Record<string, string> | undefined;
-            const name = identification
-              ? `${identification.firstName || ""} ${identification.lastName || ""}`.trim()
-              : String(p.name || p.displayName || "Unknown");
-            return { id: userId, name };
-          })
-          .filter((u: { id: string; name: string }) => u.id && u.name && u.name !== "Unknown");
-        setAvailableUsers(users);
+      };
+
+      // Fetch providers AND patients in parallel
+      const [providersRes, patientsRes] = await Promise.allSettled([
+        fetchWithAuth(`${API_URL()}/api/providers?status=ACTIVE&size=200`),
+        fetchWithAuth(`${API_URL()}/api/fhir-resource/demographics?size=500`),
+      ]);
+
+      // Process providers
+      if (providersRes.status === "fulfilled" && providersRes.value.ok) {
+        const json = await providersRes.value.json();
+        for (const p of extractList(json)) {
+          const user = extractUser(p as Record<string, unknown>);
+          if (user && !seenIds.has(user.id)) {
+            seenIds.add(user.id);
+            allUsers.push(user);
+          }
+        }
       }
+
+      // Process patients/demographics
+      if (patientsRes.status === "fulfilled" && patientsRes.value.ok) {
+        const json = await patientsRes.value.json();
+        for (const p of extractList(json)) {
+          const rec = p as Record<string, unknown>;
+          // Patient records use different field structure
+          const fhirId = rec.fhirId ? String(rec.fhirId) : (rec.id ? String(rec.id) : "");
+          const identification = rec.identification as Record<string, string> | undefined;
+          const firstName = identification?.firstName || (rec as Record<string, string>).firstName || "";
+          const lastName = identification?.lastName || (rec as Record<string, string>).lastName || "";
+          const name = `${firstName} ${lastName}`.trim();
+          if (fhirId && name && !seenIds.has(fhirId)) {
+            seenIds.add(fhirId);
+            allUsers.push({ id: fhirId, name });
+          }
+        }
+      }
+
+      setAvailableUsers(allUsers);
     } catch {
       setAvailableUsers([]);
     }
