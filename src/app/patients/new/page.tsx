@@ -663,17 +663,6 @@ export default function AddPatient() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                    <select
-                                        value={formData.personalInfo.status}
-                                        onChange={(e) => handleChange("personalInfo", "status", e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                    </select>
-                                </div>
-                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Marital Status</label>
                                     <select
                                         value={formData.personalInfo.maritalStatus}
@@ -701,17 +690,6 @@ export default function AddPatient() {
                             <div className="space-y-4">
                                 <h2 className="text-lg font-semibold text-gray-700 border-b pb-2">Additional Information</h2>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status*</label>
-                                    <select
-                                        value={formData.personalInfo.status}
-                                        onChange={(e) => handleChange("personalInfo", "status", e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                        required
-                                    >
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                    </select>
-                                </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Ethnicity</label>
                                     <input
@@ -1296,15 +1274,6 @@ export default function AddPatient() {
                                         type="text"
                                         value={formData.employerInfo.name}
                                         onChange={(e) => handleChange("employerInfo", "name", e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                    <input
-                                        type="text"
-                                        value={formData.employerInfo.status}
-                                        onChange={(e) => handleChange("employerInfo", "status", e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>
