@@ -19,7 +19,6 @@ import Alert from "@/components/ui/alert/Alert";
 import FilterMultiSelect from "@/components/calendar/FilterMultiSelect";
 import { usePermissions } from "@/context/PermissionContext";
 import { ShieldX } from "lucide-react";
-import { TimeIcon } from "@/icons";
 import Link from "next/link";
 
 const monthViewStyles = `
@@ -565,8 +564,8 @@ const Calendar: React.FC = () => {
     const [endDateInput, setEndDateInput] = useState<string>('');
     const [startDate, setStartDate] = useState<string>(''); // ISO yyyy-mm-dd
     const [endDate, setEndDate] = useState<string>(''); // ISO yyyy-mm-dd
-    const [startTime, setStartTime] = useState<string>('');
-    const [endTime, setEndTime] = useState<string>('');
+    const [startTime, setStartTime] = useState<string>('00:00');
+    const [endTime, setEndTime] = useState<string>('00:00');
 
     // Reason / Chief Complaint
     const [appointmentNotes, setAppointmentNotes] = useState<string>('');
@@ -2133,8 +2132,7 @@ const Calendar: React.FC = () => {
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                             Start Time
                                         </label>
-                                        <div className="relative">
-                                            <input
+                                        <input
                                                 type="time"
                                                 value={startTime}
                                                 onChange={(e) => {
@@ -2148,15 +2146,12 @@ const Calendar: React.FC = () => {
                                                 }}
                                                 className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                             />
-                                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
-                                        </div>
                                     </div>
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                             End Time
                                         </label>
-                                        <div className="relative">
-                                            <input
+                                        <input
                                                 type="time"
                                                 value={endTime}
                                                 onChange={(e) => {
@@ -2165,8 +2160,6 @@ const Calendar: React.FC = () => {
                                                 }}
                                                 className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                             />
-                                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
-                                        </div>
                                     </div>
                                 </div>
 

@@ -13,7 +13,6 @@ import {
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Alert from "@/components/ui/alert/Alert";
 import { usePermissions } from "@/context/PermissionContext";
-import { TimeIcon } from "@/icons";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.css";
 
@@ -229,8 +228,8 @@ const AppointmentModal: React.FC = () => {
     const [endDateInput, setEndDateInput] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
-    const [startTime, setStartTime] = useState("");
-    const [endTime, setEndTime] = useState("");
+    const [startTime, setStartTime] = useState("00:00");
+    const [endTime, setEndTime] = useState("00:00");
 
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
@@ -795,8 +794,7 @@ const AppointmentModal: React.FC = () => {
                             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                 Start Time
                             </label>
-                            <div className="relative">
-                                <input
+                            <input
                                     type="time"
                                     value={startTime}
                                     onChange={(e) => {
@@ -806,22 +804,17 @@ const AppointmentModal: React.FC = () => {
                                     }}
                                     className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                 />
-                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
-                            </div>
                         </div>
                         <div>
                             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                 End Time
                             </label>
-                            <div className="relative">
-                                <input
+                            <input
                                     type="time"
                                     value={endTime}
                                     onChange={(e) => setEndTime(e.target.value)}
                                     className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                 />
-                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
-                            </div>
                         </div>
                     </div>
 
