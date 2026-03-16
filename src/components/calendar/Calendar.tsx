@@ -2129,37 +2129,61 @@ const Calendar: React.FC = () => {
                                 {/* Time Row: Start Time | End Time */}
                                 <div className="col-span-2 grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-400">
-                                            <Clock className="h-4 w-4" /> Start Time
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Start Time
                                         </label>
-                                        <input
-                                            type="time"
-                                            value={startTime}
-                                            onChange={(e) => {
-                                                const t = e.target.value;
-                                                setStartTime(t);
-                                                if (t) {
-                                                    const startDt = new Date(`${startDate || '2000-01-01'}T${t}`);
-                                                    const endDt = new Date(startDt.getTime() + 15 * 60 * 1000);
-                                                    setEndTime(`${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`);
-                                                }
-                                            }}
-                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                        />
+                                        <div className="relative">
+                                            <Clock className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                            <select
+                                                value={startTime}
+                                                onChange={(e) => {
+                                                    const t = e.target.value;
+                                                    setStartTime(t);
+                                                    if (t) {
+                                                        const startDt = new Date(`${startDate || '2000-01-01'}T${t}`);
+                                                        const endDt = new Date(startDt.getTime() + 15 * 60 * 1000);
+                                                        setEndTime(`${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`);
+                                                    }
+                                                }}
+                                                className="h-9 w-full appearance-none rounded-lg border border-gray-300 pl-8 pr-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                            >
+                                                <option value="">-- Select --</option>
+                                                {Array.from({ length: 96 }, (_, i) => {
+                                                    const h = Math.floor(i / 4);
+                                                    const m = (i % 4) * 15;
+                                                    const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                                    const ampm = h < 12 ? 'AM' : 'PM';
+                                                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                                                    return <option key={val} value={val}>{`${h12}:${String(m).padStart(2, '0')} ${ampm}`}</option>;
+                                                })}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-400">
-                                            <Clock className="h-4 w-4" /> End Time
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            End Time
                                         </label>
-                                        <input
-                                            type="time"
-                                            value={endTime}
-                                            onChange={(e) => {
-                                                setEndTime(e.target.value);
-                                                setEndDateInput(endDate ? endDate.split('-').reverse().join('/') : '');
-                                            }}
-                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                        />
+                                        <div className="relative">
+                                            <Clock className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                            <select
+                                                value={endTime}
+                                                onChange={(e) => {
+                                                    setEndTime(e.target.value);
+                                                    setEndDateInput(endDate ? endDate.split('-').reverse().join('/') : '');
+                                                }}
+                                                className="h-9 w-full appearance-none rounded-lg border border-gray-300 pl-8 pr-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                            >
+                                                <option value="">-- Select --</option>
+                                                {Array.from({ length: 96 }, (_, i) => {
+                                                    const h = Math.floor(i / 4);
+                                                    const m = (i % 4) * 15;
+                                                    const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                                                    const ampm = h < 12 ? 'AM' : 'PM';
+                                                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                                                    return <option key={val} value={val}>{`${h12}:${String(m).padStart(2, '0')} ${ampm}`}</option>;
+                                                })}
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
