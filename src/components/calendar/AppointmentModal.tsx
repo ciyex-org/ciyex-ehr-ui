@@ -28,6 +28,16 @@ interface StatusOption {
     order?: number;
 }
 
+const FALLBACK_STATUS_OPTIONS: StatusOption[] = [
+    { value: 'Scheduled',    label: 'Scheduled' },
+    { value: 'Confirmed',    label: 'Confirmed' },
+    { value: 'Checked-in',  label: 'Checked-in' },
+    { value: 'Completed',   label: 'Completed' },
+    { value: 'Re-Scheduled', label: 'Re-Scheduled' },
+    { value: 'No Show',     label: 'No Show' },
+    { value: 'Cancelled',   label: 'Cancelled' },
+];
+
 type Option<T extends string = string> = { value: T; label: string };
 
 interface Patient {
@@ -238,7 +248,7 @@ const AppointmentModal: React.FC = () => {
 
     const [priority, setPriority] = useState<Priority>("Routine");
     const [status, setStatus] = useState<string>("Scheduled");
-    const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
+    const [statusOptions, setStatusOptions] = useState<StatusOption[]>(FALLBACK_STATUS_OPTIONS);
 
     // Providers & locations
     const [allProviders, setAllProviders] = useState<Option<string>[]>([]);
@@ -375,23 +385,7 @@ const AppointmentModal: React.FC = () => {
         })();
     }, [apiUrl]);
 
-    // Status options from API (consistent with Appointment page)
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetchWithAuth(`${apiUrl}/api/appointments/status-options`);
-                if (res.ok) {
-                    const data = await res.json();
-                    const opts: StatusOption[] = (data.data || []).map((o: any) =>
-                        typeof o === "string" ? { value: o, label: o } : o
-                    ).sort((a: StatusOption, b: StatusOption) => (a.order ?? 0) - (b.order ?? 0));
-                    if (opts.length > 0) setStatusOptions(opts);
-                }
-            } catch (e) {
-                console.error("Failed to fetch status options:", e);
-            }
-        })();
-    }, [apiUrl]);
+    // Status options are fixed to the canonical list
 
     /* =========================
      * Patient search (debounced)
@@ -891,21 +885,9 @@ const AppointmentModal: React.FC = () => {
                             onChange={(e) => setStatus(e.target.value)}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         >
-                            {statusOptions.length > 0 ? (
-                                statusOptions.map((s) => (
-                                    <option key={s.value} value={s.value}>{s.label}</option>
-                                ))
-                            ) : (
-                                <>
-                                    <option value="Scheduled">Scheduled</option>
-                                    <option value="Confirmed">Confirmed</option>
-                                    <option value="Checked-in">Checked-in</option>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Re-Scheduled">Re-Scheduled</option>
-                                    <option value="No Show">No Show</option>
-                                    <option value="Cancelled">Cancelled</option>
-                                </>
-                            )}
+                            {statusOptions.map((s) => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
                         </select>
                     </div>
 
