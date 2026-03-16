@@ -669,20 +669,6 @@ export default function PatientListPage() {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium mb-1">Status</label>
-                                <select
-                                    value={newPatient.status || "Active"}
-                                    onChange={(e) => setNewPatient({ ...newPatient, status: e.target.value })}
-                                    className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
                                 <label className="block text-sm font-medium mb-1">Phone Number <span className="text-red-500">*</span></label>
                                 <input
                                     type="tel"
