@@ -458,18 +458,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                     className="w-full p-2 border rounded"
                                 >
                                     <option value="">Select gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="non-binary">Non-binary</option>
-                                    <option value="third-gender">Third Gender</option>
-                                    <option value="other">Other</option>
-                                    <option value="unknown">Unknown</option>
-                                    <option value="prefer-not-to-say">Prefer not to say</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Unknown">Unknown</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">
                                     <span className="text-red-500">*</span> Date of Birth
@@ -491,18 +487,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                     className={`w-full p-2 border rounded ${fieldErrors.email ? "border-red-400" : ""}`}
                                 />
                                 {fieldErrors.email && <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Status</label>
-                                <select
-                                    name="status"
-                                    value={formData.status}
-                                    onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
-                                >
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
                             </div>
                         </div>
 
