@@ -13,6 +13,7 @@ import {
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Alert from "@/components/ui/alert/Alert";
 import { usePermissions } from "@/context/PermissionContext";
+import { Clock } from "lucide-react";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.css";
 
@@ -791,8 +792,8 @@ const AppointmentModal: React.FC = () => {
                     {/* Time Row: Start Time | End Time */}
                     <div className="col-span-2 grid grid-cols-2 gap-3">
                         <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                Start Time
+                            <label className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-400">
+                                <Clock className="h-4 w-4" /> Start Time
                             </label>
                             <input
                                 type="time"
@@ -800,14 +801,14 @@ const AppointmentModal: React.FC = () => {
                                 onChange={(e) => {
                                     const t = e.target.value;
                                     setStartTime(t);
-                                    if (!endTime && t) setEndTime(addMinutes(t, 15));
+                                    if (t) setEndTime(addMinutes(t, 15));
                                 }}
                                 className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                             />
                         </div>
                         <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                End Time
+                            <label className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-400">
+                                <Clock className="h-4 w-4" /> End Time
                             </label>
                             <input
                                 type="time"

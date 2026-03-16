@@ -18,7 +18,7 @@ import {
 import Alert from "@/components/ui/alert/Alert";
 import FilterMultiSelect from "@/components/calendar/FilterMultiSelect";
 import { usePermissions } from "@/context/PermissionContext";
-import { ShieldX } from "lucide-react";
+import { ShieldX, Clock } from "lucide-react";
 import Link from "next/link";
 
 const monthViewStyles = `
@@ -2129,8 +2129,8 @@ const Calendar: React.FC = () => {
                                 {/* Time Row: Start Time | End Time */}
                                 <div className="col-span-2 grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                            Start Time
+                                        <label className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            <Clock className="h-4 w-4" /> Start Time
                                         </label>
                                         <input
                                             type="time"
@@ -2138,7 +2138,7 @@ const Calendar: React.FC = () => {
                                             onChange={(e) => {
                                                 const t = e.target.value;
                                                 setStartTime(t);
-                                                if (!endTime && t) {
+                                                if (t) {
                                                     const startDt = new Date(`${startDate || '2000-01-01'}T${t}`);
                                                     const endDt = new Date(startDt.getTime() + 15 * 60 * 1000);
                                                     setEndTime(`${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`);
@@ -2148,8 +2148,8 @@ const Calendar: React.FC = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                            End Time
+                                        <label className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            <Clock className="h-4 w-4" /> End Time
                                         </label>
                                         <input
                                             type="time"
