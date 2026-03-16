@@ -620,10 +620,10 @@ export default function PatientDashboardPage() {
             {/* Negate AdminLayout padding so chart goes full-bleed */}
             <div className="pageScroll bg-gray-50 h-full -m-4 md:-m-6 flex flex-col">
                 {/* Patient header bar */}
-                <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
-                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
+                <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 shadow-sm">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2">
                         {/* Left: back + patient info */}
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex items-center gap-3 min-w-0 flex-1 overflow-x-auto">
                             <Link
                                 href="/patients"
                                 className="shrink-0 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
@@ -634,7 +634,7 @@ export default function PatientDashboardPage() {
                                 </svg>
                             </Link>
                             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 min-w-0">
-                                <h1 className="text-base font-semibold text-gray-900 truncate max-w-[160px] sm:max-w-[280px] md:max-w-none dark:text-white">
+                                <h1 className="text-base font-semibold text-gray-900 truncate max-w-[200px] sm:max-w-[280px] lg:max-w-none dark:text-white">
                                     {patient.firstName} {patient.lastName}
                                 </h1>
                                 {patient.mrn && (

@@ -443,22 +443,22 @@ export default function TransactionsTab({ showToast }: Props) {
                   ["Status", viewTarget.status],
                   ["Type", viewTarget.transactionType],
                   ["Method", (viewTarget.paymentMethodType || "").replace(/_/g, " ")],
-                  ["Card", viewTarget.lastFour ? `****${viewTarget.lastFour}` : "--"],
+                  ["Card", viewTarget.lastFour ? `****${viewTarget.lastFour}` : null],
                   ["Description", viewTarget.description],
-                  ["Invoice", viewTarget.invoiceNumber],
+                  ["Invoice", viewTarget.invoiceNumber || viewTarget.invoiceId],
                   ["Ref Type", viewTarget.referenceType],
                   ["Ref ID", viewTarget.referenceId],
-                  ["Convenience Fee", viewTarget.convenienceFee ? formatCurrency(viewTarget.convenienceFee) : "--"],
-                  ["Refund Amount", viewTarget.refundAmount ? formatCurrency(viewTarget.refundAmount) : "--"],
+                  ["Convenience Fee", viewTarget.convenienceFee != null ? formatCurrency(viewTarget.convenienceFee) : null],
+                  ["Refund Amount", viewTarget.refundAmount != null ? formatCurrency(viewTarget.refundAmount) : null],
                   ["Refund Reason", viewTarget.refundReason],
-                  ["Receipt Sent", viewTarget.receiptSent ? "Yes" : "No"],
+                  ["Receipt Sent", viewTarget.receiptSent != null ? (viewTarget.receiptSent ? "Yes" : "No") : null],
                   ["Receipt Email", viewTarget.receiptEmail],
-                  ["Collected By", viewTarget.collectedBy],
+                  ["Collected By", viewTarget.collectedBy || viewTarget.collectedByName],
                   ["Collected At", formatDate(viewTarget.collectedAt)],
-                ].map(([label, val]) => (
+                ].filter(([, val]) => val != null && val !== "").map(([label, val]) => (
                   <div key={label as string} className="flex justify-between py-1 border-b border-gray-100 dark:border-slate-800">
                     <span className="text-gray-500 dark:text-gray-400">{label}</span>
-                    <span className="text-gray-900 dark:text-gray-100 font-medium capitalize">{val || "--"}</span>
+                    <span className="text-gray-900 dark:text-gray-100 font-medium capitalize">{val || "N/A"}</span>
                   </div>
                 ))}
               </div>

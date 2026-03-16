@@ -352,7 +352,7 @@ export default function PriorAuthorizationsPage() {
     setLoading(true);
     try {
       let url = `${base()}/api/prior-auth?page=${page}&size=${pageSize}`;
-      if (searchTerm) url += `&q=${encodeURIComponent(searchTerm)}`;
+      // Search is handled client-side via displayedAuths filter — don't pass q to API
       if (statusFilter !== "all") url += `&status=${statusFilter}`;
       const res = await fetchWithAuth(url);
       const json = await res.json();
@@ -367,7 +367,7 @@ export default function PriorAuthorizationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, searchTerm, statusFilter]);
+  }, [page, statusFilter]);
 
   // ----- Fetch stats -----
   const fetchStats = useCallback(async () => {

@@ -349,14 +349,15 @@ function DynamicDataFilters({
         <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Data Filters</span>
       </div>
       {dynamicFilters.map(f => (
-        <div key={f.key} className="flex flex-col gap-1">
+        <div key={f.key} className="flex flex-col gap-1" style={{ position: "relative", zIndex: 30 }}>
           <label className="text-xs font-medium text-slate-500">{f.label}</label>
           <select
             value={dataFilters[f.key] || ""}
             onChange={e => onChange(f.key, e.target.value)}
-            className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer appearance-auto ${
+            className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer ${
               dataFilters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
             }`}
+            style={{ WebkitAppearance: "menulist", appearance: "auto" }}
           >
             <option value="">All {f.label}</option>
             {f.uniqueValues.map(v => <option key={v} value={v}>{v}</option>)}

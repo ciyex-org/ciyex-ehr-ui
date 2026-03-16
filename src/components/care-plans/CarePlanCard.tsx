@@ -49,6 +49,17 @@ export default function CarePlanCard({
   showToast,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [detailsLoaded, setDetailsLoaded] = useState(false);
+
+  // Auto-refresh to load goals/interventions on first expand
+  function handleToggleExpand() {
+    const willExpand = !expanded;
+    setExpanded(willExpand);
+    if (willExpand && !detailsLoaded) {
+      setDetailsLoaded(true);
+      onRefresh();
+    }
+  }
 
   // Inline goal form
   const [showGoalForm, setShowGoalForm] = useState(false);
@@ -167,7 +178,7 @@ export default function CarePlanCard({
       {/* Card header — click to expand */}
       <div
         className="flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none"
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleToggleExpand}
       >
         <div className="text-gray-400 dark:text-gray-500 flex-shrink-0">
           {expanded ? (

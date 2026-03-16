@@ -162,27 +162,64 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
           }
         }
 
+        // Try multiple API patterns to find existing composition data
+        let existing: Record<string, any> | null = null;
+
+        const tryExtract = (json: any): Record<string, any> | null => {
+          const pd = json.data || json;
+          if (Array.isArray(pd) && pd.length > 0) return pd[0];
+          if (Array.isArray(pd.content) && pd.content.length > 0) return pd.content[0];
+          if (pd && typeof pd === "object" && (pd.id || pd.fhirId)) return pd;
+          return null;
+        };
+
+        // Attempt 1: by encounterRef query param
         const dataRes = await fetchWithAuth(
           `${base}/api/fhir-resource/encounter-form/patient/${patientId}?encounterRef=${encounterId}`
         );
         if (dataRes.ok) {
           const dataJson = await dataRes.json();
-          const pageData = dataJson.data || dataJson;
-          let existing: Record<string, any> | null = null;
-          if (Array.isArray(pageData)) {
-            existing = pageData.length > 0 ? pageData[0] : null;
-          } else if (Array.isArray(pageData.content) && pageData.content.length > 0) {
-            existing = pageData.content[0];
-          } else if (pageData && typeof pageData === "object" && (pageData.id || pageData.fhirId)) {
-            existing = pageData;
-          }
-          if (existing) {
-            setCompositionId(existing.id || existing.fhirId || null);
-            // Flatten nested objects so dot-notation field keys (e.g. "ros.constitutional") resolve correctly
-            const flattened = flattenObject(existing);
-            // Preserve top-level keys as well (merge so both nested and flat access works)
-            autoSave.setFormData({ ...existing, ...flattened });
-          }
+          existing = tryExtract(dataJson);
+        }
+
+        // Attempt 2: try encounter-specific endpoint if first returned nothing
+        if (!existing) {
+          try {
+            const altRes = await fetchWithAuth(
+              `${base}/api/fhir-resource/encounter-form/patient/${patientId}?encounterId=${encounterId}`
+            );
+            if (altRes.ok) {
+              existing = tryExtract(await altRes.json());
+            }
+          } catch { /* silent fallback */ }
+        }
+
+        // Attempt 3: try listing all compositions for the patient and filter by encounterRef
+        if (!existing) {
+          try {
+            const listRes = await fetchWithAuth(
+              `${base}/api/fhir-resource/encounter-form/patient/${patientId}?page=0&size=50`
+            );
+            if (listRes.ok) {
+              const listJson = await listRes.json();
+              const items = listJson.data?.content || listJson.data || listJson.content || (Array.isArray(listJson) ? listJson : []);
+              if (Array.isArray(items)) {
+                existing = items.find((c: any) =>
+                  String(c.encounterRef) === String(encounterId) ||
+                  String(c.encounterId) === String(encounterId) ||
+                  String(c.encounter) === String(encounterId)
+                ) || null;
+              }
+            }
+          } catch { /* silent fallback */ }
+        }
+
+        if (existing) {
+          setCompositionId(existing.id || existing.fhirId || null);
+          // Flatten nested objects so dot-notation field keys (e.g. "ros.constitutional") resolve correctly
+          const flattened = flattenObject(existing);
+          // Preserve top-level keys as well (merge so both nested and flat access works)
+          autoSave.setFormData({ ...existing, ...flattened });
         }
       } catch (err) {
         console.error("Error loading encounter form:", err);
