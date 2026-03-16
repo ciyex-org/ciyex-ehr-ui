@@ -1758,6 +1758,7 @@ const Calendar: React.FC = () => {
                                         slotMinTime="00:00:00"
                                         scrollTime={`${workingHoursStart}:00`}
                                         businessHours={businessHours}
+                                        eventDisplay="block"
                                         views={{
                                             dayGridMonth: { titleFormat: { year: "numeric", month: "long" } },
                                             timeGridWeek: { titleFormat: { month: "short", day: "numeric" } },
@@ -1809,6 +1810,7 @@ const Calendar: React.FC = () => {
                                     slotMinTime="00:00:00"
                                     scrollTime={`${workingHoursStart}:00`}
                                     businessHours={businessHours}
+                                    eventDisplay="block"
                                     views={{
                                         dayGridMonth: { titleFormat: { year: "numeric", month: "long" } },
                                         timeGridWeek: { titleFormat: { month: "short", day: "numeric", year: "numeric" } },
