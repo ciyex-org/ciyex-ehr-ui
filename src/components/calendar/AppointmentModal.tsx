@@ -385,6 +385,24 @@ const AppointmentModal: React.FC = () => {
         })();
     }, [apiUrl]);
 
+    // Fetch status options from API
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetchWithAuth(`${apiUrl}/api/appointments/status-options`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const opts: StatusOption[] = (data.data || []).map((o: any) =>
+                        typeof o === "string" ? { value: o, label: o } : o
+                    ).sort((a: StatusOption, b: StatusOption) => (a.order ?? 0) - (b.order ?? 0));
+                    if (opts.length > 0) setStatusOptions(opts);
+                }
+            } catch (e) {
+                // keep fallback
+            }
+        })();
+    }, [apiUrl]);
+
     /* =========================
      * Patient search (debounced)
      * ======================= */

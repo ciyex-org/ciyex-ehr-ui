@@ -838,7 +838,23 @@ const Calendar: React.FC = () => {
         })();
     }, [apiUrl]);
 
-    // Status options use the canonical hardcoded list (FALLBACK_STATUS_OPTIONS)
+    // Fetch status options from API, fall back to canonical list
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetchWithAuth(`${apiUrl}/api/appointments/status-options`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const opts = (data.data || []).map((o: any) =>
+                        typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label }
+                    ).filter((o: any) => o.value);
+                    if (opts.length > 0) setStatusOptions(opts);
+                }
+            } catch (e) {
+                // keep fallback
+            }
+        })();
+    }, [apiUrl]);
 
     // Resolve color for a given category + key; falls back to deterministic random
     // label is used for the hash when no saved config (produces better variety than numeric IDs)
