@@ -400,13 +400,13 @@ type Option<T extends string = string> = { value: T; label: string };
 
 
 const FALLBACK_STATUS_OPTIONS: Option<AppointmentStatus>[] = [
-    { value: 'booked', label: 'Scheduled' },
-    { value: 'pending', label: 'Confirmed' },
-    { value: 'checked-in', label: 'Checked-in' },
-    { value: 'fulfilled', label: 'Completed' },
-    { value: 'proposed', label: 'Re-Scheduled' },
-    { value: 'noshow', label: 'No Show' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'Scheduled', label: 'Scheduled' },
+    { value: 'Confirmed', label: 'Confirmed' },
+    { value: 'Checked-in', label: 'Checked-in' },
+    { value: 'Completed', label: 'Completed' },
+    { value: 'Re-Scheduled', label: 'Re-Scheduled' },
+    { value: 'No Show', label: 'No Show' },
+    { value: 'Cancelled', label: 'Cancelled' },
 ];
 
 const priorityOptions: Option<Priority>[] = [
@@ -488,7 +488,7 @@ const Calendar: React.FC = () => {
     const [appointmentPriority, setAppointmentPriority] = useState<Priority>('Routine');
     const [appointmentProviderId, setAppointmentProviderId] = useState<string>('');
     const [appointmentLocationId, setAppointmentLocationId] = useState<string>('');
-    const [appointmentStatus, setAppointmentStatus] = useState<AppointmentStatus>('booked');
+    const [appointmentStatus, setAppointmentStatus] = useState<AppointmentStatus>('Scheduled');
 
 
     // Date & Time — input (MM/DD/YYYY) + ISO (YYYY-MM-DD)
@@ -1211,7 +1211,7 @@ const Calendar: React.FC = () => {
         setVisitType(xp?.visitType ?? 'Consultation');
         setAppointmentProviderId(xp?.providerId ?? '');
         setAppointmentLocationId(xp?.locationId ?? '');
-        setAppointmentStatus((xp?.status as AppointmentStatus) ?? 'booked');
+        setAppointmentStatus((xp?.status as AppointmentStatus) ?? 'Scheduled');
         setAppointmentNotes(xp?.notes ?? '');
         setAppointmentPriority((xp?.priority as Priority) ?? 'Routine');
 
@@ -1437,7 +1437,7 @@ const Calendar: React.FC = () => {
         setAppointmentPriority('Routine');
         setAppointmentProviderId('');
         setAppointmentLocationId('');
-        setAppointmentStatus('booked');
+        setAppointmentStatus('Scheduled');
         setStartDateInput('');
         setEndDateInput('');
         setStartDate('');

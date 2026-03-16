@@ -64,13 +64,13 @@ interface StatusOption {
 }
 
 const FALLBACK_STATUS_OPTIONS: StatusOption[] = [
-  { value: 'booked',      label: 'Scheduled',     color: '#3b82f6', order: 1, nextStatus: 'pending' },
-  { value: 'pending',     label: 'Confirmed',     color: '#eab308', order: 2, nextStatus: 'checked-in' },
-  { value: 'checked-in',  label: 'Checked-in',    color: '#10b981', order: 3, nextStatus: 'fulfilled', triggersEncounter: true },
-  { value: 'fulfilled',   label: 'Completed',     color: '#8b5cf6', order: 4, terminal: true },
-  { value: 'proposed',    label: 'Re-Scheduled',  color: '#9ca3af', order: 5 },
-  { value: 'noshow',      label: 'No Show',       color: '#f97316', order: 6, terminal: true },
-  { value: 'cancelled',   label: 'Cancelled',     color: '#ef4444', order: 7, terminal: true },
+  { value: 'Scheduled',     label: 'Scheduled',     color: '#3b82f6', order: 0, nextStatus: 'Confirmed' },
+  { value: 'Confirmed',     label: 'Confirmed',     color: '#6366f1', order: 1, nextStatus: 'Checked-in' },
+  { value: 'Checked-in',    label: 'Checked-in',    color: '#f59e0b', order: 2, nextStatus: 'Completed', triggersEncounter: true },
+  { value: 'Completed',     label: 'Completed',     color: '#10b981', order: 3, terminal: true },
+  { value: 'Re-Scheduled',  label: 'Re-Scheduled',  color: '#8b5cf6', order: 4, nextStatus: 'Scheduled' },
+  { value: 'No Show',       label: 'No Show',       color: '#ef4444', order: 5, terminal: true },
+  { value: 'Cancelled',     label: 'Cancelled',     color: '#6b7280', order: 6, terminal: true },
 ];
 
 interface Provider { id: number; name: string; }

@@ -29,13 +29,13 @@ interface StatusOption {
 }
 
 const FALLBACK_STATUS_OPTIONS: StatusOption[] = [
-    { value: 'booked',      label: 'Scheduled' },
-    { value: 'pending',     label: 'Confirmed' },
-    { value: 'checked-in',  label: 'Checked-in' },
-    { value: 'fulfilled',   label: 'Completed' },
-    { value: 'proposed',    label: 'Re-Scheduled' },
-    { value: 'noshow',      label: 'No Show' },
-    { value: 'cancelled',   label: 'Cancelled' },
+    { value: 'Scheduled',     label: 'Scheduled' },
+    { value: 'Confirmed',     label: 'Confirmed' },
+    { value: 'Checked-in',    label: 'Checked-in' },
+    { value: 'Completed',     label: 'Completed' },
+    { value: 'Re-Scheduled',  label: 'Re-Scheduled' },
+    { value: 'No Show',       label: 'No Show' },
+    { value: 'Cancelled',     label: 'Cancelled' },
 ];
 
 type Option<T extends string = string> = { value: T; label: string };
@@ -247,7 +247,7 @@ const AppointmentModal: React.FC = () => {
     const fpEndRef = useRef<flatpickr.Instance | null>(null);
 
     const [priority, setPriority] = useState<Priority>("Routine");
-    const [status, setStatus] = useState<string>("booked");
+    const [status, setStatus] = useState<string>("Scheduled");
     const [statusOptions, setStatusOptions] = useState<StatusOption[]>(FALLBACK_STATUS_OPTIONS);
 
     // Providers & locations
@@ -463,7 +463,7 @@ const AppointmentModal: React.FC = () => {
         setEndTime("");
 
         setPriority("Routine");
-        setStatus("booked");
+        setStatus("Scheduled");
         setProviderId("");
         setProvidersForDate([]);
         setLocationId("");
