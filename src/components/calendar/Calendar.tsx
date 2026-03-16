@@ -2149,9 +2149,10 @@ const Calendar: React.FC = () => {
                                                 className="h-9 w-full appearance-none rounded-lg border border-gray-300 px-3 pr-9 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                             >
                                                 <option value="">-- Select --</option>
-                                                {Array.from({ length: 96 }, (_, i) => {
-                                                    const h = Math.floor(i / 4);
-                                                    const m = (i % 4) * 15;
+                                                {Array.from({ length: 60 }, (_, i) => {
+                                                    const totalMin = 6 * 60 + i * 15;
+                                                    const h = Math.floor(totalMin / 60);
+                                                    const m = totalMin % 60;
                                                     const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                                                     const ampm = h < 12 ? 'AM' : 'PM';
                                                     const h12 = h % 12 === 0 ? 12 : h % 12;
@@ -2175,9 +2176,10 @@ const Calendar: React.FC = () => {
                                                 className="h-9 w-full appearance-none rounded-lg border border-gray-300 px-3 pr-9 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                             >
                                                 <option value="">-- Select --</option>
-                                                {Array.from({ length: 96 }, (_, i) => {
-                                                    const h = Math.floor(i / 4);
-                                                    const m = (i % 4) * 15;
+                                                {Array.from({ length: 60 }, (_, i) => {
+                                                    const totalMin = 6 * 60 + i * 15;
+                                                    const h = Math.floor(totalMin / 60);
+                                                    const m = totalMin % 60;
                                                     const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
                                                     const ampm = h < 12 ? 'AM' : 'PM';
                                                     const h12 = h % 12 === 0 ? 12 : h % 12;
