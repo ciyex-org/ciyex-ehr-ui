@@ -796,27 +796,17 @@ const AppointmentModal: React.FC = () => {
                                 Start Time
                             </label>
                             <div className="relative">
-                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
-                                <select
+                                <input
+                                    type="time"
                                     value={startTime}
                                     onChange={(e) => {
                                         const t = e.target.value;
                                         setStartTime(t);
                                         if (t) setEndTime(addMinutes(t, 15));
                                     }}
-                                    className="h-9 w-full appearance-none rounded-lg border border-gray-300 px-3 pr-9 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                >
-                                    <option value="">-- Select --</option>
-                                    {Array.from({ length: 60 }, (_, i) => {
-                                        const totalMin = 6 * 60 + i * 15;
-                                        const h = Math.floor(totalMin / 60);
-                                        const m = totalMin % 60;
-                                        const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                                        const ampm = h < 12 ? 'AM' : 'PM';
-                                        const h12 = h % 12 === 0 ? 12 : h % 12;
-                                        return <option key={val} value={val}>{`${h12}:${String(m).padStart(2, '0')} ${ampm}`}</option>;
-                                    })}
-                                </select>
+                                    className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                />
+                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
                             </div>
                         </div>
                         <div>
@@ -824,23 +814,13 @@ const AppointmentModal: React.FC = () => {
                                 End Time
                             </label>
                             <div className="relative">
-                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
-                                <select
+                                <input
+                                    type="time"
                                     value={endTime}
                                     onChange={(e) => setEndTime(e.target.value)}
-                                    className="h-9 w-full appearance-none rounded-lg border border-gray-300 px-3 pr-9 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                >
-                                    <option value="">-- Select --</option>
-                                    {Array.from({ length: 60 }, (_, i) => {
-                                        const totalMin = 6 * 60 + i * 15;
-                                        const h = Math.floor(totalMin / 60);
-                                        const m = totalMin % 60;
-                                        const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                                        const ampm = h < 12 ? 'AM' : 'PM';
-                                        const h12 = h % 12 === 0 ? 12 : h % 12;
-                                        return <option key={val} value={val}>{`${h12}:${String(m).padStart(2, '0')} ${ampm}`}</option>;
-                                    })}
-                                </select>
+                                    className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                />
+                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
                             </div>
                         </div>
                     </div>
