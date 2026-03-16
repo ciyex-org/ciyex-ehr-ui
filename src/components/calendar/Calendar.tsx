@@ -26,93 +26,25 @@ const monthViewStyles = `
 .fc-view-harness {
   overflow: hidden !important;
 }
-/* 1. The Frame: The positioning context for the whole day */
+
+/* Month view: day cell minimum height */
 .fc-daygrid-day-frame {
-  position: relative !important;
-  min-height: 120px !important;
-  z-index: 1;
+  min-height: 100px !important;
 }
 
-/* 2. Neutralize the default top bar & containers so they don't trap our card */
-.fc-daygrid-day-top {
-  position: static !important;
-  display: block !important;
-  padding: 0 !important;
-}
-
-.fc-daygrid-day-number {
-  position: static !important;
-  width: 100%;
-  height: 100%;
-  padding: 4px !important;
-  text-decoration: none !important;
-  color: #6b7280; /* Default color for empty days */
-}
-
-/* 3. Hide Default Events to be safe */
-.fc-dayGridMonth-view .fc-daygrid-event-harness,
+/* Month view: event styling */
 .fc-dayGridMonth-view .fc-daygrid-event {
+  border-radius: 4px !important;
+  margin-bottom: 2px !important;
+  font-size: 11px !important;
+}
+
+/* Month view: hide FullCalendar's default event dot */
+.fc-dayGridMonth-view .fc-daygrid-event-dot {
   display: none !important;
 }
 
-/* 4. The Custom Card - Breaks out of the static containers to fill the Frame */
-.fc-month-card {
-  position: absolute !important;
-  top: 4px !important;
-  left: 4px !important;
-  right: 4px !important;
-  bottom: 4px !important;
-  background-color: #d1fae5 !important; /* Solid Light Green */
-  border-radius: 12px !important;
-  z-index: 10 !important;
-  padding: 0 !important;
-  overflow: hidden;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-/* 5. Inner Content Container */
-.fc-month-card-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  padding: 8px;
-}
-
-/* 6. Big Date Number */
-.fc-month-day {
-  position: absolute;
-  top: 8px;
-  left: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  color: #355e4e; /* Dark Green */
-  line-height: 1;
-}
-
-/* 7. Notification Badge */
-.fc-month-count {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: #10b981; /* Bright Green */
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-/* 8. Hover Effect */
-.fc-month-card:hover {
-  filter: brightness(0.98);
-}
-
-/* 9. Hide FullCalendar scrollbar to prevent double scrollbars */
+/* Hide FullCalendar scrollbar to prevent double scrollbars */
 .fc-scroller {
   overflow: hidden !important;
 }
@@ -121,7 +53,7 @@ const monthViewStyles = `
   overflow: hidden !important;
 }
 
-/* 10. Multi-provider day view: hide time axis labels in non-first columns */
+/* Multi-provider day view: hide time axis labels in non-first columns */
 .multi-provider-grid .provider-col:not(:first-child) .fc-timegrid-axis,
 .multi-provider-grid .provider-col:not(:first-child) .fc-timegrid-slot-label {
   visibility: hidden;
@@ -1562,76 +1494,9 @@ const Calendar: React.FC = () => {
 
     const dayCellContent = useCallback(
         (arg: any) => {
-            if (activeView !== 'dayGridMonth') {
-                return arg.dayNumberText;
-            }
-
-            const cellDate = arg.date;
-            const cellDateStr = cellDate.getFullYear() + '-' +
-                String(cellDate.getMonth() + 1).padStart(2, '0') + '-' +
-                String(cellDate.getDate()).padStart(2, '0');
-
-            const count = events.filter((e) => {
-                if (!e.start) return false;
-                const eventStart = new Date(e.start as string | number | Date);
-                const eventDateStr = eventStart.getFullYear() + '-' +
-                    String(eventStart.getMonth() + 1).padStart(2, '0') + '-' +
-                    String(eventStart.getDate()).padStart(2, '0');
-                if (eventDateStr !== cellDateStr) return false;
-                if (!allProvidersSelected && (!e.extendedProps.providerId || !selectedProviders.includes(String(e.extendedProps.providerId)))) return false;
-                if (!allLocationsSelected && (!e.extendedProps.locationId || !selectedLocations.includes(String(e.extendedProps.locationId)))) return false;
-                return true;
-            }).length;
-
-            // No count → default number
-            if (count === 0) {
-                return <span className="fc-daygrid-day-number">{arg.dayNumberText}</span>;
-            }
-
-            // Pill UI with click handlers
-            return (
-                <div
-                    className="fc-month-card cursor-pointer"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        const selectInfo = {
-                            start: arg.date,
-                            end: (() => {
-                                const dateValue = arg.date instanceof Date ? arg.date : new Date(arg.date);
-                                return isNaN(dateValue.getTime()) ? new Date() : new Date(dateValue.getTime() + 15 * 60 * 1000);
-                            })(),
-                            allDay: false
-                        };
-                        handleDateSelect(selectInfo as any);
-                    }}
-                >
-                    <div className="fc-month-card-inner">
-                        <span className="fc-month-day">
-                            {arg.dayNumberText}
-                        </span>
-                        <span
-                            className="fc-month-count cursor-pointer hover:bg-green-600 transition-colors"
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                changeView('timeGridDay');
-                                if (calendarRef.current) {
-                                    const dateValue = arg.date instanceof Date ? arg.date : new Date(arg.date);
-                                    calendarRef.current.getApi().gotoDate(dateValue);
-                                }
-                            }}
-                        >
-                            {count}
-                        </span>
-                    </div>
-                </div>
-            );
+            return <span className="fc-daygrid-day-number text-sm text-gray-600 dark:text-gray-400">{arg.dayNumberText}</span>;
         },
-        [activeView, events, allProvidersSelected, selectedProviders, allLocationsSelected, selectedLocations, changeView, handleDateSelect, calendarRef]
+        []
     );
 
 
