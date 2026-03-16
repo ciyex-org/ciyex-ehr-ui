@@ -753,41 +753,68 @@ const AppointmentModal: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Start Date+Time */}
+                    {/* Start Date */}
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Appointment Start
+                            Start Date
                         </label>
                         <input
-                            type="datetime-local"
-                            value={startDate && startTime ? `${startDate}T${startTime}` : ''}
+                            type="date"
+                            value={startDate}
                             onChange={(e) => {
-                                const val = e.target.value;
-                                const [d, t] = val ? val.split('T') : ['', ''];
-                                setStartDate(d || '');
-                                setStartDateInput(d || '');
-                                setStartTime(t || '');
+                                const d = e.target.value;
+                                setStartDate(d);
+                                setStartDateInput(d);
                                 if (!endDate && d) { setEndDate(d); setEndDateInput(d); }
+                            }}
+                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                        />
+                    </div>
+
+                    {/* Start Time */}
+                    <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Start Time
+                        </label>
+                        <input
+                            type="time"
+                            value={startTime}
+                            onChange={(e) => {
+                                const t = e.target.value;
+                                setStartTime(t);
                                 if (!endTime && t) setEndTime(addMinutes(t, 15));
                             }}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         />
                     </div>
 
-                    {/* End Date+Time */}
+                    {/* End Date */}
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Appointment End
+                            End Date
                         </label>
                         <input
-                            type="datetime-local"
-                            value={endDate && endTime ? `${endDate}T${endTime}` : ''}
+                            type="date"
+                            value={endDate}
                             onChange={(e) => {
-                                const val = e.target.value;
-                                const [d, t] = val ? val.split('T') : ['', ''];
-                                setEndDate(d || '');
-                                setEndDateInput(d || '');
-                                setEndTime(t || '');
+                                const d = e.target.value;
+                                setEndDate(d);
+                                setEndDateInput(d);
+                            }}
+                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                        />
+                    </div>
+
+                    {/* End Time */}
+                    <div>
+                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            End Time
+                        </label>
+                        <input
+                            type="time"
+                            value={endTime}
+                            onChange={(e) => {
+                                setEndTime(e.target.value);
                             }}
                             className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                         />
