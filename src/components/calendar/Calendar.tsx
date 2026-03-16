@@ -136,7 +136,7 @@ interface Patient {
     identification?: { firstName?: string | null; lastName?: string | null } | null;
 }
 
-type AppointmentStatus = 'Scheduled' | 'Confirmed' | 'Checked-in' | 'Completed' | 'Re-Scheduled' | 'No Show' | 'Cancelled';
+type AppointmentStatus = 'proposed' | 'pending' | 'booked' | 'arrived' | 'checked-in' | 'fulfilled' | 'cancelled' | 'noshow' | 'entered-in-error' | 'waitlist';
 type Priority = 'Routine' | 'Urgent';
 
 interface CalendarEvent extends EventInput {
@@ -400,13 +400,14 @@ type Option<T extends string = string> = { value: T; label: string };
 
 
 const FALLBACK_STATUS_OPTIONS: Option<AppointmentStatus>[] = [
-    { value: 'Scheduled', label: 'Scheduled' },
-    { value: 'Confirmed', label: 'Confirmed' },
-    { value: 'Checked-in', label: 'Checked-in' },
-    { value: 'Completed', label: 'Completed' },
-    { value: 'Re-Scheduled', label: 'Re-Scheduled' },
-    { value: 'No Show', label: 'No Show' },
-    { value: 'Cancelled', label: 'Cancelled' },
+    { value: 'proposed', label: 'Proposed' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'booked', label: 'Booked' },
+    { value: 'arrived', label: 'Arrived' },
+    { value: 'checked-in', label: 'Checked In' },
+    { value: 'fulfilled', label: 'Fulfilled' },
+    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'noshow', label: 'No Show' },
 ];
 
 const priorityOptions: Option<Priority>[] = [
@@ -488,7 +489,7 @@ const Calendar: React.FC = () => {
     const [appointmentPriority, setAppointmentPriority] = useState<Priority>('Routine');
     const [appointmentProviderId, setAppointmentProviderId] = useState<string>('');
     const [appointmentLocationId, setAppointmentLocationId] = useState<string>('');
-    const [appointmentStatus, setAppointmentStatus] = useState<AppointmentStatus>('Scheduled');
+    const [appointmentStatus, setAppointmentStatus] = useState<AppointmentStatus>('booked');
 
 
     // Date & Time — input (MM/DD/YYYY) + ISO (YYYY-MM-DD)
@@ -1211,7 +1212,7 @@ const Calendar: React.FC = () => {
         setVisitType(xp?.visitType ?? 'Consultation');
         setAppointmentProviderId(xp?.providerId ?? '');
         setAppointmentLocationId(xp?.locationId ?? '');
-        setAppointmentStatus((xp?.status as AppointmentStatus) ?? 'Scheduled');
+        setAppointmentStatus((xp?.status as AppointmentStatus) ?? 'booked');
         setAppointmentNotes(xp?.notes ?? '');
         setAppointmentPriority((xp?.priority as Priority) ?? 'Routine');
 
@@ -1437,7 +1438,7 @@ const Calendar: React.FC = () => {
         setAppointmentPriority('Routine');
         setAppointmentProviderId('');
         setAppointmentLocationId('');
-        setAppointmentStatus('Scheduled');
+        setAppointmentStatus('booked');
         setStartDateInput('');
         setEndDateInput('');
         setStartDate('');
