@@ -367,7 +367,23 @@ export default function AppointmentPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [editingStatusId, editingRoomId]);
 
-  // Status options are fixed to the canonical list
+  // Fetch status options from API, fall back to canonical list
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/status-options`);
+        if (res.ok) {
+          const data = await res.json();
+          const opts: StatusOption[] = (data.data || []).map((o: any) =>
+            typeof o === "string" ? { value: o, label: o } : o
+          ).sort((a: StatusOption, b: StatusOption) => (a.order ?? 0) - (b.order ?? 0));
+          if (opts.length > 0) setStatusOptions(opts);
+        }
+      } catch (e) {
+        // keep fallback
+      }
+    })();
+  }, []);
 
   // Fetch room options
   useEffect(() => {
