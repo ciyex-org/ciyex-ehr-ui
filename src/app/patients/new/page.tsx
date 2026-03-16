@@ -690,7 +690,6 @@ export default function AddPatient() {
                             <div className="space-y-4">
                                 <h2 className="text-lg font-semibold text-gray-700 border-b pb-2">Additional Information</h2>
                                 <div>
-                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Ethnicity</label>
                                     <input
                                         type="text"
