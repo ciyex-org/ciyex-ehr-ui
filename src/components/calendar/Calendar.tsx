@@ -968,18 +968,23 @@ const Calendar: React.FC = () => {
                             name = patientNameCache.current[patientId];
                         }
 
+                        const providerEntry = providers.find(p => p.value === String(providerId));
+                        const providerName = providerEntry?.label || '';
+                        const providerColor = getColor('provider', String(providerId), providerName);
+
                         return {
                             id: String(a.id),
                             title: name || `Patient #${patientId || a.id}`,
                             start: startDt ? startDt.toISOString() : '',
                             end: endDt ? endDt.toISOString() : '',
                             allDay: false,
-                            backgroundColor: getColor('visit-type', a.appointmentType).bg,
-                            borderColor: getColor('visit-type', a.appointmentType).border,
-                            textColor: getColor('visit-type', a.appointmentType).text,
+                            backgroundColor: providerColor.bg,
+                            borderColor: providerColor.border,
+                            textColor: providerColor.text,
                             extendedProps: {
                                 visitType: a.appointmentType,
                                 providerId: String(providerId),
+                                providerName,
                                 locationId: locationId ? String(locationId) : "",
                                 status: a.status as AppointmentStatus,
                                 notes: a.reason,
@@ -1046,7 +1051,7 @@ const Calendar: React.FC = () => {
         } catch (err) {
             console.error("Failed to load appointments", err);
         }
-    }, [apiUrl, getColor]);
+    }, [apiUrl, getColor, providers]);
 
     // Trigger loadAppointments when component is mounted or colors change
     useEffect(() => {
@@ -1515,37 +1520,37 @@ const Calendar: React.FC = () => {
                 patientName?: string;
                 visitType?: string;
                 status?: string;
+                providerName?: string;
             };
 
             const patientName = xp?.patientName || eventInfo.event.title;
-            const visitType = xp?.visitType || '';
-            const status = xp?.status || '';
+            const providerName = xp?.providerName || '';
             const startTime = eventInfo.event.start
                 ? eventInfo.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '';
 
-            // Status badge color mapping
-            const statusColors: Record<string, string> = {
-                'Scheduled': 'bg-blue-500',
-                'Confirmed': 'bg-green-500',
-                'Checked-in': 'bg-emerald-500',
-                'Completed': 'bg-purple-500',
-                'Re-Scheduled': 'bg-yellow-500',
-                'No Show': 'bg-orange-500',
-                'Cancelled': 'bg-red-500',
-            };
-            const badgeClass = statusColors[status] || 'bg-gray-400';
+            // Provider abbreviation: initials from name words (up to 3 chars)
+            const providerAbbr = providerName
+                ? providerName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 3)
+                : '';
 
             return (
                 <div className="fc-event-main rounded-sm px-1.5 py-0.5 text-xs leading-tight overflow-hidden">
-                    <div className="font-semibold text-white truncate">{patientName}</div>
-                    <div className="text-white/80 truncate text-[10px]">{startTime} {visitType}</div>
-                    {status && (
-                        <div className="flex items-center gap-1 mt-0.5">
-                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${badgeClass}`}></span>
-                            <span className="text-white/90 text-[9px] truncate">{status}</span>
-                        </div>
-                    )}
+                    <div className="font-semibold truncate" style={{ color: eventInfo.event.textColor }}>{patientName}</div>
+                    <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+                        <span className="truncate text-[10px]" style={{ color: eventInfo.event.textColor, opacity: 0.9 }}>{startTime}</span>
+                        {providerAbbr && (
+                            <span
+                                className="rounded px-1 text-[9px] font-bold"
+                                style={{
+                                    backgroundColor: 'rgba(255,255,255,0.25)',
+                                    color: eventInfo.event.textColor,
+                                }}
+                            >
+                                ({providerAbbr})
+                            </span>
+                        )}
+                    </div>
                 </div>
             );
         },
