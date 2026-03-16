@@ -136,7 +136,7 @@ interface Patient {
     identification?: { firstName?: string | null; lastName?: string | null } | null;
 }
 
-type AppointmentStatus = 'proposed' | 'pending' | 'booked' | 'arrived' | 'checked-in' | 'fulfilled' | 'cancelled' | 'noshow' | 'entered-in-error' | 'waitlist';
+type AppointmentStatus = 'proposed' | 'pending' | 'booked' | 'arrived' | 'checked-in' | 'fulfilled' | 'cancelled' | 'noshow' | 'entered-in-error' | 'waitlist' | string;
 type Priority = 'Routine' | 'Urgent';
 
 interface CalendarEvent extends EventInput {
@@ -400,14 +400,13 @@ type Option<T extends string = string> = { value: T; label: string };
 
 
 const FALLBACK_STATUS_OPTIONS: Option<AppointmentStatus>[] = [
-    { value: 'proposed', label: 'Proposed' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'booked', label: 'Booked' },
-    { value: 'arrived', label: 'Arrived' },
-    { value: 'checked-in', label: 'Checked In' },
-    { value: 'fulfilled', label: 'Fulfilled' },
-    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'booked', label: 'Scheduled' },
+    { value: 'pending', label: 'Confirmed' },
+    { value: 'checked-in', label: 'Checked-in' },
+    { value: 'fulfilled', label: 'Completed' },
+    { value: 'proposed', label: 'Re-Scheduled' },
     { value: 'noshow', label: 'No Show' },
+    { value: 'cancelled', label: 'Cancelled' },
 ];
 
 const priorityOptions: Option<Priority>[] = [

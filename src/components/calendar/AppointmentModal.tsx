@@ -29,14 +29,13 @@ interface StatusOption {
 }
 
 const FALLBACK_STATUS_OPTIONS: StatusOption[] = [
-    { value: 'proposed',    label: 'Proposed' },
-    { value: 'pending',     label: 'Pending' },
-    { value: 'booked',      label: 'Booked' },
-    { value: 'arrived',     label: 'Arrived' },
-    { value: 'checked-in',  label: 'Checked In' },
-    { value: 'fulfilled',   label: 'Fulfilled' },
-    { value: 'cancelled',   label: 'Cancelled' },
+    { value: 'booked',      label: 'Scheduled' },
+    { value: 'pending',     label: 'Confirmed' },
+    { value: 'checked-in',  label: 'Checked-in' },
+    { value: 'fulfilled',   label: 'Completed' },
+    { value: 'proposed',    label: 'Re-Scheduled' },
     { value: 'noshow',      label: 'No Show' },
+    { value: 'cancelled',   label: 'Cancelled' },
 ];
 
 type Option<T extends string = string> = { value: T; label: string };
