@@ -1357,6 +1357,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 }
             }
             if (tabKey === "allergies") {
+                // Validate end date is not before onset date
+                const allergyOnset = payload.onsetDate || payload.onsetDateTime || payload.onset;
+                const allergyEnd = payload.endDate || payload.end;
+                if (allergyOnset && allergyEnd && allergyEnd < allergyOnset) {
+                    setValidationErrors({ endDate: "End date must be after onset date" });
+                    setError("End date must be after onset date");
+                    setSaving(false);
+                    return;
+                }
                 if (payload.severity && !payload.criticality) payload.criticality = payload.severity;
                 // Issue 3: wrap allergyName/code in CodeableConcept with system
                 const allergySystem = "http://snomed.info/sct";
@@ -1425,10 +1434,11 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (!payload.category) {
                     payload.category = [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/flag-category", code: "clinical", display: "Clinical" }] }];
                 }
-                // Validate end date is not before start date
-                if (payload.startDate && payload.endDate && payload.endDate < payload.startDate) {
-                    setValidationErrors({ endDate: "End date cannot be earlier than start date" });
-                    setError("End date cannot be earlier than start date");
+                // Validate end date is not before start/identified date
+                const alertStart = payload.startDate || payload.identifiedDate || payload.dateIdentified;
+                if (alertStart && payload.endDate && payload.endDate < alertStart) {
+                    setValidationErrors({ endDate: "End date must be after identified/start date" });
+                    setError("End date must be after identified/start date");
                     setSaving(false);
                     return;
                 }
@@ -2108,6 +2118,47 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                             errors={validationErrors}
                             patientId={patientId}
                         />
+                    )}
+                    {/* File upload for reports tab */}
+                    {(tabKey === "report" || tabKey === "reports") && mode !== "view" && (
+                        <div className="mt-4 p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Report Document</label>
+                            <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.dicom"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    const fd = new FormData();
+                                    fd.append("file", file);
+                                    fd.append("patientId", String(patientId));
+                                    fd.append("category", "report");
+                                    try {
+                                        const { fetchWithAuth: fw } = await import("@/utils/fetchWithAuth");
+                                        const { getEnv: ge } = await import("@/utils/env");
+                                        const res = await fw(`${(ge("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/documents/upload`, {
+                                            method: "POST",
+                                            body: fd,
+                                        });
+                                        if (res.ok) {
+                                            const json = await res.json();
+                                            const url = json.data?.url || json.url || json.data?.fileUrl || "";
+                                            handleFieldChange("documentUrl", url);
+                                            handleFieldChange("fileName", file.name);
+                                            setSuccessMsg(`File "${file.name}" uploaded successfully.`);
+                                        } else {
+                                            setError("Failed to upload file. Please try again.");
+                                        }
+                                    } catch {
+                                        setError("Failed to upload file. Please try again.");
+                                    }
+                                }}
+                                className="block w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-400"
+                            />
+                            {formData.fileName && (
+                                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Uploaded: {formData.fileName}</p>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>

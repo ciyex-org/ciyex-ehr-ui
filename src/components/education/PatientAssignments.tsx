@@ -36,14 +36,31 @@ interface Props {
   refreshKey: number;
 }
 
+interface PatientOption {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  name?: string;
+}
+
+function patientDisplayName(p: PatientOption): string {
+  if (p.firstName || p.lastName) return `${p.firstName || ""} ${p.lastName || ""}`.trim();
+  return p.name || p.id;
+}
+
 export default function PatientAssignments({ onAssignNew, refreshKey }: Props) {
   const [patientSearch, setPatientSearch] = useState("");
   const [patientId, setPatientId] = useState("");
+  const [selectedPatientName, setSelectedPatientName] = useState("");
+  const [patientResults, setPatientResults] = useState<PatientOption[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchingPatients, setSearchingPatients] = useState(false);
   const [assignments, setAssignments] = useState<PatientEducationAssignment[]>([]);
   const [stats, setStats] = useState<AssignmentStats>({ assigned: 0, viewed: 0, completed: 0, dismissed: 0 });
   const [loading, setLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchAssignments = useCallback(async (pid: string) => {
     if (!pid) {
@@ -81,16 +98,54 @@ export default function PatientAssignments({ onAssignNew, refreshKey }: Props) {
     if (patientId) fetchAssignments(patientId);
   }, [patientId, fetchAssignments, refreshKey]);
 
-  // debounced patient search => use as patient ID
+  // debounced patient name search => autocomplete
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setPatientId(patientSearch.trim());
-    }, 500);
+    if (!patientSearch.trim() || patientSearch === selectedPatientName) {
+      setPatientResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSearchingPatients(true);
+      try {
+        const res = await fetchWithAuth(apiUrl(`/api/patients?search=${encodeURIComponent(patientSearch.trim())}&size=10`));
+        if (res.ok) {
+          const json = await res.json();
+          const list = json.success && json.data ? (Array.isArray(json.data) ? json.data : json.data.content || []) : [];
+          setPatientResults(list);
+          setShowDropdown(list.length > 0);
+        }
+      } catch {
+        setPatientResults([]);
+      } finally {
+        setSearchingPatients(false);
+      }
+    }, 400);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [patientSearch]);
+  }, [patientSearch, selectedPatientName]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  function selectPatient(p: PatientOption) {
+    const name = patientDisplayName(p);
+    setPatientSearch(name);
+    setSelectedPatientName(name);
+    setPatientId(p.id);
+    setShowDropdown(false);
+    setPatientResults([]);
+  }
 
   const handleAction = async (id: number, action: "viewed" | "completed" | "dismiss") => {
     setActionLoadingId(id);
@@ -152,22 +207,45 @@ export default function PatientAssignments({ onAssignNew, refreshKey }: Props) {
 
       {/* Patient search */}
       <div className="shrink-0 px-4 py-3 border-b border-gray-100 dark:border-slate-800">
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             className="w-full pl-9 pr-8 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-            placeholder="Enter Patient ID..."
+            placeholder="Search patient by name..."
             value={patientSearch}
-            onChange={(e) => setPatientSearch(e.target.value)}
+            onChange={(e) => {
+              setPatientSearch(e.target.value);
+              if (e.target.value !== selectedPatientName) {
+                setPatientId("");
+                setSelectedPatientName("");
+              }
+            }}
           />
           {patientSearch && (
             <button
-              onClick={() => { setPatientSearch(""); setPatientId(""); setAssignments([]); }}
+              onClick={() => { setPatientSearch(""); setPatientId(""); setSelectedPatientName(""); setAssignments([]); setPatientResults([]); setShowDropdown(false); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               <X className="w-4 h-4" />
             </button>
+          )}
+          {searchingPatients && (
+            <Loader2 className="absolute right-9 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+          )}
+          {showDropdown && patientResults.length > 0 && (
+            <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              {patientResults.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => selectPatient(p)}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-900 dark:text-gray-100 transition"
+                >
+                  {patientDisplayName(p)}
+                  <span className="ml-2 text-xs text-gray-400">ID: {p.id}</span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -199,7 +277,7 @@ export default function PatientAssignments({ onAssignNew, refreshKey }: Props) {
         {!patientId ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
             <User className="w-10 h-10 mb-3 opacity-50" />
-            <p className="text-sm font-medium">Enter a Patient ID</p>
+            <p className="text-sm font-medium">Search for a patient</p>
             <p className="text-xs mt-1">Search for a patient to view their education assignments</p>
           </div>
         ) : loading ? (

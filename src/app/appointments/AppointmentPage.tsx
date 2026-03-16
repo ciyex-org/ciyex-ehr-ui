@@ -42,6 +42,7 @@ export type AppointmentDTO = {
   patientName?: string;
   encounterId?: string;      // populated after auto-encounter creation
   encounterPatientId?: number;
+  locationName?: string;     // from FHIR reference resolution
   patientPhone?: string;     // from patient record
   providerName?: string;     // from FHIR reference resolution
   _lastUpdated?: string;     // from FHIR meta.lastUpdated
@@ -990,7 +991,7 @@ export default function AppointmentPage() {
 
                       {/* Location (#10) */}
                       <td className="py-1.5 px-3 text-sm">
-                        {locations.find((l) => String(l.id) === String(r.locationId))?.name || "—"}
+                        {r.locationName || locations.find((l) => String(l.id) === String(r.locationId))?.name || "—"}
                       </td>
 
                       {/* Type */}

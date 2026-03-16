@@ -152,10 +152,16 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
         );
         if (dataRes.ok) {
           const dataJson = await dataRes.json();
-          const pageData = dataJson.data || {};
-          const content = pageData.content || [];
-          if (content.length > 0) {
-            const existing = content[0];
+          const pageData = dataJson.data || dataJson;
+          let existing: Record<string, any> | null = null;
+          if (Array.isArray(pageData)) {
+            existing = pageData.length > 0 ? pageData[0] : null;
+          } else if (Array.isArray(pageData.content) && pageData.content.length > 0) {
+            existing = pageData.content[0];
+          } else if (pageData && typeof pageData === "object" && (pageData.id || pageData.fhirId)) {
+            existing = pageData;
+          }
+          if (existing) {
             setCompositionId(existing.id || existing.fhirId || null);
             autoSave.setFormData(existing);
           }

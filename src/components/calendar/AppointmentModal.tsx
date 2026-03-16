@@ -425,58 +425,16 @@ const AppointmentModal: React.FC = () => {
     }, [patientQuery, apiUrl]);
 
     /* =========================
-     * Provider availability for chosen slot
+     * Provider availability — always show all active providers.
+     * Schedule coverage is validated as a warning at save time (handleSave).
      * ======================= */
     useEffect(() => {
         if (!open) {
             setProvidersForDate([]);
             return;
         }
-        // If no start date yet, show all providers so the dropdown is not empty
-        if (!startDate) {
-            setProvidersForDate(allProviders);
-            return;
-        }
-
-        (async () => {
-            setLoadingProvidersForDate(true);
-            try {
-                const res = await fetchWithAuth(`${apiUrl}/api/schedules?status=active`);
-                const json = await res.json();
-                let schedules: Schedule[] = [];
-                if (json?.success && json?.data) {
-                    schedules = Array.isArray(json.data) ? json.data : (Array.isArray(json.data.content) ? json.data.content : []);
-                } else if (Array.isArray(json?.data)) {
-                    schedules = json.data;
-                }
-
-                const providerIds = new Set<number>();
-                for (const s of schedules) {
-                    if (String(s.status).toLowerCase() !== "active") continue;
-                    // If full date+time is available, check exact slot coverage
-                    if (combinedStart && combinedEnd) {
-                        if (hasOccurrenceCoveringSlot(s, combinedStart, combinedEnd)) {
-                            providerIds.add(Number(s.providerId));
-                        }
-                    } else {
-                        // Otherwise just check if provider has a schedule on this date
-                        if (hasOccurrenceOnDate(s, startDate)) {
-                            providerIds.add(Number(s.providerId));
-                        }
-                    }
-                }
-
-                const allowed = allProviders.filter((p) => providerIds.has(Number(p.value)));
-                // Fallback to all active providers when no schedule-specific providers found
-                setProvidersForDate(allowed.length > 0 ? allowed : allProviders);
-            } catch (e) {
-                console.error("Failed to load schedules", e);
-                setProvidersForDate(allProviders);
-            } finally {
-                setLoadingProvidersForDate(false);
-            }
-        })();
-    }, [open, startDate, combinedStart, combinedEnd, allProviders, apiUrl]);
+        setProvidersForDate(allProviders);
+    }, [open, allProviders]);
 
     /* =========================
      * Always show all locations in the dropdown

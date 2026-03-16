@@ -300,6 +300,7 @@ function ReferralFormPanel({
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
+    if (!form.patientId.trim()) e.patientId = "Patient ID is required";
     if (!form.patientName.trim()) e.patientName = "Patient name is required";
     if (!form.reason.trim()) e.reason = "Reason is required";
     if (!form.specialistName.trim()) e.specialistName = "Specialist name is required";
@@ -376,8 +377,9 @@ function ReferralFormPanel({
                 {errors.patientName && <p className="text-xs text-red-500 mt-1">{errors.patientName}</p>}
               </div>
               <div>
-                <label className={labelCls}>Patient ID</label>
-                <input className={inputCls()} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="PAT-001" />
+                <label className={labelCls}>Patient ID <span className="text-red-500">*</span></label>
+                <input className={inputCls("patientId")} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="PAT-001" />
+                {errors.patientId && <p className="text-xs text-red-500 mt-1">{errors.patientId}</p>}
               </div>
               <div>
                 <label className={labelCls}>Referring Provider</label>

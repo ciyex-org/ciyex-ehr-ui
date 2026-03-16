@@ -142,7 +142,7 @@ export default function Records() {
               {/* Item header */}
               <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{selectedItem.name}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedItem.category} -- Stock: {selectedItem.stock} {selectedItem.unit}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedItem.category} &middot; Stock: {selectedItem.stock ?? 0} {selectedItem.unit}</p>
               </div>
 
               {/* Sub-tabs */}

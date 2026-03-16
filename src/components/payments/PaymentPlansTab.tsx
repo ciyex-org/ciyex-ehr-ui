@@ -98,17 +98,26 @@ export default function PaymentPlansTab({ showToast }: Props) {
   };
 
   /* Fetch plans */
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const fetchPlans = useCallback(async () => {
     if (!selectedPatient) return;
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await fetchWithAuth(apiUrl(`/api/payments/plans/patient/${selectedPatient.id}`));
-      const json = await res.json();
       if (res.ok) {
+        const json = await res.json();
         const data = json.data || json;
         setPlans(Array.isArray(data) ? data : data.content || []);
+      } else {
+        setFetchError(`Failed to load payment plans (${res.status})`);
+        setPlans([]);
       }
-    } catch { /* silent */ } finally { setLoading(false); }
+    } catch (err) {
+      console.error("Failed to fetch payment plans:", err);
+      setFetchError("Failed to load payment plans");
+      setPlans([]);
+    } finally { setLoading(false); }
   }, [selectedPatient]);
 
   useEffect(() => { fetchPlans(); }, [fetchPlans]);
@@ -260,7 +269,10 @@ export default function PaymentPlansTab({ showToast }: Props) {
             ) : plans.length === 0 ? (
               <div className="text-center py-20">
                 <Calendar className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-500">No payment plans found</p>
+                <p className="text-sm text-gray-500">{fetchError || "No payment plans found"}</p>
+                {fetchError && (
+                  <button onClick={fetchPlans} className="mt-2 text-xs text-blue-600 hover:underline">Retry</button>
+                )}
               </div>
             ) : (
               <div className="space-y-4">

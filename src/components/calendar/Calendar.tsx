@@ -1153,6 +1153,13 @@ const Calendar: React.FC = () => {
 
     // Default 15-minute end when selecting on grid
     const handleDateSelect = useCallback((selectInfo: DateSelectArg, providerId?: string) => {
+        // Block past dates — only allow today or future
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const selStart = new Date(selectInfo.start);
+        selStart.setHours(0, 0, 0, 0);
+        if (selStart < now) return;
+
         resetModalFields();
 
         const start = selectInfo.start;
@@ -1476,7 +1483,82 @@ const Calendar: React.FC = () => {
 
     const dayCellContent = useCallback(
         (arg: any) => {
-            return <span className="fc-daygrid-day-number text-sm text-gray-600 dark:text-gray-400">{arg.dayNumberText}</span>;
+            if (activeView !== 'dayGridMonth') {
+                return arg.dayNumberText;
+            }
+
+            const cellDate = arg.date;
+            const cellDateStr = cellDate.getFullYear() + '-' +
+                String(cellDate.getMonth() + 1).padStart(2, '0') + '-' +
+                String(cellDate.getDate()).padStart(2, '0');
+
+            const count = events.filter((e) => {
+                if (!e.start) return false;
+                const eventStart = new Date(e.start as string | number | Date);
+                const eventDateStr = eventStart.getFullYear() + '-' +
+                    String(eventStart.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(eventStart.getDate()).padStart(2, '0');
+                if (eventDateStr !== cellDateStr) return false;
+                if (!allProvidersSelected && (!e.extendedProps.providerId || !selectedProviders.includes(String(e.extendedProps.providerId)))) return false;
+                if (!allLocationsSelected && (!e.extendedProps.locationId || !selectedLocations.includes(String(e.extendedProps.locationId)))) return false;
+                return true;
+            }).length;
+
+            // No count → default number
+            if (count === 0) {
+                return <span className="fc-daygrid-day-number">{arg.dayNumberText}</span>;
+            }
+
+            // Check if date is in the past (before today)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const cellDateObj = new Date(cellDate);
+            cellDateObj.setHours(0, 0, 0, 0);
+            const isPastDate = cellDateObj < today;
+
+            // Pill UI with click handlers
+            return (
+                <div
+                    className={`fc-month-card ${isPastDate ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (isPastDate) return;
+                        const selectInfo = {
+                            start: arg.date,
+                            end: (() => {
+                                const dateValue = arg.date instanceof Date ? arg.date : new Date(arg.date);
+                                return isNaN(dateValue.getTime()) ? new Date() : new Date(dateValue.getTime() + 15 * 60 * 1000);
+                            })(),
+                            allDay: false
+                        };
+                        handleDateSelect(selectInfo as any);
+                    }}
+                >
+                    <div className="fc-month-card-inner">
+                        <span className="fc-month-day">
+                            {arg.dayNumberText}
+                        </span>
+                        <span
+                            className="fc-month-count cursor-pointer hover:bg-green-600 transition-colors"
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                changeView('timeGridDay');
+                                if (calendarRef.current) {
+                                    const dateValue = arg.date instanceof Date ? arg.date : new Date(arg.date);
+                                    calendarRef.current.getApi().gotoDate(dateValue);
+                                }
+                            }}
+                        >
+                            {count}
+                        </span>
+                    </div>
+                </div>
+            );
         },
         []
     );

@@ -183,8 +183,24 @@ export default function CarePlansPage() {
       const res = await fetchWithAuth(apiUrl(`/api/care-plans/${planId}`));
       const json = await res.json();
       if (json.success) {
+        const plan = json.data;
+        // If interventions or goals are missing, fetch them separately
+        if (!plan.interventions || !Array.isArray(plan.interventions)) {
+          try {
+            const intRes = await fetchWithAuth(apiUrl(`/api/care-plans/${planId}/interventions`));
+            const intJson = await intRes.json();
+            plan.interventions = intJson.success ? (Array.isArray(intJson.data) ? intJson.data : intJson.data?.content || []) : [];
+          } catch { plan.interventions = []; }
+        }
+        if (!plan.goals || !Array.isArray(plan.goals)) {
+          try {
+            const goalRes = await fetchWithAuth(apiUrl(`/api/care-plans/${planId}/goals`));
+            const goalJson = await goalRes.json();
+            plan.goals = goalJson.success ? (Array.isArray(goalJson.data) ? goalJson.data : goalJson.data?.content || []) : [];
+          } catch { plan.goals = []; }
+        }
         setPlans((prev) =>
-          prev.map((p) => (p.id === planId ? json.data : p))
+          prev.map((p) => (p.id === planId ? plan : p))
         );
       }
     } catch {

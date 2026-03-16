@@ -129,7 +129,15 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
     }));
   }
 
+  const [formError, setFormError] = useState<string | null>(null);
+
   async function handleSubmit() {
+    // Validate end date is after start date
+    if (form.startDate && form.endDate && form.endDate < form.startDate) {
+      setFormError("End date must be after start date");
+      return;
+    }
+    setFormError(null);
     setSaving(true);
     try {
       await onSave(form);
@@ -281,9 +289,11 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                 <input
                   type="date"
                   value={form.endDate}
-                  onChange={(e) => setField("endDate", e.target.value)}
+                  min={form.startDate || undefined}
+                  onChange={(e) => { setField("endDate", e.target.value); setFormError(null); }}
                   className={inputClass}
                 />
+                {formError && <p className="text-xs text-red-500 mt-1">{formError}</p>}
               </div>
             </div>
 

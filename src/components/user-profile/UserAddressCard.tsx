@@ -104,6 +104,11 @@ export default function UserAddressCard() {
                             Address
                         </h4>
 
+                        {!address.street && !address.street2 && !address.city && !address.state && !address.postalCode && !address.country ? (
+                            <p className="text-sm text-gray-400 dark:text-gray-500 py-4">
+                                No address data available. Click Edit to add your address.
+                            </p>
+                        ) : (
                         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
                             <div>
                                 <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">Street</p>
@@ -140,6 +145,7 @@ export default function UserAddressCard() {
                                 </p>
                             </div>
                         </div>
+                        )}
                     </div>
 
                     <button

@@ -536,6 +536,24 @@ export default function PriorAuthorizationsPage() {
     }
   }
 
+  // Client-side search filter (fallback when API doesn't support q param)
+  const displayedAuths = searchDraft
+    ? auths.filter((a) => {
+        const q = searchDraft.toLowerCase();
+        return (
+          (a.patientName || "").toLowerCase().includes(q) ||
+          (a.providerName || "").toLowerCase().includes(q) ||
+          (a.authNumber || "").toLowerCase().includes(q) ||
+          (a.procedureCode || "").toLowerCase().includes(q) ||
+          (a.procedureDescription || "").toLowerCase().includes(q) ||
+          (a.diagnosisCode || "").toLowerCase().includes(q) ||
+          (a.diagnosisDescription || "").toLowerCase().includes(q) ||
+          (a.insuranceName || "").toLowerCase().includes(q) ||
+          (a.memberId || "").toLowerCase().includes(q)
+        );
+      })
+    : auths;
+
   // Count expiring soon from list (client-side approximation)
   const expiringSoonCount =
     stats
@@ -687,7 +705,7 @@ export default function PriorAuthorizationsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {auths.map((auth) => {
+                  {displayedAuths.map((auth) => {
                     const expDays = daysUntil(auth.expiryDate);
                     const expiringSoon =
                       expDays !== null &&
