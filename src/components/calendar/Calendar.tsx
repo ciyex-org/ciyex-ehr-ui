@@ -2091,50 +2091,76 @@ const Calendar: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Row 2: Start / End Date+Time (combined datetime-local) */}
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                        Appointment Start
-                                    </label>
-                                    <input
-                                        type="datetime-local"
-                                        value={startDate && startTime ? `${startDate}T${startTime}` : ''}
-                                        onChange={(e) => {
-                                            const val = e.target.value; // "YYYY-MM-DDTHH:mm"
-                                            const [d, t] = val ? val.split('T') : ['', ''];
-                                            setStartDate(d || '');
-                                            setStartTime(t || '');
-                                            setStartDateInput(d ? d.split('-').reverse().join('/') : '');
-                                            // Auto-calculate end time: +15 minutes from start
-                                            if (d && t) {
-                                                const startDt = new Date(`${d}T${t}`);
-                                                const endDt = new Date(startDt.getTime() + 15 * 60 * 1000);
-                                                const endD = `${endDt.getFullYear()}-${String(endDt.getMonth() + 1).padStart(2, '0')}-${String(endDt.getDate()).padStart(2, '0')}`;
-                                                const endT = `${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`;
-                                                if (!endDate) { setEndDate(endD); setEndDateInput(endD.split('-').reverse().join('/')); }
-                                                if (!endTime) setEndTime(endT);
-                                            }
-                                        }}
-                                        className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                    />
+                                {/* Date Row: Start Date | End Date */}
+                                <div className="col-span-2 grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Start Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={startDate}
+                                            onChange={(e) => {
+                                                const d = e.target.value;
+                                                setStartDate(d);
+                                                setStartDateInput(d ? d.split('-').reverse().join('/') : '');
+                                                if (!endDate && d) { setEndDate(d); setEndDateInput(d.split('-').reverse().join('/')); }
+                                            }}
+                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            End Date
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={endDate}
+                                            onChange={(e) => {
+                                                const d = e.target.value;
+                                                setEndDate(d);
+                                                setEndDateInput(d ? d.split('-').reverse().join('/') : '');
+                                            }}
+                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                        />
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                        Appointment End
-                                    </label>
-                                    <input
-                                        type="datetime-local"
-                                        value={endDate && endTime ? `${endDate}T${endTime}` : ''}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            const [d, t] = val ? val.split('T') : ['', ''];
-                                            setEndDate(d || '');
-                                            setEndTime(t || '');
-                                            setEndDateInput(d ? d.split('-').reverse().join('/') : '');
-                                        }}
-                                        className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
-                                    />
+                                {/* Time Row: Start Time | End Time */}
+                                <div className="col-span-2 grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            Start Time
+                                        </label>
+                                        <input
+                                            type="time"
+                                            value={startTime}
+                                            onChange={(e) => {
+                                                const t = e.target.value;
+                                                setStartTime(t);
+                                                if (!endTime && t) {
+                                                    const startDt = new Date(`${startDate || '2000-01-01'}T${t}`);
+                                                    const endDt = new Date(startDt.getTime() + 15 * 60 * 1000);
+                                                    setEndTime(`${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`);
+                                                }
+                                            }}
+                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                            End Time
+                                        </label>
+                                        <input
+                                            type="time"
+                                            value={endTime}
+                                            onChange={(e) => {
+                                                setEndTime(e.target.value);
+                                                setEndDateInput(endDate ? endDate.split('-').reverse().join('/') : '');
+                                            }}
+                                            className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Row 4: Priority / Provider */}
