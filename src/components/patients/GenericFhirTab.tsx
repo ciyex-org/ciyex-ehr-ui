@@ -7,7 +7,7 @@ import { getEnv } from "@/utils/env";
 import { usePermissions } from "@/context/PermissionContext";
 import DynamicFormRenderer, { FieldConfig, FieldConfigFeatures, SectionDef, FieldDef } from "./DynamicFormRenderer";
 import { Plus, Pencil, Trash2, X, Save, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText, CheckCircle2 } from "lucide-react";
-import { isValidEmail, isValidPhone, isValidFax, isValidUrl } from "@/utils/validation";
+import { isValidEmail, isValidPhone, isValidFax, isValidUrl, isValidName, isValidUSPhone } from "@/utils/validation";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -210,10 +210,7 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     // These fields are optional in FHIR Immunization — don't block save
                     if (f.required) section.fields[i] = { ...f, required: false };
                 }
-                // Encounters: reasonForVisit is optional (we supply default in payload)
-                if ((tabKey === "encounters" || tabKey === "encounter") && (f.key === "reasonForVisit" || f.key === "reason" || f.key === "reasonCode")) {
-                    if (f.required) section.fields[i] = { ...f, required: false };
-                }
+                // Encounters: keep reasonForVisit as-is (honor backend required flag)
                 // Encounters: ensure patient field is a patient lookup
                 if ((tabKey === "encounters" || tabKey === "encounter") && (f.key === "patient" || f.key === "patientId" || f.key === "patientName" || f.key === "subject")) {
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
@@ -368,15 +365,17 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
             if (manifList.length > 0) r.reactionDisplay = manifList.join(", ");
         }
-        if (r.reactionDisplay == null && typeof r.reaction === "string" && r.reaction !== "null") {
+        if (typeof r.reaction === "string" && r.reaction !== "null") {
             const raw = r.reaction;
             // Parse Java toString format: [{manifestation=[{coding=[{..., display=X}], text=X}]}]
             if (raw.includes("manifestation=") || raw.includes("coding=") || raw.includes("display=")) {
                 const textMatch = raw.match(/\btext=([^,}\]]+)/);
                 const displayMatch = raw.match(/\bdisplay=([^,}\]]+)/);
                 const extracted = (textMatch?.[1] || displayMatch?.[1] || "").trim();
-                r.reactionDisplay = extracted || raw;
-            } else {
+                // Update both reaction and reactionDisplay so edit form shows readable text
+                if (extracted) { r.reaction = extracted; r.reactionDisplay = extracted; }
+                else r.reactionDisplay = raw;
+            } else if (r.reactionDisplay == null) {
                 r.reactionDisplay = raw;
             }
         }
@@ -728,6 +727,12 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.originalClaimReference == null && r.originalClaimId != null) r.originalClaimReference = r.originalClaimId;
         // Bidirectional: field config may use either spelling
         if (r.originalClaimRef == null && r.originalClaimReference != null) r.originalClaimRef = r.originalClaimReference;
+        if (r.originalClaimRef == null && r.originalClaim != null) r.originalClaimRef = typeof r.originalClaim === "string" ? r.originalClaim : (r.originalClaim?.reference || r.originalClaim?.display || String(r.originalClaim));
+        if (r.originalClaimRef == null && r.relatedClaim != null) r.originalClaimRef = typeof r.relatedClaim === "string" ? r.relatedClaim : (r.relatedClaim?.reference || r.relatedClaim?.display || String(r.relatedClaim));
+        if (r.originalClaimRef == null && Array.isArray(r.related) && r.related.length > 0) {
+            const rel = r.related[0];
+            r.originalClaimRef = rel?.claim?.reference || rel?.claim?.display || rel?.reference || rel?.id || null;
+        }
         if (r.originalClaimReference == null && r.originalClaimRef != null) r.originalClaimReference = r.originalClaimRef;
         // Strip FHIR reference prefix (e.g. "Claim/123" → "123") for cleaner display
         if (r.originalClaimRef && typeof r.originalClaimRef === "string" && /^[A-Z][a-zA-Z]+\//.test(r.originalClaimRef)) {
@@ -1191,6 +1196,72 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         if (field.type === "phone" && !isValidPhone(val)) errors[field.key] = "Invalid phone number";
                         if ((field.key.toLowerCase().includes("fax")) && !isValidFax(val)) errors[field.key] = "Invalid fax number";
                         if ((field.key.toLowerCase().includes("website") || field.key.toLowerCase().includes("url")) && !isValidUrl(val)) errors[field.key] = "Invalid URL (must start with http:// or https://)";
+                    }
+                }
+            }
+            // Immunization: dose must be numeric if provided
+            if (tabKey === "immunizations" || tabKey === "immunization") {
+                const doseVal = formData.doseNumber ?? formData.dose ?? formData.doseNumberPositive;
+                if (doseVal !== undefined && doseVal !== "" && doseVal !== null && isNaN(Number(doseVal))) {
+                    errors.doseNumber = "Dose must be a number";
+                }
+                const lotNum = formData.lotNumber;
+                if (typeof lotNum === "string" && lotNum.trim() && !/^[A-Za-z0-9\-]+$/.test(lotNum.trim())) {
+                    errors.lotNumber = "Lot number must be alphanumeric";
+                }
+            }
+            // Procedures: description/name must not be purely numeric
+            if (tabKey === "procedures" || tabKey === "procedure") {
+                for (const key of ["description", "procedureName", "name", "displayText"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
+                        errors[key] = `${key === "description" ? "Description" : "Procedure name"} must contain letters, not just numbers`;
+                    }
+                }
+            }
+            // Allergies: allergyName and reaction must not be purely numeric
+            if (tabKey === "allergies" || tabKey === "allergy-intolerances") {
+                for (const key of ["allergyName", "allergy_name", "substance", "name"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
+                        errors[key] = "Allergy name must contain letters, not just numbers";
+                    }
+                }
+                const reactionVal = formData.reaction || formData.manifestation;
+                if (typeof reactionVal === "string" && reactionVal.trim() && /^\d+$/.test(reactionVal.trim())) {
+                    errors.reaction = "Reaction must contain letters, not just numbers";
+                }
+            }
+            // Problems/Conditions: condition must not be purely numeric
+            if (tabKey === "medicalproblems" || tabKey === "problems" || tabKey === "conditions" || tabKey === "issues") {
+                for (const key of ["condition", "conditionName", "name", "code", "displayText"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
+                        errors[key] = "Condition must contain letters, not just numbers";
+                    }
+                }
+            }
+            // Clinical alerts: alert field must not be purely numeric
+            if (tabKey === "clinical-alerts" || tabKey === "alerts" || tabKey === "clinicalalerts") {
+                for (const key of ["alert", "alertText", "alertName", "description", "name"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
+                        errors[key] = "Alert must contain letters, not just numbers";
+                    }
+                }
+            }
+            // Demographics: name fields letters-only, phone fields US format (10 digits)
+            if (tabKey === "demographics") {
+                for (const key of ["firstName", "lastName", "middleName", "first_name", "last_name"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isValidName(val)) {
+                        errors[key] = "Name must contain only letters";
+                    }
+                }
+                for (const key of ["phoneNumber", "mobilePhone", "homePhone", "workPhone", "mobile", "phone", "cellPhone", "mobileNumber", "homeNumber", "workNumber"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isValidUSPhone(val)) {
+                        errors[key] = "Must be exactly 10 digits: (xxx) xxx-xxxx";
                     }
                 }
             }

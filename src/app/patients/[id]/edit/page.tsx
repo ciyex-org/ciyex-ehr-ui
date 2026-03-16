@@ -3,7 +3,7 @@ import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
+import { isValidName, isValidEmail, isValidUSPhone } from "@/utils/validation";
 import AdminLayout from "@/app/(admin)/layout";
 import { usePermissions } from "@/context/PermissionContext";
 
@@ -18,6 +18,9 @@ interface Patient {
     gender: string;
     status: "Active" | "Pending" | "Inactive";
 }
+
+const inputCls = (err?: string) =>
+    `mt-1 block w-full p-2 border rounded-md ${err ? "border-red-400 focus:ring-red-400" : "border-gray-300"}`;
 
 export default function EditPatientPage() {
     const params = useParams();
@@ -61,10 +64,8 @@ export default function EditPatientPage() {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         if (formData) {
-            setFormData({
-                ...formData,
-                [name]: value,
-            });
+            setFormData({ ...formData, [name]: value });
+            if (formErrors[name]) setFormErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
         }
     };
 
@@ -73,9 +74,12 @@ export default function EditPatientPage() {
         if (!id || !formData) return;
 
         const errs: Record<string, string> = {};
-        if (formData.firstName && !isValidName(formData.firstName)) errs.firstName = "Name must contain only letters";
-        if (formData.lastName && !isValidName(formData.lastName)) errs.lastName = "Name must contain only letters";
-        if (formData.phoneNumber && !isValidPhone(formData.phoneNumber)) errs.phoneNumber = "Enter a valid phone number";
+        if (!formData.firstName?.trim()) errs.firstName = "First name is required";
+        else if (!isValidName(formData.firstName)) errs.firstName = "Name must contain only letters";
+        if (!formData.lastName?.trim()) errs.lastName = "Last name is required";
+        else if (!isValidName(formData.lastName)) errs.lastName = "Name must contain only letters";
+        if (!formData.phoneNumber?.trim()) errs.phoneNumber = "Mobile number is required";
+        else if (!isValidUSPhone(formData.phoneNumber)) errs.phoneNumber = "Must be exactly 10 digits: (xxx) xxx-xxxx";
         if (formData.email && !isValidEmail(formData.email)) errs.email = "Enter a valid email address";
         if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
         setFormErrors({});
@@ -84,9 +88,7 @@ export default function EditPatientPage() {
         try {
             const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`, {
                 method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     firstName: formData.firstName,
                     lastName: formData.lastName,
@@ -123,31 +125,31 @@ export default function EditPatientPage() {
                 <h1 className="text-2xl font-bold">Edit Patient</h1>
                 <form onSubmit={handleSubmit} className="mt-4">
                     <div className="mb-4">
-                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">First Name</label>
+                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                            First Name <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="text"
                             id="firstName"
                             name="firstName"
                             value={formData.firstName || ""}
                             onChange={handleChange}
-                            pattern="[A-Za-z\s\-'.]+"
-                            title="Name must contain only letters"
-                            className="mt-1 block w-full p-2 border rounded-md"
+                            className={inputCls(formErrors.firstName)}
                             required
                         />
                         {formErrors.firstName && <p className="text-xs text-red-500 mt-1">{formErrors.firstName}</p>}
                     </div>
                     <div className="mb-4">
-                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">Last Name</label>
+                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                            Last Name <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="text"
                             id="lastName"
                             name="lastName"
                             value={formData.lastName || ""}
                             onChange={handleChange}
-                            pattern="[A-Za-z\s\-'.]+"
-                            title="Name must contain only letters"
-                            className="mt-1 block w-full p-2 border rounded-md"
+                            className={inputCls(formErrors.lastName)}
                             required
                         />
                         {formErrors.lastName && <p className="text-xs text-red-500 mt-1">{formErrors.lastName}</p>}
@@ -160,25 +162,27 @@ export default function EditPatientPage() {
                             name="email"
                             value={formData.email || ""}
                             onChange={handleChange}
-                            className="mt-1 block w-full p-2 border rounded-md"
-                            required
+                            className={inputCls(formErrors.email)}
                         />
                         {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
                     </div>
                     <div className="mb-4">
-                        <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+                            Mobile Number <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="tel"
                             id="phoneNumber"
                             name="phoneNumber"
                             value={formData.phoneNumber || ""}
                             onChange={handleChange}
-                            pattern="[+]?[\d\s().\-]{7,20}"
-                            title="Enter a valid phone number"
-                            className="mt-1 block w-full p-2 border rounded-md"
+                            placeholder="(xxx) xxx-xxxx"
+                            className={inputCls(formErrors.phoneNumber)}
                             required
                         />
-                        {formErrors.phoneNumber && <p className="text-xs text-red-500 mt-1">{formErrors.phoneNumber}</p>}
+                        {formErrors.phoneNumber
+                            ? <p className="text-xs text-red-500 mt-1">{formErrors.phoneNumber}</p>
+                            : <p className="text-xs text-gray-500 mt-1">US format: (xxx) xxx-xxxx — exactly 10 digits</p>}
                     </div>
                     <div className="mb-4">
                         <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">Date of Birth</label>
@@ -189,7 +193,7 @@ export default function EditPatientPage() {
                             value={formData.dateOfBirth || ""}
                             onChange={handleChange}
                             max={new Date().toISOString().split("T")[0]}
-                            className="mt-1 block w-full p-2 border rounded-md"
+                            className={inputCls()}
                             required
                         />
                     </div>
@@ -200,7 +204,7 @@ export default function EditPatientPage() {
                             name="gender"
                             value={formData.gender || ""}
                             onChange={handleChange}
-                            className="mt-1 block w-full p-2 border rounded-md"
+                            className={inputCls()}
                             required
                         >
                             <option value="">Select</option>
@@ -216,7 +220,7 @@ export default function EditPatientPage() {
                             name="status"
                             value={formData.status || "Active"}
                             onChange={handleChange}
-                            className="mt-1 block w-full p-2 border rounded-md"
+                            className={inputCls()}
                         >
                             <option value="Active">Active</option>
                             <option value="Inactive">Inactive</option>
@@ -233,8 +237,7 @@ export default function EditPatientPage() {
                             pattern="\d{3}-?\d{2}-?\d{4}"
                             placeholder="123-45-6789"
                             title="SSN format: 123-45-6789"
-                            className="mt-1 block w-full p-2 border rounded-md"
-                            required
+                            className={inputCls()}
                         />
                     </div>
                     <button
