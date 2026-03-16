@@ -1525,26 +1525,29 @@ const Calendar: React.FC = () => {
 
             const patientName = xp?.patientName || eventInfo.event.title;
             const providerName = xp?.providerName || '';
+            const providerId = (xp as any)?.providerId || '';
             const startTime = eventInfo.event.start
                 ? eventInfo.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '';
 
-            // Provider abbreviation: initials from name words (up to 3 chars)
+            // Provider abbreviation: initials from name, fallback to provider ID prefix
             const providerAbbr = providerName
-                ? providerName.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 3)
-                : '';
+                ? providerName.split(' ').filter(Boolean).map((w: string) => w[0]).join('').toUpperCase().slice(0, 3)
+                : providerId ? `P${String(providerId).slice(-2)}` : '';
+
+            const textColor = eventInfo.event.textColor || '#ffffff';
 
             return (
                 <div className="fc-event-main rounded-sm px-1.5 py-0.5 text-xs leading-tight overflow-hidden">
-                    <div className="font-semibold truncate" style={{ color: eventInfo.event.textColor }}>{patientName}</div>
+                    <div className="font-semibold truncate" style={{ color: textColor }}>{patientName}</div>
                     <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-                        <span className="truncate text-[10px]" style={{ color: eventInfo.event.textColor, opacity: 0.9 }}>{startTime}</span>
+                        <span className="truncate text-[10px]" style={{ color: textColor, opacity: 0.9 }}>{startTime}</span>
                         {providerAbbr && (
                             <span
                                 className="rounded px-1 text-[9px] font-bold"
                                 style={{
                                     backgroundColor: 'rgba(255,255,255,0.25)',
-                                    color: eventInfo.event.textColor,
+                                    color: textColor,
                                 }}
                             >
                                 ({providerAbbr})
