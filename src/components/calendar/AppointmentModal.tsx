@@ -13,7 +13,7 @@ import {
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Alert from "@/components/ui/alert/Alert";
 import { usePermissions } from "@/context/PermissionContext";
-import { Clock } from "lucide-react";
+import { TimeIcon } from "@/icons";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.css";
 
@@ -796,7 +796,7 @@ const AppointmentModal: React.FC = () => {
                                 Start Time
                             </label>
                             <div className="relative">
-                                <Clock className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
                                 <select
                                     value={startTime}
                                     onChange={(e) => {
@@ -804,7 +804,7 @@ const AppointmentModal: React.FC = () => {
                                         setStartTime(t);
                                         if (t) setEndTime(addMinutes(t, 15));
                                     }}
-                                    className="h-9 w-full appearance-none rounded-lg border border-gray-300 pl-8 pr-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                    className="h-9 w-full appearance-none rounded-lg border border-gray-300 px-3 pr-9 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                 >
                                     <option value="">-- Select --</option>
                                     {Array.from({ length: 96 }, (_, i) => {
@@ -823,11 +823,11 @@ const AppointmentModal: React.FC = () => {
                                 End Time
                             </label>
                             <div className="relative">
-                                <Clock className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><TimeIcon /></span>
                                 <select
                                     value={endTime}
                                     onChange={(e) => setEndTime(e.target.value)}
-                                    className="h-9 w-full appearance-none rounded-lg border border-gray-300 pl-8 pr-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                    className="h-9 w-full appearance-none rounded-lg border border-gray-300 px-3 pr-9 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                 >
                                     <option value="">-- Select --</option>
                                     {Array.from({ length: 96 }, (_, i) => {
