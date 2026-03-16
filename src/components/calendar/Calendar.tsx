@@ -838,23 +838,7 @@ const Calendar: React.FC = () => {
         })();
     }, [apiUrl]);
 
-    // Load status options from API (consistent with Appointment page)
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetchWithAuth(`${apiUrl}/api/appointments/status-options`);
-                if (res.ok) {
-                    const data = await res.json();
-                    const opts = (data.data || []).map((o: any) =>
-                        typeof o === "string" ? { value: o, label: o } : { value: o.value, label: o.label }
-                    ).filter((o: any) => o.value);
-                    if (opts.length > 0) setStatusOptions(opts);
-                }
-            } catch (e) {
-                console.error("Failed to fetch status options:", e);
-            }
-        })();
-    }, [apiUrl]);
+    // Status options use the canonical hardcoded list (FALLBACK_STATUS_OPTIONS)
 
     // Resolve color for a given category + key; falls back to deterministic random
     // label is used for the hash when no saved config (produces better variety than numeric IDs)
