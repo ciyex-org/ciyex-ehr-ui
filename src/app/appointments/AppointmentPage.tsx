@@ -62,6 +62,16 @@ interface StatusOption {
   encounterNote?: string;
 }
 
+const FALLBACK_STATUS_OPTIONS: StatusOption[] = [
+  { value: 'Scheduled',    label: 'Scheduled' },
+  { value: 'Confirmed',    label: 'Confirmed' },
+  { value: 'Checked-in',  label: 'Checked-in' },
+  { value: 'Completed',   label: 'Completed' },
+  { value: 'Re-Scheduled', label: 'Re-Scheduled' },
+  { value: 'No Show',     label: 'No Show' },
+  { value: 'Cancelled',   label: 'Cancelled' },
+];
+
 interface Provider { id: number; name: string; }
 interface Location { id: number; name: string; }
 
@@ -297,7 +307,7 @@ export default function AppointmentPage() {
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [hideCompleted, setHideCompleted] = useState(true); // hide fulfilled/cancelled by default
   const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
-  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
+  const [statusOptions, setStatusOptions] = useState<StatusOption[]>(FALLBACK_STATUS_OPTIONS);
   const [mounted, setMounted] = useState(false);
 
   // Room
