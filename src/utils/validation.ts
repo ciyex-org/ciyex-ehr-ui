@@ -1,7 +1,7 @@
 /** Validation utilities for form fields */
 
 const NAME_RE = /^[A-Za-z\s\-'.]+$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const PHONE_RE = /^[+]?[\d\s().-]{7,20}$/;
 const US_PHONE_RE = /^\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
 const FAX_RE = /^[+]?[\d\s().-]{7,20}$/;

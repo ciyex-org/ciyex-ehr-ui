@@ -622,13 +622,12 @@ export default function AddPatient() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Middle Initial</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
                                         <input
                                             type="text"
                                             value={formData.personalInfo.mi}
                                             onChange={(e) => handleChange("personalInfo", "mi", e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                            maxLength={1}
                                         />
                                     </div>
                                     <div>
@@ -1020,8 +1019,10 @@ export default function AddPatient() {
                                                 </select>
                                                 <input
                                                     type="tel"
+                                                    placeholder="(xxx) xxx-xxxx"
                                                     value={contact.cellPhone}
-                                                    onChange={(e) => handleArrayChange("contactInfo.additionalContacts", index, "cellPhone", e.target.value)}
+                                                    onChange={(e) => handleArrayChange("contactInfo.additionalContacts", index, "cellPhone", formatUSPhone(e.target.value))}
+                                                    maxLength={14}
                                                     className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                                 />
                                             </div>
@@ -1114,8 +1115,10 @@ export default function AddPatient() {
                                             </select>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.contactInfo.emergencyContact.cellPhone}
-                                                onChange={(e) => handleNestedChange("contactInfo", "emergencyContact", "cellPhone", e.target.value)}
+                                                onChange={(e) => handleNestedChange("contactInfo", "emergencyContact", "cellPhone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                                 required
                                             />
@@ -1335,8 +1338,10 @@ export default function AddPatient() {
                                         </select>
                                         <input
                                             type="tel"
+                                            placeholder="(xxx) xxx-xxxx"
                                             value={formData.employerInfo.workPhone}
-                                            onChange={(e) => handleChange("employerInfo", "workPhone", e.target.value)}
+                                            onChange={(e) => handleChange("employerInfo", "workPhone", formatUSPhone(e.target.value))}
+                                            maxLength={14}
                                             className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                         />
                                     </div>
@@ -1349,8 +1354,10 @@ export default function AddPatient() {
                                         </select>
                                         <input
                                             type="tel"
+                                            placeholder="(xxx) xxx-xxxx"
                                             value={formData.employerInfo.cellPhone}
-                                            onChange={(e) => handleChange("employerInfo", "cellPhone", e.target.value)}
+                                            onChange={(e) => handleChange("employerInfo", "cellPhone", formatUSPhone(e.target.value))}
+                                            maxLength={14}
                                             className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                         />
                                     </div>
@@ -1492,8 +1499,10 @@ export default function AddPatient() {
                                             </select>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.primary.phone}
-                                                onChange={(e) => handleNestedChange("insurance", "primary", "phone", e.target.value)}
+                                                onChange={(e) => handleNestedChange("insurance", "primary", "phone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -1661,8 +1670,10 @@ export default function AddPatient() {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.primary.guarantor.phone}
-                                                onChange={(e) => handleDeepNestedChange("insurance", "primary", "guarantor", "phone", e.target.value)}
+                                                onChange={(e) => handleDeepNestedChange("insurance", "primary", "guarantor", "phone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -1681,8 +1692,10 @@ export default function AddPatient() {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Cell Phone</label>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.primary.guarantor.cell}
-                                                onChange={(e) => handleDeepNestedChange("insurance", "primary", "guarantor", "cell", e.target.value)}
+                                                onChange={(e) => handleDeepNestedChange("insurance", "primary", "guarantor", "cell", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -1843,8 +1856,10 @@ export default function AddPatient() {
                                             </select>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.secondary.phone}
-                                                onChange={(e) => handleNestedChange("insurance", "secondary", "phone", e.target.value)}
+                                                onChange={(e) => handleNestedChange("insurance", "secondary", "phone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -1975,8 +1990,10 @@ export default function AddPatient() {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.secondary.guarantor.phone}
-                                                onChange={(e) => handleDeepNestedChange("insurance", "secondary", "guarantor", "phone", e.target.value)}
+                                                onChange={(e) => handleDeepNestedChange("insurance", "secondary", "guarantor", "phone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -1995,8 +2012,10 @@ export default function AddPatient() {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Cell Phone</label>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.secondary.guarantor.cell}
-                                                onChange={(e) => handleDeepNestedChange("insurance", "secondary", "guarantor", "cell", e.target.value)}
+                                                onChange={(e) => handleDeepNestedChange("insurance", "secondary", "guarantor", "cell", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -2108,8 +2127,10 @@ export default function AddPatient() {
                                             </select>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.tertiary.phone}
-                                                onChange={(e) => handleNestedChange("insurance", "tertiary", "phone", e.target.value)}
+                                                onChange={(e) => handleNestedChange("insurance", "tertiary", "phone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -2240,8 +2261,10 @@ export default function AddPatient() {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.tertiary.guarantor.phone}
-                                                onChange={(e) => handleDeepNestedChange("insurance", "tertiary", "guarantor", "phone", e.target.value)}
+                                                onChange={(e) => handleDeepNestedChange("insurance", "tertiary", "guarantor", "phone", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>
@@ -2260,8 +2283,10 @@ export default function AddPatient() {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Cell Phone</label>
                                             <input
                                                 type="tel"
+                                                placeholder="(xxx) xxx-xxxx"
                                                 value={formData.insurance.tertiary.guarantor.cell}
-                                                onChange={(e) => handleDeepNestedChange("insurance", "tertiary", "guarantor", "cell", e.target.value)}
+                                                onChange={(e) => handleDeepNestedChange("insurance", "tertiary", "guarantor", "cell", formatUSPhone(e.target.value))}
+                                                maxLength={14}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                             />
                                         </div>

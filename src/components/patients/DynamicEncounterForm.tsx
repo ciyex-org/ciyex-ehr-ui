@@ -15,6 +15,21 @@ import { usePluginEventBus } from "@/context/PluginEventBus";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
+/** Flatten nested objects into dot-notation keys so formData["ros.constitutional"] works */
+function flattenObject(obj: Record<string, any>, prefix = "", result: Record<string, any> = {}): Record<string, any> {
+  for (const [key, value] of Object.entries(obj)) {
+    const fullKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === "object" && !Array.isArray(value) && !(value instanceof Date)) {
+      // Keep the nested object too (some renderers need it)
+      result[fullKey] = value;
+      flattenObject(value, fullKey, result);
+    } else {
+      result[fullKey] = value;
+    }
+  }
+  return result;
+}
+
 type EncounterStatus = "SIGNED" | "UNSIGNED" | "INCOMPLETE";
 
 interface DynamicEncounterFormProps {
@@ -163,7 +178,10 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
           }
           if (existing) {
             setCompositionId(existing.id || existing.fhirId || null);
-            autoSave.setFormData(existing);
+            // Flatten nested objects so dot-notation field keys (e.g. "ros.constitutional") resolve correctly
+            const flattened = flattenObject(existing);
+            // Preserve top-level keys as well (merge so both nested and flat access works)
+            autoSave.setFormData({ ...existing, ...flattened });
           }
         }
       } catch (err) {

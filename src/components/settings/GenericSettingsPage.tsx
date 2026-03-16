@@ -10,7 +10,7 @@ import {
     Plus, Pencil, Trash2, X, Save, Loader2, Search,
     ChevronLeft, ChevronRight, LayoutGrid,
 } from "lucide-react";
-import { isValidEmail, isValidPhone, isValidFax, isValidUrl } from "@/utils/validation";
+import { isValidEmail, isValidPhone, isValidUSPhone, isValidFax, isValidUrl, formatUSPhone } from "@/utils/validation";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -477,7 +477,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                         // Email
                         if ((field.type === "email" || keySeg === "email" || keySeg.includes("email")) && !isValidEmail(val)) errors[field.key] = "Invalid email format";
                         // Phone
-                        if ((field.type === "phone" || keySeg === "phone" || keySeg === "phonenumber" || keySeg === "mobilenumber" || keySeg === "contactphone" || keySeg === "workphone" || labelLower.includes("phone")) && !isValidPhone(val)) errors[field.key] = "Invalid phone number (digits, spaces, dashes, parentheses only)";
+                        if ((field.type === "phone" || keySeg === "phone" || keySeg === "phonenumber" || keySeg === "mobilenumber" || keySeg === "contactphone" || keySeg === "workphone" || labelLower.includes("phone")) && !isValidUSPhone(val)) errors[field.key] = "Enter a valid 10-digit US phone number";
                         // Fax
                         if ((keySeg === "fax" || keySeg === "faxnumber" || keyLower.includes("fax")) && !isValidFax(val)) errors[field.key] = "Invalid fax number";
                         // URL

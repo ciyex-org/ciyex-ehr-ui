@@ -13,6 +13,7 @@ import FileInput from "@/components/form/input/FileInput";
 import { ChevronDown, ChevronRight, Upload, FileText, X as XIcon } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { formatUSPhone } from "@/utils/validation";
 import ProviderAvailabilityEditor from "@/components/settings/ProviderAvailabilityEditor";
 import SystemAccessEditor from "@/components/settings/SystemAccessEditor";
 
@@ -1988,14 +1989,24 @@ export default function DynamicFormRenderer({
     switch (field.type) {
       case "text":
       case "email":
-      case "phone":
         return (
           <Input
-            type={field.type === "phone" ? "tel" : field.type}
+            type={field.type}
             value={value || ""}
             placeholder={field.placeholder}
             onChange={(e) => onChange(field.key, e.target.value)}
             error={!!error}
+          />
+        );
+      case "phone":
+        return (
+          <Input
+            type="tel"
+            value={value || ""}
+            placeholder={field.placeholder || "(xxx) xxx-xxxx"}
+            onChange={(e) => onChange(field.key, formatUSPhone(e.target.value))}
+            error={!!error}
+            maxLength={14}
           />
         );
 
