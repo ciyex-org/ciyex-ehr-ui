@@ -63,13 +63,13 @@ interface StatusOption {
 }
 
 const FALLBACK_STATUS_OPTIONS: StatusOption[] = [
-  { value: 'Scheduled',    label: 'Scheduled' },
-  { value: 'Confirmed',    label: 'Confirmed' },
-  { value: 'Checked-in',  label: 'Checked-in' },
-  { value: 'Completed',   label: 'Completed' },
-  { value: 'Re-Scheduled', label: 'Re-Scheduled' },
-  { value: 'No Show',     label: 'No Show' },
-  { value: 'Cancelled',   label: 'Cancelled' },
+  { value: 'Scheduled',    label: 'Scheduled',    color: '#3b82f6', order: 1, nextStatus: 'Confirmed' },
+  { value: 'Confirmed',    label: 'Confirmed',    color: '#8b5cf6', order: 2, nextStatus: 'Checked-in' },
+  { value: 'Checked-in',  label: 'Checked-in',   color: '#f59e0b', order: 3, nextStatus: 'Completed', triggersEncounter: true },
+  { value: 'Completed',   label: 'Completed',    color: '#10b981', order: 4, terminal: true },
+  { value: 'Re-Scheduled', label: 'Re-Scheduled', color: '#06b6d4', order: 5 },
+  { value: 'No Show',     label: 'No Show',      color: '#ef4444', order: 6, terminal: true },
+  { value: 'Cancelled',   label: 'Cancelled',    color: '#6b7280', order: 7, terminal: true },
 ];
 
 interface Provider { id: number; name: string; }
@@ -540,10 +540,14 @@ export default function AppointmentPage() {
     setCurrentPage(1);
   };
 
-  // Status option lookup
+  // Status option lookup — case-insensitive and normalizes underscores/hyphens
   const getStatusOption = useCallback(
-    (value: string): StatusOption | undefined =>
-      statusOptions.find((o) => o.value === value),
+    (value: string): StatusOption | undefined => {
+      if (!value) return undefined;
+      const normalize = (v: string) => v.toLowerCase().replace(/[_\s]+/g, "-");
+      const norm = normalize(value);
+      return statusOptions.find((o) => normalize(o.value) === norm);
+    },
     [statusOptions]
   );
 
@@ -664,6 +668,7 @@ export default function AppointmentPage() {
     const fromTime = from ? timeFromMMDDYYYY(from, -Infinity) : -Infinity;
     const toTime = to ? timeFromMMDDYYYY(to, Infinity, true) : Infinity;
 
+    const normalize = (v: string) => (v || "").toLowerCase().replace(/[_\s]+/g, "-");
     return rows.filter((r) => {
       const d = new Date(r.appointmentStartDate?.includes("T") ? r.appointmentStartDate : r.appointmentStartDate + "T00:00:00").getTime();
       const matchDate = d >= fromTime && d <= toTime;
@@ -672,12 +677,14 @@ export default function AppointmentPage() {
       const matchCategory = category === "All Visit Categories" || visitTypeStr === category;
       const matchLocation = location === "All Locations" || String(r.locationId) === String(location);
       const matchPatient = !patientName || (r.patientName || "").toLowerCase().includes(patientName.trim().toLowerCase());
+      // Client-side status filter (fallback for when API doesn't filter server-side)
+      const matchStatus = statusFilter === "All" || normalize(r.status) === normalize(statusFilter);
       // Hide completed/terminal statuses when toggle is on
       const matchCompleted = !hideCompleted || (() => {
-        const opt = statusOptions.find((o) => o.value === r.status);
+        const opt = statusOptions.find((o) => normalize(o.value) === normalize(r.status));
         return !opt?.terminal;
       })();
-      return matchDate && matchProvider && matchCategory && matchLocation && matchPatient && matchCompleted;
+      return matchDate && matchProvider && matchCategory && matchLocation && matchPatient && matchStatus && matchCompleted;
     }).sort((a, b) => {
       // Sort by date first, then by time
       const dateA = new Date(a.appointmentStartDate?.includes("T") ? a.appointmentStartDate : a.appointmentStartDate + "T00:00:00").getTime();
@@ -688,7 +695,7 @@ export default function AppointmentPage() {
       const timeB = (b.appointmentStartTime || "").replace(":", "");
       return timeA.localeCompare(timeB);
     });
-  }, [rows, from, to, provider, category, location, patientName, hideCompleted, statusOptions]);
+  }, [rows, from, to, provider, category, location, patientName, hideCompleted, statusOptions, statusFilter]);
 
   const colCount = 9;
   const total = filtered.length;
