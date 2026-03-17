@@ -116,7 +116,7 @@ interface FhirAppointment {
     description?: string;
     patient?: string; // "Patient/123"
     provider?: string; // "Practitioner/456"
-    location?: string; // "Location/789"
+    location?: string | Record<string, unknown>; // "Location/789" or { reference: "Location/789" }
     patientName?: string;
     patientDisplay?: string;
     providerDisplay?: string;
@@ -175,8 +175,14 @@ type Schedule = {
 };
 
 /* Helper to extract ID from FHIR reference strings like "Patient/123" */
-const extractIdFromRef = (ref: string | undefined | null): string => {
+const extractIdFromRef = (ref: string | Record<string, unknown> | undefined | null): string => {
     if (!ref) return '';
+    // Handle FHIR reference object: { reference: "Location/123" }
+    if (typeof ref === 'object') {
+        const r = (ref as Record<string, unknown>).reference;
+        if (typeof r === 'string') return r.includes('/') ? r.split('/').pop() || '' : r;
+        return '';
+    }
     return ref.includes('/') ? ref.split('/').pop() || '' : ref;
 };
 
@@ -889,7 +895,24 @@ const Calendar: React.FC = () => {
                     const events: CalendarEvent[] = (json.data.content as FhirAppointment[]).map((a) => {
                         const patientId = extractIdFromRef(a.patient) || String(a.patientId || '');
                         const providerId = extractIdFromRef(a.provider) || String(a.providerId || a.practitionerId || '');
-                        const locationId = extractIdFromRef(a.location) || String(a.locationId || '');
+                        const locationId = (() => {
+                            // Try flat location field (string or FHIR ref object)
+                            const fromLocation = extractIdFromRef(a.location as string | Record<string, unknown>);
+                            if (fromLocation) return fromLocation;
+                            // Try plain locationId field
+                            if (a.locationId) return String(a.locationId);
+                            // Try FHIR participant[] array for Location actor
+                            const parts = (a as any).participant;
+                            if (Array.isArray(parts)) {
+                                for (const p of parts) {
+                                    const ref: string = p?.actor?.reference || p?.actor || '';
+                                    if (typeof ref === 'string' && ref.startsWith('Location/')) {
+                                        return ref.split('/').pop() || '';
+                                    }
+                                }
+                            }
+                            return '';
+                        })();
 
                         // Parse ISO start/end into local date strings
                         const startDt = a.start ? new Date(a.start) : null;
@@ -1303,22 +1326,24 @@ const Calendar: React.FC = () => {
             return;
         }
 
-        // Check provider schedule using cached schedules
-        const providerScheds = allSchedules.filter(
-            (s) => Number(s.providerId) === Number(appointmentProviderId)
-        );
-        const covers = providerScheds.some(s =>
-            hasOccurrenceCoveringSlot(s, combinedStart, combinedEnd)
-        );
+        // For new appointments only: check provider schedule
+        if (!selectedEvent) {
+            const providerScheds = allSchedules.filter(
+                (s) => Number(s.providerId) === Number(appointmentProviderId)
+            );
+            const covers = providerScheds.some(s =>
+                hasOccurrenceCoveringSlot(s, combinedStart, combinedEnd)
+            );
 
-        if (!covers) {
-            setAlertData({
-                variant: "error",
-                title: "No Schedule Found",
-                message: "This provider has no schedule for the selected time. Please add the schedule first.",
-            });
-            setIsSaving(false);
-            return;
+            if (!covers) {
+                setAlertData({
+                    variant: "error",
+                    title: "No Schedule Found",
+                    message: "This provider has no schedule for the selected time. Please add the schedule first.",
+                });
+                setIsSaving(false);
+                return;
+            }
         }
 
         if (!appointmentLocationId) {
