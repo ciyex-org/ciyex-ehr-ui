@@ -118,8 +118,21 @@ const toISODateFromMMDDYYYY = (val: string): string => {
     return "";
 };
 
-// join yyyy-mm-dd + HH:mm into local string
+/// join yyyy-mm-dd + HH:mm into local string
 const combineLocal = (ymd: string, hm: string) => (ymd && hm ? `${ymd}T${hm}` : "");
+
+// Format local datetime string as ISO with timezone offset (e.g. "2026-03-17T10:00:00+05:30")
+// Prevents backend from misinterpreting local time as UTC
+const toLocalISOWithOffset = (localDT: string): string => {
+    const d = new Date(`${localDT}:00`);
+    const off = -d.getTimezoneOffset();
+    const sign = off >= 0 ? '+' : '-';
+    const absOff = Math.abs(off);
+    const hh = String(Math.floor(absOff / 60)).padStart(2, '0');
+    const mm = String(absOff % 60).padStart(2, '0');
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}${sign}${hh}:${mm}`;
+};
 
 const addMinutes = (hm: string, mins: number): string => {
     const [h, m] = hm.split(":").map(Number);
@@ -566,8 +579,8 @@ const AppointmentModal: React.FC = () => {
             },
             status,
             priority,
-            start: combinedStart ? `${combinedStart}:00` : null,
-            end: combinedEnd ? `${combinedEnd}:00` : null,
+            start: combinedStart ? toLocalISOWithOffset(combinedStart) : null,
+            end: combinedEnd ? toLocalISOWithOffset(combinedEnd) : null,
             reason: notes || null,
             patient: `Patient/${selectedPatientId}`,
             provider: `Practitioner/${providerId}`,

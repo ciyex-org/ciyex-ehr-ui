@@ -298,6 +298,20 @@ const timeInput = (d: Date) => {
 // join yyyy-mm-dd + HH:mm into local string
 const combineLocal = (ymd: string, hm: string) => (ymd && hm ? `${ymd}T${hm}` : '');
 
+// Format a local datetime string ("yyyy-mm-ddTHH:mm") as ISO with local timezone offset
+// e.g. "2026-03-17T10:00" in IST → "2026-03-17T10:00:00+05:30"
+// This tells the backend the exact intended local time, preventing UTC misinterpretation.
+const toLocalISOWithOffset = (localDT: string): string => {
+    const d = new Date(`${localDT}:00`);
+    const off = -d.getTimezoneOffset(); // minutes ahead of UTC
+    const sign = off >= 0 ? '+' : '-';
+    const absOff = Math.abs(off);
+    const hh = String(Math.floor(absOff / 60)).padStart(2, '0');
+    const mm = String(absOff % 60).padStart(2, '0');
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}${sign}${hh}:${mm}`;
+};
+
 // Days between YYYY-MM-DD strings
 const daysBetween = (aYmd: string, bYmd: string) => {
     const a = new Date(`${aYmd}T00:00:00`);
@@ -1368,8 +1382,8 @@ const Calendar: React.FC = () => {
             appointmentType: visitType,
             status: appointmentStatus,
             priority: appointmentPriority,
-            start: combinedStart ? `${combinedStart}:00` : null,
-            end: combinedEnd ? `${combinedEnd}:00` : null,
+            start: combinedStart ? toLocalISOWithOffset(combinedStart) : null,
+            end: combinedEnd ? toLocalISOWithOffset(combinedEnd) : null,
             reason: appointmentNotes || null,
             patient: selectedPatientId ? `Patient/${selectedPatientId}` : null,
             provider: `Practitioner/${appointmentProviderId}`,
