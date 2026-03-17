@@ -571,10 +571,12 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
   }, [report.key]);
 
   // Detect dynamic filters from table data (or from column definitions when no data)
+  // Exclude columns that already have an API-sourced select filter to avoid duplicates
+  const apiFilterKeys = useMemo(() => new Set(selectFilters.map(f => f.key)), [selectFilters]);
   const dynamicFilters = useMemo(() => {
     if (!result) return [];
-    return detectDynamicFilters(report.columns, result.tableData);
-  }, [result, report.columns]);
+    return detectDynamicFilters(report.columns, result.tableData).filter(f => !apiFilterKeys.has(f.key));
+  }, [result, report.columns, apiFilterKeys]);
 
   // Apply data filters to table data
   const filteredTableData = useMemo(() => {

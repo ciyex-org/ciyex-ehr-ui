@@ -443,17 +443,14 @@ export default function PriorAuthorizationsPage() {
     // Refresh patient name from live data in case it was updated since auth was created
     if (auth.patientId) {
       try {
-        const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(auth.patientId)}&size=5`);
+        const res = await fetchWithAuth(`${base()}/api/patients/${auth.patientId}`);
         if (res.ok) {
           const json = await res.json();
-          const list = extractList(json);
-          const match = list.find((p: any) => String(p.id) === String(auth.patientId));
-          if (match) {
-            const currentName = getPatientDisplayName(match);
-            if (currentName && currentName !== auth.patientName) {
-              setPatientQuery(currentName);
-              setFormData(prev => ({ ...prev, patientName: currentName }));
-            }
+          const patient = json?.data || json;
+          const currentName = patient.fullName || patient.name || `${patient.firstName ?? patient.identification?.firstName ?? ""} ${patient.lastName ?? patient.identification?.lastName ?? ""}`.trim();
+          if (currentName && currentName !== auth.patientName) {
+            setPatientQuery(currentName);
+            setFormData(prev => ({ ...prev, patientName: currentName }));
           }
         }
       } catch { /* use stored name as fallback */ }
