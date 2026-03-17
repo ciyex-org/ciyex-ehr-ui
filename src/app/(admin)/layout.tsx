@@ -81,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${mainContentMargin}`}>
                     <AppHeader pageTitle={pageTitle} />
                     <div className="flex-1 overflow-y-auto min-h-0 p-4 md:p-6">
-                        <div key={pathname} className="transition-colors duration-300">
+                        <div key={pathname} className="transition-colors duration-300 h-full">
                             <PermissionGuard>
                                 {children}
                             </PermissionGuard>
