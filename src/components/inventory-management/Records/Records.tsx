@@ -7,7 +7,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 const API = getEnv("NEXT_PUBLIC_API_URL")!;
 
-type Item = { id: number; name: string; category: string; stock?: number; stockOnHand?: number; quantity?: number; currentStock?: number; stockQuantity?: number; unit: string };
+type Item = { id: number; name: string; category?: string; categoryName?: string; stock?: number; stockOnHand?: number; quantity?: number; currentStock?: number; stockQuantity?: number; unit: string };
 type Adjustment = {
   id: number; itemId: number; itemName: string; quantityChange: number;
   reasonCode: string; notes: string; adjustedBy: string;
@@ -120,9 +120,9 @@ export default function Records() {
                       selectedItem?.id === item.id ? "bg-indigo-50 dark:bg-indigo-900/20" : ""}`}>
                     <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{item.name}</div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{item.category}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{item.categoryName || item.category || "—"}</span>
                       <span className="text-xs text-slate-400 dark:text-slate-500">|</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{item.stockOnHand ?? item.stock ?? item.quantity ?? item.currentStock ?? item.stockQuantity ?? 0} {item.unit}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{String(item.stockOnHand ?? item.stock ?? item.quantity ?? item.currentStock ?? item.stockQuantity ?? 0)} {item.unit}</span>
                     </div>
                   </button>
                 ))
@@ -142,7 +142,12 @@ export default function Records() {
               {/* Item header */}
               <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{selectedItem.name}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{selectedItem.category} &middot; Stock: {selectedItem.stockOnHand ?? selectedItem.stock ?? selectedItem.quantity ?? selectedItem.currentStock ?? selectedItem.stockQuantity ?? 0} {selectedItem.unit}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {selectedItem.categoryName || selectedItem.category || "—"} &middot; Stock:{" "}
+                  <span className="font-medium text-slate-700 dark:text-slate-200">
+                    {String(selectedItem.stockOnHand ?? selectedItem.stock ?? selectedItem.quantity ?? selectedItem.currentStock ?? selectedItem.stockQuantity ?? 0)}
+                  </span>{" "}{selectedItem.unit}
+                </p>
               </div>
 
               {/* Sub-tabs */}
