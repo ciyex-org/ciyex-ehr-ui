@@ -1050,6 +1050,15 @@ const Calendar: React.FC = () => {
             return;
         }
 
+        // If a provider is already selected (e.g. clicked from calendar column),
+        // always show all providers so the pre-selected one stays visible.
+        // Location-based filtering should never override an already-chosen provider.
+        if (appointmentProviderId) {
+            setProvidersForDate(providers.filter(p => p.value !== "all"));
+            setLoadingProvidersForDate(false);
+            return;
+        }
+
         setLoadingProvidersForDate(true);
         const effectiveLocation =
             appointmentLocationId || (selectedLocations.length === 1 ? selectedLocations[0] : "all");
@@ -1138,11 +1147,6 @@ const Calendar: React.FC = () => {
             setAppointmentLocationId(selectedLocations[0]);
         }
     }, [appointmentProviderId, combinedStart, combinedEnd, locations, allSchedules, appointmentLocationId, selectedLocations]);
-
-    // Clear modal location whenever provider changes
-    useEffect(() => {
-        setAppointmentLocationId('');
-    }, [appointmentProviderId]);
 
     // Patient search (debounced)
     useEffect(() => {
