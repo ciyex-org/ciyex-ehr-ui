@@ -99,8 +99,9 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
         for (let i = 0; i < section.fields.length; i++) {
             const f = section.fields[i];
             const keyLower = f.key.toLowerCase();
-            // Referral provider settings: organization field → searchable lookup against org API
-            if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName" || f.key === "practice" || f.key === "practiceName" || f.key === "organizationDisplay" || /organ|affil|practice/i.test(f.key) || /organ|affil|practice/i.test(f.label || ""))) {
+            // Referral PROVIDER settings only: organization/affiliation field → lookup against referral-practices
+            // NOTE: do NOT apply this to referral-PRACTICES pages (those fields are the practice's own name)
+            if (/referral-provider/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName" || /organ|affil/i.test(f.key) || /organ|affil/i.test(f.label || ""))) {
                 const patchedField: any = {
                     ...f,
                     type: "lookup" as const,
@@ -108,7 +109,7 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                     disabled: false,
                     editable: true,
                     lookupConfig: {
-                        endpoint: "/api/fhir-resource/organization",
+                        endpoint: "/api/fhir-resource/referral-practices",
                         displayField: "name",
                         valueField: "name",
                         searchable: true,
@@ -173,8 +174,9 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                 } as any;
             }
         }
-        // Referral providers: add organization field if it doesn't exist
-        if (/referral/i.test(pageKey)) {
+        // Referral PROVIDERS only: add organization lookup field if it doesn't exist
+        // (referral-practices pages should NOT get this injected — they ARE the organization)
+        if (/referral-provider/i.test(pageKey)) {
             const hasOrgField = section.fields.some(f => f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName");
             if (!hasOrgField && section.fields.some(f => f.key === "firstName" || f.key === "name" || f.key === "lastName" || f.key === "npi")) {
                 section.fields.push({
@@ -183,14 +185,16 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                     type: "lookup" as any,
                     required: false,
                     lookupConfig: {
-                        endpoint: "/api/fhir-resource/organization",
+                        endpoint: "/api/fhir-resource/referral-practices",
                         displayField: "name",
                         valueField: "name",
                         searchable: true,
                     },
                 } as any);
             }
-            // Add specialty field if missing entirely
+        }
+        // Add specialty field if missing — applies to both referral-providers and referral-practices
+        if (/referral/i.test(pageKey)) {
             const hasSpecialtyField = section.fields.some(f => ["specialty", "speciality", "specialization"].includes(f.key.toLowerCase()));
             if (!hasSpecialtyField && section.fields.some(f => f.key === "firstName" || f.key === "name" || f.key === "lastName" || f.key === "npi")) {
                 section.fields.push({
