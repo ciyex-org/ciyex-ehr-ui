@@ -180,10 +180,9 @@ export default function CarePlansPage() {
   // Refresh a single plan (after inline goal/intervention edits)
   async function refreshPlan(planId: string) {
     try {
-      const [planRes, intRes, goalRes] = await Promise.all([
+      const [planRes, intRes] = await Promise.all([
         fetchWithAuth(apiUrl(`/api/care-plans/${planId}`)),
         fetchWithAuth(apiUrl(`/api/care-plans/${planId}/interventions`)),
-        fetchWithAuth(apiUrl(`/api/care-plans/${planId}/goals`)),
       ]);
       const planJson = await planRes.json();
       if (!planJson.success) return;
@@ -195,13 +194,6 @@ export default function CarePlansPage() {
           ? (Array.isArray(intJson.data) ? intJson.data : intJson.data?.content ?? [])
           : [];
       } catch { plan.interventions = []; }
-
-      try {
-        const goalJson = await goalRes.json();
-        plan.goals = goalJson.success
-          ? (Array.isArray(goalJson.data) ? goalJson.data : goalJson.data?.content ?? [])
-          : [];
-      } catch { plan.goals = []; }
 
       setPlans((prev) => prev.map((p) => (p.id === planId ? plan : p)));
     } catch {
