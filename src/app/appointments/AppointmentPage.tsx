@@ -89,24 +89,40 @@ const pad = (n: number) => n.toString().padStart(2, "0");
  *  happens when appointments are saved via the FHIR endpoint. */
 function normalizeApptTimes(appt: AppointmentDTO): AppointmentDTO {
   const raw = appt as Record<string, unknown>;
-  let startDate = appt.appointmentStartDate || (raw.start as string) || '';
-  let endDate   = appt.appointmentEndDate   || (raw.end   as string) || '';
+  const rawStart = (raw.start as string) || '';
+  const rawEnd   = (raw.end   as string) || '';
+  let startDate = appt.appointmentStartDate || rawStart || '';
+  let endDate   = appt.appointmentEndDate   || rawEnd   || '';
   let startTime = appt.appointmentStartTime || '';
   let endTime   = appt.appointmentEndTime   || '';
 
+  // If we have a full ISO datetime (with T), extract local date and time from it
   if (startDate.includes('T')) {
     const d = new Date(startDate);
     if (!isNaN(d.getTime())) {
-      // Always extract local time from ISO datetime — ensures correct local timezone
       startTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
       startDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     }
+  } else if (!startTime && rawStart.includes('T')) {
+    // appointmentStartDate is date-only but time is missing — try raw FHIR start field
+    const d = new Date(rawStart);
+    if (!isNaN(d.getTime())) {
+      startTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      startDate = startDate || `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
   }
+
   if (endDate.includes('T')) {
     const d = new Date(endDate);
     if (!isNaN(d.getTime())) {
       endTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
       endDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+  } else if (!endTime && rawEnd.includes('T')) {
+    const d = new Date(rawEnd);
+    if (!isNaN(d.getTime())) {
+      endTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      endDate = endDate || `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     }
   }
 
