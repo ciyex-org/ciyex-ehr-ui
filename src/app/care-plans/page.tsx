@@ -71,7 +71,25 @@ export default function CarePlansPage() {
         const json = await res.json();
         if (json.success) {
           const pd: PageData = json.data;
-          setPlans(pd.content);
+          const planList = pd.content;
+          // Fetch interventions for each plan so they display in the UI
+          const plansWithInterventions = await Promise.all(
+            planList.map(async (plan: CarePlan) => {
+              try {
+                const intRes = await fetchWithAuth(
+                  `${getEnv("NEXT_PUBLIC_API_URL")}/api/care-plans/${plan.id}/interventions`
+                );
+                const intJson = await intRes.json();
+                plan.interventions = intJson.success
+                  ? (Array.isArray(intJson.data) ? intJson.data : intJson.data?.content ?? [])
+                  : plan.interventions || [];
+              } catch {
+                plan.interventions = plan.interventions || [];
+              }
+              return plan;
+            })
+          );
+          setPlans(plansWithInterventions);
           setTotalPages(pd.totalPages);
           setTotalElements(pd.totalElements);
         }

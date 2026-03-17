@@ -259,7 +259,15 @@ export default function PriorAuthorizationsPage() {
         const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(patientQuery)}&size=20`);
         if (!res.ok) { console.warn("Patient search failed:", res.status); return; }
         const json = await res.json();
-        const list = extractList(json);
+        let list = extractList(json);
+        // Filter to only patients whose name matches the query (case-insensitive)
+        const q = patientQuery.toLowerCase();
+        list = list.filter((p: any) => {
+          const fn = p.firstName ?? p.identification?.firstName ?? "";
+          const ln = p.lastName ?? p.identification?.lastName ?? "";
+          const full = p.fullName || p.name || `${fn} ${ln}`.trim();
+          return full.toLowerCase().includes(q);
+        });
         setPatientResults(list);
         setShowPatientDropdown(true);
       } catch (err) { console.warn("Patient search error:", err); }
@@ -331,8 +339,11 @@ export default function PriorAuthorizationsPage() {
     });
   }, [procedureQuery]);
 
-  const getPatientDisplayName = (p: typeof patientResults[0]) =>
-    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+  const getPatientDisplayName = (p: typeof patientResults[0] & { identification?: { firstName?: string; lastName?: string } }) => {
+    const fn = p.firstName ?? p.identification?.firstName ?? "";
+    const ln = p.lastName ?? p.identification?.lastName ?? "";
+    return p.fullName || p.name || `${fn} ${ln}`.trim() || String(p.id);
+  };
 
   const getProviderDisplayName = (p: typeof providerResults[0]) => {
     if (p.name) return p.name;

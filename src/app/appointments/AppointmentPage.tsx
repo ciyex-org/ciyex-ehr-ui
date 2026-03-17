@@ -555,7 +555,7 @@ export default function AppointmentPage() {
         setRows(enriched);
         setTotalPages(totalPagesVal);
         setTotalItems(totalElementsVal);
-        setHasNextPage(payload.hasNext === true);
+        setHasNextPage(payload.hasNext === true || (currentPage < totalPagesVal));
       } else {
         setRows([]);
         setTotalPages(1);
@@ -758,7 +758,7 @@ export default function AppointmentPage() {
   const colCount = 9;
   const total = filtered.length;
   const handlePrevious = () => setCurrentPage(p => Math.max(1, p - 1));
-  const handleNext = () => setCurrentPage(p => p + 1);
+  const handleNext = () => setCurrentPage(p => Math.min(totalPages, p + 1));
 
   const handleVideoCall = (appointment: AppointmentDTO) => {
     setSelectedAppointmentForVideo(appointment);

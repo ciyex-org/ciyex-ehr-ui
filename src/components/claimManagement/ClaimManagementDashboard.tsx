@@ -85,7 +85,7 @@ const ClaimManagementDashboard: React.FC = () => {
         payerName: item.payerName || item.payer || item.insurer || item.insurerName || item.insuranceCompany || "—",
         provider: item.provider || item.providerName || item.renderingProvider || item.treatingProviderId || item.billingEntity || "—",
         diagnosisCode: item.diagnosisCode || item.diagnosis || item.icdCode || item.primaryDiagnosis || "—",
-        policyNumber: item.policyNumber || item.subscriberId || item.memberId || "—",
+        policyNumber: item.policyNumber || item.subscriberId || item.memberId || item.insuranceMemberId || item.memberNumber || item.policyId || item.groupNumber || item.insuranceId || "—",
         planName: item.planName || item.plan || item.insurancePlan || "—",
         createdOn: item.createdOn || item.serviceDate || item.dateOfService || "",
       }));

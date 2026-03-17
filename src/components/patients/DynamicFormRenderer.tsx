@@ -13,7 +13,7 @@ import FileInput from "@/components/form/input/FileInput";
 import { ChevronDown, ChevronRight, Upload, FileText, X as XIcon } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
-import { formatUSPhone } from "@/utils/validation";
+import { formatUSPhone, formatSSN } from "@/utils/validation";
 import ProviderAvailabilityEditor from "@/components/settings/ProviderAvailabilityEditor";
 import SystemAccessEditor from "@/components/settings/SystemAccessEditor";
 
@@ -2054,16 +2054,20 @@ export default function DynamicFormRenderer({
   const renderInput = (field: FieldDef, value: any, error?: string) => {
     switch (field.type) {
       case "text":
-      case "email":
+      case "email": {
+        // SSN fields: auto-format to US format (XXX-XX-XXXX)
+        const isSSNField = /ssn|social.?security/i.test(field.key);
         return (
           <Input
             type={field.type}
             value={value || ""}
-            placeholder={field.placeholder}
-            onChange={(e) => onChange(field.key, e.target.value)}
+            placeholder={field.placeholder || (isSSNField ? "XXX-XX-XXXX" : undefined)}
+            onChange={(e) => onChange(field.key, isSSNField ? formatSSN(e.target.value) : e.target.value)}
             error={!!error}
+            maxLength={isSSNField ? 11 : undefined}
           />
         );
+      }
       case "phone":
         return (
           <Input

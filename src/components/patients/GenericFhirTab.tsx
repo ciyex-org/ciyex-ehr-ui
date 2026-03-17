@@ -1302,6 +1302,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         errors[key] = "SSN must be exactly 9 digits";
                     }
                 }
+                // Mobile phone is mandatory
+                for (const key of ["phoneNumber", "phone", "mobilePhone", "mobile", "cellPhone", "cell"]) {
+                    if (key in formData) {
+                        const val = formData[key];
+                        if (!val || (typeof val === "string" && !val.trim())) {
+                            errors[key] = "Mobile phone is required";
+                        }
+                    }
+                }
                 // All phone/mobile/fax fields — exactly 10 digits
                 for (const key of Object.keys(formData)) {
                     const lk = key.toLowerCase();
@@ -1340,11 +1349,18 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         errors[key] = "Pharmacy name must contain letters, not just numbers";
                     }
                 }
-                // Employer: occupation, industry, employer name — letters only (no pure numbers)
+                // Advance Directives: Healthcare Proxy / POA Name — letters only (no numbers)
+                for (const key of ["healthcareProxyName", "healthcare_proxy_name", "poaName", "poa_name", "healthcareProxy", "healthcare_proxy", "proxyName", "proxy_name"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isStringOnly(val)) {
+                        errors[key] = "Name must contain only letters, not numbers";
+                    }
+                }
+                // Employer: occupation, industry, employer name — letters only (no numbers allowed)
                 for (const key of ["occupation", "industry", "employerName", "employer_name"]) {
                     const val = formData[key];
-                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
-                        errors[key] = `${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')} must contain letters, not just numbers`;
+                    if (typeof val === "string" && val.trim() && !isStringOnly(val)) {
+                        errors[key] = `${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')} must contain only letters`;
                     }
                 }
                 // Additional Identifiers: driver license
