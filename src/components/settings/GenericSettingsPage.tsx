@@ -99,9 +99,21 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
         for (let i = 0; i < section.fields.length; i++) {
             const f = section.fields[i];
             const keyLower = f.key.toLowerCase();
-            // Referral provider settings: ensure organization field is editable (text input so users can freely type/change)
+            // Referral provider settings: organization field → searchable lookup against org API
             if (/referral/i.test(pageKey) && (f.key === "organization" || f.key === "organizationId" || f.key === "affiliation" || f.key === "organizationName" || f.key === "practice" || f.key === "practiceName" || f.key === "organizationDisplay" || /organ|affil|practice/i.test(f.key) || /organ|affil|practice/i.test(f.label || ""))) {
-                const patchedField: any = { ...f, type: "text" as const, readOnly: false, disabled: false, editable: true };
+                const patchedField: any = {
+                    ...f,
+                    type: "lookup" as const,
+                    readOnly: false,
+                    disabled: false,
+                    editable: true,
+                    lookupConfig: {
+                        endpoint: "/api/fhir-resource/organization",
+                        displayField: "name",
+                        valueField: "name",
+                        searchable: true,
+                    },
+                };
                 delete patchedField.readonly;
                 delete patchedField.isReadOnly;
                 section.fields[i] = patchedField;
@@ -168,8 +180,14 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                 section.fields.push({
                     key: "organization",
                     label: "Organization / Affiliation",
-                    type: "text",
+                    type: "lookup" as any,
                     required: false,
+                    lookupConfig: {
+                        endpoint: "/api/fhir-resource/organization",
+                        displayField: "name",
+                        valueField: "name",
+                        searchable: true,
+                    },
                 } as any);
             }
             // Add specialty field if missing entirely
