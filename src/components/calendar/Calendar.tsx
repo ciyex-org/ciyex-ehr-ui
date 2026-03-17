@@ -1356,6 +1356,14 @@ const Calendar: React.FC = () => {
             return;
         }
 
+        const participant: Record<string, unknown>[] = [
+            { actor: { reference: `Patient/${selectedPatientId}` }, required: "required", status: "accepted" },
+            { actor: { reference: `Practitioner/${appointmentProviderId}` }, required: "required", status: "accepted" },
+        ];
+        if (appointmentLocationId) {
+            participant.push({ actor: { reference: `Location/${appointmentLocationId}` }, required: "required", status: "accepted" });
+        }
+
         const dto: Record<string, unknown> = {
             appointmentType: visitType,
             status: appointmentStatus,
@@ -1365,6 +1373,7 @@ const Calendar: React.FC = () => {
             reason: appointmentNotes || null,
             patient: selectedPatientId ? `Patient/${selectedPatientId}` : null,
             provider: `Practitioner/${appointmentProviderId}`,
+            participant,
         };
         if (appointmentLocationId) dto.location = `Location/${appointmentLocationId}`;
 

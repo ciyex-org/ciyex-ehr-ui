@@ -97,18 +97,28 @@ function normalizeApptTimes(appt: AppointmentDTO): AppointmentDTO {
   if (startDate.includes('T')) {
     const d = new Date(startDate);
     if (!isNaN(d.getTime())) {
-      if (!startTime) startTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      // Always extract local time from ISO datetime — ensures correct local timezone
+      startTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
       startDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     }
   }
   if (endDate.includes('T')) {
     const d = new Date(endDate);
     if (!isNaN(d.getTime())) {
-      if (!endTime) endTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      endTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
       endDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     }
   }
-  return { ...appt, appointmentStartDate: startDate, appointmentEndDate: endDate, appointmentStartTime: startTime, appointmentEndTime: endTime };
+
+  // Extract locationId from FHIR location reference string (e.g. "Location/6735")
+  let locationId = appt.locationId;
+  const rawLoc = (raw as any).location;
+  if ((!locationId || locationId === 0) && typeof rawLoc === 'string' && rawLoc.includes('/')) {
+    const extracted = Number(rawLoc.split('/').pop());
+    if (!isNaN(extracted) && extracted > 0) locationId = extracted;
+  }
+
+  return { ...appt, appointmentStartDate: startDate, appointmentEndDate: endDate, appointmentStartTime: startTime, appointmentEndTime: endTime, locationId };
 }
 
 function todayISO(): string {
@@ -1019,7 +1029,7 @@ export default function AppointmentPage() {
 
                       {/* Location (#10) */}
                       <td className="py-1.5 px-3 text-sm">
-                        {r.locationName || (r as any).location || (r as any).locationDisplay || locations.find((l) => String(l.id) === String(r.locationId))?.name || "—"}
+                        {r.locationName || (r as any).locationDisplay || locations.find((l) => String(l.id) === String(r.locationId))?.name || "—"}
                       </td>
 
                       {/* Type */}
