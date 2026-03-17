@@ -108,7 +108,7 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                     readOnly: false,
                     disabled: false,
                     editable: true,
-                    lookupConfig: {
+                    lookupConfig: (f as any).lookupConfig?.endpoint ? (f as any).lookupConfig : {
                         endpoint: "/api/fhir-resource/referral-practices",
                         displayField: "name",
                         valueField: "name",
@@ -189,6 +189,15 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                         displayField: "name",
                         valueField: "name",
                         searchable: true,
+                    },
+                    autoFill: {
+                        "phone": "phone",
+                        "fax": "fax",
+                        "email": "email",
+                        "address.line1": "address.line1",
+                        "address.city": "address.city",
+                        "address.state": "address.state",
+                        "address.zip": "address.zip",
                     },
                 } as any);
             }
