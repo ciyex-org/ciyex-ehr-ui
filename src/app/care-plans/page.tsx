@@ -192,8 +192,10 @@ export default function CarePlansPage() {
         const intJson = await intRes.json();
         plan.interventions = intJson.success
           ? (Array.isArray(intJson.data) ? intJson.data : intJson.data?.content ?? [])
-          : [];
-      } catch { plan.interventions = []; }
+          : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
+      } catch {
+        plan.interventions = (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
+      }
 
       setPlans((prev) => prev.map((p) => (p.id === planId ? plan : p)));
     } catch {
