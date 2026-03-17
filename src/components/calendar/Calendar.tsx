@@ -503,6 +503,9 @@ const Calendar: React.FC = () => {
     const [showCreatePatient, setShowCreatePatient] = useState(false);
     const [createPatientSaving, setCreatePatientSaving] = useState(false);
     const [newPt, setNewPt] = useState({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phoneNumber: '', status: 'Active' });
+    const [newPtError, setNewPtError] = useState('');
+    const nameRegex = /^[A-Za-z\s\-'.]+$/;
+    const phoneRegex = /^\+?[\d\s\-().]{7,20}$/;
 
     // Priority / Provider / Location / Status
     const [appointmentPriority, setAppointmentPriority] = useState<Priority>('Routine');
@@ -1454,8 +1457,27 @@ const Calendar: React.FC = () => {
     };
     const handleCreatePatientAndSelect = async () => {
         if (!newPt.firstName || !newPt.lastName || !newPt.dateOfBirth || !newPt.phoneNumber || !newPt.gender) return;
+        setNewPtError('');
+        // Validate name fields (letters, spaces, hyphens, apostrophes only)
+        if (!nameRegex.test(newPt.firstName)) { setNewPtError('First name must contain only letters'); return; }
+        if (!nameRegex.test(newPt.lastName)) { setNewPtError('Last name must contain only letters'); return; }
+        // Validate phone format
+        if (!phoneRegex.test(newPt.phoneNumber)) { setNewPtError('Please enter a valid phone number'); return; }
         setCreatePatientSaving(true);
         try {
+            // Check for duplicate patient by phone number
+            const dupRes = await fetchWithAuth(`${apiUrl}/api/patients?search=${encodeURIComponent(newPt.phoneNumber)}&size=5`);
+            if (dupRes.ok) {
+                const dupJson = await dupRes.json();
+                const dupList = Array.isArray(dupJson) ? dupJson : dupJson?.data?.content || dupJson?.data || [];
+                const existing = dupList.find((p: any) => (p.phoneNumber || p.phone || '').replace(/\D/g, '') === newPt.phoneNumber.replace(/\D/g, ''));
+                if (existing) {
+                    const eName = `${existing.firstName || ''} ${existing.lastName || ''}`.trim();
+                    setNewPtError(`A patient "${eName}" already exists with this phone number. Please search for them instead.`);
+                    setCreatePatientSaving(false);
+                    return;
+                }
+            }
             const res = await fetchWithAuth(`${apiUrl}/api/patients`, {
                 method: 'POST',
                 body: JSON.stringify(newPt),
@@ -1468,13 +1490,14 @@ const Calendar: React.FC = () => {
                 setSelectedPatientName(name);
                 setShowCreatePatient(false);
                 setNewPt({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phoneNumber: '', status: 'Active' });
+                setNewPtError('');
                 setShowPatientDropdown(false);
                 setPatientQuery('');
             } else {
-                alert(json.message || 'Failed to create patient');
+                setNewPtError(json.message || 'Failed to create patient');
             }
         } catch {
-            alert('Failed to create patient');
+            setNewPtError('Failed to create patient');
         } finally {
             setCreatePatientSaving(false);
         }
@@ -2039,14 +2062,15 @@ const Calendar: React.FC = () => {
                                             <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">Create New Patient</span>
                                             <button type="button" onClick={() => setShowCreatePatient(false)} className="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
                                         </div>
+                                        {newPtError && <p className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1 mb-2">{newPtError}</p>}
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">First Name*</label>
-                                                <input type="text" value={newPt.firstName} onChange={(e) => setNewPt(p => ({ ...p, firstName: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                                <input type="text" value={newPt.firstName} onChange={(e) => { const v = e.target.value.replace(/[0-9]/g, ''); setNewPt(p => ({ ...p, firstName: v })); setNewPtError(''); }} className={`h-8 w-full rounded-md border px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100 ${newPt.firstName && !nameRegex.test(newPt.firstName) ? 'border-red-400' : 'border-gray-300'}`} />
                                             </div>
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Last Name*</label>
-                                                <input type="text" value={newPt.lastName} onChange={(e) => setNewPt(p => ({ ...p, lastName: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                                <input type="text" value={newPt.lastName} onChange={(e) => { const v = e.target.value.replace(/[0-9]/g, ''); setNewPt(p => ({ ...p, lastName: v })); setNewPtError(''); }} className={`h-8 w-full rounded-md border px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100 ${newPt.lastName && !nameRegex.test(newPt.lastName) ? 'border-red-400' : 'border-gray-300'}`} />
                                             </div>
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Date of Birth*</label>

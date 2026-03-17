@@ -1,4 +1,4 @@
-export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled" | "deferred";
+export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled" | "deferred" | "overdue";
 export type TaskPriority = "low" | "normal" | "high" | "urgent";
 export type TaskType =
   | "general"
@@ -75,6 +75,7 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   completed: "Completed",
   cancelled: "Cancelled",
   deferred: "Deferred",
+  overdue: "Overdue",
 };
 
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {

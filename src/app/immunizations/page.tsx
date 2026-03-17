@@ -465,7 +465,7 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
                 {showAdminByDropdown && adminByResults.length > 0 && (
                   <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
                     {adminByResults.map((p) => (
-                      <button key={p.id} type="button" onClick={() => { set("administeredBy", p.label); setAdminByQuery(p.label); setShowAdminByDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+                      <button key={p.id} type="button" onMouseDown={(e) => { e.preventDefault(); set("administeredBy", p.label); setAdminByQuery(p.label); setShowAdminByDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
                         {p.label}
                       </button>
                     ))}
@@ -478,7 +478,7 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
                 {showOrderProvDropdown && orderProvResults.length > 0 && (
                   <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
                     {orderProvResults.map((p) => (
-                      <button key={p.id} type="button" onClick={() => { set("orderingProvider", p.label); setOrderProvQuery(p.label); setShowOrderProvDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+                      <button key={p.id} type="button" onMouseDown={(e) => { e.preventDefault(); set("orderingProvider", p.label); setOrderProvQuery(p.label); setShowOrderProvDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
                         {p.label}
                       </button>
                     ))}
