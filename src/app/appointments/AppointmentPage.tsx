@@ -555,7 +555,7 @@ export default function AppointmentPage() {
         setRows(enriched);
         setTotalPages(totalPagesVal);
         setTotalItems(totalElementsVal);
-        setHasNextPage(payload.hasNext === true || currentPage < totalPagesVal);
+        setHasNextPage(payload.hasNext === true);
       } else {
         setRows([]);
         setTotalPages(1);
@@ -1245,7 +1245,7 @@ export default function AppointmentPage() {
               Prev
             </button>
             <div className="text-sm">Page {currentPage} of {totalPages}</div>
-            <button disabled={(!hasNextPage && currentPage >= totalPages) || loadingAppointments} onClick={handleNext}
+            <button disabled={!hasNextPage || loadingAppointments} onClick={handleNext}
               className="px-3 py-1.5 border rounded disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 text-sm">
               Next
             </button>
