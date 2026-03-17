@@ -708,7 +708,7 @@ const Calendar: React.FC = () => {
                 let opts: { value: string; label: string }[] = [];
 
                 // Try /api/locations first (consistent with Appointments page)
-                const res = await fetchWithAuth(`${apiUrl}/api/locations`);
+                const res = await fetchWithAuth(`${apiUrl}/api/locations?page=0&size=1000`);
                 if (res.ok) {
                     const json = await res.json();
                     const payload = json?.data || json;
@@ -2162,13 +2162,11 @@ const Calendar: React.FC = () => {
                                         className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                         value={appointmentLocationId}
                                         onChange={(e) => setAppointmentLocationId(e.target.value)}
-                                        disabled={!appointmentProviderId || providerLocationOptions.length === 0}
+                                        disabled={providerLocationOptions.length === 0}
                                     >
                                         <option value="">
-                                            {!appointmentProviderId
-                                                ? "Select provider first"
-                                                : providerLocationOptions.length === 0
-                                                    ? "No locations for this provider"
+                                            {providerLocationOptions.length === 0
+                                                    ? "No locations available"
                                                     : "Select a location"}
                                         </option>
                                         {providerLocationOptions.map((l) => (

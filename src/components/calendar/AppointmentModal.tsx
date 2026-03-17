@@ -365,7 +365,7 @@ const AppointmentModal: React.FC = () => {
             };
             try {
                 let list: Location[] = [];
-                const res = await fetchWithAuth(`${apiUrl}/api/locations`);
+                const res = await fetchWithAuth(`${apiUrl}/api/locations?page=0&size=1000`);
                 if (res.ok) list = await tryParse(res);
                 // Fallback: try generic FHIR facilities endpoint
                 if (list.length === 0) {
