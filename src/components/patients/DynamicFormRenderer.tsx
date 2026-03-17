@@ -1976,7 +1976,35 @@ export default function DynamicFormRenderer({
                 : value || "-"}
             </span>
           )
-        ) : (
+        ) : field.type === "date" ? (() => {
+          // For date fields, compute min/max constraints based on related date fields
+          const dateValue = typeof value === "string" && value.includes("T") ? value.split("T")[0] : (value || "");
+          const toISODate = (v: any) => {
+            if (!v) return undefined;
+            const s = typeof v === "string" ? v : String(v);
+            return s.includes("T") ? s.split("T")[0] : s;
+          };
+          // End date must be >= onset date
+          const isEndDateKey = /end.*date|^end$/i.test(field.key);
+          // Onset date must be <= end date
+          const isOnsetKey = /onset.*date|^onset$/i.test(field.key);
+          const minDate = isEndDateKey
+            ? (toISODate(formData.onsetDate) || toISODate(formData.onset) || toISODate(formData.onsetDateTime))
+            : undefined;
+          const maxDate = isOnsetKey
+            ? (toISODate(formData.endDate) || toISODate(formData.end))
+            : undefined;
+          return (
+            <Input
+              type="date"
+              value={dateValue}
+              onChange={(e) => onChange(field.key, e.target.value)}
+              error={!!error}
+              min={minDate}
+              max={maxDate}
+            />
+          );
+        })() : (
           renderInput(field, value, error)
         )}
         {!readOnly && error && <p className="text-xs text-red-500 mt-1">{error}</p>}
