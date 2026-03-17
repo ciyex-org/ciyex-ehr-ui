@@ -50,6 +50,21 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
 
   const [form, setForm] = useState<FormData>(initial);
   const [saving, setSaving] = useState(false);
+  const [providers, setProviders] = useState<{ id: number; name: string }[]>([]);
+
+  // Load active providers for intervention assignment
+  useEffect(() => {
+    fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?status=ACTIVE`)
+      .then((r) => r.json())
+      .then((json) => {
+        const list = (json?.data ?? []).map((p: any) => ({
+          id: p.id,
+          name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
+        })).filter((p: { name: string }) => p.name);
+        setProviders(list);
+      })
+      .catch(() => {});
+  }, []);
 
   // Patient search state
   const [patientQuery, setPatientQuery] = useState(initial.patientName || "");
@@ -482,9 +497,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className={labelClass}>Assigned To</label>
-                      <input
-                        type="text"
-                        placeholder="Practitioner / team"
+                      <select
                         value={int.assignedTo}
                         onChange={(e) =>
                           updateIntervention(idx, {
@@ -492,7 +505,12 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                           })
                         }
                         className={inputClass}
-                      />
+                      >
+                        <option value="">Assign to provider...</option>
+                        {providers.map((p) => (
+                          <option key={p.id} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className={labelClass}>Frequency</label>

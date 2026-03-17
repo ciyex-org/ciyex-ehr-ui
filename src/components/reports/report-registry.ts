@@ -1100,7 +1100,7 @@ const appointmentVolume: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
+    const params = new URLSearchParams({ dateFrom: from, dateTo: to, page: "0", size: "1000" });
     let all = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
     // Fallback to FHIR resource endpoint if legacy endpoint returned empty
     if (all.length === 0) {
@@ -1172,7 +1172,7 @@ const noShowAnalysis: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
+    const params = new URLSearchParams({ dateFrom: from, dateTo: to, page: "0", size: "1000" });
     let records = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
     if (records.length === 0) {
       records = await safeFetch(`${apiUrl}/api/fhir-resource/appointments?page=0&size=1000`, fetchFn);
@@ -1187,6 +1187,7 @@ const noShowAnalysis: ReportDefinition = {
       if (!a.patientName && a.patientDisplay) a.patientName = a.patientDisplay;
       if (!a.visitType && a.appointmentType) a.visitType = a.appointmentType;
     }
+    records = filterByProvider(records, filters.provider as string | undefined);
     const noShows = records.filter(a => (a.status || "").toLowerCase().includes("no") || (a.status || "").toLowerCase() === "noshow");
     const cancelled = records.filter(a => (a.status || "").toLowerCase().includes("cancel"));
     const combined = [...noShows, ...cancelled];
@@ -1299,7 +1300,7 @@ const schedulingUtilization: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const params = new URLSearchParams({ startDate: from, endDate: to, page: "0", size: "1000" });
+    const params = new URLSearchParams({ dateFrom: from, dateTo: to, page: "0", size: "1000" });
     const records = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
     const filtered = filterByProvider(records, filters.provider as string | undefined);
     // Group by provider

@@ -525,6 +525,30 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
   // Dynamic data filters (client-side, after data loads)
   const [dataFilters, setDataFilters] = useState<Record<string, string>>({});
 
+  // Load API-sourced filter options (e.g. PROVIDER_FILTER with apiSource)
+  const [apiFilterOptions, setApiFilterOptions] = useState<Record<string, { value: string; label: string }[]>>({});
+  const selectFilters = useMemo(() => report.filters.filter(f => f.type === "select" && f.apiSource), [report.filters]);
+  useEffect(() => {
+    for (const f of selectFilters) {
+      if (!f.apiSource) continue;
+      const url = `${API()}${f.apiSource}`;
+      fetchWithAuth(url).then(r => r.ok ? r.json() : null).then(json => {
+        if (!json) return;
+        const list: any[] = Array.isArray(json) ? json : json.data?.content ?? json.data ?? [];
+        const vField = f.apiMapping?.valueField || "name";
+        const lField = f.apiMapping?.labelField || "name";
+        const opts = list.map((item: any) => {
+          const raw = typeof item === "string" ? item : item;
+          const val = typeof raw === "string" ? raw : (raw.identification ? `${raw.identification.firstName || ""} ${raw.identification.lastName || ""}`.trim() : String(raw[vField] || ""));
+          const lab = typeof raw === "string" ? raw : (raw.identification ? `${raw.identification.firstName || ""} ${raw.identification.lastName || ""}`.trim() : String(raw[lField] || ""));
+          return { value: val, label: lab };
+        }).filter((o: { value: string }) => o.value);
+        setApiFilterOptions(prev => ({ ...prev, [f.key]: [{ value: "", label: `All ${f.label}s` }, ...opts] }));
+      }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [report.key]);
+
   const generate = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -754,6 +778,25 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
             </div>
           </>
         )}
+        {/* API-sourced select filters (e.g. Provider) */}
+        {selectFilters.map(f => {
+          const opts = apiFilterOptions[f.key] || f.options || [];
+          return (
+            <div key={f.key} className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-500">{f.label}</label>
+              <select
+                value={(filters[f.key] as string) || ""}
+                onChange={e => setFilters({ ...filters, [f.key]: e.target.value })}
+                className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer ${
+                  filters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
+                }`}
+                style={{ WebkitAppearance: "menulist", appearance: "auto" }}
+              >
+                {opts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          );
+        })}
         {/* Data filters inline (after data is loaded) */}
         {!loading && result && dynamicFilters.map(f => (
           <div key={f.key} className="flex flex-col gap-1" style={{ position: "relative", zIndex: 30 }}>

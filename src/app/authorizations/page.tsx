@@ -430,7 +430,7 @@ export default function PriorAuthorizationsPage() {
     setActionMenuId(null);
   }
 
-  function openEditForm(auth: PriorAuth) {
+  async function openEditForm(auth: PriorAuth) {
     setEditingAuth(auth);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = auth;
@@ -440,6 +440,24 @@ export default function PriorAuthorizationsPage() {
     setProcedureQuery(auth.procedureCode);
     setShowForm(true);
     setActionMenuId(null);
+    // Refresh patient name from live data in case it was updated since auth was created
+    if (auth.patientId) {
+      try {
+        const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(auth.patientId)}&size=5`);
+        if (res.ok) {
+          const json = await res.json();
+          const list = extractList(json);
+          const match = list.find((p: any) => String(p.id) === String(auth.patientId));
+          if (match) {
+            const currentName = getPatientDisplayName(match);
+            if (currentName && currentName !== auth.patientName) {
+              setPatientQuery(currentName);
+              setFormData(prev => ({ ...prev, patientName: currentName }));
+            }
+          }
+        }
+      } catch { /* use stored name as fallback */ }
+    }
   }
 
   function closeForm() {

@@ -356,6 +356,7 @@ export default function AppointmentPage() {
   const [pageSize, setPageSize] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Status
@@ -554,10 +555,12 @@ export default function AppointmentPage() {
         setRows(enriched);
         setTotalPages(totalPagesVal);
         setTotalItems(totalElementsVal);
+        setHasNextPage(payload.hasNext === true || currentPage < totalPagesVal);
       } else {
         setRows([]);
         setTotalPages(1);
         setTotalItems(0);
+        setHasNextPage(false);
       }
     } catch (err) {
       console.error(err);
@@ -754,8 +757,8 @@ export default function AppointmentPage() {
 
   const colCount = 9;
   const total = filtered.length;
-  const handlePrevious = () => currentPage > 1 && setCurrentPage(currentPage - 1);
-  const handleNext = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
+  const handlePrevious = () => setCurrentPage(p => Math.max(1, p - 1));
+  const handleNext = () => setCurrentPage(p => p + 1);
 
   const handleVideoCall = (appointment: AppointmentDTO) => {
     setSelectedAppointmentForVideo(appointment);
@@ -1242,7 +1245,7 @@ export default function AppointmentPage() {
               Prev
             </button>
             <div className="text-sm">Page {currentPage} of {totalPages}</div>
-            <button disabled={currentPage === totalPages || loadingAppointments} onClick={handleNext}
+            <button disabled={(!hasNextPage && currentPage >= totalPages) || loadingAppointments} onClick={handleNext}
               className="px-3 py-1.5 border rounded disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 text-sm">
               Next
             </button>
