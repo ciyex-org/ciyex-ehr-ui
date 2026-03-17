@@ -1978,11 +1978,23 @@ export default function DynamicFormRenderer({
           )
         ) : field.type === "date" ? (() => {
           // For date fields, compute min/max constraints based on related date fields
-          const dateValue = typeof value === "string" && value.includes("T") ? value.split("T")[0] : (value || "");
-          const toISODate = (v: any) => {
+          const dateValue = Array.isArray(value) && value.length >= 3
+            ? `${value[0]}-${String(value[1]).padStart(2, "0")}-${String(value[2]).padStart(2, "0")}`
+            : typeof value === "string" && value.includes("T") ? value.split("T")[0] : (value || "");
+          const toISODate = (v: any): string | undefined => {
             if (!v) return undefined;
+            // Handle Java date arrays [year, month, day, ...]
+            if (Array.isArray(v) && v.length >= 3) {
+              const [y, m, d] = v as number[];
+              return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            }
             const s = typeof v === "string" ? v : String(v);
-            return s.includes("T") ? s.split("T")[0] : s;
+            // Already YYYY-MM-DD or ISO datetime
+            if (s.includes("T")) return s.split("T")[0];
+            // Handle DD-MM-YYYY display format → convert to YYYY-MM-DD
+            const ddmmyyyy = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+            if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
+            return s;
           };
           // End date must be >= onset date
           const isEndDateKey = /end.*date|^end$/i.test(field.key);
