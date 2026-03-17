@@ -1231,6 +1231,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if (typeof reactionVal === "string" && reactionVal.trim() && /^\d+$/.test(reactionVal.trim())) {
                     errors.reaction = "Reaction must contain letters, not just numbers";
                 }
+                // End date must not be earlier than onset date
+                const onsetRaw = formData.onsetDate || formData.onset || formData.onsetDateTime;
+                const endRaw = formData.endDate || formData.end;
+                if (onsetRaw && endRaw) {
+                    const onsetDt = new Date(String(onsetRaw));
+                    const endDt = new Date(String(endRaw));
+                    if (!isNaN(onsetDt.getTime()) && !isNaN(endDt.getTime()) && endDt < onsetDt) {
+                        errors.endDate = "End date cannot be earlier than onset date";
+                    }
+                }
             }
             // Problems/Conditions: condition must not be purely numeric
             if (tabKey === "medicalproblems" || tabKey === "problems" || tabKey === "conditions" || tabKey === "issues") {

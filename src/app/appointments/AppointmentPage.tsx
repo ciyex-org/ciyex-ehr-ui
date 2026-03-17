@@ -449,7 +449,7 @@ export default function AppointmentPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/locations`);
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/locations?page=0&size=1000`);
         if (!res.ok) throw new Error();
         const data = await res.json();
         const payload = data?.data || data;
@@ -991,7 +991,7 @@ export default function AppointmentPage() {
 
                       {/* Location (#10) */}
                       <td className="py-1.5 px-3 text-sm">
-                        {r.locationName || locations.find((l) => String(l.id) === String(r.locationId))?.name || "—"}
+                        {r.locationName || (r as any).location || (r as any).locationDisplay || locations.find((l) => String(l.id) === String(r.locationId))?.name || "—"}
                       </td>
 
                       {/* Type */}

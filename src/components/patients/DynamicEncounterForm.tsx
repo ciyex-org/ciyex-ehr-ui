@@ -249,10 +249,25 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
           if (foundId) {
             try { localStorage.setItem(`enc-comp-${patientId}-${encounterId}`, String(foundId)); } catch { /* ignore */ }
           }
+          // Extract form field data: the server may nest form fields under formData/fields/data
+          // Try to find a nested object with more keys than the top-level composition metadata
+          const metaKeys = new Set(["id", "fhirId", "encounterRef", "encounterId", "encounter", "status", "patientId", "createdAt", "updatedAt", "createdDate", "lastModifiedDate", "audit"]);
+          const nonMetaKeys = Object.keys(existing).filter(k => !metaKeys.has(k));
+          let formPayload: Record<string, any> = existing;
+          // If server wraps form data in a nested property, extract it
+          for (const key of ["formData", "fields", "data", "content"]) {
+            if (existing[key] && typeof existing[key] === "object" && !Array.isArray(existing[key])) {
+              const nested = existing[key] as Record<string, any>;
+              if (Object.keys(nested).length > nonMetaKeys.length) {
+                formPayload = { ...existing, ...nested };
+                break;
+              }
+            }
+          }
           // Flatten nested objects so dot-notation field keys (e.g. "ros.constitutional") resolve correctly
-          const flattened = flattenObject(existing);
+          const flattened = flattenObject(formPayload);
           // Preserve top-level keys as well (merge so both nested and flat access works)
-          autoSave.setFormData({ ...existing, ...flattened });
+          autoSave.setFormData({ ...formPayload, ...flattened });
         }
       } catch (err) {
         console.error("Error loading encounter form:", err);
