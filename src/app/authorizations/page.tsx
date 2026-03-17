@@ -658,14 +658,14 @@ export default function PriorAuthorizationsPage() {
                   Loading authorizations...
                 </span>
               </div>
-            ) : auths.length === 0 ? (
+            ) : displayedAuths.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-gray-600">
                 <Shield className="w-12 h-12 mb-3" />
                 <p className="text-sm font-medium">
-                  No authorizations found
+                  {searchDraft ? `No results for "${searchDraft}"` : "No authorizations found"}
                 </p>
                 <p className="text-xs mt-1">
-                  Create a new prior authorization to get started.
+                  {searchDraft ? "Try a different search term or clear the filter." : "Create a new prior authorization to get started."}
                 </p>
               </div>
             ) : (

@@ -10,6 +10,7 @@ import { usePermissions } from "@/context/PermissionContext";
 interface Patient {
     id: string;
     firstName: string;
+    middleName: string;
     lastName: string;
     email: string;
     phoneNumber: string;
@@ -46,7 +47,15 @@ export default function EditPatientPage() {
                 const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
                 const result = await res.json();
                 if (result.success) {
-                    setFormData(result.data);
+                    const data = result.data;
+                    // Normalize gender to title-case to match select options (Male/Female/Unknown)
+                    if (data.gender) {
+                        const g = String(data.gender).toLowerCase();
+                        if (g === "male") data.gender = "Male";
+                        else if (g === "female") data.gender = "Female";
+                        else if (g === "unknown" || g === "other") data.gender = "Unknown";
+                    }
+                    setFormData(data);
                 } else {
                     setError("Failed to fetch patient details.");
                 }
@@ -91,6 +100,7 @@ export default function EditPatientPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     firstName: formData.firstName,
+                    middleName: formData.middleName || "",
                     lastName: formData.lastName,
                     email: formData.email,
                     phoneNumber: formData.phoneNumber,
@@ -138,6 +148,17 @@ export default function EditPatientPage() {
                             required
                         />
                         {formErrors.firstName && <p className="text-xs text-red-500 mt-1">{formErrors.firstName}</p>}
+                    </div>
+                    <div className="mb-4">
+                        <label htmlFor="middleName" className="block text-sm font-medium text-gray-700">Middle Name</label>
+                        <input
+                            type="text"
+                            id="middleName"
+                            name="middleName"
+                            value={formData.middleName || ""}
+                            onChange={handleChange}
+                            className={inputCls()}
+                        />
                     </div>
                     <div className="mb-4">
                         <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">

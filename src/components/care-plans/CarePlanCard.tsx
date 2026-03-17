@@ -77,17 +77,20 @@ export default function CarePlanCard({
   async function saveGoal() {
     setSavingGoal(true);
     try {
+      let res: Response;
       if (editingGoalId) {
-        await fetchWithAuth(
+        res = await fetchWithAuth(
           apiUrl(`/api/care-plans/${plan.id}/goals/${editingGoalId}`),
           { method: "PUT", body: JSON.stringify(goalForm) }
         );
+        if (!res.ok) throw new Error("Update failed");
         showToast("Goal updated", "success");
       } else {
-        await fetchWithAuth(apiUrl(`/api/care-plans/${plan.id}/goals`), {
+        res = await fetchWithAuth(apiUrl(`/api/care-plans/${plan.id}/goals`), {
           method: "POST",
           body: JSON.stringify(goalForm),
         });
+        if (!res.ok) throw new Error("Create failed");
         showToast("Goal added", "success");
       }
       setShowGoalForm(false);
@@ -127,17 +130,20 @@ export default function CarePlanCard({
   async function saveIntervention() {
     setSavingInt(true);
     try {
+      let res: Response;
       if (editingIntId) {
-        await fetchWithAuth(
+        res = await fetchWithAuth(
           apiUrl(`/api/care-plans/${plan.id}/interventions/${editingIntId}`),
           { method: "PUT", body: JSON.stringify(intForm) }
         );
+        if (!res.ok) throw new Error("Update failed");
         showToast("Intervention updated", "success");
       } else {
-        await fetchWithAuth(
+        res = await fetchWithAuth(
           apiUrl(`/api/care-plans/${plan.id}/interventions`),
           { method: "POST", body: JSON.stringify(intForm) }
         );
+        if (!res.ok) throw new Error("Create failed");
         showToast("Intervention added", "success");
       }
       setShowIntForm(false);

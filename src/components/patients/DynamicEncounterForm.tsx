@@ -99,8 +99,11 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
         if (res.ok) {
           const json = await res.json();
           const created = json.data || json;
-          if (created.id || created.fhirId) {
-            setCompositionId(created.id || created.fhirId);
+          const newId = created.id || created.fhirId;
+          if (newId) {
+            setCompositionId(newId);
+            // Persist so page refresh can reload correct composition
+            try { localStorage.setItem(`enc-comp-${patientId}-${encounterId}`, String(newId)); } catch { /* ignore */ }
           }
         }
       }
@@ -173,13 +176,38 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
           return null;
         };
 
+        // Attempt 0: check localStorage for a previously stored compositionId
+        try {
+          const storedId = localStorage.getItem(`enc-comp-${patientId}-${encounterId}`);
+          if (storedId) {
+            const storedRes = await fetchWithAuth(
+              `${base}/api/fhir-resource/encounter-form/patient/${patientId}/${storedId}`
+            );
+            if (storedRes.ok) {
+              const storedJson = await storedRes.json();
+              const storedData = storedJson.data || storedJson;
+              if (storedData && typeof storedData === "object" && (storedData.id || storedData.fhirId)) {
+                existing = storedData;
+              }
+            }
+          }
+        } catch { /* ignore localStorage errors */ }
+
         // Attempt 1: by encounterRef query param
-        const dataRes = await fetchWithAuth(
-          `${base}/api/fhir-resource/encounter-form/patient/${patientId}?encounterRef=${encounterId}`
-        );
-        if (dataRes.ok) {
-          const dataJson = await dataRes.json();
-          existing = tryExtract(dataJson);
+        if (!existing) {
+          const dataRes = await fetchWithAuth(
+            `${base}/api/fhir-resource/encounter-form/patient/${patientId}?encounterRef=${encounterId}`
+          );
+          if (dataRes.ok) {
+            const dataJson = await dataRes.json();
+            existing = tryExtract(dataJson);
+            // Only accept if the composition actually matches this encounter
+            if (existing && String(existing.encounterRef) !== String(encounterId) &&
+                String(existing.encounterId) !== String(encounterId) &&
+                String(existing.encounter) !== String(encounterId)) {
+              existing = null;
+            }
+          }
         }
 
         // Attempt 2: try encounter-specific endpoint if first returned nothing
@@ -198,7 +226,7 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
         if (!existing) {
           try {
             const listRes = await fetchWithAuth(
-              `${base}/api/fhir-resource/encounter-form/patient/${patientId}?page=0&size=50`
+              `${base}/api/fhir-resource/encounter-form/patient/${patientId}?page=0&size=100`
             );
             if (listRes.ok) {
               const listJson = await listRes.json();
@@ -215,7 +243,12 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
         }
 
         if (existing) {
-          setCompositionId(existing.id || existing.fhirId || null);
+          const foundId = existing.id || existing.fhirId || null;
+          setCompositionId(foundId);
+          // Persist so future page refreshes find it quickly
+          if (foundId) {
+            try { localStorage.setItem(`enc-comp-${patientId}-${encounterId}`, String(foundId)); } catch { /* ignore */ }
+          }
           // Flatten nested objects so dot-notation field keys (e.g. "ros.constitutional") resolve correctly
           const flattened = flattenObject(existing);
           // Preserve top-level keys as well (merge so both nested and flat access works)

@@ -106,8 +106,12 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
                 delete patchedField.isReadOnly;
                 section.fields[i] = patchedField;
             }
-            // Provider photo/image field: restrict to image types only
+            // Practice settings: make phone number mandatory
             const keySeg = keyLower.split(".").pop() || keyLower;
+            if (/^practice$/i.test(pageKey) && (keySeg === "phone" || keySeg === "phonenumber" || keySeg === "phone_number" || keySeg === "contactphone" || (f.label || "").toLowerCase().includes("phone"))) {
+                section.fields[i] = { ...f, required: true };
+            }
+            // Provider photo/image field: restrict to image types only
             if (/provider/i.test(pageKey) && (keySeg === "photo" || keySeg === "image" || keySeg === "profilephoto" || keySeg === "avatar")) {
                 section.fields[i] = {
                     ...f,
