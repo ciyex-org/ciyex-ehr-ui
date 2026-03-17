@@ -83,6 +83,34 @@ interface FullscreenElement extends HTMLElement {
 
 const pad = (n: number) => n.toString().padStart(2, "0");
 
+/** Normalize an appointment DTO so that time fields are always populated.
+ *  Handles cases where the backend returns a full ISO datetime in appointmentStartDate
+ *  (e.g. "2026-03-17T10:00:00.000Z") and leaves appointmentStartTime empty, which
+ *  happens when appointments are saved via the FHIR endpoint. */
+function normalizeApptTimes(appt: AppointmentDTO): AppointmentDTO {
+  const raw = appt as Record<string, unknown>;
+  let startDate = appt.appointmentStartDate || (raw.start as string) || '';
+  let endDate   = appt.appointmentEndDate   || (raw.end   as string) || '';
+  let startTime = appt.appointmentStartTime || '';
+  let endTime   = appt.appointmentEndTime   || '';
+
+  if (startDate.includes('T')) {
+    const d = new Date(startDate);
+    if (!isNaN(d.getTime())) {
+      if (!startTime) startTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      startDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+  }
+  if (endDate.includes('T')) {
+    const d = new Date(endDate);
+    if (!isNaN(d.getTime())) {
+      if (!endTime) endTime = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      endDate = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+  }
+  return { ...appt, appointmentStartDate: startDate, appointmentEndDate: endDate, appointmentStartTime: startTime, appointmentEndTime: endTime };
+}
+
 function todayISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -494,7 +522,7 @@ export default function AppointmentPage() {
         const enriched = await Promise.all(
           content.map(async (appt) => {
             const info = await fetchPatientInfo(appt.patientId);
-            return { ...appt, patientName: info.name, patientPhone: info.phone, visitType: normalizeVisitType((appt as any).visitType) };
+            return normalizeApptTimes({ ...appt, patientName: info.name, patientPhone: info.phone, visitType: normalizeVisitType((appt as any).visitType) });
           })
         );
         setRows(enriched);
