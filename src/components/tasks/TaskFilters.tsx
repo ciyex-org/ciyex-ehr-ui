@@ -8,7 +8,7 @@ import {
   type TaskPriority,
 } from "./types";
 
-type StatusTab = "all" | "pending" | "in_progress" | "completed" | "overdue";
+type StatusTab = "all" | "pending" | "in_progress" | "completed" | "overdue" | "deferred" | "cancelled";
 
 interface Props {
   searchQuery: string;
@@ -27,6 +27,8 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
   { key: "pending", label: "Pending" },
   { key: "in_progress", label: "In Progress" },
   { key: "completed", label: "Completed" },
+  { key: "deferred", label: "Deferred" },
+  { key: "cancelled", label: "Cancelled" },
   { key: "overdue", label: "Overdue" },
 ];
 

@@ -115,7 +115,7 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
     if (!patientId || !encounterId) return;
     const base = API_BASE();
 
-    fetchWithAuth(`${base}/api/${patientId}/encounters/${encounterId}`)
+    fetchWithAuth(`${base}/api/encounters/${patientId}/${encounterId}`)
       .then(async (res) => {
         if (res.ok) {
           const json = await res.json();

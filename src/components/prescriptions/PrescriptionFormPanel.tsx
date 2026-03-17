@@ -160,6 +160,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     if (form.pharmacyName && !/^[A-Za-z0-9\s\-'.,&#]+$/.test(form.pharmacyName.trim())) e.pharmacyName = "Pharmacy name contains invalid characters";
     if (form.pharmacyPhone && !/^[+]?[\d\s().\-]{7,20}$/.test(form.pharmacyPhone.trim())) e.pharmacyPhone = "Enter a valid phone number";
     if (form.pharmacyAddress && form.pharmacyAddress.trim().length < 5) e.pharmacyAddress = "Enter a valid address (at least 5 characters)";
+    if (form.startDate && form.endDate && form.endDate < form.startDate) e.endDate = "End date must be on or after start date";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -382,9 +383,21 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
             </div>
           </Section>
 
-          {/* Dates & Notes */}
-          <Section title="Dates & Notes" icon={<FileText className="w-4 h-4" />}>
+          {/* Status & Dates & Notes */}
+          <Section title="Status, Dates & Notes" icon={<FileText className="w-4 h-4" />}>
             <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Status</label>
+                  <select className={inputCls()} value={form.status} onChange={(e) => set("status", e.target.value)}>
+                    <option value="active">Active</option>
+                    <option value="on_hold">On Hold</option>
+                    <option value="completed">Completed</option>
+                    <option value="discontinued">Discontinued</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <DatePicker
                   id="rx-start-date"
@@ -404,24 +417,27 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                     }
                   }}
                 />
-                <DatePicker
-                  id="rx-end-date"
-                  label="End Date"
-                  mode="single"
-                  defaultDate={form.endDate || undefined}
-                  placeholder="Select end date"
-                  onChange={(dates) => {
-                    if (dates.length > 0) {
-                      const d = dates[0];
-                      const yyyy = d.getFullYear();
-                      const mm = String(d.getMonth() + 1).padStart(2, "0");
-                      const dd = String(d.getDate()).padStart(2, "0");
-                      set("endDate", `${yyyy}-${mm}-${dd}`);
-                    } else {
-                      set("endDate", "");
-                    }
-                  }}
-                />
+                <div>
+                  <DatePicker
+                    id="rx-end-date"
+                    label="End Date"
+                    mode="single"
+                    defaultDate={form.endDate || undefined}
+                    placeholder="Select end date"
+                    onChange={(dates) => {
+                      if (dates.length > 0) {
+                        const d = dates[0];
+                        const yyyy = d.getFullYear();
+                        const mm = String(d.getMonth() + 1).padStart(2, "0");
+                        const dd = String(d.getDate()).padStart(2, "0");
+                        set("endDate", `${yyyy}-${mm}-${dd}`);
+                      } else {
+                        set("endDate", "");
+                      }
+                    }}
+                  />
+                  {errors.endDate && <p className="text-xs text-red-500 mt-1">{errors.endDate}</p>}
+                </div>
               </div>
               <div>
                 <label className={labelCls}>Notes</label>

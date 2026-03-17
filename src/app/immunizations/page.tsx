@@ -176,7 +176,8 @@ function formatDate(d?: string) {
 }
 
 function statusLabel(s: string) {
-  return s === "entered_in_error" ? "Entered in Error" : s === "not_done" ? "Not Done" : s.charAt(0).toUpperCase() + s.slice(1);
+  const normalized = (s || "").replace(/-/g, "_");
+  return normalized === "entered_in_error" ? "Entered in Error" : normalized === "not_done" ? "Not Done" : normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 /* ------------------------------------------------------------------ */
@@ -211,7 +212,55 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
   const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
 
-  useEffect(() => { if (open) { setForm(record ? { ...record } : blankImmunization()); setPatientQuery(record?.patientName || ""); } }, [open, record]);
+  // Provider search state for Administered By / Ordering Provider
+  const [providers, setProviders] = useState<{ id: string; label: string }[]>([]);
+  const [adminByQuery, setAdminByQuery] = useState("");
+  const [orderProvQuery, setOrderProvQuery] = useState("");
+  const [adminByResults, setAdminByResults] = useState<{ id: string; label: string }[]>([]);
+  const [orderProvResults, setOrderProvResults] = useState<{ id: string; label: string }[]>([]);
+  const [showAdminByDropdown, setShowAdminByDropdown] = useState(false);
+  const [showOrderProvDropdown, setShowOrderProvDropdown] = useState(false);
+
+  // Load providers once
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl("/api/providers?status=ACTIVE"));
+        const json = await res.json();
+        const list = json?.data?.content || json?.data || [];
+        const mapped = (Array.isArray(list) ? list : []).map((p: any) => {
+          const first = p.identification?.firstName || p.firstName || "";
+          const last = p.identification?.lastName || p.lastName || "";
+          return { id: String(p.id || p.fhirId || ""), label: `${first} ${last}`.trim() || p.name || `Provider #${p.id}` };
+        }).filter((p: any) => p.id);
+        setProviders(mapped);
+      } catch { /* silent */ }
+    })();
+  }, [open]);
+
+  // Filter providers for Administered By
+  useEffect(() => {
+    if (!adminByQuery.trim()) { setAdminByResults([]); return; }
+    const q = adminByQuery.toLowerCase();
+    setAdminByResults(providers.filter(p => p.label.toLowerCase().includes(q)).slice(0, 10));
+  }, [adminByQuery, providers]);
+
+  // Filter providers for Ordering Provider
+  useEffect(() => {
+    if (!orderProvQuery.trim()) { setOrderProvResults([]); return; }
+    const q = orderProvQuery.toLowerCase();
+    setOrderProvResults(providers.filter(p => p.label.toLowerCase().includes(q)).slice(0, 10));
+  }, [orderProvQuery, providers]);
+
+  useEffect(() => {
+    if (open) {
+      setForm(record ? { ...record } : blankImmunization());
+      setPatientQuery(record?.patientName || "");
+      setAdminByQuery(record?.administeredBy || "");
+      setOrderProvQuery(record?.orderingProvider || "");
+    }
+  }, [open, record]);
   useEffect(() => {
     if (!open) return;
     const fn = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -410,13 +459,31 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
           <div className={sectionCls}>
             <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Provider Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Administered By</label>
-                <input className={inputCls} value={form.administeredBy} onChange={(e) => set("administeredBy", e.target.value)} placeholder="Nurse Smith" />
+                <input className={inputCls} value={adminByQuery} onChange={(e) => { setAdminByQuery(e.target.value); set("administeredBy", e.target.value); setShowAdminByDropdown(true); }} onFocus={() => adminByResults.length > 0 && setShowAdminByDropdown(true)} onBlur={() => setTimeout(() => setShowAdminByDropdown(false), 200)} placeholder="Search provider..." autoComplete="off" />
+                {showAdminByDropdown && adminByResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                    {adminByResults.map((p) => (
+                      <button key={p.id} type="button" onClick={() => { set("administeredBy", p.label); setAdminByQuery(p.label); setShowAdminByDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Ordering Provider</label>
-                <input className={inputCls} value={form.orderingProvider} onChange={(e) => set("orderingProvider", e.target.value)} placeholder="Dr. Johnson" />
+                <input className={inputCls} value={orderProvQuery} onChange={(e) => { setOrderProvQuery(e.target.value); set("orderingProvider", e.target.value); setShowOrderProvDropdown(true); }} onFocus={() => orderProvResults.length > 0 && setShowOrderProvDropdown(true)} onBlur={() => setTimeout(() => setShowOrderProvDropdown(false), 200)} placeholder="Search provider..." autoComplete="off" />
+                {showOrderProvDropdown && orderProvResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                    {orderProvResults.map((p) => (
+                      <button key={p.id} type="button" onClick={() => { set("orderingProvider", p.label); setOrderProvQuery(p.label); setShowOrderProvDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -500,14 +567,17 @@ export default function ImmunizationsPage() {
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
+          // Normalize status: backend may return hyphens (FHIR) or underscores
+          const normalizeStatus = (s: string) => (s || "").replace(/-/g, "_");
+          const matchesFilter = (r: Immunization) => normalizeStatus(r.status) === statusFilter;
           if (Array.isArray(json.data)) {
-            const filtered = statusFilter === "all" ? json.data : json.data.filter((r: Immunization) => r.status === statusFilter);
+            const filtered = statusFilter === "all" ? json.data : json.data.filter(matchesFilter);
             setRecords(filtered);
             setTotalPages(1);
             setTotalElements(filtered.length);
           } else {
             const items = json.data.content || [];
-            const filtered = statusFilter === "all" ? items : items.filter((r: Immunization) => r.status === statusFilter);
+            const filtered = statusFilter === "all" ? items : items.filter(matchesFilter);
             setRecords(filtered);
             setTotalPages(json.data.totalPages || 1);
             setTotalElements(json.data.totalElements || 0);
@@ -626,8 +696,8 @@ export default function ImmunizationsPage() {
                           <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{formatDate(r.administrationDate)}</td>
                           <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{r.administeredBy || "--"}</td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[r.status] || "bg-gray-100 text-gray-600"}`}>
-                              {STATUS_ICON[r.status]} {statusLabel(r.status)}
+                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[(r.status || "").replace(/-/g, "_")] || "bg-gray-100 text-gray-600"}`}>
+                              {STATUS_ICON[(r.status || "").replace(/-/g, "_")]} {statusLabel(r.status)}
                             </span>
                           </td>
                           <td className="px-4 py-3">

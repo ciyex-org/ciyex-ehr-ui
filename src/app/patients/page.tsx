@@ -102,7 +102,8 @@ export default function PatientListPage() {
         if (p.middleName && !isValidName(p.middleName)) errs.middleName = "Name must contain only letters";
         if (!p.phoneNumber.trim()) errs.phoneNumber = "Phone number is required";
         else if (!isValidPhone(p.phoneNumber)) errs.phoneNumber = "Enter a valid phone number";
-        if (p.email && !isValidEmail(p.email)) errs.email = "Enter a valid email address";
+        if (!p.email?.trim()) errs.email = "Email is required";
+        else if (!isValidEmail(p.email)) errs.email = "Enter a valid email address";
         if (!p.gender) errs.gender = "Gender is required";
         if (!p.dateOfBirth) errs.dateOfBirth = "Date of birth is required";
         return errs;
@@ -236,8 +237,30 @@ export default function PatientListPage() {
         if (Object.keys(errs).length > 0) return;
         setSaving(true);
         try {
+            // Duplicate check: search by email or phone
+            const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
+            const searchTerm = newPatient.email?.trim() || newPatient.phoneNumber?.trim();
+            if (searchTerm) {
+                try {
+                    const dupRes = await fetchWithAuth(`${apiUrl}/api/patients?search=${encodeURIComponent(searchTerm)}&size=5`);
+                    const dupJson = await dupRes.json();
+                    const existing = dupJson?.data?.content || dupJson?.data || [];
+                    if (Array.isArray(existing) && existing.length > 0) {
+                        const match = existing.find((p: any) =>
+                            (newPatient.email?.trim() && p.email && p.email.toLowerCase() === newPatient.email.trim().toLowerCase()) ||
+                            (newPatient.phoneNumber?.trim() && p.phoneNumber && p.phoneNumber.replace(/\D/g, '') === newPatient.phoneNumber.trim().replace(/\D/g, ''))
+                        );
+                        if (match) {
+                            throw new Error(`A patient with this ${match.email?.toLowerCase() === newPatient.email?.trim().toLowerCase() ? 'email' : 'phone number'} already exists: ${match.firstName} ${match.lastName} (ID: ${match.id})`);
+                        }
+                    }
+                } catch (dupErr) {
+                    if (dupErr instanceof Error && dupErr.message.includes('already exists')) throw dupErr;
+                }
+            }
+
             const res = await fetchWithAuth(
-                `${getEnv("NEXT_PUBLIC_API_URL")}/api/patients`,
+                `${apiUrl}/api/patients`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },

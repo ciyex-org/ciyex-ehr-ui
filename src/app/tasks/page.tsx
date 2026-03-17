@@ -19,7 +19,7 @@ import {
   type TaskType,
 } from "@/components/tasks/types";
 
-type StatusTab = "all" | "pending" | "in_progress" | "completed" | "overdue";
+type StatusTab = "all" | "pending" | "in_progress" | "completed" | "overdue" | "deferred" | "cancelled";
 
 function apiUrl(path: string) {
   return `${getEnv("NEXT_PUBLIC_API_URL")}${path}`;

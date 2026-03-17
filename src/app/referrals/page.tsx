@@ -273,12 +273,78 @@ function ReferralFormPanel({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Patient search
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+
+  // Provider search for Referring Provider
+  const [providerList, setProviderList] = useState<{ id: string; label: string }[]>([]);
+  const [refProvQuery, setRefProvQuery] = useState("");
+  const [refProvResults, setRefProvResults] = useState<{ id: string; label: string }[]>([]);
+  const [showRefProvDropdown, setShowRefProvDropdown] = useState(false);
+
   useEffect(() => {
     if (open) {
-      setForm(referral ? { ...referral } : blankReferral());
+      const r = referral ? { ...referral } : blankReferral();
+      setForm(r);
       setErrors({});
+      setPatientQuery(r.patientName || "");
+      setRefProvQuery(r.referringProvider || "");
     }
   }, [open, referral]);
+
+  // Fetch providers
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`${apiBase()}/api/providers?status=ACTIVE`);
+        const json = await res.json();
+        const list = json?.data?.content || json?.data || [];
+        const mapped = (Array.isArray(list) ? list : []).map((p: any) => {
+          const first = p.identification?.firstName || p.firstName || "";
+          const last = p.identification?.lastName || p.lastName || "";
+          return { id: String(p.id || p.fhirId || ""), label: `${first} ${last}`.trim() || p.name || `Provider #${p.id}` };
+        }).filter((p: any) => p.id);
+        setProviderList(mapped);
+      } catch { /* silent */ }
+    })();
+  }, [open]);
+
+  // Patient search (debounced)
+  useEffect(() => {
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(`${apiBase()}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const json = await res.json();
+        let list: typeof patientResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        setPatientResults(list);
+        setShowPatientDropdown(list.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [patientQuery]);
+
+  const pName = (p: typeof patientResults[0]) =>
+    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+
+  const selectPatient = (p: typeof patientResults[0]) => {
+    const name = pName(p);
+    setForm(prev => ({ ...prev, patientId: p.id, patientName: name }));
+    setPatientQuery(name);
+    setShowPatientDropdown(false);
+  };
+
+  // Filter providers for referring provider
+  useEffect(() => {
+    if (!refProvQuery.trim()) { setRefProvResults([]); return; }
+    const q = refProvQuery.toLowerCase();
+    setRefProvResults(providerList.filter(p => p.label.toLowerCase().includes(q)).slice(0, 10));
+  }, [refProvQuery, providerList]);
 
   useEffect(() => {
     if (!open) return;
@@ -371,19 +437,38 @@ function ReferralFormPanel({
           {/* --- Section: Patient Info --- */}
           <Section title="Patient Information" icon={<User className="w-4 h-4" />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Patient Name *</label>
-                <input className={inputCls("patientName")} value={form.patientName} onChange={(e) => set("patientName", e.target.value)} placeholder="Jane Doe" />
+                <input className={inputCls("patientName")} value={patientQuery} onChange={(e) => { setPatientQuery(e.target.value); set("patientName", e.target.value); set("patientId", ""); setShowPatientDropdown(true); }} onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)} placeholder="Search patient by name..." autoComplete="off" />
                 {errors.patientName && <p className="text-xs text-red-500 mt-1">{errors.patientName}</p>}
+                {showPatientDropdown && patientResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                    {patientResults.map((p) => (
+                      <button key={p.id} type="button" onClick={() => selectPatient(p)} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+                        <span className="font-medium">{pName(p)}</span>
+                        <span className="text-xs text-gray-400 ml-2">#{p.id}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Patient ID <span className="text-red-500">*</span></label>
-                <input className={inputCls("patientId")} value={form.patientId} onChange={(e) => set("patientId", e.target.value)} placeholder="PAT-001" />
+                <input className={inputCls("patientId")} value={form.patientId} readOnly placeholder="Auto-filled from search" />
                 {errors.patientId && <p className="text-xs text-red-500 mt-1">{errors.patientId}</p>}
               </div>
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Referring Provider</label>
-                <input className={inputCls()} value={form.referringProvider} onChange={(e) => set("referringProvider", e.target.value)} placeholder="Dr. Smith" />
+                <input className={inputCls()} value={refProvQuery} onChange={(e) => { setRefProvQuery(e.target.value); set("referringProvider", e.target.value); setShowRefProvDropdown(true); }} onFocus={() => refProvResults.length > 0 && setShowRefProvDropdown(true)} onBlur={() => setTimeout(() => setShowRefProvDropdown(false), 200)} placeholder="Search provider..." autoComplete="off" />
+                {showRefProvDropdown && refProvResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                    {refProvResults.map((p) => (
+                      <button key={p.id} type="button" onClick={() => { set("referringProvider", p.label); setRefProvQuery(p.label); setShowRefProvDropdown(false); }} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Referral Date <span className="text-red-500">*</span></label>
@@ -408,7 +493,43 @@ function ReferralFormPanel({
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls}>Specialty</label>
-                <input className={inputCls()} value={form.specialty} onChange={(e) => set("specialty", e.target.value)} placeholder="Cardiology" />
+                <select className={inputCls()} value={form.specialty} onChange={(e) => set("specialty", e.target.value)}>
+                  <option value="">Select specialty...</option>
+                  <option value="Allergy & Immunology">Allergy & Immunology</option>
+                  <option value="Anesthesiology">Anesthesiology</option>
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Dermatology">Dermatology</option>
+                  <option value="Emergency Medicine">Emergency Medicine</option>
+                  <option value="Endocrinology">Endocrinology</option>
+                  <option value="Family Medicine">Family Medicine</option>
+                  <option value="Gastroenterology">Gastroenterology</option>
+                  <option value="General Surgery">General Surgery</option>
+                  <option value="Geriatrics">Geriatrics</option>
+                  <option value="Hematology">Hematology</option>
+                  <option value="Infectious Disease">Infectious Disease</option>
+                  <option value="Internal Medicine">Internal Medicine</option>
+                  <option value="Nephrology">Nephrology</option>
+                  <option value="Neurology">Neurology</option>
+                  <option value="Obstetrics & Gynecology">Obstetrics & Gynecology</option>
+                  <option value="Oncology">Oncology</option>
+                  <option value="Ophthalmology">Ophthalmology</option>
+                  <option value="Orthopedics">Orthopedics</option>
+                  <option value="Otolaryngology (ENT)">Otolaryngology (ENT)</option>
+                  <option value="Pain Management">Pain Management</option>
+                  <option value="Pathology">Pathology</option>
+                  <option value="Pediatrics">Pediatrics</option>
+                  <option value="Physical Medicine & Rehabilitation">Physical Medicine & Rehabilitation</option>
+                  <option value="Plastic Surgery">Plastic Surgery</option>
+                  <option value="Podiatry">Podiatry</option>
+                  <option value="Psychiatry">Psychiatry</option>
+                  <option value="Pulmonology">Pulmonology</option>
+                  <option value="Radiology">Radiology</option>
+                  <option value="Rheumatology">Rheumatology</option>
+                  <option value="Sports Medicine">Sports Medicine</option>
+                  <option value="Urology">Urology</option>
+                  <option value="Vascular Surgery">Vascular Surgery</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
             </div>
           </Section>

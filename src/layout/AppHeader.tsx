@@ -94,7 +94,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
         if (formData.middleName && !isValidName(formData.middleName)) errs.middleName = "Name must contain only letters";
         if (!formData.phoneNumber.trim()) errs.phoneNumber = "Phone number is required";
         else if (!isValidPhone(formData.phoneNumber)) errs.phoneNumber = "Enter a valid phone number";
-        if (formData.email && !isValidEmail(formData.email)) errs.email = "Enter a valid email address";
+        if (!formData.email.trim()) errs.email = "Email is required";
+        else if (!isValidEmail(formData.email)) errs.email = "Enter a valid email address";
         if (!formData.gender) errs.gender = "Gender is required";
         if (!formData.dateOfBirth) errs.dateOfBirth = "Date of birth is required";
         setFieldErrors(errs);
@@ -102,6 +103,31 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
 
         try {
             const apiUrl = getEnv("NEXT_PUBLIC_API_URL");
+
+            // Duplicate check: search by email or phone
+            if (!editingPatientId) {
+                const checks: string[] = [];
+                if (formData.email.trim()) checks.push(`email=${encodeURIComponent(formData.email.trim())}`);
+                if (formData.phoneNumber.trim()) checks.push(`phone=${encodeURIComponent(formData.phoneNumber.trim())}`);
+                if (checks.length > 0) {
+                    try {
+                        const dupRes = await fetchWithAuth(`${apiUrl}/api/patients?search=${encodeURIComponent(formData.email.trim() || formData.phoneNumber.trim())}&size=5`);
+                        const dupJson = await dupRes.json();
+                        const existing = dupJson?.data?.content || dupJson?.data || [];
+                        if (Array.isArray(existing) && existing.length > 0) {
+                            const match = existing.find((p: any) =>
+                                (formData.email.trim() && p.email && p.email.toLowerCase() === formData.email.trim().toLowerCase()) ||
+                                (formData.phoneNumber.trim() && p.phoneNumber && p.phoneNumber.replace(/\D/g, '') === formData.phoneNumber.trim().replace(/\D/g, ''))
+                            );
+                            if (match) {
+                                setErrorMessage(`A patient with this ${match.email?.toLowerCase() === formData.email.trim().toLowerCase() ? 'email' : 'phone number'} already exists: ${match.firstName} ${match.lastName} (ID: ${match.id})`);
+                                return;
+                            }
+                        }
+                    } catch { /* continue if duplicate check fails */ }
+                }
+            }
+
             let response: Response;
 
             if (editingPatientId) {
@@ -455,13 +481,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                     required
                                     value={formData.gender}
                                     onChange={handleInputChange}
-                                    className="w-full p-2 border rounded"
+                                    className={`w-full p-2 border rounded ${fieldErrors.gender ? "border-red-400" : ""}`}
                                 >
                                     <option value="">Select gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                     <option value="Unknown">Unknown</option>
                                 </select>
+                                {fieldErrors.gender && <p className="text-xs text-red-500 mt-1">{fieldErrors.gender}</p>}
                             </div>
                         </div>
 
@@ -472,12 +499,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                 </label>
                                 <DatePicker
                                     value={formData.dateOfBirth}
-                                    onChange={(date) => setFormData(prev => ({ ...prev, dateOfBirth: date }))}
+                                    onChange={(date) => {
+                                        setFormData(prev => ({ ...prev, dateOfBirth: date }));
+                                        if (fieldErrors.dateOfBirth) setFieldErrors(prev => { const n = { ...prev }; delete n.dateOfBirth; return n; });
+                                    }}
                                     placeholder="dd-mm-yyyy"
                                 />
+                                {fieldErrors.dateOfBirth && <p className="text-xs text-red-500 mt-1">{fieldErrors.dateOfBirth}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Email</label>
+                                <label className="block text-sm font-medium mb-1">
+                                    <span className="text-red-500">*</span> Email
+                                </label>
                                 <input
                                     type="email"
                                     name="email"
