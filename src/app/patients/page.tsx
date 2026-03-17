@@ -195,9 +195,9 @@ export default function PatientListPage() {
 
     useEffect(() => {
         const controller = new AbortController();
-        fetchPatients(currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter, controller.signal);
+        fetchPatients(currentPage, patientsPerPage, search, showInactive ? "Inactive" : "Active", genderFilter, controller.signal);
         return () => controller.abort();
-    }, [currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter, fetchPatients]);
+    }, [currentPage, patientsPerPage, search, showInactive ? "Inactive" : "Active", genderFilter, fetchPatients]);
 
     const handlePrevious = () => setCurrentPage((p) => Math.max(1, p - 1));
     const handleNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
@@ -221,7 +221,7 @@ export default function PatientListPage() {
             );
             const body = await res.json();
             if (!body.success) throw new Error(body.message || "Failed to update patient");
-            fetchPatients(currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter);
+            fetchPatients(currentPage, patientsPerPage, search, showInactive ? "Inactive" : "Active", genderFilter);
             setEditPatient(null);
         } catch (err: unknown) {
             alert(err instanceof Error ? err.message : "Failed to update patient");
@@ -253,7 +253,7 @@ export default function PatientListPage() {
             }
             setShowAddModal(false);
             setNewPatient(emptyPatient);
-            fetchPatients(1, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter);
+            fetchPatients(1, patientsPerPage, search, showInactive ? "Inactive" : "Active", genderFilter);
             setCurrentPage(1);
         } catch (err: unknown) {
             alert(err instanceof Error ? err.message : "Failed to create patient");
@@ -288,7 +288,7 @@ export default function PatientListPage() {
                 setRecentPatients(updatedRecent);
                 localStorage.setItem("recentPatients", JSON.stringify(updatedRecent));
             }
-            fetchPatients(currentPage, patientsPerPage, search, showInactive ? "all" : "Active", genderFilter);
+            fetchPatients(currentPage, patientsPerPage, search, showInactive ? "Inactive" : "Active", genderFilter);
         } catch (err: unknown) {
             alert(err instanceof Error ? err.message : "Failed to toggle status");
         } finally {
