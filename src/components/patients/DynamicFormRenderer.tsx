@@ -1996,15 +1996,41 @@ export default function DynamicFormRenderer({
             if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
             return s;
           };
-          // End date must be >= onset date
-          const isEndDateKey = /end.*date|^end$/i.test(field.key);
-          // Onset date must be <= end date
-          const isOnsetKey = /onset.*date|^onset$/i.test(field.key);
+          // Detect end-date and onset-date fields by key OR label
+          const fieldLabel = (field.label || "").toLowerCase();
+          const isEndDateKey =
+            /end.*date|^end$|enddate|endtime|resolv|abate|conclus/i.test(field.key) ||
+            /end\s*date|end\s*time|resolv|abate/i.test(fieldLabel);
+          const isOnsetKey =
+            /onset.*date|^onset$|onset.*time|start.*date|^recorded|^identified/i.test(field.key) ||
+            /onset|start\s*date/i.test(fieldLabel);
+
+          // Dynamically find onset date from formData (any key containing "onset" or "start")
+          const findDateInFormData = (patterns: RegExp[]): string | undefined => {
+            // Check exact known keys first
+            const knownOnset = ["onsetDate", "onset", "onsetDateTime", "onsetTime", "startDate", "recordedDate", "identifiedDate"];
+            const knownEnd = ["endDate", "end", "endDateTime", "resolvedDate", "abatementDate", "conclusionDate"];
+            const keys = patterns.some(p => p.source.includes("onset") || p.source.includes("start") || p.source.includes("record"))
+              ? knownOnset : knownEnd;
+            for (const k of keys) {
+              const d = toISODate(formData[k]);
+              if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+            }
+            // Fallback: scan all formData keys matching any pattern
+            for (const k of Object.keys(formData)) {
+              if (patterns.some(p => p.test(k)) && formData[k]) {
+                const d = toISODate(formData[k]);
+                if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+              }
+            }
+            return undefined;
+          };
+
           const minDate = isEndDateKey
-            ? (toISODate(formData.onsetDate) || toISODate(formData.onset) || toISODate(formData.onsetDateTime))
+            ? findDateInFormData([/onset/i, /^start/i, /recorded/i, /identified/i])
             : undefined;
           const maxDate = isOnsetKey
-            ? (toISODate(formData.endDate) || toISODate(formData.end))
+            ? findDateInFormData([/^end/i, /resolv/i, /abate/i, /conclus/i])
             : undefined;
           return (
             <Input
