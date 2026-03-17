@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
-import { isValidName, isValidPhone, isValidEmail, isValidUSPhone, formatUSPhone } from "@/utils/validation";
+import { isValidName, isValidPhone, isValidEmail, isValidUSPhone, formatUSPhone, isValidSSN } from "@/utils/validation";
 import { usePermissions } from "@/context/PermissionContext";
 
 // Define interfaces for your form data structure
@@ -487,6 +487,7 @@ export default function AddPatient() {
         else if (!isValidUSPhone(formData.contactInfo.cellPhone)) errs.cellPhone = "Enter a valid 10-digit US phone number";
         if (formData.contactInfo.homePhone && !isValidUSPhone(formData.contactInfo.homePhone)) errs.homePhone = "Enter a valid 10-digit US phone number";
         if (formData.contactInfo.email && !isValidEmail(formData.contactInfo.email)) errs.email = "Enter a valid email address";
+        if (formData.personalInfo.ptssn && formData.personalInfo.ptssn.trim() && !isValidSSN(formData.personalInfo.ptssn)) errs.ptssn = "SSN must be exactly 9 digits";
         if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
         setFormErrors({});
 
@@ -748,13 +749,22 @@ export default function AddPatient() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">PTSSN</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">SSN</label>
                                     <input
                                         type="text"
                                         value={formData.personalInfo.ptssn}
-                                        onChange={(e) => handleChange("personalInfo", "ptssn", e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                        onChange={(e) => {
+                                            const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+                                            handleChange("personalInfo", "ptssn", digits);
+                                        }}
+                                        maxLength={9}
+                                        placeholder="123456789"
+                                        title="SSN must be exactly 9 digits"
+                                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.ptssn ? "border-red-400" : "border-gray-300"}`}
                                     />
+                                    {formErrors.ptssn
+                                        ? <p className="text-xs text-red-500 mt-1">{formErrors.ptssn}</p>
+                                        : <p className="text-xs text-gray-500 mt-1">Exactly 9 digits required</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>

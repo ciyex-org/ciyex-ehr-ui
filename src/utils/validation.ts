@@ -45,3 +45,29 @@ export function isValidUrl(v: string): boolean {
 export function isValidNpi(v: string): boolean {
   return NPI_RE.test(v.trim());
 }
+
+/** Validate SSN: exactly 9 digits (with or without dashes) */
+export function isValidSSN(v: string): boolean {
+  const digits = v.replace(/\D/g, '');
+  return digits.length === 9;
+}
+
+/** Validate that a string contains only letters (and spaces, hyphens, apostrophes) — no numbers */
+export function isStringOnly(v: string): boolean {
+  return /^[A-Za-z\s\-'.]+$/.test(v.trim());
+}
+
+/** Validate Driver License: alphanumeric, 5-20 characters */
+export function isValidDriverLicense(v: string): boolean {
+  return /^[A-Za-z0-9\-]{5,20}$/.test(v.trim());
+}
+
+/** Validate Medicaid ID: alphanumeric, 8-12 characters */
+export function isValidMedicaidId(v: string): boolean {
+  return /^[A-Za-z0-9]{8,12}$/.test(v.trim());
+}
+
+/** Validate Medicare Beneficiary ID (MBI): 11 characters, specific pattern */
+export function isValidMedicareBeneficiaryId(v: string): boolean {
+  return /^[1-9][A-Za-z][A-Za-z0-9][0-9][A-Za-z][A-Za-z0-9][0-9][A-Za-z]{2}[0-9]{2}$/.test(v.trim());
+}

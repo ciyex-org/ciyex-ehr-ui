@@ -7,7 +7,7 @@ import { getEnv } from "@/utils/env";
 import { usePermissions } from "@/context/PermissionContext";
 import DynamicFormRenderer, { FieldConfig, FieldConfigFeatures, SectionDef, FieldDef } from "./DynamicFormRenderer";
 import { Plus, Pencil, Trash2, X, Save, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText, CheckCircle2 } from "lucide-react";
-import { isValidEmail, isValidPhone, isValidFax, isValidUrl, isValidName, isValidUSPhone } from "@/utils/validation";
+import { isValidEmail, isValidPhone, isValidFax, isValidUrl, isValidName, isValidUSPhone, isValidSSN, isStringOnly, isValidDriverLicense, isValidMedicaidId, isValidMedicareBeneficiaryId } from "@/utils/validation";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -1242,12 +1242,31 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     }
                 }
             }
-            // Problems/Conditions: condition must not be purely numeric
+            // Encounters: reasonForVisit is required
+            if (tabKey === "encounters" || tabKey === "encounter") {
+                const rv = formData.reasonForVisit || formData.reason;
+                if (!rv || (typeof rv === "string" && !rv.trim())) {
+                    errors.reasonForVisit = "Reason for Visit is required";
+                }
+            }
+            // Problems/Conditions: condition must not be purely numeric + onset/resolved date validation
             if (tabKey === "medicalproblems" || tabKey === "problems" || tabKey === "conditions" || tabKey === "issues") {
                 for (const key of ["condition", "conditionName", "name", "code", "displayText"]) {
                     const val = formData[key];
                     if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
                         errors[key] = "Condition must contain letters, not just numbers";
+                    }
+                }
+                // Resolved/end date must not be before onset date
+                const probOnsetRaw = formData.onsetDate || formData.onset || formData.onsetDateTime;
+                const probEndRaw = formData.endDate || formData.resolvedDate || formData.abatementDate || formData.end;
+                if (probOnsetRaw && probEndRaw) {
+                    const probOnsetDt = new Date(String(probOnsetRaw));
+                    const probEndDt = new Date(String(probEndRaw));
+                    if (!isNaN(probOnsetDt.getTime()) && !isNaN(probEndDt.getTime()) && probEndDt < probOnsetDt) {
+                        errors.endDate = "Resolved date cannot be earlier than onset date";
+                        errors.resolvedDate = "Resolved date cannot be earlier than onset date";
+                        errors.abatementDate = "Resolved date cannot be earlier than onset date";
                     }
                 }
             }
@@ -1260,18 +1279,93 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     }
                 }
             }
-            // Demographics: name fields letters-only, phone fields US format (10 digits)
+            // Demographics: comprehensive validation for all sub-sections
             if (tabKey === "demographics") {
+                // Personal info: name fields — letters only
                 for (const key of ["firstName", "lastName", "middleName", "first_name", "last_name"]) {
                     const val = formData[key];
                     if (typeof val === "string" && val.trim() && !isValidName(val)) {
                         errors[key] = "Name must contain only letters";
                     }
                 }
-                for (const key of ["phoneNumber", "mobilePhone", "homePhone", "workPhone", "mobile", "phone", "cellPhone", "mobileNumber", "homeNumber", "workNumber"]) {
+                // Tribal affiliation — string only (no numbers)
+                for (const key of ["tribalAffiliation", "tribal_affiliation"]) {
                     const val = formData[key];
-                    if (typeof val === "string" && val.trim() && !isValidUSPhone(val)) {
-                        errors[key] = "Must be exactly 10 digits: (xxx) xxx-xxxx";
+                    if (typeof val === "string" && val.trim() && !isStringOnly(val)) {
+                        errors[key] = "Tribal affiliation must contain only letters";
+                    }
+                }
+                // SSN — exactly 9 digits
+                for (const key of ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isValidSSN(val)) {
+                        errors[key] = "SSN must be exactly 9 digits";
+                    }
+                }
+                // All phone/mobile/fax fields — exactly 10 digits
+                for (const key of Object.keys(formData)) {
+                    const lk = key.toLowerCase();
+                    if (lk.includes("phone") || lk.includes("mobile") || lk.includes("cell") || lk.includes("fax")) {
+                        const val = formData[key];
+                        if (typeof val === "string" && val.trim() && !isValidUSPhone(val)) {
+                            errors[key] = "Must be exactly 10 digits: (xxx) xxx-xxxx";
+                        }
+                    }
+                }
+                // Emergency contact: name must be letters only
+                for (const key of ["emergencyContactName", "emergency_contact_name", "ecName"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isStringOnly(val)) {
+                        errors[key] = "Contact name must contain only letters";
+                    }
+                }
+                // Guardian: name fields must be letters only
+                for (const key of ["guardianName", "guardian_name", "motherName", "mother_name", "mothersName", "mothers_name"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isStringOnly(val)) {
+                        errors[key] = "Name must contain only letters";
+                    }
+                }
+                // Guarantor/Billing: first name, last name must be letters only
+                for (const key of ["guarantorFirstName", "guarantor_first_name", "guarantorLastName", "guarantor_last_name", "guarantorName", "guarantor_name"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isStringOnly(val)) {
+                        errors[key] = "Name must contain only letters";
+                    }
+                }
+                // Preferred Pharmacy: name must be letters only (no pure numbers)
+                for (const key of ["pharmacyName", "pharmacy_name", "preferredPharmacy"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
+                        errors[key] = "Pharmacy name must contain letters, not just numbers";
+                    }
+                }
+                // Employer: occupation, industry, employer name — letters only (no pure numbers)
+                for (const key of ["occupation", "industry", "employerName", "employer_name"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
+                        errors[key] = `${key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')} must contain letters, not just numbers`;
+                    }
+                }
+                // Additional Identifiers: driver license
+                for (const key of ["driverLicense", "driver_license", "driversLicense", "driverLicenseNumber"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isValidDriverLicense(val)) {
+                        errors[key] = "Driver license must be 5-20 alphanumeric characters";
+                    }
+                }
+                // Additional Identifiers: Medicaid ID
+                for (const key of ["medicaidId", "medicaid_id", "medicaidID"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isValidMedicaidId(val)) {
+                        errors[key] = "Medicaid ID must be 8-12 alphanumeric characters";
+                    }
+                }
+                // Additional Identifiers: Medicare Beneficiary ID
+                for (const key of ["medicareBeneficiaryId", "medicare_beneficiary_id", "medicareBeneficiaryID", "medicareId"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isValidMedicareBeneficiaryId(val)) {
+                        errors[key] = "Medicare Beneficiary ID must be 11 characters in valid MBI format";
                     }
                 }
             }
@@ -1349,6 +1443,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             if (tabKey === "issues" || tabKey === "conditions" || tabKey === "problems" || tabKey === "medicalproblems" || tabKey === "medical-problems") {
                 if (payload.onsetDate && !payload.onsetDateTime) payload.onsetDateTime = payload.onsetDate;
                 if (payload.onset && !payload.onsetDate) payload.onsetDate = payload.onset;
+                // Validate resolved/end date is not before onset date
+                const probOnset = payload.onsetDate || payload.onsetDateTime || payload.onset;
+                const probEnd = payload.endDate || payload.resolvedDate || payload.abatementDate || payload.end;
+                if (probOnset && probEnd && probEnd < probOnset) {
+                    setValidationErrors({ endDate: "Resolved date must be after onset date", resolvedDate: "Resolved date must be after onset date" });
+                    setError("Resolved date must be after onset date");
+                    setSaving(false);
+                    return;
+                }
                 // Ensure code/condition has coding system to prevent 422 "Coding has no system"
                 if (payload.code && typeof payload.code === "string") {
                     payload.code = wrapCoding(payload.code, "http://snomed.info/sct");

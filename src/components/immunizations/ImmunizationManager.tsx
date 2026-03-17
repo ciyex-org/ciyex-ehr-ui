@@ -315,6 +315,16 @@ function FormDrawer({
         const e: Record<string, string> = {};
         if (!form.vaccineName?.trim()) e.vaccineName = "Vaccine name is required";
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
+        // Lot number: alphanumeric only if provided
+        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim())) {
+            e.lotNumber = "Lot number must be alphanumeric (letters, numbers, hyphens only)";
+        }
+        // Dose: must be a positive number if provided
+        if (form.dose !== undefined && form.dose !== null) {
+            if (isNaN(Number(form.dose)) || Number(form.dose) <= 0) {
+                e.dose = "Dose must be a positive number";
+            }
+        }
         setErrors(e);
         return Object.keys(e).length === 0;
     }
@@ -385,6 +395,7 @@ function FormDrawer({
                             value={form.lotNumber ?? ""}
                             onChange={(v) => set("lotNumber", v)}
                             placeholder="e.g., AB1234"
+                            error={errors.lotNumber}
                         />
                     </div>
 
@@ -395,6 +406,7 @@ function FormDrawer({
                             value={form.dose?.toString() ?? ""}
                             onChange={(v) => set("dose", v ? Number(v) : undefined)}
                             placeholder="e.g., 0.5"
+                            error={errors.dose}
                         />
                         <Field
                             label="Dose Unit"

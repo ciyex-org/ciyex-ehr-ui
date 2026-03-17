@@ -3,7 +3,7 @@ import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { isValidName, isValidEmail, isValidUSPhone } from "@/utils/validation";
+import { isValidName, isValidEmail, isValidUSPhone, isValidSSN } from "@/utils/validation";
 import AdminLayout from "@/app/(admin)/layout";
 import { usePermissions } from "@/context/PermissionContext";
 
@@ -90,6 +90,7 @@ export default function EditPatientPage() {
         if (!formData.phoneNumber?.trim()) errs.phoneNumber = "Mobile number is required";
         else if (!isValidUSPhone(formData.phoneNumber)) errs.phoneNumber = "Must be exactly 10 digits: (xxx) xxx-xxxx";
         if (formData.email && !isValidEmail(formData.email)) errs.email = "Enter a valid email address";
+        if (formData.ssn && formData.ssn.trim() && !isValidSSN(formData.ssn)) errs.ssn = "SSN must be exactly 9 digits";
         if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
         setFormErrors({});
 
@@ -254,12 +255,19 @@ export default function EditPatientPage() {
                             id="ssn"
                             name="ssn"
                             value={formData.ssn || ""}
-                            onChange={handleChange}
-                            pattern="\d{3}-?\d{2}-?\d{4}"
+                            onChange={(e) => {
+                                const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+                                if (formData) setFormData({ ...formData, ssn: digits });
+                                if (formErrors.ssn) setFormErrors(prev => { const n = { ...prev }; delete n.ssn; return n; });
+                            }}
+                            maxLength={11}
                             placeholder="123-45-6789"
-                            title="SSN format: 123-45-6789"
-                            className={inputCls()}
+                            title="SSN must be exactly 9 digits"
+                            className={inputCls(formErrors.ssn)}
                         />
+                        {formErrors.ssn
+                            ? <p className="text-xs text-red-500 mt-1">{formErrors.ssn}</p>
+                            : <p className="text-xs text-gray-500 mt-1">Exactly 9 digits required</p>}
                     </div>
                     <button
                         type="submit"
