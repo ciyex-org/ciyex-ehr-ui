@@ -110,17 +110,25 @@ export default function MessagingPage() {
           ? String(systemAccess.keycloakUserId)
           : (p["systemAccess.keycloakUserId"] ? String(p["systemAccess.keycloakUserId"]) : "");
         const identification = p.identification as Record<string, string> | undefined;
-        // Email — portal uses email as targetUserId for DMs (same way portal → provider DM works)
-        const email = identification?.email || (p.email ? String(p.email) : "")
+        // Email — portal uses email as targetUserId for DMs; check all possible field locations
+        const email = identification?.email
+          || (p.email ? String(p.email) : "")
+          || (p.emailAddress ? String(p.emailAddress) : "")
+          || (p.contactEmail ? String(p.contactEmail) : "")
           || (systemAccess?.email ? String(systemAccess.email) : "");
         // Prefer: keycloakId → email → fhirId → id
         const userId = keycloakId || email || (p.fhirId ? String(p.fhirId) : (p.id ? String(p.id) : ""));
+        // Name: handle both /api/patients flat fields and /api/fhir-resource/demographics nested identification
         const name = identification
           ? `${identification.firstName || ""} ${identification.lastName || ""}`.trim()
-          : String(p.name || p.displayName || "Unknown");
+          : (p.firstName || p.lastName)
+            ? `${p.firstName || ""} ${p.lastName || ""}`.trim()
+            : String(p.name || p.displayName || p.fullName || "Unknown");
         if (!userId || !name || name === "Unknown") return null;
         // Extract DOB for patients
-        const dob = identification?.dateOfBirth || (p.dateOfBirth ? String(p.dateOfBirth) : undefined);
+        const dob = identification?.dateOfBirth
+          || (p.dateOfBirth ? String(p.dateOfBirth) : undefined)
+          || (p.dob ? String(p.dob) : undefined);
         // Extract specialty/title for providers
         const profDetails = p.professionalDetails as Record<string, string> | undefined;
         const subtitle = profDetails?.specialty || (p.specialty ? String(p.specialty) : undefined);
@@ -137,9 +145,10 @@ export default function MessagingPage() {
       };
 
       // Fetch providers AND patients in parallel
+      // Use /api/patients (not demographics) — it returns a flat email field used as targetUserId
       const [providersRes, patientsRes] = await Promise.allSettled([
         fetchWithAuth(`${API_URL()}/api/providers?status=ACTIVE&size=200`),
-        fetchWithAuth(`${API_URL()}/api/fhir-resource/demographics?size=500`),
+        fetchWithAuth(`${API_URL()}/api/patients?size=500`),
       ]);
 
       // Process providers
@@ -154,7 +163,7 @@ export default function MessagingPage() {
         }
       }
 
-      // Process patients/demographics — use same extractUser logic to prefer keycloakUserId
+      // Process patients — email from /api/patients is used as targetUserId for DM channels
       if (patientsRes.status === "fulfilled" && patientsRes.value.ok) {
         const json = await patientsRes.value.json();
         for (const p of extractList(json)) {
