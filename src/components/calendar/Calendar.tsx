@@ -505,7 +505,7 @@ const Calendar: React.FC = () => {
     const [newPt, setNewPt] = useState({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phoneNumber: '', status: 'Active' });
     const [newPtError, setNewPtError] = useState('');
     const nameRegex = /^[A-Za-z\s\-'.]+$/;
-    const phoneRegex = /^\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+    const phoneRegex = /^\+?[\d\s\-().]{7,20}$/;
 
     // Priority / Provider / Location / Status
     const [appointmentPriority, setAppointmentPriority] = useState<Priority>('Routine');
@@ -1462,9 +1462,7 @@ const Calendar: React.FC = () => {
         if (!nameRegex.test(newPt.firstName)) { setNewPtError('First name must contain only letters'); return; }
         if (!nameRegex.test(newPt.lastName)) { setNewPtError('Last name must contain only letters'); return; }
         // Validate phone format
-        // Phone must be exactly 10 digits
-        const phoneDigits = newPt.phoneNumber.replace(/\D/g, '');
-        if (phoneDigits.length !== 10 || !phoneRegex.test(newPt.phoneNumber)) { setNewPtError('Phone number must be exactly 10 digits: (xxx) xxx-xxxx'); return; }
+        if (!phoneRegex.test(newPt.phoneNumber)) { setNewPtError('Please enter a valid phone number'); return; }
         setCreatePatientSaving(true);
         try {
             // Check for duplicate patient by phone number

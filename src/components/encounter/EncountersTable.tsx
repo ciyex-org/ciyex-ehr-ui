@@ -54,18 +54,7 @@ function normalizeData(data: unknown): Encounter[] {
             encounterDate: (e.encounterDate ?? e.startDate ?? e.date ?? periodStart ?? actualPeriodStart ?? e.start ?? e.created ?? e.createdAt ?? e._lastUpdated) as Encounter["encounterDate"],
             encounterProvider: (e.encounterProvider ?? e.providerDisplay ?? e.provider ?? e.practitionerName ?? e.performerDisplay) as string | undefined,
             visitCategory: (e.visitCategory ?? e.type ?? e.encounterType ?? e.serviceType ?? e.class) as string | undefined,
-            reason: (() => {
-                // Extract display string from FHIR reasonCode array if present
-                const rc = e.reasonCode;
-                let reasonStr: string | undefined;
-                if (Array.isArray(rc) && rc.length > 0) {
-                    const first = rc[0] as any;
-                    reasonStr = first?.coding?.[0]?.display || first?.coding?.[0]?.code || first?.text || (typeof first === "string" ? first : undefined);
-                } else if (typeof rc === "string") {
-                    reasonStr = rc;
-                }
-                return (e.reasonForVisit ?? e.reason ?? reasonStr ?? e.chiefComplaint) as string | undefined;
-            })(),
+            reason: (e.reason ?? e.reasonCode ?? e.chiefComplaint ?? e.reasonForVisit) as string | undefined,
             patientName: (e.patientName ?? e.patientDisplay ?? e.subjectDisplay) as string | undefined,
             status: e.status as EncounterStatus | undefined,
         };

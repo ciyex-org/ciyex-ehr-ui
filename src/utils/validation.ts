@@ -46,18 +46,10 @@ export function isValidNpi(v: string): boolean {
   return NPI_RE.test(v.trim());
 }
 
-/** Validate SSN: exactly 9 digits (with or without dashes), US format */
+/** Validate SSN: exactly 9 digits (with or without dashes) */
 export function isValidSSN(v: string): boolean {
   const digits = v.replace(/\D/g, '');
   return digits.length === 9;
-}
-
-/** Format SSN digits to US format: XXX-XX-XXXX */
-export function formatSSN(v: string): string {
-  const digits = v.replace(/\D/g, '').slice(0, 9);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 5) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5, 9)}`;
 }
 
 /** Validate that a string contains only letters (and spaces, hyphens, apostrophes) — no numbers */

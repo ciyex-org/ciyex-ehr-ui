@@ -319,8 +319,8 @@ function FormDrawer({
         if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim())) {
             e.lotNumber = "Lot number must be alphanumeric (letters, numbers, hyphens only)";
         }
-        // Dose: must be a positive number if provided (skip empty strings)
-        if (form.dose !== undefined && form.dose !== null && String(form.dose).trim() !== "") {
+        // Dose: must be a positive number if provided
+        if (form.dose !== undefined && form.dose !== null) {
             if (isNaN(Number(form.dose)) || Number(form.dose) <= 0) {
                 e.dose = "Dose must be a positive number";
             }
