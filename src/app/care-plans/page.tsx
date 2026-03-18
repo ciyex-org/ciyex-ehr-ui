@@ -180,21 +180,37 @@ export default function CarePlansPage() {
   // Refresh a single plan (after inline goal/intervention edits)
   async function refreshPlan(planId: string) {
     try {
-      const [planRes, intRes] = await Promise.all([
-        fetchWithAuth(apiUrl(`/api/care-plans/${planId}`)),
-        fetchWithAuth(apiUrl(`/api/care-plans/${planId}/interventions`)),
-      ]);
+      const planRes = await fetchWithAuth(apiUrl(`/api/care-plans/${planId}`));
       const planJson = await planRes.json();
       if (!planJson.success) return;
       const plan = planJson.data;
 
+      // Preserve interventions from plan response if already present
+      const planInterventions = Array.isArray(plan.interventions) ? plan.interventions : [];
+
+      // Try fetching interventions from dedicated endpoint
       try {
-        const intJson = await intRes.json();
-        plan.interventions = intJson.success
-          ? (Array.isArray(intJson.data) ? intJson.data : intJson.data?.content ?? [])
-          : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
+        const intRes = await fetchWithAuth(apiUrl(`/api/care-plans/${planId}/interventions`));
+        if (intRes.ok) {
+          const intJson = await intRes.json();
+          if (intJson.success) {
+            const fetched = Array.isArray(intJson.data) ? intJson.data : intJson.data?.content ?? [];
+            plan.interventions = fetched.length > 0 ? fetched : planInterventions;
+          } else {
+            plan.interventions = planInterventions.length > 0
+              ? planInterventions
+              : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
+          }
+        } else {
+          // Endpoint returned error — use plan-level interventions or extract from goals
+          plan.interventions = planInterventions.length > 0
+            ? planInterventions
+            : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
+        }
       } catch {
-        plan.interventions = (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
+        plan.interventions = planInterventions.length > 0
+          ? planInterventions
+          : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
       }
 
       setPlans((prev) => prev.map((p) => (p.id === planId ? plan : p)));

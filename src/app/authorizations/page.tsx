@@ -331,8 +331,20 @@ export default function PriorAuthorizationsPage() {
     });
   }, [procedureQuery]);
 
-  const getPatientDisplayName = (p: typeof patientResults[0]) =>
-    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+  const getPatientDisplayName = (p: any) => {
+    if (p.fullName) return p.fullName;
+    if (p.name) return p.name;
+    // Try top-level firstName/lastName
+    const fn = p.firstName || p.first_name || "";
+    const ln = p.lastName || p.last_name || "";
+    if ((fn + ln).trim()) return `${fn} ${ln}`.trim();
+    // Try nested identification structure (some API responses use this)
+    const idn = p.identification || {};
+    const ifn = idn.firstName || idn.first_name || "";
+    const iln = idn.lastName || idn.last_name || "";
+    if ((ifn + iln).trim()) return `${ifn} ${iln}`.trim();
+    return String(p.id || "");
+  };
 
   const getProviderDisplayName = (p: typeof providerResults[0]) => {
     if (p.name) return p.name;

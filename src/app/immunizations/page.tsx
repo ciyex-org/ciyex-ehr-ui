@@ -300,6 +300,17 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
   const handleSave = async () => {
     if (!form.patientName.trim()) { showToast({ type: "error", text: "Patient name is required" }); return; }
     if (!form.vaccineName.trim()) { showToast({ type: "error", text: "Vaccine name is required" }); return; }
+    // Negative validation: lot number must be alphanumeric (letters, digits, hyphens only)
+    if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim())) {
+      showToast({ type: "error", text: "Lot number must be alphanumeric (letters, digits, hyphens only)" }); return;
+    }
+    // Negative validation: dose number must be a positive integer
+    if (form.doseNumber !== "" && form.doseNumber != null) {
+      const doseVal = Number(form.doseNumber);
+      if (isNaN(doseVal) || doseVal <= 0 || !Number.isInteger(doseVal)) {
+        showToast({ type: "error", text: "Dose number must be a positive whole number" }); return;
+      }
+    }
     setSaving(true);
     try {
       const isEdit = !!form.id;

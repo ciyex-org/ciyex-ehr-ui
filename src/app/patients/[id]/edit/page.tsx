@@ -89,7 +89,8 @@ export default function EditPatientPage() {
         else if (!isValidName(formData.lastName)) errs.lastName = "Name must contain only letters";
         if (!formData.phoneNumber?.trim()) errs.phoneNumber = "Mobile number is required";
         else if (!isValidUSPhone(formData.phoneNumber)) errs.phoneNumber = "Must be exactly 10 digits: (xxx) xxx-xxxx";
-        if (formData.email && !isValidEmail(formData.email)) errs.email = "Enter a valid email address";
+        if (!formData.email?.trim()) errs.email = "Email is required";
+        else if (!isValidEmail(formData.email)) errs.email = "Enter a valid email address";
         if (formData.ssn && formData.ssn.trim() && !isValidSSN(formData.ssn)) errs.ssn = "SSN must be exactly 9 digits";
         if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
         setFormErrors({});
@@ -177,7 +178,9 @@ export default function EditPatientPage() {
                         {formErrors.lastName && <p className="text-xs text-red-500 mt-1">{formErrors.lastName}</p>}
                     </div>
                     <div className="mb-4">
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                            Email <span className="text-red-500">*</span>
+                        </label>
                         <input
                             type="email"
                             id="email"
@@ -185,6 +188,7 @@ export default function EditPatientPage() {
                             value={formData.email || ""}
                             onChange={handleChange}
                             className={inputCls(formErrors.email)}
+                            required
                         />
                         {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
                     </div>
@@ -197,8 +201,15 @@ export default function EditPatientPage() {
                             id="phoneNumber"
                             name="phoneNumber"
                             value={formData.phoneNumber || ""}
-                            onChange={handleChange}
+                            onChange={(e) => {
+                                // Only allow digits, strip non-digits, enforce max 10
+                                const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                if (formData) setFormData({ ...formData, phoneNumber: digits });
+                                if (formErrors.phoneNumber) setFormErrors(prev => { const n = { ...prev }; delete n.phoneNumber; return n; });
+                            }}
                             placeholder="(xxx) xxx-xxxx"
+                            maxLength={10}
+                            minLength={10}
                             className={inputCls(formErrors.phoneNumber)}
                             required
                         />

@@ -200,6 +200,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "id", searchable: true } };
                     }
                 }
+                // Demographics: only the primary patient mobile phone should be mandatory, not other phone fields
+                if (tabKey === "demographics" && f.required && f.type === "phone") {
+                    const lk = f.key.toLowerCase();
+                    // Keep required only for the patient's primary phone/mobile; remove from emergency, employer, guarantor, etc.
+                    const isPrimaryPhone = lk === "phonenumber" || lk === "phone" || lk === "mobilephone" || lk === "mobile" || lk === "cellphone" || lk === "phone_number" || lk === "mobile_phone";
+                    const isOtherPhone = lk.includes("emergency") || lk.includes("employer") || lk.includes("guarantor") || lk.includes("work") || lk.includes("home") || lk.includes("office") || lk.includes("fax") || lk.includes("alternate") || lk.includes("secondary") || lk.includes("other");
+                    if (isOtherPhone && !isPrimaryPhone) {
+                        section.fields[i] = { ...f, required: false };
+                    }
+                }
                 // Immunizations: vaccineCode as CVX code-lookup; lotNumber and dose optional
                 if ((tabKey === "immunizations" || tabKey === "immunization") && (f.key === "vaccineCode" || f.key === "vaccine" || f.key === "vaccineName")) {
                     if (f.type !== "code-lookup" || !f.codeLookupConfig) {
@@ -1242,11 +1252,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     }
                 }
             }
-            // Encounters: reasonForVisit is required
+            // Encounters: reasonForVisit is required and must contain letters (not purely numeric/special chars)
             if (tabKey === "encounters" || tabKey === "encounter") {
                 const rv = formData.reasonForVisit || formData.reason;
                 if (!rv || (typeof rv === "string" && !rv.trim())) {
                     errors.reasonForVisit = "Reason for Visit is required";
+                } else if (typeof rv === "string" && /^\d+$/.test(rv.trim())) {
+                    errors.reasonForVisit = "Reason for Visit must contain letters, not just numbers";
+                } else if (typeof rv === "string" && /^[^a-zA-Z]+$/.test(rv.trim())) {
+                    errors.reasonForVisit = "Reason for Visit must contain at least one letter";
                 }
             }
             // Problems/Conditions: condition must not be purely numeric + onset/resolved date validation

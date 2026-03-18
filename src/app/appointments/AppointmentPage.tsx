@@ -555,7 +555,9 @@ export default function AppointmentPage() {
         setRows(enriched);
         setTotalPages(totalPagesVal);
         setTotalItems(totalElementsVal);
-        setHasNextPage(payload.hasNext === true);
+        // Determine if there's a next page: use hasNext from API, or fallback to checking currentPage vs totalPages
+        const hasMore = payload.hasNext === true || (currentPage < totalPagesVal);
+        setHasNextPage(hasMore);
       } else {
         setRows([]);
         setTotalPages(1);
