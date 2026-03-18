@@ -3,7 +3,7 @@ import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { isValidName, isValidEmail, isValidUSPhone, isValidSSN, formatUSPhone } from "@/utils/validation";
+import { isValidName, isValidEmail, isValidUSPhone, isValidSSN } from "@/utils/validation";
 import AdminLayout from "@/app/(admin)/layout";
 import { usePermissions } from "@/context/PermissionContext";
 
@@ -201,13 +201,8 @@ export default function EditPatientPage() {
                             id="phoneNumber"
                             name="phoneNumber"
                             value={formData.phoneNumber || ""}
-                            onChange={(e) => {
-                                const formatted = formatUSPhone(e.target.value);
-                                if (formData) setFormData({ ...formData, phoneNumber: formatted });
-                                if (formErrors.phoneNumber) setFormErrors(prev => { const n = { ...prev }; delete n.phoneNumber; return n; });
-                            }}
+                            onChange={handleChange}
                             placeholder="(xxx) xxx-xxxx"
-                            maxLength={14}
                             className={inputCls(formErrors.phoneNumber)}
                             required
                         />

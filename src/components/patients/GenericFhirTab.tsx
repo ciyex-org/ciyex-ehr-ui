@@ -200,12 +200,6 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "id", searchable: true } };
                     }
                 }
-                // Demographics: phone/mobile fields should be required with asterisk
-                if (tabKey === "demographics" && /phone|mobile|cell/i.test(f.key)) {
-                    if (!f.required) section.fields[i] = { ...f, required: true };
-                    // Ensure phone type for auto-formatting
-                    if (f.type === "text") section.fields[i] = { ...(section.fields[i] || f), type: "phone" };
-                }
                 // Immunizations: vaccineCode as CVX code-lookup; lotNumber and dose optional
                 if ((tabKey === "immunizations" || tabKey === "immunization") && (f.key === "vaccineCode" || f.key === "vaccine" || f.key === "vaccineName")) {
                     if (f.type !== "code-lookup" || !f.codeLookupConfig) {
@@ -320,13 +314,6 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 r[key] = mapDateArray(r[key]) || r[key];
             } else if (typeof r[key] === "string" && javaDatePattern.test(r[key])) {
                 try { const d = new Date(r[key]); if (!isNaN(d.getTime())) r[key] = d.toISOString(); } catch { /* keep original */ }
-            }
-        }
-
-        // Clean up literal "null" / "undefined" / empty strings from all fields
-        for (const key of Object.keys(r)) {
-            if (typeof r[key] === "string" && (r[key] === "null" || r[key] === "undefined" || r[key] === "NULL")) {
-                r[key] = null;
             }
         }
 
@@ -1256,11 +1243,9 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 }
             }
             // Encounters: reasonForVisit is required
-            const tkLower = tabKey.toLowerCase();
-            if (tkLower === "encounters" || tkLower === "encounter" || tkLower.startsWith("encounter")) {
-                const rv = formData.reasonForVisit || formData.reason || formData.reasonCode;
-                const rvStr = typeof rv === "string" ? rv : (Array.isArray(rv) ? (rv[0]?.coding?.[0]?.display || rv[0]?.text || "") : "");
-                if (!rvStr || !rvStr.trim()) {
+            if (tabKey === "encounters" || tabKey === "encounter") {
+                const rv = formData.reasonForVisit || formData.reason;
+                if (!rv || (typeof rv === "string" && !rv.trim())) {
                     errors.reasonForVisit = "Reason for Visit is required";
                 }
             }
@@ -1337,20 +1322,10 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     }
                 }
                 // Emergency contact: name must be letters only
-                for (const key of ["emergencyContactName", "emergency_contact_name", "ecName", "contactName", "contact_name", "emergencyName", "emergency_name"]) {
+                for (const key of ["emergencyContactName", "emergency_contact_name", "ecName"]) {
                     const val = formData[key];
                     if (typeof val === "string" && val.trim() && !isStringOnly(val)) {
                         errors[key] = "Contact name must contain only letters";
-                    }
-                }
-                // Also catch any field key containing "contact" + "name" dynamically
-                for (const key of Object.keys(formData)) {
-                    const lk = key.toLowerCase();
-                    if ((lk.includes("contact") && lk.includes("name")) || (lk.includes("emergency") && lk.includes("name"))) {
-                        const val = formData[key];
-                        if (typeof val === "string" && val.trim() && !isStringOnly(val) && !errors[key]) {
-                            errors[key] = "Contact name must contain only letters";
-                        }
                     }
                 }
                 // Guardian: name fields must be letters only
