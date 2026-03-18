@@ -1351,7 +1351,17 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     if (lk.includes("phone") || lk.includes("mobile") || lk.includes("cell") || lk.includes("fax")) {
                         const val = formData[key];
                         if (typeof val === "string" && val.trim() && !isValidUSPhone(val)) {
-                            errors[key] = "Must be exactly 10 digits: (xxx) xxx-xxxx";
+                            errors[key] = "Mobile number must be exactly 10 digits";
+                        }
+                    }
+                }
+                // All email fields — must be valid email format
+                for (const key of Object.keys(formData)) {
+                    const lk = key.toLowerCase();
+                    if (lk.includes("email")) {
+                        const val = formData[key];
+                        if (typeof val === "string" && val.trim() && !isValidEmail(val)) {
+                            errors[key] = "Invalid email format";
                         }
                     }
                 }
