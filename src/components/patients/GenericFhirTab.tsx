@@ -1254,15 +1254,19 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
             // Encounters: reasonForVisit is required and must contain letters (not purely numeric/special chars)
             if (tabKey === "encounters" || tabKey === "encounter") {
-                const rv = formData.reasonForVisit || formData.reason;
-                // Use the actual field key present in formData so error displays under the correct field
-                const rvKey = formData.reasonForVisit != null ? "reasonForVisit" : "reason";
+                // Resolve the field key from config first so the error always highlights the correct field,
+                // even when the user hasn't touched the field yet (formData key still undefined).
+                const rvFieldKey = fieldConfig?.sections
+                    ?.flatMap(s => Array.isArray(s.fields) ? s.fields : [])
+                    ?.find(f => f && ["reasonForVisit", "reason", "chiefComplaint", "visitReason"].includes(f.key))
+                    ?.key ?? "reasonForVisit";
+                const rv = formData[rvFieldKey] ?? formData.reasonForVisit ?? formData.reason;
                 if (!rv || (typeof rv === "string" && !rv.trim())) {
-                    errors[rvKey] = "Reason for Visit is required";
+                    errors[rvFieldKey] = "Reason for Visit is required";
                 } else if (typeof rv === "string" && /^\d+$/.test(rv.trim())) {
-                    errors[rvKey] = "Reason for Visit must contain letters, not just numbers";
+                    errors[rvFieldKey] = "Reason for Visit must contain letters, not just numbers";
                 } else if (typeof rv === "string" && /^[^a-zA-Z]+$/.test(rv.trim())) {
-                    errors[rvKey] = "Reason for Visit must contain at least one letter";
+                    errors[rvFieldKey] = "Reason for Visit must contain at least one letter";
                 }
             }
             // Problems/Conditions: condition must not be purely numeric + onset/resolved date validation

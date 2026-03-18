@@ -54,7 +54,19 @@ function normalizeData(data: unknown): Encounter[] {
             encounterDate: (e.encounterDate ?? e.startDate ?? e.date ?? periodStart ?? actualPeriodStart ?? e.start ?? e.created ?? e.createdAt ?? e._lastUpdated) as Encounter["encounterDate"],
             encounterProvider: (e.encounterProvider ?? e.providerDisplay ?? e.provider ?? e.practitionerName ?? e.performerDisplay) as string | undefined,
             visitCategory: (e.visitCategory ?? e.type ?? e.encounterType ?? e.serviceType ?? e.class) as string | undefined,
-            reason: (e.reason ?? e.reasonCode ?? e.chiefComplaint ?? e.reasonForVisit) as string | undefined,
+            reason: (() => {
+                const raw = e.reasonForVisit ?? e.reason ?? e.reasonCode ?? e.chiefComplaint;
+                if (!raw) return undefined;
+                if (typeof raw === "string") return raw;
+                if (Array.isArray(raw) && raw.length > 0) {
+                    const first = raw[0];
+                    return first?.coding?.[0]?.display || first?.coding?.[0]?.code || first?.text || String(first) || undefined;
+                }
+                if (typeof raw === "object") {
+                    return (raw as any)?.coding?.[0]?.display || (raw as any)?.coding?.[0]?.code || (raw as any)?.text || undefined;
+                }
+                return String(raw) || undefined;
+            })(),
             patientName: (e.patientName ?? e.patientDisplay ?? e.subjectDisplay) as string | undefined,
             status: e.status as EncounterStatus | undefined,
         };
