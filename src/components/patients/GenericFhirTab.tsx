@@ -227,10 +227,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     if (f.required) section.fields[i] = { ...f, required: false };
                 }
                 // Encounters: keep reasonForVisit as-is (honor backend required flag)
-                // Encounters: ensure patient field is a patient lookup
-                if ((tabKey === "encounters" || tabKey === "encounter") && (f.key === "patient" || f.key === "patientId" || f.key === "patientName" || f.key === "subject")) {
-                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
-                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/patients", displayField: "name", valueField: "id", searchable: true } };
+                // Encounters: ensure patient field is a searchable patient lookup
+                if ((tabKey === "encounters" || tabKey === "encounter")) {
+                    const fkl = f.key.toLowerCase();
+                    const isPatientField = f.key === "patient" || f.key === "patientId" || f.key === "patientName" || f.key === "subject" ||
+                        f.key === "patientRef" || f.key === "patientReference" || f.key === "participant" || f.key === "participantId" ||
+                        (fkl.includes("patient") && !fkl.includes("provider") && !fkl.includes("doctor"));
+                    if (isPatientField && (f.type !== "lookup" || !f.lookupConfig?.endpoint)) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/patients", displayField: "fullName", valueField: "id", searchable: true } };
                     }
                 }
                 // Encounters: ensure provider field is a provider lookup
