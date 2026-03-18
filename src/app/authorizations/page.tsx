@@ -251,20 +251,24 @@ export default function PriorAuthorizationsPage() {
     return [];
   }
 
+  // Extracted patient search — callable from both useEffect and onFocus
+  const runPatientSearch = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) { setPatientResults([]); return; }
+    try {
+      const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(query)}&size=20`);
+      if (!res.ok) { console.warn("Patient search failed:", res.status); return; }
+      const json = await res.json();
+      const list = extractList(json);
+      setPatientResults(list);
+      if (list.length > 0) setShowPatientDropdown(true);
+    } catch (err) { console.warn("Patient search error:", err); }
+  }, []);
+
   // Patient search
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
-    debounceSearch("patient", async () => {
-      try {
-        const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(patientQuery)}&size=20`);
-        if (!res.ok) { console.warn("Patient search failed:", res.status); return; }
-        const json = await res.json();
-        const list = extractList(json);
-        setPatientResults(list);
-        setShowPatientDropdown(true);
-      } catch (err) { console.warn("Patient search error:", err); }
-    });
-  }, [patientQuery]);
+    debounceSearch("patient", () => runPatientSearch(patientQuery));
+  }, [patientQuery, runPatientSearch]);
 
   // Provider search
   useEffect(() => {
@@ -1003,7 +1007,14 @@ export default function PriorAuthorizationsPage() {
                           setFormData({ ...formData, patientId: "", patientName: "" });
                           setShowPatientDropdown(true);
                         }}
-                        onFocus={() => { if (patientResults.length > 0) setShowPatientDropdown(true); }}
+                        onFocus={() => {
+                          if (patientResults.length > 0) {
+                            setShowPatientDropdown(true);
+                          } else if (patientQuery.trim().length >= 2) {
+                            // Re-trigger search when focusing back with a query but no cached results
+                            runPatientSearch(patientQuery);
+                          }
+                        }}
                         placeholder="Search patient..."
                         className={autocompleteInputClass}
                       />
@@ -1016,7 +1027,7 @@ export default function PriorAuthorizationsPage() {
                               onMouseDown={(e) => e.preventDefault()}
                               onClick={() => {
                                 const name = getPatientDisplayName(p);
-                                setFormData({ ...formData, patientId: String(p.id), patientName: name });
+                                setFormData(prev => ({ ...prev, patientId: String(p.id), patientName: name }));
                                 setPatientQuery(name);
                                 setShowPatientDropdown(false);
                               }}

@@ -61,14 +61,16 @@ interface DynamicFilterInfo {
 function detectDynamicFilters(columns: ColumnConfig[], data: Record<string, unknown>[]): DynamicFilterInfo[] {
   const filters: DynamicFilterInfo[] = [];
 
-  // When no data exists, create filters from column definitions for all eligible text columns
+  // When no data exists, only create filters for columns that have known default options
+  // (skip columns with no defaults — they'd render an empty dropdown like "All Reason" with no choices)
   if (data.length === 0) {
     for (const col of columns) {
       if (SKIP_KEYS.has(col.key)) continue;
       if (col.format === "currency" || col.format === "number" || col.format === "percent" || col.format === "date") continue;
       if (UNIQUE_PER_ROW_KEYS.has(col.key)) continue;
 
-      const defaults = DEFAULT_FILTER_OPTIONS[col.key] || [];
+      const defaults = DEFAULT_FILTER_OPTIONS[col.key];
+      if (!defaults || defaults.length === 0) continue; // no known options — skip to avoid empty dropdown
       filters.push({ key: col.key, label: col.label, uniqueValues: defaults });
     }
     return filters;

@@ -143,14 +143,28 @@ export default function AuditLogPage() {
       const json = await res.json();
       const responseData = json.data ?? json;
       if (json.success !== false && responseData) {
-        const content: AuditLogEntry[] = responseData.content ?? (Array.isArray(responseData) ? responseData : responseData.items ?? responseData.records ?? []);
+        const rawContent: any[] = responseData.content ?? (Array.isArray(responseData) ? responseData : responseData.items ?? responseData.records ?? []);
+        // Normalize field names — backend may use snake_case, camelCase, or nested variants
+        const content: AuditLogEntry[] = rawContent.map((e: any) => ({
+          ...e,
+          userName:     e.userName     || e.user_name    || e.username      || e.performedBy  || e.createdBy    || e.operator     || "",
+          userRole:     e.userRole     || e.user_role    || e.role          || "",
+          resourceType: e.resourceType || e.resource_type|| e.entityType    || e.entity_type  || "",
+          resourceName: e.resourceName || e.resource_name|| e.entityName    || e.entity_name  || e.name         || "",
+          resourceId:   e.resourceId   || e.resource_id  || e.entityId      || e.entity_id    || "",
+          ipAddress:    e.ipAddress    || e.ip_address   || e.ip            || "",
+          action:       e.action       || e.actionType   || e.operation     || "",
+          createdAt:    e.createdAt    || e.created_at   || e.timestamp     || e.date          || "",
+          patientName:  e.patientName  || e.patient_name || "",
+          details:      e.details      || e.description  || e.message       || null,
+        }));
         setLogs(content);
         setTotalElements(responseData.totalElements ?? responseData.total ?? content.length ?? 0);
         setTotalPages(responseData.totalPages ?? (responseData.totalElements ? Math.ceil(responseData.totalElements / pageSize) : (content.length > 0 ? 1 : 0)));
 
         // Collect distinct resource types for filter dropdown (use functional update to avoid stale closure)
         const newTypes = content
-          .map((entry: AuditLogEntry) => entry.resourceType)
+          .map((entry: AuditLogEntry) => entry.resourceType || (entry as any).resource_type || (entry as any).entityType)
           .filter((rt): rt is string => Boolean(rt));
         setResourceTypes((prev) => Array.from(new Set([...prev, ...newTypes])).sort());
       } else {
