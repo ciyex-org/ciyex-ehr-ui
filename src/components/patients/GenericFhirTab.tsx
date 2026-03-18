@@ -1161,6 +1161,47 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
             }
         }
+        // Medications: dosage → numeric only (real-time block)
+        if ((tabKey === "medications" || tabKey === "medication" || tabKey === "prescriptions" || tabKey === "prescription") &&
+            (key === "dosage" || key === "dose" || key === "doseQuantity" || key === "doseAmount") &&
+            typeof value === "string") {
+            if (/[^0-9.]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Dosage must be a number" }));
+                value = value.replace(/[^0-9.]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
+        }
+        // Appointments: duration → numeric only (real-time block)
+        if ((tabKey === "appointments" || tabKey === "appointment") &&
+            (key === "duration" || key === "durationMinutes" || key === "appointmentDuration") &&
+            typeof value === "string") {
+            if (/[^0-9]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Duration must be a number" }));
+                value = value.replace(/[^0-9]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
+        }
+        // Immunizations: lot number → alphanumeric+hyphen, dose → numeric (real-time block)
+        if (tabKey === "immunizations" || tabKey === "immunization") {
+            if ((key === "lotNumber" || key === "lot_number") && typeof value === "string") {
+                if (/[^A-Za-z0-9\-]/.test(value)) {
+                    setValidationErrors((prev) => ({ ...prev, [key]: "Lot number must be alphanumeric" }));
+                    value = value.replace(/[^A-Za-z0-9\-]/g, "");
+                } else {
+                    setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+                }
+            }
+            if ((key === "dose" || key === "doseNumber" || key === "doseQuantity" || key === "doseNumberPositive") && typeof value === "string") {
+                if (/[^0-9.]/.test(value)) {
+                    setValidationErrors((prev) => ({ ...prev, [key]: "Dose must be a number" }));
+                    value = value.replace(/[^0-9.]/g, "");
+                } else {
+                    setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+                }
+            }
+        }
         setFormData((prev) => ({ ...prev, [key]: value }));
 
         // If a file field with uploadEndpoint received a value, the upload endpoint
@@ -1545,6 +1586,76 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         if (typeof val === "string" && val.trim() && !isValidUSPhone(val)) {
                             errors[key] = "Mobile number must be exactly 10 digits";
                         }
+                    }
+                }
+            }
+            // Referrals: referTo and reason must be alphanumeric (not purely numeric/special)
+            if (tabKey === "referrals" || tabKey === "referral") {
+                for (const key of ["referTo", "referredTo", "referralTo", "refer_to", "referred_to"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^[^a-zA-Z]+$/.test(val.trim())) {
+                        errors[key] = "Refer To must contain at least one letter";
+                    }
+                }
+                for (const key of ["reason", "referralReason", "referral_reason", "reasonForReferral"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^[^a-zA-Z]+$/.test(val.trim())) {
+                        errors[key] = "Reason must contain at least one letter";
+                    }
+                }
+            }
+            // Appointments: reason/cancellationReason alphanumeric; duration numeric
+            if (tabKey === "appointments" || tabKey === "appointment") {
+                for (const key of ["reason", "appointmentReason", "appointment_reason"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^[^a-zA-Z]+$/.test(val.trim())) {
+                        errors[key] = "Reason must contain at least one letter";
+                    }
+                }
+                for (const key of ["cancellationReason", "cancellation_reason", "cancelReason", "cancelationReason"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^[^a-zA-Z]+$/.test(val.trim())) {
+                        errors[key] = "Cancellation reason must contain at least one letter";
+                    }
+                }
+                for (const key of ["duration", "durationMinutes", "appointmentDuration"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && isNaN(Number(val))) {
+                        errors[key] = "Duration must be a number";
+                    }
+                }
+            }
+            // Medications: name must be alphanumeric; dosage must be numeric
+            if (tabKey === "medications" || tabKey === "medication" || tabKey === "prescriptions" || tabKey === "prescription") {
+                for (const key of ["medicationName", "medication", "medication_name", "name", "drugName"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^[^a-zA-Z]+$/.test(val.trim())) {
+                        errors[key] = "Medication name must contain at least one letter";
+                    }
+                }
+                for (const key of ["dosage", "dose", "doseQuantity", "doseAmount"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && isNaN(Number(val))) {
+                        errors[key] = "Dosage must be a number";
+                    }
+                }
+            }
+            // Labs: test name must be alphanumeric (not purely numeric)
+            if (tabKey === "labs" || tabKey === "lab" || tabKey === "lab-results" || tabKey === "labresults" || tabKey === "lab-orders" || tabKey === "laborders") {
+                for (const key of ["testName", "test_name", "labName", "lab_name", "name", "displayText", "observationName"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^[^a-zA-Z]+$/.test(val.trim())) {
+                        errors[key] = "Test name must contain at least one letter";
+                    }
+                }
+            }
+            // Family history: condition/description must be alphanumeric (not purely numeric)
+            if (tabKey === "family-history" || tabKey === "familyhistory" || tabKey === "familyHistory" || tabKey === "history" || tabKey === "medical-history" || tabKey === "familymedicalhistory") {
+                for (const key of ["condition", "familyHistory", "family_history", "relationship", "description", "name", "conditionName"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^[^a-zA-Z]+$/.test(val.trim())) {
+                        const label = (key === "familyHistory" || key === "family_history") ? "Family history" : key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1");
+                        errors[key] = `${label} must contain at least one letter`;
                     }
                 }
             }
