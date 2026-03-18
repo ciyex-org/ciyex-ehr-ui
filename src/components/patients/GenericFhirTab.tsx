@@ -279,6 +279,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
                     }
                 }
+                // Documents: make the file/attachment field mandatory
+                if (tabKey === "documents") {
+                    const fkl = f.key.toLowerCase();
+                    const isDocFileField = f.type === "file" || fkl === "attachment" || fkl === "documenturl" || fkl === "fileurl" || fkl === "file" || fkl === "document";
+                    if (isDocFileField && !f.required) {
+                        section.fields[i] = { ...f, required: true };
+                    }
+                }
             }
         }
         return patched;
