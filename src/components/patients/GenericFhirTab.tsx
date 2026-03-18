@@ -1255,12 +1255,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             // Encounters: reasonForVisit is required and must contain letters (not purely numeric/special chars)
             if (tabKey === "encounters" || tabKey === "encounter") {
                 const rv = formData.reasonForVisit || formData.reason;
+                // Use the actual field key present in formData so error displays under the correct field
+                const rvKey = formData.reasonForVisit != null ? "reasonForVisit" : "reason";
                 if (!rv || (typeof rv === "string" && !rv.trim())) {
-                    errors.reasonForVisit = "Reason for Visit is required";
+                    errors[rvKey] = "Reason for Visit is required";
                 } else if (typeof rv === "string" && /^\d+$/.test(rv.trim())) {
-                    errors.reasonForVisit = "Reason for Visit must contain letters, not just numbers";
+                    errors[rvKey] = "Reason for Visit must contain letters, not just numbers";
                 } else if (typeof rv === "string" && /^[^a-zA-Z]+$/.test(rv.trim())) {
-                    errors.reasonForVisit = "Reason for Visit must contain at least one letter";
+                    errors[rvKey] = "Reason for Visit must contain at least one letter";
                 }
             }
             // Problems/Conditions: condition must not be purely numeric + onset/resolved date validation
