@@ -154,6 +154,12 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: f.lookupConfig || { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
                     }
                 }
+                // Clinical-alerts: ensure author field is a searchable provider lookup
+                if ((tabKey === "clinical-alerts" || tabKey === "alerts" || tabKey === "clinicalalerts" || tabKey === "clinical_alerts") && f.key === "author") {
+                    if (f.type !== "lookup" || !f.lookupConfig) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: f.lookupConfig || { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
                 // Visit-notes: ensure type/noteType is a combobox with options
                 if (tabKey === "visit-notes" && (f.key === "noteType" || f.key === "type")) {
                     if (!f.options || f.options.length === 0) {
@@ -509,6 +515,17 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         if (r.onsetDate != null && r.identifiedDate == null) r.identifiedDate = r.onsetDate;
         if (r.createdDate != null && r.identifiedDate == null) r.identifiedDate = r.createdDate;
         if (r._lastUpdated != null && r.identifiedDate == null) r.identifiedDate = r._lastUpdated;
+        // --- Clinical-alerts: author normalization (provider name fallbacks) ---
+        if (tabKey === "clinical-alerts" || tabKey === "alerts" || tabKey === "clinicalalerts" || tabKey === "clinical_alerts") {
+            if (Array.isArray(r.author) && r.author.length > 0) {
+                r.author = (r.author as any[])[0]?.display || (r.author as any[])[0]?.reference || null;
+            }
+            if (r.author == null && r.authorName != null) r.author = r.authorName;
+            if (r.author == null && r.practitioner != null) r.author = r.practitioner;
+            if (r.author == null && r.practitionerName != null) r.author = r.practitionerName;
+            if (r.author == null && r.recorder != null) r.author = r.recorder;
+            if (r.author == null && r.asserter != null) r.author = r.asserter;
+        }
 
         // --- Documents: normalize FHIR DocumentReference nested content structure ---
         if (r.content && Array.isArray(r.content) && r.content.length > 0) {
