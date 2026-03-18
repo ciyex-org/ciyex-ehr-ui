@@ -1129,6 +1129,17 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
             }
         }
+        // Facility name: letters only
+        if ((tabKey === "facility" || tabKey === "facilities" || tabKey === "location" || tabKey === "locations" || tabKey === "serviceLocation" || tabKey === "serviceLocations") &&
+            (key === "name" || key === "facilityName" || key === "facility_name" || key === "locationName") &&
+            typeof value === "string") {
+            if (/[^A-Za-z\s\-'.,&()]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Facility name must contain only letters" }));
+                value = value.replace(/[^A-Za-z\s\-'.,&()]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
+        }
         setFormData((prev) => ({ ...prev, [key]: value }));
 
         // If a file field with uploadEndpoint received a value, the upload endpoint
@@ -1509,6 +1520,24 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 for (const key of Object.keys(formData)) {
                     const lk = key.toLowerCase();
                     if (lk.includes("subscriber") && (lk.includes("phone") || lk.includes("mobile") || lk.includes("cell"))) {
+                        const val = formData[key];
+                        if (typeof val === "string" && val.trim() && !isValidUSPhone(val)) {
+                            errors[key] = "Mobile number must be exactly 10 digits";
+                        }
+                    }
+                }
+            }
+            // Facility: name must be letters only, phone must be 10 digits
+            if (tabKey === "facility" || tabKey === "facilities" || tabKey === "location" || tabKey === "locations" || tabKey === "serviceLocation" || tabKey === "serviceLocations") {
+                for (const key of ["name", "facilityName", "facility_name", "locationName"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
+                        errors[key] = "Facility name must contain only letters";
+                    }
+                }
+                for (const key of Object.keys(formData)) {
+                    const lk = key.toLowerCase();
+                    if ((lk.includes("phone") || lk.includes("mobile") || lk.includes("cell")) && !lk.includes("fax")) {
                         const val = formData[key];
                         if (typeof val === "string" && val.trim() && !isValidUSPhone(val)) {
                             errors[key] = "Mobile number must be exactly 10 digits";
