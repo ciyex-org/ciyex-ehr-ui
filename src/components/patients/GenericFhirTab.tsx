@@ -1417,12 +1417,20 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
                 // End date must not be earlier than onset date
                 const onsetRaw = formData.onsetDate || formData.onset || formData.onsetDateTime;
-                const endRaw = formData.endDate || formData.end;
+                const endRaw = formData.endDate || formData.end || formData.abatementDate || formData.abatement;
                 if (onsetRaw && endRaw) {
                     const onsetDt = new Date(String(onsetRaw));
                     const endDt = new Date(String(endRaw));
                     if (!isNaN(onsetDt.getTime()) && !isNaN(endDt.getTime()) && endDt < onsetDt) {
-                        errors.endDate = "End date cannot be earlier than onset date";
+                        const errMsg = "End date cannot be earlier than onset date";
+                        // Find which end-date field key the form config actually uses
+                        const endFieldKey = fieldConfig?.sections
+                            ?.flatMap(s => Array.isArray(s.fields) ? s.fields : [])
+                            ?.find(f => f && ["endDate", "end", "abatementDate", "abatement", "resolvedDate"].includes(f.key))?.key || "endDate";
+                        errors[endFieldKey] = errMsg;
+                        // Also cover common aliases so the error always shows
+                        if (formData.endDate !== undefined) errors.endDate = errMsg;
+                        if (formData.end !== undefined) errors.end = errMsg;
                     }
                 }
             }
