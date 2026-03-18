@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import {
@@ -295,6 +296,7 @@ export default function FieldConfigEditor({
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
   const [newSectionTitle, setNewSectionTitle] = useState("");
+  const [pendingConfirm, setPendingConfirm] = useState<{ message: string; title: string; onConfirm: () => void } | null>(null);
 
   // Load field config for a tab
   const loadFieldConfig = useCallback(async (tabKey: string) => {
@@ -349,9 +351,12 @@ export default function FieldConfigEditor({
   };
 
   // Reset to defaults
-  const handleReset = async () => {
+  const handleReset = () => {
     if (!selectedTab) return;
-    if (!confirm("Reset field configuration to defaults?")) return;
+    setPendingConfirm({ title: "Reset Configuration", message: "Reset field configuration to defaults?", onConfirm: doReset });
+  };
+
+  const doReset = async () => {
     try {
       setSaving(true);
       await fetchWithAuth(`${API_BASE()}/api/tab-field-config/${selectedTab}`, { method: "DELETE" });
@@ -377,8 +382,7 @@ export default function FieldConfigEditor({
 
   const removeSection = (sectionKey: string) => {
     if (!fieldConfig) return;
-    if (!confirm("Delete this section and all its fields?")) return;
-    setFieldConfig({ sections: fieldConfig.sections.filter((s) => s.key !== sectionKey) });
+    setPendingConfirm({ title: "Delete Section", message: "Delete this section and all its fields?", onConfirm: () => setFieldConfig({ sections: fieldConfig.sections.filter((s) => s.key !== sectionKey) }) });
   };
 
   const moveSectionUp = (idx: number) => {
@@ -877,6 +881,14 @@ export default function FieldConfigEditor({
           Select a tab above to configure its fields.
         </div>
       )}
+      <ConfirmDialog
+        open={!!pendingConfirm}
+        title={pendingConfirm?.title}
+        message={pendingConfirm?.message || ""}
+        confirmLabel="Confirm"
+        onConfirm={() => { pendingConfirm?.onConfirm(); setPendingConfirm(null); }}
+        onCancel={() => setPendingConfirm(null)}
+      />
     </div>
   );
 }

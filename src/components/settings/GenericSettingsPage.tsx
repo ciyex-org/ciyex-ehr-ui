@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { usePermissions } from "@/context/PermissionContext";
@@ -262,6 +263,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [searchTerm, setSearchTerm] = useState("");
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+    const [deleteConfirmRecord, setDeleteConfirmRecord] = useState<Record<string, any> | null>(null);
 
     // Pagination
     const [page, setPage] = useState(0);
@@ -470,10 +472,16 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
         setMode("view");
     };
 
-    const handleDelete = async (record: Record<string, any>) => {
+    const handleDelete = (record: Record<string, any>) => {
+        if (!(record.id || record.fhirId)) return;
+        setDeleteConfirmRecord(record);
+    };
+
+    const confirmDelete = async () => {
+        const record = deleteConfirmRecord;
+        setDeleteConfirmRecord(null);
+        if (!record) return;
         const resourceId = record.id || record.fhirId;
-        if (!resourceId) return;
-        if (!confirm("Are you sure you want to delete this record?")) return;
 
         try {
             const res = await fetchWithAuth(fhirUrl(`/${resourceId}`), { method: "DELETE" });
@@ -919,6 +927,14 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
                     )}
                 </div>
             </div>
+            <ConfirmDialog
+                open={!!deleteConfirmRecord}
+                title="Delete Record"
+                message="Are you sure you want to delete this record?"
+                confirmLabel="Delete"
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteConfirmRecord(null)}
+            />
         </Wrapper>
     );
 }

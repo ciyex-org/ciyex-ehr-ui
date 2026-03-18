@@ -1,5 +1,6 @@
 "use client";
 import { getEnv } from "@/utils/env";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
@@ -90,6 +91,7 @@ export default function PatientListPage() {
     const [newPatient, setNewPatient] = useState(emptyPatient);
     const [saving, setSaving] = useState(false);
     const [togglingId, setTogglingId] = useState<number | null>(null);
+    const [deactivateTarget, setDeactivateTarget] = useState<Patient | null>(null);
     const [addErrors, setAddErrors] = useState<Record<string, string>>({});
     const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
@@ -285,14 +287,16 @@ export default function PatientListPage() {
         }
     };
 
-    const handleToggleStatus = async (patient: Patient) => {
+    const handleToggleStatus = (patient: Patient) => {
         const newStatus = patient.status === "Active" ? "Inactive" : "Active";
         if (newStatus === "Inactive") {
-            const confirmed = window.confirm(
-                `Are you sure you want to deactivate ${patient.firstName} ${patient.lastName}? This patient will be hidden from the default list.`
-            );
-            if (!confirmed) return;
+            setDeactivateTarget(patient);
+            return;
         }
+        doToggleStatus(patient, newStatus);
+    };
+
+    const doToggleStatus = async (patient: Patient, newStatus: string) => {
         setTogglingId(patient.id);
         try {
             const res = await fetchWithAuth(
@@ -876,6 +880,14 @@ export default function PatientListPage() {
                     </DialogContent>
                 </Dialog>
             )}
+            <ConfirmDialog
+                open={!!deactivateTarget}
+                title="Deactivate Patient"
+                message={deactivateTarget ? `Are you sure you want to deactivate ${deactivateTarget.firstName} ${deactivateTarget.lastName}? This patient will be hidden from the default list.` : ""}
+                confirmLabel="Deactivate"
+                onConfirm={() => { const p = deactivateTarget!; setDeactivateTarget(null); doToggleStatus(p, "Inactive"); }}
+                onCancel={() => setDeactivateTarget(null)}
+            />
         </AdminLayout>
     );
 }

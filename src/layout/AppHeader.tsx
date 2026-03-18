@@ -1,5 +1,6 @@
 "use client";
 import { getEnv } from "@/utils/env";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import NotificationDropdown from "@/components/header/NotificationDropdown";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
@@ -53,6 +54,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
     const [searchResults, setSearchResults] = useState<{ id: number; firstName: string; lastName: string; dateOfBirth?: string }[]>([]);
     const [showSearchDropdown, setShowSearchDropdown] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
+    const [showDeletePatientConfirm, setShowDeletePatientConfirm] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
     const resetForm = () => {
@@ -171,10 +173,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
         }
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!editingPatientId) return;
-        if (!confirm("Are you sure you want to delete this patient?")) return;
+        setShowDeletePatientConfirm(true);
+    };
 
+    const confirmDeletePatient = async () => {
+        setShowDeletePatientConfirm(false);
         try {
             const response = await fetchWithAuth(
                 `${getEnv("NEXT_PUBLIC_API_URL")}/api/fhir-resource/demographics/${editingPatientId}`,
@@ -594,6 +599,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <ConfirmDialog
+                open={showDeletePatientConfirm}
+                title="Delete Patient"
+                message="Are you sure you want to delete this patient? This action cannot be undone."
+                confirmLabel="Delete"
+                onConfirm={confirmDeletePatient}
+                onCancel={() => setShowDeletePatientConfirm(false)}
+            />
         </header>
     );
 };

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import type { ApiResponse, ProviderNoteDto } from "@/utils/types";
 import Providernoteform from "./Providernoteform";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 type Props = { patientId: number; encounterId: number };
 
@@ -28,6 +29,7 @@ export default function Providernotelist({ patientId, encounterId }: Props) {
     // UI feedback + disable buttons during calls
     const [alert, setAlert] = useState<{ type: "success" | "error"; msg: string } | null>(null);
     const [busyId, setBusyId] = useState<number | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
     async function load() {
         setLoading(true);
@@ -66,7 +68,13 @@ export default function Providernotelist({ patientId, encounterId }: Props) {
     }
 
     async function remove(id: number) {
-        if (!confirm("Delete this provider note?")) return;
+        setDeleteTarget(id);
+    }
+
+    async function confirmDelete() {
+        const id = deleteTarget;
+        setDeleteTarget(null);
+        if (id == null) return;
         try {
             setBusyId(id);
             const res = await fetchWithOrg(`/api/provider-notes/${patientId}/${encounterId}/${id}`, {
@@ -142,6 +150,15 @@ export default function Providernotelist({ patientId, encounterId }: Props) {
 
 
     return (
+        <>
+        <ConfirmDialog
+            open={deleteTarget !== null}
+            title="Delete Provider Note"
+            message="Are you sure you want to delete this provider note? This action cannot be undone."
+            confirmLabel="Delete"
+            onConfirm={confirmDelete}
+            onCancel={() => setDeleteTarget(null)}
+        />
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Provider Notes</h2>
@@ -288,5 +305,6 @@ export default function Providernotelist({ patientId, encounterId }: Props) {
                 ))}
             </ul>
         </div>
+        </>
     );
 }

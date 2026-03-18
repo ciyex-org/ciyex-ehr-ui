@@ -109,8 +109,12 @@ export default function MessagingPage() {
         const keycloakId = systemAccess?.keycloakUserId
           ? String(systemAccess.keycloakUserId)
           : (p["systemAccess.keycloakUserId"] ? String(p["systemAccess.keycloakUserId"]) : "");
-        const userId = keycloakId || (p.fhirId ? String(p.fhirId) : (p.id ? String(p.id) : ""));
         const identification = p.identification as Record<string, string> | undefined;
+        // Email — portal uses email as targetUserId for DMs (same way portal → provider DM works)
+        const email = identification?.email || (p.email ? String(p.email) : "")
+          || (systemAccess?.email ? String(systemAccess.email) : "");
+        // Prefer: keycloakId → email → fhirId → id
+        const userId = keycloakId || email || (p.fhirId ? String(p.fhirId) : (p.id ? String(p.id) : ""));
         const name = identification
           ? `${identification.firstName || ""} ${identification.lastName || ""}`.trim()
           : String(p.name || p.displayName || "Unknown");

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { ICONS } from "./IconPicker";
 import IconPicker from "./IconPicker";
 import {
@@ -41,6 +42,7 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
     const [editCategoryLabel, setEditCategoryLabel] = useState("");
     const [showAddTab, setShowAddTab] = useState<number | null>(null); // catIdx or -1 for ungrouped
     const [newTab, setNewTab] = useState<{ key: string; label: string; icon: string; fhirResources: Array<{ type: string; patientSearchParam: string }> }>({ key: "", label: "", icon: "FileText", fhirResources: [] });
+    const [pendingConfirm, setPendingConfirm] = useState<{ message: string; title: string; onConfirm: () => void } | null>(null);
     const [showAddGroup, setShowAddGroup] = useState(false);
     const [newGroupLabel, setNewGroupLabel] = useState("");
     const [movingTab, setMovingTab] = useState<{ catIdx: number; tabIdx: number } | null>(null);
@@ -165,26 +167,23 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
     // Remove group (move its tabs to top-level or delete if empty)
     const removeGroup = (catIdx: number) => {
         const cat = categories[catIdx];
-        if (cat.tabs.length > 0) {
-            if (!confirm(`Remove group "${cat.label}"? Its ${cat.tabs.length} tabs will be moved to the first group.`)) return;
-            // Move tabs to first available group (or create top-level)
+        const doRemove = () => {
             const updated = [...categories];
-            const targetIdx = catIdx === 0 ? 1 : 0;
-            if (updated[targetIdx]) {
-                const movedTabs = cat.tabs.map((t, i) => ({ ...t, position: updated[targetIdx].tabs.length + i }));
-                updated[targetIdx] = {
-                    ...updated[targetIdx],
-                    tabs: [...updated[targetIdx].tabs, ...movedTabs],
-                };
+            if (cat.tabs.length > 0) {
+                const targetIdx = catIdx === 0 ? 1 : 0;
+                if (updated[targetIdx]) {
+                    const movedTabs = cat.tabs.map((t, i) => ({ ...t, position: updated[targetIdx].tabs.length + i }));
+                    updated[targetIdx] = { ...updated[targetIdx], tabs: [...updated[targetIdx].tabs, ...movedTabs] };
+                }
             }
             updated.splice(catIdx, 1);
             updated.forEach((c, i) => (c.position = i));
             onChange(updated);
+        };
+        if (cat.tabs.length > 0) {
+            setPendingConfirm({ title: "Remove Group", message: `Remove group "${cat.label}"? Its ${cat.tabs.length} tabs will be moved to the first group.`, onConfirm: doRemove });
         } else {
-            const updated = [...categories];
-            updated.splice(catIdx, 1);
-            updated.forEach((c, i) => (c.position = i));
-            onChange(updated);
+            doRemove();
         }
     };
 
@@ -212,14 +211,15 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
     // Remove a tab
     const removeTab = (catIdx: number, tabIdx: number) => {
         const tab = categories[catIdx].tabs[tabIdx];
-        if (!confirm(`Remove "${tab.label}" from the layout?`)) return;
-        const updated = [...categories];
+        setPendingConfirm({ title: "Remove Tab", message: `Remove "${tab.label}" from the layout?`, onConfirm: () => {
+            const updated = [...categories];
         updated[catIdx] = {
             ...updated[catIdx],
             tabs: updated[catIdx].tabs.filter((_, i) => i !== tabIdx),
         };
-        updated[catIdx].tabs.forEach((t, i) => (t.position = i));
-        onChange(updated);
+            updated[catIdx].tabs.forEach((t, i) => (t.position = i));
+            onChange(updated);
+        }});
     };
 
     return (
@@ -593,6 +593,14 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
                     Add Group
                 </button>
             )}
+            <ConfirmDialog
+                open={!!pendingConfirm}
+                title={pendingConfirm?.title}
+                message={pendingConfirm?.message || ""}
+                confirmLabel="Confirm"
+                onConfirm={() => { pendingConfirm?.onConfirm(); setPendingConfirm(null); }}
+                onCancel={() => setPendingConfirm(null)}
+            />
         </div>
     );
 }
