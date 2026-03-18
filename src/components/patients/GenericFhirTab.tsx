@@ -2115,6 +2115,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
                 setSuccessMsg(`Record ${label} successfully`);
                 setTimeout(() => setSuccessMsg(null), 3000);
+                // Notify appointments page and calendar to refresh
+                if (tabKey === "appointments" || tabKey === "appointment") {
+                    window.dispatchEvent(new Event("appointments-changed"));
+                }
                 // Brief delay for FHIR server search indexing after create/update
                 await new Promise(r => setTimeout(r, isEdit ? 1000 : 3000));
                 setPage(0);
