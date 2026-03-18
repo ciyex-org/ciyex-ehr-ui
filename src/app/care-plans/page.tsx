@@ -185,16 +185,19 @@ export default function CarePlansPage() {
       if (!planJson.success) return;
       const plan = planJson.data;
 
-      // Preserve interventions from plan response if already present
+      // Preserve interventions from plan response if already present (toDto always includes them)
       const planInterventions = Array.isArray(plan.interventions) ? plan.interventions : [];
 
-      // Try fetching interventions from dedicated endpoint
+      // Try fetching interventions from dedicated endpoint as well
       try {
         const intRes = await fetchWithAuth(apiUrl(`/api/care-plans/${planId}/interventions`));
         if (intRes.ok) {
           const intJson = await intRes.json();
           if (intJson.success) {
-            const fetched = Array.isArray(intJson.data) ? intJson.data : intJson.data?.content ?? [];
+            // Handle array, Page (content), or nested interventions field
+            const fetched = Array.isArray(intJson.data)
+              ? intJson.data
+              : intJson.data?.content ?? intJson.data?.interventions ?? [];
             plan.interventions = fetched.length > 0 ? fetched : planInterventions;
           } else {
             plan.interventions = planInterventions.length > 0
@@ -202,7 +205,6 @@ export default function CarePlansPage() {
               : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
           }
         } else {
-          // Endpoint returned error — use plan-level interventions or extract from goals
           plan.interventions = planInterventions.length > 0
             ? planInterventions
             : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
@@ -213,7 +215,8 @@ export default function CarePlansPage() {
           : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
       }
 
-      setPlans((prev) => prev.map((p) => (p.id === planId ? plan : p)));
+      // Use String comparison to handle both number and string IDs from different API responses
+      setPlans((prev) => prev.map((p) => (String(p.id) === String(planId) ? plan : p)));
     } catch {
       // silent — will be stale until next full refresh
     }

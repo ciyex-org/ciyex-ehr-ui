@@ -201,12 +201,12 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     }
                 }
                 // Demographics: only the primary patient mobile phone should be mandatory, not other phone fields
-                if (tabKey === "demographics" && f.required && f.type === "phone") {
+                if (tabKey === "demographics" && f.type === "phone") {
                     const lk = f.key.toLowerCase();
-                    // Keep required only for the patient's primary phone/mobile; remove from emergency, employer, guarantor, etc.
+                    // Only these keys count as the primary mobile phone
                     const isPrimaryPhone = lk === "phonenumber" || lk === "phone" || lk === "mobilephone" || lk === "mobile" || lk === "cellphone" || lk === "phone_number" || lk === "mobile_phone";
-                    const isOtherPhone = lk.includes("emergency") || lk.includes("employer") || lk.includes("guarantor") || lk.includes("work") || lk.includes("home") || lk.includes("office") || lk.includes("fax") || lk.includes("alternate") || lk.includes("secondary") || lk.includes("other");
-                    if (isOtherPhone && !isPrimaryPhone) {
+                    if (!isPrimaryPhone && f.required) {
+                        // All other phone fields (home, work, emergency, guardian, pharmacy, etc.) must not be required
                         section.fields[i] = { ...f, required: false };
                     }
                 }
@@ -1211,13 +1211,23 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
             // Immunization: dose must be numeric if provided
             if (tabKey === "immunizations" || tabKey === "immunization") {
-                const doseVal = formData.doseNumber ?? formData.dose ?? formData.doseNumberPositive;
+                // Find which dose field key is actually used in the form config
+                const doseFieldKey = fieldConfig?.sections
+                    ?.flatMap(s => Array.isArray(s.fields) ? s.fields : [])
+                    ?.find(f => f && ["dose", "doseNumber", "doseQuantity", "doseNumberPositive"].includes(f.key))
+                    ?.key ?? "dose";
+                const doseVal = formData[doseFieldKey] ?? formData.doseNumber ?? formData.dose ?? formData.doseNumberPositive;
                 if (doseVal !== undefined && doseVal !== "" && doseVal !== null && isNaN(Number(doseVal))) {
+                    // Set on all possible dose keys so the error displays on whichever field the form renders
+                    errors.dose = "Dose must be a number";
                     errors.doseNumber = "Dose must be a number";
+                    errors.doseQuantity = "Dose must be a number";
+                    errors[doseFieldKey] = "Dose must be a number";
                 }
-                const lotNum = formData.lotNumber;
+                const lotNum = formData.lotNumber ?? formData.lot_number;
                 if (typeof lotNum === "string" && lotNum.trim() && !/^[A-Za-z0-9\-]+$/.test(lotNum.trim())) {
                     errors.lotNumber = "Lot number must be alphanumeric";
+                    errors.lot_number = "Lot number must be alphanumeric";
                 }
             }
             // Procedures: description/name must not be purely numeric
@@ -1254,19 +1264,21 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
             }
             // Encounters: reasonForVisit is required and must contain letters (not purely numeric/special chars)
             if (tabKey === "encounters" || tabKey === "encounter") {
-                // Resolve the field key from config first so the error always highlights the correct field,
-                // even when the user hasn't touched the field yet (formData key still undefined).
-                const rvFieldKey = fieldConfig?.sections
+                // Find which field key is actually used in the form config
+                const rvField = fieldConfig?.sections
                     ?.flatMap(s => Array.isArray(s.fields) ? s.fields : [])
-                    ?.find(f => f && ["reasonForVisit", "reason", "chiefComplaint", "visitReason"].includes(f.key))
-                    ?.key ?? "reasonForVisit";
-                const rv = formData[rvFieldKey] ?? formData.reasonForVisit ?? formData.reason;
+                    ?.find(f => f && ["reasonForVisit", "reason", "chiefComplaint", "visitReason", "cc_text", "chief_complaint"].includes(f.key));
+                const rvFieldKey = rvField?.key ?? "reasonForVisit";
+                // Get value: check the found field key first, then common fallbacks
+                const rv = formData[rvFieldKey] ?? formData.reason ?? formData.reasonForVisit ?? formData.chiefComplaint;
+                // Error key = the actual field key that the form renders, so the error shows on the right field
+                const errKey = rvFieldKey;
                 if (!rv || (typeof rv === "string" && !rv.trim())) {
-                    errors[rvFieldKey] = "Reason for Visit is required";
+                    errors[errKey] = "Reason for Visit is required";
                 } else if (typeof rv === "string" && /^\d+$/.test(rv.trim())) {
-                    errors[rvFieldKey] = "Reason for Visit must contain letters, not just numbers";
+                    errors[errKey] = "Reason for Visit must contain letters, not just numbers";
                 } else if (typeof rv === "string" && /^[^a-zA-Z]+$/.test(rv.trim())) {
-                    errors[rvFieldKey] = "Reason for Visit must contain at least one letter";
+                    errors[errKey] = "Reason for Visit must contain at least one letter";
                 }
             }
             // Problems/Conditions: condition must not be purely numeric + onset/resolved date validation

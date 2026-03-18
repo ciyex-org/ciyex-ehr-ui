@@ -207,9 +207,14 @@ export default function EditPatientPage() {
                                 if (formData) setFormData({ ...formData, phoneNumber: digits });
                                 if (formErrors.phoneNumber) setFormErrors(prev => { const n = { ...prev }; delete n.phoneNumber; return n; });
                             }}
+                            onBlur={(e) => {
+                                const digits = e.target.value.replace(/\D/g, '');
+                                if (digits.length > 0 && digits.length < 10) {
+                                    setFormErrors(prev => ({ ...prev, phoneNumber: "Must be exactly 10 digits: (xxx) xxx-xxxx" }));
+                                }
+                            }}
                             placeholder="(xxx) xxx-xxxx"
                             maxLength={10}
-                            minLength={10}
                             className={inputCls(formErrors.phoneNumber)}
                             required
                         />

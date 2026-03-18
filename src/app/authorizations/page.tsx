@@ -264,11 +264,12 @@ export default function PriorAuthorizationsPage() {
     } catch (err) { console.warn("Patient search error:", err); }
   }, []);
 
-  // Patient search
+  // Patient search — skip re-search when query matches the already-selected patient name
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    if (formData.patientName && patientQuery === formData.patientName) return;
     debounceSearch("patient", () => runPatientSearch(patientQuery));
-  }, [patientQuery, runPatientSearch]);
+  }, [patientQuery, runPatientSearch, formData.patientName]);
 
   // Provider search
   useEffect(() => {
@@ -1004,13 +1005,14 @@ export default function PriorAuthorizationsPage() {
                         value={patientQuery}
                         onChange={(e) => {
                           setPatientQuery(e.target.value);
-                          setFormData({ ...formData, patientId: "", patientName: "" });
+                          setFormData(prev => ({ ...prev, patientId: "", patientName: "" }));
                           setShowPatientDropdown(true);
                         }}
+                        onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
                         onFocus={() => {
-                          if (patientResults.length > 0) {
+                          if (patientResults.length > 0 && !formData.patientName) {
                             setShowPatientDropdown(true);
-                          } else if (patientQuery.trim().length >= 2) {
+                          } else if (!formData.patientName && patientQuery.trim().length >= 2) {
                             // Re-trigger search when focusing back with a query but no cached results
                             runPatientSearch(patientQuery);
                           }
@@ -1033,7 +1035,11 @@ export default function PriorAuthorizationsPage() {
                               }}
                               className={dropdownItemClass}
                             >
-                              {getPatientDisplayName(p)} <span className="text-xs text-gray-400">({p.id})</span>
+                              <span className="font-medium">{getPatientDisplayName(p)}</span>
+                              {(p as any).dateOfBirth && (
+                                <span className="text-xs text-gray-400 ml-1">DOB: {(p as any).dateOfBirth}</span>
+                              )}
+                              <span className="text-xs text-gray-400 ml-1">ID: {p.id}</span>
                             </button>
                           ))}
                         </div>

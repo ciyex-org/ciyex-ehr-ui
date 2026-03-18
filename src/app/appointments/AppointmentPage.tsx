@@ -523,11 +523,9 @@ export default function AppointmentPage() {
     if (!silent) setLoadingAppointments(true);
     if (silent) setRefreshing(true);
     try {
-      // Use larger page size for "All Time" to avoid missing data
-      const effectivePageSize = datePreset === "all_time" ? Math.max(pageSize, 100) : pageSize;
       const params = new URLSearchParams({
         page: String(currentPage - 1),
-        size: String(effectivePageSize),
+        size: String(pageSize),
       });
       if (statusFilter && statusFilter !== "All") params.set("status", statusFilter);
       // Pass date range for server-side FHIR filtering
@@ -558,8 +556,11 @@ export default function AppointmentPage() {
         setRows(enriched);
         setTotalPages(totalPagesVal);
         setTotalItems(totalElementsVal);
-        // Determine if there's a next page: use hasNext from API, or fallback to checking currentPage vs totalPages
-        const hasMore = payload.hasNext === true || (currentPage < totalPagesVal);
+        // Determine if there's a next page
+        // hasNext from API, or last=false (Spring Page), or currentPage < totalPages
+        const hasMore = payload.hasNext === true
+          || payload.last === false
+          || (currentPage < totalPagesVal);
         setHasNextPage(hasMore);
       } else {
         setRows([]);
