@@ -11,7 +11,7 @@ interface Props {
   messages: MessageItem[];
   currentUserId: string;
   typingUsers: string[];
-  onSendMessage: (content: string, parentId?: string) => void;
+  onSendMessage: (content: string, files?: File[]) => void;
   onOpenThread: (messageId: string) => void;
   onReact: (messageId: string, emoji: string) => void;
   onRemoveReaction: (messageId: string, emoji: string) => void;
@@ -22,7 +22,6 @@ interface Props {
   onToggleDetail: () => void;
   replyingTo: MessageItem | null;
   onCancelReply: () => void;
-  onAttachFile?: (files: File[]) => void;
 }
 
 function ChannelIcon({ type, className }: { type: Channel["type"]; className?: string }) {
@@ -37,7 +36,7 @@ export default function MessagePanel({
   channel, messages, currentUserId, typingUsers,
   onSendMessage, onOpenThread, onReact, onRemoveReaction,
   onPin, onDelete, onReply, onToggleSearch, onToggleDetail,
-  replyingTo, onCancelReply, onAttachFile,
+  replyingTo, onCancelReply,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMsgCount = useRef(0);
@@ -234,7 +233,6 @@ export default function MessagePanel({
         onSend={onSendMessage}
         replyingTo={replyingTo}
         onCancelReply={onCancelReply}
-        onAttachFile={onAttachFile}
       />
     </div>
   );

@@ -3,8 +3,9 @@
 import { useState, useRef } from "react";
 import {
   MessageSquare, Pin, MoreHorizontal, Smile, Reply, Trash2, Copy,
+  FileText, Download, X as XIcon, ExternalLink,
 } from "lucide-react";
-import type { MessageItem as MessageItemType, Reaction } from "./types";
+import type { MessageItem as MessageItemType, Reaction, MessageAttachment } from "./types";
 
 interface Props {
   message: MessageItemType;
@@ -106,17 +107,7 @@ export default function MessageItemComponent({
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-2">
-            {message.attachments.map((att) => (
-              <div
-                key={att.id}
-                className="flex items-center gap-2.5 rounded-xl border border-gray-200/80 bg-gray-50/80 px-3.5 py-2.5 text-xs transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800"
-              >
-                <span className="truncate font-medium text-brand-600 dark:text-brand-400">{att.fileName}</span>
-                <span className="text-gray-400">{formatFileSize(att.fileSize)}</span>
-              </div>
-            ))}
-          </div>
+          <AttachmentList attachments={message.attachments} />
         )}
 
         {/* Reactions */}
@@ -226,6 +217,94 @@ export default function MessageItemComponent({
         </div>
       )}
     </div>
+  );
+}
+
+function AttachmentList({ attachments }: { attachments: MessageAttachment[] }) {
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
+  const images = attachments.filter((a) => a.fileType?.startsWith("image/"));
+  const files = attachments.filter((a) => !a.fileType?.startsWith("image/"));
+
+  return (
+    <>
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+            onClick={() => setLightbox(null)}
+          >
+            <XIcon className="h-5 w-5" />
+          </button>
+          <img
+            src={lightbox}
+            alt="Preview"
+            className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      <div className="mt-2 space-y-2">
+        {/* Image previews */}
+        {images.length > 0 && (
+          <div className={`flex flex-wrap gap-2 ${images.length === 1 ? "" : ""}`}>
+            {images.map((att) => (
+              <div key={att.id} className="group relative">
+                <img
+                  src={att.thumbnailUrl || att.fileUrl}
+                  alt={att.fileName}
+                  className="h-48 max-w-xs cursor-zoom-in rounded-xl border border-gray-200/80 object-cover shadow-sm transition-transform hover:scale-[1.02] dark:border-gray-700"
+                  onClick={() => setLightbox(att.fileUrl)}
+                />
+                <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <a
+                    href={att.fileUrl}
+                    download={att.fileName}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg bg-black/60 p-1.5 text-white backdrop-blur-sm hover:bg-black/80"
+                    title="Download"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* File attachments */}
+        {files.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {files.map((att) => (
+              <a
+                key={att.id}
+                href={att.fileUrl}
+                download={att.fileName}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 rounded-xl border border-gray-200/80 bg-gray-50/80 px-3.5 py-2.5 text-xs transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-900/20">
+                  <FileText className="h-4 w-4 text-brand-600 dark:text-brand-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate max-w-[180px] font-medium text-gray-800 dark:text-gray-200">{att.fileName}</p>
+                  <p className="text-gray-400">{formatFileSize(att.fileSize)}</p>
+                </div>
+                <Download className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

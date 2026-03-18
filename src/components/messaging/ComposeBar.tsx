@@ -1,34 +1,57 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  Send, Paperclip, Smile, X, Bold, Italic, Code, List, Link2, AtSign, FileText,
+  Send, Paperclip, Smile, X, Bold, Italic, Code, List, Link2, AtSign, FileText, Image,
 } from "lucide-react";
 import type { MessageItem } from "./types";
 
 interface Props {
   channelName: string;
-  onSend: (content: string) => void;
+  onSend: (content: string, files?: File[]) => void;
   replyingTo: MessageItem | null;
   onCancelReply: () => void;
-  onAttachFile?: (files: File[]) => void;
 }
 
-export default function ComposeBar({ channelName, onSend, replyingTo, onCancelReply, onAttachFile }: Props) {
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function ComposeBar({ channelName, onSend, replyingTo, onCancelReply }: Props) {
   const [content, setContent] = useState("");
   const [showFormatting, setShowFormatting] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Generate object URLs for image previews
+  useEffect(() => {
+    const newMap = new Map<string, string>();
+    for (const f of pendingFiles) {
+      if (f.type.startsWith("image/")) {
+        newMap.set(f.name + f.size, URL.createObjectURL(f));
+      }
+    }
+    setPreviewUrls(newMap);
+    return () => {
+      newMap.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [pendingFiles]);
+
+  const canSend = content.trim().length > 0 || pendingFiles.length > 0;
+
   const handleSend = useCallback(() => {
-    const trimmed = content.trim();
-    if (!trimmed) return;
-    onSend(trimmed);
+    if (!canSend) return;
+    onSend(content.trim(), pendingFiles.length > 0 ? pendingFiles : undefined);
     setContent("");
+    setPendingFiles([]);
     if (textareaRef.current) {
       textareaRef.current.style.height = "44px";
     }
-  }, [content, onSend]);
+  }, [content, pendingFiles, canSend, onSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -63,10 +86,14 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length && onAttachFile) {
-      onAttachFile(files);
+    if (files.length) {
+      setPendingFiles((prev) => [...prev, ...files]);
     }
     e.target.value = "";
+  };
+
+  const removeFile = (idx: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
   return (
@@ -87,6 +114,45 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
           >
             <X className="h-4 w-4" />
           </button>
+        </div>
+      )}
+
+      {/* Pending file previews */}
+      {pendingFiles.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2 rounded-xl border border-gray-200/80 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-800/60">
+          {pendingFiles.map((file, idx) => {
+            const key = file.name + file.size;
+            const isImage = file.type.startsWith("image/");
+            const previewUrl = previewUrls.get(key);
+            return (
+              <div
+                key={key + idx}
+                className="relative flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-2 pr-7 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+              >
+                {isImage && previewUrl ? (
+                  <img
+                    src={previewUrl}
+                    alt={file.name}
+                    className="h-14 w-14 rounded-md object-cover"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-700">
+                    <FileText className="h-6 w-6 text-gray-400" />
+                  </div>
+                )}
+                <div className="min-w-0 max-w-[120px]">
+                  <p className="truncate text-xs font-medium text-gray-800 dark:text-gray-200">{file.name}</p>
+                  <p className="text-[11px] text-gray-400">{formatBytes(file.size)}</p>
+                </div>
+                <button
+                  onClick={() => removeFile(idx)}
+                  className="absolute right-1.5 top-1.5 rounded-full bg-gray-200 p-0.5 text-gray-500 transition-colors hover:bg-red-100 hover:text-red-600 dark:bg-gray-700 dark:hover:bg-red-900/40"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -118,6 +184,7 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
             ref={fileInputRef}
             type="file"
             multiple
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
             className="hidden"
             onChange={handleFileSelect}
           />
@@ -154,9 +221,9 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
           </button>
           <button
             onClick={handleSend}
-            disabled={!content.trim()}
+            disabled={!canSend}
             className={`rounded-xl p-2 transition-all ${
-              content.trim()
+              canSend
                 ? "bg-brand-500 text-white shadow-sm hover:bg-brand-600 hover:shadow-md active:scale-95"
                 : "text-gray-300 dark:text-gray-600"
             }`}
