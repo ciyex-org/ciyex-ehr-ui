@@ -542,8 +542,8 @@ export default function AppointmentPage() {
 
       const payload = data?.data ?? {};
       const content: AppointmentDTO[] = payload.content ?? [];
-      const totalPagesVal = payload.totalPages ?? 1;
-      const totalElementsVal = payload.totalElements ?? content.length;
+      const totalElementsVal = payload.totalElements ?? payload.total ?? content.length;
+      const totalPagesVal = payload.totalPages ?? (totalElementsVal > 0 ? Math.ceil(totalElementsVal / pageSize) : 1);
 
       if (Array.isArray(content)) {
         const enriched = await Promise.all(
@@ -555,7 +555,10 @@ export default function AppointmentPage() {
         setRows(enriched);
         setTotalPages(totalPagesVal);
         setTotalItems(totalElementsVal);
-        setHasNextPage(payload.hasNext === true || (currentPage < totalPagesVal));
+        // Compute hasNextPage from multiple API response formats (Spring Boot: last, hasNext; custom: hasNextPage)
+        const isLast = payload.last === true;
+        const hasNextFromApi = payload.hasNext === true || payload.hasNextPage === true;
+        setHasNextPage(!isLast && (hasNextFromApi || currentPage < totalPagesVal));
       } else {
         setRows([]);
         setTotalPages(1);

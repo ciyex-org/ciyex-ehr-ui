@@ -80,9 +80,17 @@ export default function CarePlansPage() {
                   `${getEnv("NEXT_PUBLIC_API_URL")}/api/care-plans/${plan.id}/interventions`
                 );
                 const intJson = await intRes.json();
-                plan.interventions = intJson.success
-                  ? (Array.isArray(intJson.data) ? intJson.data : intJson.data?.content ?? [])
-                  : plan.interventions || [];
+                if (intJson.success) {
+                  plan.interventions = Array.isArray(intJson.data) ? intJson.data : intJson.data?.content ?? [];
+                } else if (Array.isArray(intJson)) {
+                  plan.interventions = intJson;
+                } else if (Array.isArray(intJson.data)) {
+                  plan.interventions = intJson.data;
+                } else if (Array.isArray(intJson.content)) {
+                  plan.interventions = intJson.content;
+                } else {
+                  plan.interventions = plan.interventions || [];
+                }
               } catch {
                 plan.interventions = plan.interventions || [];
               }

@@ -251,9 +251,11 @@ export default function PriorAuthorizationsPage() {
     return [];
   }
 
-  // Patient search
+  // Patient search — skip search when a patient is already selected (patientId is set)
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    // Don't re-search when patient is already selected
+    if (formData.patientId && formData.patientName === patientQuery) return;
     debounceSearch("patient", async () => {
       try {
         const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(patientQuery)}&size=20`);
