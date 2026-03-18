@@ -1078,9 +1078,14 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     const NAME_FIELD_KEYS = new Set(["firstName", "lastName", "middleName", "first_name", "last_name", "middle_name"]);
 
     const handleFieldChange = (key: string, value: any) => {
-        // Strip digits and disallowed chars from name fields in real-time
+        // Name fields: block digits/invalid chars and show inline error
         if (NAME_FIELD_KEYS.has(key) && typeof value === "string") {
-            value = value.replace(/[^A-Za-z\s\-'.]/g, "");
+            if (/[^A-Za-z\s\-'.]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Name must contain only letters" }));
+                value = value.replace(/[^A-Za-z\s\-'.]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
         }
         setFormData((prev) => ({ ...prev, [key]: value }));
 
