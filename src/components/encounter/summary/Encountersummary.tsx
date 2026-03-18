@@ -431,6 +431,13 @@ const loadAll = useCallback(async () => {
 
     const d = (res.ok && json?.success && json.data) ? json.data : null;
 
+    // If the aggregate endpoint failed, surface the backend error message
+    if (!res.ok && json?.message) {
+      setTopErr(json.message);
+      setLoading(false);
+      return;
+    }
+
     // Set what we got from the aggregate endpoint
     const meta = d?.meta || null;
     const ap = d?.assignedProviders || null;
@@ -450,30 +457,20 @@ const loadAll = useCallback(async () => {
     let sig = d?.providerSignature || null;
     let dtf = d?.dateTimeFinalized || null;
 
-    // Fall back to individual endpoints for any missing sections
+    // Only fall back to individual endpoints that actually exist in this backend.
+    // All clinical-note sections (cc, hpi, pmh, soc, ros, pe, asmt, plan, pnotes)
+    // are served exclusively by the aggregate endpoint above — there are no separate
+    // REST endpoints for them, and calling non-existent paths causes 500 errors.
     const isEmpty = (v: unknown) => !v || (Array.isArray(v) && v.length === 0);
     const pid = patientId;
     const eid = encounterId;
 
     const fallbacks: Promise<void>[] = [];
 
-    if (isEmpty(cc)) fallbacks.push(tryMany<ChiefComplaint[]>([`/api/chief-complaint/${pid}/${eid}`, `/api/chief-complaints/${pid}/${eid}`, `/api/cc/${pid}/${eid}`]).then(r => { if (r) cc = r; }));
-    if (isEmpty(hp)) fallbacks.push(tryMany<HPIEntry[]>([`/api/history-of-present-illness/${pid}/${eid}`, `/api/hpi/${pid}/${eid}`]).then(r => { if (r) hp = r; }));
-    if (isEmpty(pm)) fallbacks.push(tryMany<PMHEntry[]>([`/api/pmh/${pid}/${eid}`, `/api/past-medical-history/${pid}/${eid}`]).then(r => { if (r) pm = r; }));
-    if (isEmpty(pm2)) fallbacks.push(tryMany<PatientMHEntry[]>([`/api/patient-medical-history/${pid}/${eid}`, `/api/patient-mh/${pid}/${eid}`]).then(r => { if (r) pm2 = r; }));
-    if (isEmpty(fam)) fallbacks.push(tryMany<FamilyHistory[]>([`/api/family-history/${pid}/${eid}`, `/api/fh/${pid}/${eid}`]).then(r => { if (r) fam = r; }));
-    if (isEmpty(soc?.entries)) fallbacks.push(tryMany<SocialHistory | SocialHistoryEntry[]>([`/api/social-history/${pid}/${eid}`, `/api/socialhistory/${pid}/${eid}`, `/api/sh/${pid}/${eid}`]).then(r => {
-      if (r) soc = Array.isArray(r) ? { entries: r } : r as SocialHistory;
-    }));
-    if (isEmpty(rs)) fallbacks.push(tryMany<ROSEntry[]>([`/api/reviewofsystems/${pid}/${eid}`, `/api/ros/${pid}/${eid}`]).then(r => { if (r) rs = r; }));
-    if (isEmpty(px)) fallbacks.push(tryMany<PhysicalExam[]>([`/api/physical-exam/${pid}/${eid}`, `/api/pe/${pid}/${eid}`]).then(r => { if (r) px = r; }));
+    // /api/vitals/{patientId}/{encounterId} exists in backend
     if (isEmpty(vt)) fallbacks.push(tryMany<Vitals[]>([`/api/vitals/${pid}/${eid}`]).then(r => { if (r) vt = r; }));
-    if (isEmpty(pr)) fallbacks.push(tryMany<Procedure[]>([`/api/procedures/${pid}/${eid}`, `/api/procedure/${pid}/${eid}`]).then(r => { if (r) pr = r; }));
-    if (isEmpty(asmt)) fallbacks.push(tryMany<Assessment[]>([`/api/assessment/${pid}/${eid}`, `/api/assessments/${pid}/${eid}`]).then(r => { if (r) asmt = r; }));
-    if (isEmpty(pl)) fallbacks.push(tryMany<Plan[]>([`/api/plan/${pid}/${eid}`, `/api/plans/${pid}/${eid}`]).then(r => { if (r) pl = r; }));
-    if (isEmpty(pnotes)) fallbacks.push(tryMany<ProviderNote[]>([`/api/provider-notes/${pid}/${eid}`, `/api/soap/${pid}/${eid}`]).then(r => { if (r) pnotes = r; }));
-    if (!sig) fallbacks.push(tryMany<ProviderSignature>([`/api/provider-signatures/${pid}/${eid}`, `/api/signatures/${pid}/${eid}`]).then(r => { if (r) sig = r; }));
-    if (!dtf) fallbacks.push(tryMany<DateTimeFinalized>([`/api/datetime-finalized/${pid}/${eid}`, `/api/finalized/${pid}/${eid}`]).then(r => { if (r) dtf = r; }));
+    // /api/provider-signatures/{patientId}/{encounterId} exists in backend
+    if (!sig) fallbacks.push(tryMany<ProviderSignature>([`/api/provider-signatures/${pid}/${eid}`]).then(r => { if (r) sig = r; }));
 
     if (fallbacks.length > 0) await Promise.all(fallbacks);
 
