@@ -1076,10 +1076,41 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
     }, [fieldConfig, formData.id]); // only re-run when record changes (by id)
 
     const NAME_FIELD_KEYS = new Set(["firstName", "lastName", "middleName", "first_name", "last_name", "middle_name"]);
+    // Subscriber name keys (insurance-coverage)
+    const SUBSCRIBER_NAME_KEYS = new Set(["subscriberFirstName", "subscriberLastName", "subscriber_first_name", "subscriber_last_name", "subscriberName", "subscriber_name"]);
+    // Copay/numeric-only keys (insurance-coverage)
+    const COPAY_KEYS = new Set(["copay", "copayAmount", "copay_amount", "coPay", "coPayAmount"]);
 
     const handleFieldChange = (key: string, value: any) => {
         // Name fields: block digits/invalid chars and show inline error
         if (NAME_FIELD_KEYS.has(key) && typeof value === "string") {
+            if (/[^A-Za-z\s\-'.]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Name must contain only letters" }));
+                value = value.replace(/[^A-Za-z\s\-'.]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
+        }
+        // Subscriber name fields: letters only
+        if (SUBSCRIBER_NAME_KEYS.has(key) && typeof value === "string") {
+            if (/[^A-Za-z\s\-'.]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Name must contain only letters" }));
+                value = value.replace(/[^A-Za-z\s\-'.]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
+        }
+        // Copay: numbers and decimal only (match by set OR key containing "copay")
+        if ((COPAY_KEYS.has(key) || key.toLowerCase().includes("copay")) && typeof value === "string") {
+            if (/[^0-9.]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Copay amount must be a number" }));
+                value = value.replace(/[^0-9.]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
+        }
+        // Subscriber name: letters only (match by key containing "subscriber" + name)
+        if (key.toLowerCase().includes("subscriber") && (key.toLowerCase().includes("name") || key.toLowerCase().includes("first") || key.toLowerCase().includes("last")) && typeof value === "string") {
             if (/[^A-Za-z\s\-'.]/.test(value)) {
                 setValidationErrors((prev) => ({ ...prev, [key]: "Name must contain only letters" }));
                 value = value.replace(/[^A-Za-z\s\-'.]/g, "");
@@ -1436,6 +1467,33 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         f => f && /payer|insurer|company/i.test(f.key)
                     );
                     if (payerField) errors[payerField.key] = `${payerField.label} is required`;
+                }
+            }
+            // Insurance-coverage field validation
+            if (tabKey === "insurance-coverage") {
+                // Copay amount — must be numeric
+                for (const key of ["copay", "copayAmount", "copay_amount", "coPay", "coPayAmount"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && isNaN(Number(val))) {
+                        errors[key] = "Copay amount must be a number";
+                    }
+                }
+                // Subscriber name fields — letters only
+                for (const key of ["subscriberFirstName", "subscriberLastName", "subscriber_first_name", "subscriber_last_name", "subscriberName", "subscriber_name"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !isValidName(val)) {
+                        errors[key] = "Name must contain only letters";
+                    }
+                }
+                // Subscriber phone — exactly 10 digits
+                for (const key of Object.keys(formData)) {
+                    const lk = key.toLowerCase();
+                    if (lk.includes("subscriber") && (lk.includes("phone") || lk.includes("mobile") || lk.includes("cell"))) {
+                        const val = formData[key];
+                        if (typeof val === "string" && val.trim() && !isValidUSPhone(val)) {
+                            errors[key] = "Mobile number must be exactly 10 digits";
+                        }
+                    }
                 }
             }
             if (Object.keys(errors).length > 0) {
