@@ -368,7 +368,8 @@ export default function AppointmentPage() {
 
   // Room
   const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
-  const [roomOptions, setRoomOptions] = useState<string[]>([]);
+  const DEFAULT_ROOM_OPTIONS = ["Exam 1", "Exam 2", "Exam 3", "Exam 4", "Lab", "Procedure Room", "Triage"];
+  const [roomOptions, setRoomOptions] = useState<string[]>(DEFAULT_ROOM_OPTIONS);
 
   // Auto-refresh
   const [refreshInterval, setRefreshInterval] = useState<number>(30000);
@@ -448,7 +449,8 @@ export default function AppointmentPage() {
         const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/room-options`);
         if (res.ok) {
           const data = await res.json();
-          setRoomOptions(data.data || []);
+          const options: string[] = data.data || [];
+          if (options.length > 0) setRoomOptions(options);
         }
       } catch (e) {
         console.error("Failed to fetch room options:", e);
@@ -549,7 +551,8 @@ export default function AppointmentPage() {
         const enriched = await Promise.all(
           content.map(async (appt) => {
             const info = await fetchPatientInfo(appt.patientId);
-            return normalizeApptTimes({ ...appt, patientName: info.name, patientPhone: info.phone, visitType: normalizeVisitType((appt as any).visitType) });
+            const raw = appt as any;
+            return normalizeApptTimes({ ...appt, patientName: info.name, patientPhone: info.phone, visitType: normalizeVisitType(raw.visitType), room: raw.room || raw.roomName || raw.room_name || raw.roomNumber || undefined });
           })
         );
         setRows(enriched);
