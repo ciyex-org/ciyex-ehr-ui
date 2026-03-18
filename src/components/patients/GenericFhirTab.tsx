@@ -1118,6 +1118,17 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
             }
         }
+        // Education topic/title: letters only (no purely numeric input)
+        if ((tabKey === "education" || tabKey === "patient-education") &&
+            (key === "topic" || key === "title" || key === "subject") &&
+            typeof value === "string") {
+            if (/[^A-Za-z\s\-'.,!?()&]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Topic/Title must contain only letters" }));
+                value = value.replace(/[^A-Za-z\s\-'.,!?()&]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
+        }
         setFormData((prev) => ({ ...prev, [key]: value }));
 
         // If a file field with uploadEndpoint received a value, the upload endpoint
@@ -1344,6 +1355,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                         errors.endDate = "Resolved date cannot be earlier than onset date";
                         errors.resolvedDate = "Resolved date cannot be earlier than onset date";
                         errors.abatementDate = "Resolved date cannot be earlier than onset date";
+                    }
+                }
+            }
+            // Education: topic/title must contain only letters (no purely numeric)
+            if (tabKey === "education" || tabKey === "patient-education") {
+                for (const key of ["topic", "title", "subject"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
+                        errors[key] = "Topic/Title must contain only letters";
                     }
                 }
             }
