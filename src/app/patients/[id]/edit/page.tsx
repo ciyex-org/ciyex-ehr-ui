@@ -70,8 +70,14 @@ export default function EditPatientPage() {
         fetchPatientDetails();
     }, [id]);
 
+    const NAME_FIELDS = new Set(["firstName", "lastName", "middleName"]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
+        const { name } = e.target;
+        let { value } = e.target;
+        if (NAME_FIELDS.has(name)) {
+            value = value.replace(/[^A-Za-z\s\-'.]/g, "");
+        }
         if (formData) {
             setFormData({ ...formData, [name]: value });
             if (formErrors[name]) setFormErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
@@ -87,6 +93,7 @@ export default function EditPatientPage() {
         else if (!isValidName(formData.firstName)) errs.firstName = "Name must contain only letters";
         if (!formData.lastName?.trim()) errs.lastName = "Last name is required";
         else if (!isValidName(formData.lastName)) errs.lastName = "Name must contain only letters";
+        if (formData.middleName?.trim() && !isValidName(formData.middleName)) errs.middleName = "Name must contain only letters";
         if (!formData.phoneNumber?.trim()) errs.phoneNumber = "Mobile number is required";
         else if (!isValidUSPhone(formData.phoneNumber)) errs.phoneNumber = "Must be exactly 10 digits: (xxx) xxx-xxxx";
         if (!formData.email?.trim()) errs.email = "Email is required";
@@ -159,8 +166,9 @@ export default function EditPatientPage() {
                             name="middleName"
                             value={formData.middleName || ""}
                             onChange={handleChange}
-                            className={inputCls()}
+                            className={inputCls(formErrors.middleName)}
                         />
+                        {formErrors.middleName && <p className="text-xs text-red-500 mt-1">{formErrors.middleName}</p>}
                     </div>
                     <div className="mb-4">
                         <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">

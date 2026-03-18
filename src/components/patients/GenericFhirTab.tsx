@@ -1075,7 +1075,13 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
         })();
     }, [fieldConfig, formData.id]); // only re-run when record changes (by id)
 
+    const NAME_FIELD_KEYS = new Set(["firstName", "lastName", "middleName", "first_name", "last_name", "middle_name"]);
+
     const handleFieldChange = (key: string, value: any) => {
+        // Strip digits and disallowed chars from name fields in real-time
+        if (NAME_FIELD_KEYS.has(key) && typeof value === "string") {
+            value = value.replace(/[^A-Za-z\s\-'.]/g, "");
+        }
         setFormData((prev) => ({ ...prev, [key]: value }));
 
         // If a file field with uploadEndpoint received a value, the upload endpoint
