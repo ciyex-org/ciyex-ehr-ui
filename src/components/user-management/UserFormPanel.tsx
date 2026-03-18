@@ -5,6 +5,7 @@ import { X, Save, Loader2 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { UserResponse, CreateUserRequest, UpdateUserRequest } from "./types";
+import { isValidEmail, isValidUSPhone } from "@/utils/validation";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
@@ -29,6 +30,7 @@ export default function UserFormPanel({ open, editUser, onClose, onSave }: Props
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
   const [generatePrint, setGeneratePrint] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
 
@@ -72,6 +74,11 @@ export default function UserFormPanel({ open, editUser, onClose, onSave }: Props
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (!isValidEmail(email)) errs.email = "Invalid email format";
+    if (phone.trim() && !isValidUSPhone(phone)) errs.phone = "Mobile number must be exactly 10 digits";
+    if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
+    setFormErrors({});
     setSaving(true);
     try {
       if (editUser) {
@@ -137,8 +144,9 @@ export default function UserFormPanel({ open, editUser, onClose, onSave }: Props
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email *</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm" />
+            <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); if (formErrors.email) setFormErrors(p => { const n = {...p}; delete n.email; return n; }); }} required
+              className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-800 text-sm ${formErrors.email ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`} />
+            {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
             {showAutoLinkNote && (
               <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
                 Will auto-link to matching {roleName === "PATIENT" ? "patient" : "provider"} FHIR record by email
@@ -148,8 +156,9 @@ export default function UserFormPanel({ open, editUser, onClose, onSave }: Props
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone</label>
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm" />
+            <input type="tel" value={phone} onChange={(e) => { setPhone(e.target.value); if (formErrors.phone) setFormErrors(p => { const n = {...p}; delete n.phone; return n; }); }}
+              className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-800 text-sm ${formErrors.phone ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`} />
+            {formErrors.phone && <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>}
           </div>
 
           {!editUser && (

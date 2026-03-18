@@ -31,7 +31,7 @@ import {
   Loader2,
   Inbox,
 } from "lucide-react";
-import { isValidPhone, isValidFax, isValidNpi } from "@/utils/validation";
+import { isValidUSPhone, isValidFax, isValidNpi } from "@/utils/validation";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -372,7 +372,7 @@ function ReferralFormPanel({
     if (!form.specialistName.trim()) e.specialistName = "Specialist name is required";
     if (!form.facilityName.trim()) e.facilityName = "Facility name is required";
     if (!form.referralDate.trim()) e.referralDate = "Referral date is required";
-    if (form.facilityPhone.trim() && !isValidPhone(form.facilityPhone)) e.facilityPhone = "Invalid phone number";
+    if (form.facilityPhone.trim() && !isValidUSPhone(form.facilityPhone)) e.facilityPhone = "Mobile number must be exactly 10 digits";
     if (form.facilityFax.trim() && !isValidFax(form.facilityFax)) e.facilityFax = "Invalid fax number";
     if (form.specialistNpi.trim() && !isValidNpi(form.specialistNpi)) e.specialistNpi = "NPI must be exactly 10 digits";
     if (form.expiryDate && form.referralDate && form.expiryDate < form.referralDate) e.expiryDate = "Expiry date must be after referral date";

@@ -1206,17 +1206,20 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     }
                 }
             }
-            // Format validation for typed fields
+            // Format validation for typed fields (applies to ALL tabs)
             for (const section of fieldConfig.sections) {
                 if (!Array.isArray(section?.fields)) continue;
                 for (const field of section.fields) {
                     if (!field) continue;
                     const val = formData[field.key];
                     if (typeof val === "string" && val.trim()) {
-                        if (field.type === "email" && !isValidEmail(val)) errors[field.key] = "Invalid email format";
-                        if (field.type === "phone" && !isValidPhone(val)) errors[field.key] = "Invalid phone number";
-                        if ((field.key.toLowerCase().includes("fax")) && !isValidFax(val)) errors[field.key] = "Invalid fax number";
-                        if ((field.key.toLowerCase().includes("website") || field.key.toLowerCase().includes("url")) && !isValidUrl(val)) errors[field.key] = "Invalid URL (must start with http:// or https://)";
+                        const lk = field.key.toLowerCase();
+                        // Email: by field.type OR key name containing "email"
+                        if ((field.type === "email" || lk.includes("email")) && !isValidEmail(val)) errors[field.key] = "Invalid email format";
+                        // Phone/mobile/cell: 10-digit US format
+                        if ((field.type === "phone" || lk.includes("phone") || lk.includes("mobile") || lk.includes("cell")) && !lk.includes("fax") && !isValidUSPhone(val)) errors[field.key] = "Mobile number must be exactly 10 digits";
+                        if (lk.includes("fax") && !isValidFax(val)) errors[field.key] = "Invalid fax number";
+                        if ((lk.includes("website") || lk.includes("url")) && !isValidUrl(val)) errors[field.key] = "Invalid URL (must start with http:// or https://)";
                     }
                 }
             }

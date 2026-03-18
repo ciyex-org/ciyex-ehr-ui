@@ -8,7 +8,7 @@ import ProfessionalInfo from "@/components/settings/provider-registration/Profes
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Modal } from "@/components/ui/modal";
-import { isValidEmail, isValidPhone, isValidNpi } from "@/utils/validation";
+import { isValidEmail, isValidUSPhone, isValidNpi } from "@/utils/validation";
 
 interface ProviderRequestData {
     npi: string;
@@ -86,8 +86,8 @@ const ProviderRegistrationForm = () => {
         }
         if (!formData.phone?.trim()) {
             newErrors.phone = "Please fill out this field";
-        } else if (!isValidPhone(formData.phone)) {
-            newErrors.phone = "Please enter a valid phone number";
+        } else if (!isValidUSPhone(formData.phone)) {
+            newErrors.phone = "Mobile number must be exactly 10 digits";
         }
         if (!formData.email?.trim()) {
             newErrors.email = "Please fill out this field";
