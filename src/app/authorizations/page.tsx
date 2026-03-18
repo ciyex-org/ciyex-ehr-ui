@@ -361,7 +361,7 @@ export default function PriorAuthorizationsPage() {
   };
 
   const autocompleteInputClass = "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
-  const dropdownClass = "absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg";
+  const dropdownClass = "absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg";
   const dropdownItemClass = "w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 cursor-pointer";
 
   // ----- Fetch list -----
@@ -457,7 +457,7 @@ export default function PriorAuthorizationsPage() {
     setProcedureQuery(auth.procedureCode);
     setShowForm(true);
     setActionMenuId(null);
-    // Refresh patient name from live data in case it was updated since auth was created
+    // Always refresh patient name from live data so updated names are reflected
     if (auth.patientId) {
       try {
         const res = await fetchWithAuth(`${base()}/api/patients/${auth.patientId}`);
@@ -465,7 +465,7 @@ export default function PriorAuthorizationsPage() {
           const json = await res.json();
           const patient = json?.data || json;
           const currentName = patient.fullName || patient.name || `${patient.firstName ?? patient.identification?.firstName ?? ""} ${patient.lastName ?? patient.identification?.lastName ?? ""}`.trim();
-          if (currentName && currentName !== auth.patientName) {
+          if (currentName) {
             setPatientQuery(currentName);
             setFormData(prev => ({ ...prev, patientName: currentName }));
           }
@@ -1010,11 +1010,11 @@ export default function PriorAuthorizationsPage() {
                         }}
                         onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
                         onFocus={() => {
-                          if (patientResults.length > 0 && !formData.patientName) {
-                            setShowPatientDropdown(true);
-                          } else if (!formData.patientName && patientQuery.trim().length >= 2) {
-                            // Re-trigger search when focusing back with a query but no cached results
+                          // Always re-search on focus so fresh/updated patient names are shown
+                          if (patientQuery.trim().length >= 2) {
                             runPatientSearch(patientQuery);
+                          } else if (patientResults.length > 0) {
+                            setShowPatientDropdown(true);
                           }
                         }}
                         placeholder="Search patient..."
