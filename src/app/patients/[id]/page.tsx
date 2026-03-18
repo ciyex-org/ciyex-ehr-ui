@@ -608,7 +608,7 @@ export default function PatientDashboardPage() {
         return (
             <>
                 <PluginSlot name={`patient-chart:tab:${tabKey}:header`} context={{ patientId: patient.id, tabKey }} />
-                <GenericFhirTab tabKey={tabKey} patientId={Number(patient.id)} />
+                <GenericFhirTab tabKey={tabKey} patientId={Number(patient.id)} patientName={`${patient.firstName || ""} ${patient.lastName || ""}`.trim()} />
                 <PluginSlot name={`patient-chart:tab:${tabKey}:footer`} context={{ patientId: patient.id, tabKey }} />
             </>
         );

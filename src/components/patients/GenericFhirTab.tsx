@@ -14,9 +14,10 @@ const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 interface GenericFhirTabProps {
     tabKey: string;
     patientId: number;
+    patientName?: string;
 }
 
-export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProps) {
+export default function GenericFhirTab({ tabKey, patientId, patientName }: GenericFhirTabProps) {
     const router = useRouter();
     // Extract base resource type from tabKey (strip subtab suffix like ">Failed" from "claims>Failed")
     const resourceKey = tabKey.includes(">") ? tabKey.split(">")[0] : tabKey;
@@ -242,6 +243,16 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                 if ((tabKey === "encounters" || tabKey === "encounter") && (f.key === "provider" || f.key === "practitioner" || f.key === "providerId")) {
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
+                // Appointments: patient field should be readonly (locked to current patient)
+                if (tabKey === "appointments" || tabKey === "appointment") {
+                    const fkl = f.key.toLowerCase();
+                    const isApptPatientField = f.key === "patient" || f.key === "patientId" || f.key === "patientName" ||
+                        f.key === "subject" || f.key === "patientRef" ||
+                        (fkl.includes("patient") && !fkl.includes("provider") && !fkl.includes("doctor"));
+                    if (isApptPatientField) {
+                        section.fields[i] = { ...f, type: "text", readOnly: true } as any;
                     }
                 }
                 // Appointments: ensure provider/practitioner field is a provider lookup
@@ -1234,6 +1245,15 @@ export default function GenericFhirTab({ tabKey, patientId }: GenericFhirTabProp
                     if ((field as any).defaultValue != null && defaults[field.key] == null) {
                         defaults[field.key] = (field as any).defaultValue;
                     }
+                }
+            }
+        }
+        // For appointments tab: auto-fill patient name (locked to current patient)
+        if (tabKey === "appointments" || tabKey === "appointment") {
+            const name = patientName || "";
+            if (name) {
+                for (const key of ["patient", "patientName", "patientId", "subject", "patientRef"]) {
+                    if (defaults[key] == null) defaults[key] = name;
                 }
             }
         }

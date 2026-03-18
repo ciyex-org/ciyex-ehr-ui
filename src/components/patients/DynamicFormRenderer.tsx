@@ -1955,7 +1955,7 @@ export default function DynamicFormRenderer({
         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
           {field.label} {field.required && <span className="text-red-500">*</span>}
         </label>
-        {readOnly ? (
+        {(readOnly || !!(field as any).readOnly) ? (
           field.type === "file" && value ? (
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-blue-500" />
@@ -2045,8 +2045,8 @@ export default function DynamicFormRenderer({
         })() : (
           renderInput(field, value, error)
         )}
-        {!readOnly && error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-        {!readOnly && field.helpText && <p className="text-xs text-gray-400 mt-1">{field.helpText}</p>}
+        {!readOnly && !(field as any).readOnly && error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+        {!readOnly && !(field as any).readOnly && field.helpText && <p className="text-xs text-gray-400 mt-1">{field.helpText}</p>}
       </div>
     );
   };
