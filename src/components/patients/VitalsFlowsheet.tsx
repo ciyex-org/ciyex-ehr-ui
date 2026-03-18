@@ -164,7 +164,7 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full">
+            <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm p-8 flex items-center justify-center">
                 <div className="flex items-center gap-2 text-gray-500">
                     <Activity className="w-5 h-5 animate-pulse" />
                     <span>Loading vitals...</span>
@@ -175,18 +175,18 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
 
     if (error) {
         return (
-            <div className="flex items-center justify-center h-full text-red-500">
+            <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm p-8 flex items-center justify-center text-red-500">
                 {error}
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-full min-h-0">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3 pb-1 shrink-0">
-                <div className="flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-indigo-600" />
+        <div className="w-full bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            {/* Header — always fully visible, never clipped */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Activity className="w-5 h-5 text-indigo-600 shrink-0" />
                     <h3 className="text-base font-semibold text-gray-800">Vitals Flowsheet</h3>
                     {columns.length > 0 && (
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
@@ -201,7 +201,7 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                 </div>
                 <button
                     onClick={() => setShowAddForm(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 shrink-0 ml-2"
                 >
                     <Plus className="w-4 h-4" />
                     Add Vitals
@@ -210,7 +210,7 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
 
             {/* Add Vitals Form */}
             {showAddForm && (
-                <div className="mb-4 p-4 bg-white border rounded-lg shadow-sm">
+                <div className="px-4 py-4 border-b border-gray-200 bg-gray-50">
                     <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-semibold text-gray-700">New Vital Signs</h4>
                         <div className="flex items-center gap-2">
@@ -264,13 +264,13 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
             )}
 
             {columns.length === 0 ? (
-                <div className="flex flex-col items-center justify-center flex-1 min-h-0 text-gray-400">
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
                     <Activity className="w-12 h-12 mb-3 text-gray-300" />
                     <p className="text-sm">No vitals recorded yet</p>
                     <p className="text-xs mt-1">Vitals are recorded during encounters</p>
                 </div>
             ) : (
-                <div className="flex-1 overflow-auto min-h-0 border rounded-lg bg-white">
+                <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
                     <table className="text-sm border-collapse" style={{ minWidth: "100%" }}>
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-gray-50 border-b">
