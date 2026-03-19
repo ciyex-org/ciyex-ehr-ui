@@ -83,6 +83,12 @@ const monthViewStyles = `
   display: none !important;
 }
 
+/* Hide FC's built-in col header in Month and Week views — replaced by custom sticky header */
+.cal-view-dayGridMonth .fc-col-header,
+.cal-view-timeGridWeek .fc-col-header {
+  display: none !important;
+}
+
 /* 12. Configurable working / non-working hours backgrounds */
 .custom-calendar .fc-timegrid-col.fc-day {
   background-color: var(--cal-working-bg, #ffffff) !important;
@@ -583,6 +589,7 @@ const Calendar: React.FC = () => {
     // Calendar title + active view
     const [calendarTitle, setCalendarTitle] = useState<string>('');
     const [activeView, setActiveView] = useState<ViewType>('timeGridDay');
+    const [weekViewDates, setWeekViewDates] = useState<Date[]>([]);
     const calendarRefs = useRef<Record<string, FullCalendar | null>>({});
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1753,12 +1760,42 @@ const Calendar: React.FC = () => {
             {/* Calendar */}
             <div
                 ref={scrollContainerRef}
-                className="custom-calendar flex-1 min-h-0 overflow-auto no-scrollbar"
+                className={`custom-calendar flex-1 min-h-0 overflow-auto no-scrollbar cal-view-${activeView}`}
                 style={{
                     '--cal-working-bg': colorConfig['calendar:working-hours-bg']?.bg || '#ffffff',
                     '--cal-non-working-bg': colorConfig['calendar:non-working-hours-bg']?.bg || '#f1f5f9',
                 } as React.CSSProperties}
             >
+                {/* Custom sticky day-of-week header for Month and Week views */}
+                {!multiColumnDay && (activeView === 'dayGridMonth' || activeView === 'timeGridWeek') && (
+                    <div className="sticky top-0 z-30 h-9 flex items-center bg-white dark:bg-dark-900 border-b border-gray-200 dark:border-gray-700">
+                        {activeView === 'dayGridMonth' ? (
+                            <div className="grid grid-cols-7 w-full">
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                                    <div key={day} className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                        {day}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            // Week view: time-axis spacer + 7 day columns
+                            <div className="flex w-full">
+                                <div className="flex-none" style={{ width: '3.9em' }} />
+                                <div className="flex-1 grid grid-cols-7">
+                                    {(weekViewDates.length === 7 ? weekViewDates : Array.from({ length: 7 }, (_, i) => {
+                                        const d = new Date();
+                                        d.setDate(d.getDate() - d.getDay() + i);
+                                        return d;
+                                    })).map((date, i) => (
+                                        <div key={i} className="text-center text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                            {date.toLocaleDateString('en-US', { weekday: 'short' })} {date.getDate()}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
                 {multiColumnDay ? (
                     /* === Multi-provider Day View → side-by-side columns */
                     <div>
@@ -1807,7 +1844,10 @@ const Calendar: React.FC = () => {
                                         scrollTime={`${workingHoursStart}:00`}
                                         businessHours={businessHours}
                                         views={{ timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } } }}
-                                        datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
+                                        datesSet={(arg) => {
+                                            setCalendarTitle(arg.view.title);
+                                            setActiveView(arg.view.type as ViewType);
+                                        }}
                                         events={events.filter((e) => {
                                             const eProv = String(e.extendedProps.providerId || "");
                                             const matchProv = eProv === p.value || !eProv || !visibleProviders.some(vp => vp.value === eProv);
@@ -1831,7 +1871,7 @@ const Calendar: React.FC = () => {
                             return (
                                 <div key={`${activeView}-${p.value}`} className="border rounded-md">
                                     <h3
-                                        className="sticky top-0 z-10 text-center font-medium py-2 rounded-t-md"
+                                        className={`sticky z-10 text-center font-medium py-2 rounded-t-md ${activeView !== 'timeGridDay' ? 'top-9' : 'top-0'}`}
                                         style={{ backgroundColor: clr.bg, color: clr.text }}
                                     >
                                         {p.label}
@@ -1855,7 +1895,18 @@ const Calendar: React.FC = () => {
                                             timeGridWeek: { titleFormat: { month: "short", day: "numeric" } },
                                             timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } },
                                         }}
-                                        datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
+                                        datesSet={(arg) => {
+                                            setCalendarTitle(arg.view.title);
+                                            setActiveView(arg.view.type as ViewType);
+                                            if (arg.view.type === 'timeGridWeek') {
+                                                const start = new Date(arg.view.currentStart);
+                                                setWeekViewDates(Array.from({ length: 7 }, (_, i) => {
+                                                    const d = new Date(start);
+                                                    d.setDate(d.getDate() + i);
+                                                    return d;
+                                                }));
+                                            }
+                                        }}
                                         events={events.filter((e) => {
                                             const eProv = String(e.extendedProps.providerId || "");
                                             const matchProv = eProv === p.value || !eProv || !visibleProviders.some(vp => vp.value === eProv);
@@ -1882,7 +1933,7 @@ const Calendar: React.FC = () => {
                             <div className="border rounded-md">
                                 {singleProviderId && (
                                     <h3
-                                        className="sticky top-0 z-10 text-center font-medium py-2 rounded-t-md"
+                                        className={`sticky z-10 text-center font-medium py-2 rounded-t-md ${activeView !== 'timeGridDay' ? 'top-9' : 'top-0'}`}
                                         style={{ backgroundColor: provClr.bg, color: provClr.text }}
                                     >
                                         {provLabel}
@@ -1907,7 +1958,18 @@ const Calendar: React.FC = () => {
                                         timeGridWeek: { titleFormat: { month: "short", day: "numeric", year: "numeric" } },
                                         timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } },
                                     }}
-                                    datesSet={(arg) => { setCalendarTitle(arg.view.title); setActiveView(arg.view.type as ViewType); }}
+                                    datesSet={(arg) => {
+                                        setCalendarTitle(arg.view.title);
+                                        setActiveView(arg.view.type as ViewType);
+                                        if (arg.view.type === 'timeGridWeek') {
+                                            const start = new Date(arg.view.currentStart);
+                                            setWeekViewDates(Array.from({ length: 7 }, (_, i) => {
+                                                const d = new Date(start);
+                                                d.setDate(d.getDate() + i);
+                                                return d;
+                                            }));
+                                        }
+                                    }}
                                     events={events.filter((e) => {
                                         const matchProv = allProvidersSelected
                                             ? true
