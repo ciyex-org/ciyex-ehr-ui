@@ -78,9 +78,47 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
     const [showAddForm, setShowAddForm] = useState(false);
     const [saving, setSaving] = useState(false);
     const [addForm, setAddForm] = useState<Record<string, string>>({});
+    const [unitSystem, setUnitSystem] = useState<"imperial" | "metric">("imperial");
+    const [weightDisplay, setWeightDisplay] = useState("");
+    const [heightDisplay, setHeightDisplay] = useState("");
     const [currentPage, setCurrentPage] = useState(0);
     const [sortAsc, setSortAsc] = useState(false);
     const PAGE_SIZE = 10;
+
+    function handleWeightChange(val: string) {
+        setWeightDisplay(val);
+        const num = parseFloat(val);
+        if (!isNaN(num) && num > 0) {
+            const kg = unitSystem === "imperial" ? num * 0.453592 : num;
+            setAddForm(prev => ({ ...prev, weightKg: kg.toFixed(2) }));
+        } else {
+            setAddForm(prev => ({ ...prev, weightKg: "" }));
+        }
+    }
+
+    function handleHeightChange(val: string) {
+        setHeightDisplay(val);
+        const num = parseFloat(val);
+        if (!isNaN(num) && num > 0) {
+            const cm = unitSystem === "imperial" ? num * 2.54 : num;
+            setAddForm(prev => ({ ...prev, heightCm: cm.toFixed(2) }));
+        } else {
+            setAddForm(prev => ({ ...prev, heightCm: "" }));
+        }
+    }
+
+    // Sync display values when unit system is toggled
+    useEffect(() => {
+        const wKg = parseFloat(addForm.weightKg || "");
+        const hCm = parseFloat(addForm.heightCm || "");
+        if (!isNaN(wKg) && wKg > 0) {
+            setWeightDisplay(unitSystem === "imperial" ? (wKg / 0.453592).toFixed(1) : wKg.toFixed(1));
+        }
+        if (!isNaN(hCm) && hCm > 0) {
+            setHeightDisplay(unitSystem === "imperial" ? (hCm / 2.54).toFixed(1) : hCm.toFixed(1));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [unitSystem]);
 
     const loadVitals = async () => {
         try {
@@ -142,6 +180,8 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
             if (res.ok) {
                 setShowAddForm(false);
                 setAddForm({});
+                setWeightDisplay("");
+                setHeightDisplay("");
                 await new Promise(r => setTimeout(r, 2000));
                 await loadVitals();
             } else {
@@ -253,7 +293,21 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
             {showAddForm && (
                 <div className="px-4 py-4 border-b border-gray-200 bg-gray-50">
                     <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-semibold text-gray-700">New Vital Signs</h4>
+                        <div className="flex items-center gap-3">
+                            <h4 className="text-sm font-semibold text-gray-700">New Vital Signs</h4>
+                            <div className="flex items-center gap-0.5 bg-gray-200 rounded-md p-0.5 text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => setUnitSystem("imperial")}
+                                    className={`px-2 py-0.5 rounded transition-colors ${unitSystem === "imperial" ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                                >Imperial</button>
+                                <button
+                                    type="button"
+                                    onClick={() => setUnitSystem("metric")}
+                                    className={`px-2 py-0.5 rounded transition-colors ${unitSystem === "metric" ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                                >Metric</button>
+                            </div>
+                        </div>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handleAddVitals}
@@ -264,7 +318,7 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                                 Save
                             </button>
                             <button
-                                onClick={() => { setShowAddForm(false); setAddForm({}); }}
+                                onClick={() => { setShowAddForm(false); setAddForm({}); setWeightDisplay(""); setHeightDisplay(""); }}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200"
                             >
                                 <X className="w-4 h-4" />
@@ -273,23 +327,42 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                         </div>
                     </div>
                     <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-                        {VITAL_ROWS.map((row) => (
-                            <div key={row.key}>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                    {row.icon} {row.label} ({row.unit})
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.1"
-                                    value={addForm[row.key] || ""}
-                                    onChange={(e) => setAddForm(prev => ({ ...prev, [row.key]: e.target.value }))}
-                                    readOnly={row.key === "bmi"}
-                                    className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${row.key === "bmi" ? "bg-gray-50" : ""}`}
-                                    placeholder={row.key === "bmi" ? "Auto" : "—"}
-                                    title={row.key === "bmi" ? "Auto-calculated from weight and height" : undefined}
-                                />
-                            </div>
-                        ))}
+                        {VITAL_ROWS.map((row) => {
+                            const isWeight = row.key === "weightKg";
+                            const isHeight = row.key === "heightCm";
+                            const displayLabel = isWeight
+                                ? `Weight (${unitSystem === "imperial" ? "lbs" : "kg"})`
+                                : isHeight
+                                ? `Height (${unitSystem === "imperial" ? "in" : "cm"})`
+                                : `${row.label} (${row.unit})`;
+                            const inputValue = isWeight
+                                ? weightDisplay
+                                : isHeight
+                                ? heightDisplay
+                                : (addForm[row.key] || "");
+                            const handleChange = isWeight
+                                ? (e: React.ChangeEvent<HTMLInputElement>) => handleWeightChange(e.target.value)
+                                : isHeight
+                                ? (e: React.ChangeEvent<HTMLInputElement>) => handleHeightChange(e.target.value)
+                                : (e: React.ChangeEvent<HTMLInputElement>) => setAddForm(prev => ({ ...prev, [row.key]: e.target.value }));
+                            return (
+                                <div key={row.key}>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                                        {row.icon} {displayLabel}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={inputValue}
+                                        onChange={handleChange}
+                                        readOnly={row.key === "bmi"}
+                                        className={`w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${row.key === "bmi" ? "bg-gray-50" : ""}`}
+                                        placeholder={row.key === "bmi" ? "Auto" : "—"}
+                                        title={row.key === "bmi" ? "Auto-calculated from weight and height" : undefined}
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
                     <div className="mt-3">
                         <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
