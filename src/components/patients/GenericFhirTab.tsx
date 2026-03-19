@@ -6,7 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { usePermissions } from "@/context/PermissionContext";
 import DynamicFormRenderer, { FieldConfig, FieldConfigFeatures, SectionDef, FieldDef } from "./DynamicFormRenderer";
-import { Plus, Pencil, Trash2, X, Save, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Save, Send, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText, CheckCircle2 } from "lucide-react";
 import { isValidEmail, isValidPhone, isValidFax, isValidUrl, isValidName, isValidUSPhone, isValidSSN, isStringOnly, isValidDriverLicense, isValidMedicaidId, isValidMedicareBeneficiaryId } from "@/utils/validation";
 import { toast, confirmDialog } from "@/utils/toast";
 
@@ -408,6 +408,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
 
     // Normalize common FHIR field name mismatches so columns display correctly
     const normalizeRecord = useCallback((rec: Record<string, any>): Record<string, any> => {
+        if (!rec || typeof rec !== "object") return {};
         const r = { ...rec };
 
         // Flatten nested audit dates to top-level for column display
@@ -1103,7 +1104,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             if (res.ok) {
                 const json = await res.json();
                 const data = json.data || {};
-                const content = (data.content || []).map((rec: Record<string, any>) => { try { return normalizeRecord(rec); } catch { return rec; } });
+                const content = (data.content || []).filter((rec: any) => rec != null && typeof rec === "object").map((rec: Record<string, any>) => { try { return normalizeRecord(rec); } catch { return rec; } });
                 const isSingle = data.singleRecord === true;
                 setSingleRecord(isSingle);
                 setRecords(content);
@@ -1241,13 +1242,13 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
             }
         }
-        // Facility name: letters only
+        // Facility name: letters, numbers, and common punctuation
         if ((tabKey === "facility" || tabKey === "facilities" || tabKey === "location" || tabKey === "locations" || tabKey === "serviceLocation" || tabKey === "serviceLocations") &&
             (key === "name" || key === "facilityName" || key === "facility_name" || key === "locationName") &&
             typeof value === "string") {
-            if (/[^A-Za-z\s\-'.,&()]/.test(value)) {
-                setValidationErrors((prev) => ({ ...prev, [key]: "Facility name must contain only letters" }));
-                value = value.replace(/[^A-Za-z\s\-'.,&()]/g, "");
+            if (/[^A-Za-z0-9\s\-'.,&#()\/]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Facility name contains invalid characters" }));
+                value = value.replace(/[^A-Za-z0-9\s\-'.,&#()\/]/g, "");
             } else {
                 setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
             }
@@ -2631,10 +2632,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                     <button
                                         onClick={handleSave}
                                         disabled={saving}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50 ${tabKey === "messaging" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
                                     >
-                                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                        Save
+                                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : tabKey === "messaging" ? <Send className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                                        {tabKey === "messaging" ? "Send" : "Save"}
                                     </button>
                                 )}
                                 <button
@@ -2705,10 +2706,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             <button
                                 onClick={handleSave}
                                 disabled={saving}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50 ${tabKey === "messaging" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
                             >
-                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Save
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : tabKey === "messaging" ? <Send className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                                {tabKey === "messaging" ? "Send" : "Save"}
                             </button>
                         )}
                         <button

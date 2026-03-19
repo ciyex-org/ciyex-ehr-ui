@@ -176,7 +176,7 @@ export default function TasksPage() {
   }, []);
 
   const handleSaveTask = useCallback(async () => {
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim()) { addToast("error", "Task title is required"); return; }
     setSaving(true);
     try {
       const url = editingId ? apiUrl(`/api/tasks/${editingId}`) : apiUrl("/api/tasks");

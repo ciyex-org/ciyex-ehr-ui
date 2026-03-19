@@ -511,7 +511,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                 <Inp label="Test Name" required><input value={editDraft.testName || ""} onChange={e => upd("testName", e.target.value)} className={inputCls} /></Inp>
                 <Inp label="Procedure Name"><input value={editDraft.procedureName || ""} onChange={e => upd("procedureName", e.target.value)} className={inputCls} /></Inp>
                 <div className="grid grid-cols-2 gap-3">
-                  <Inp label="Test Code"><input value={editDraft.testCode || ""} onChange={e => upd("testCode", e.target.value)} className={`${inputCls} font-mono`} /></Inp>
+                  <Inp label="Test Code"><input value={editDraft.testCode || ""} onChange={e => upd("testCode", e.target.value.replace(/[^0-9\-.]/g, ''))} className={`${inputCls} font-mono`} placeholder="12345" /></Inp>
                   <Inp label="LOINC Code"><input value={editDraft.loincCode || ""} onChange={e => upd("loincCode", e.target.value)} className={`${inputCls} font-mono`} /></Inp>
                 </div>
                 <Inp label="Specimen"><input value={editDraft.specimen || ""} onChange={e => upd("specimen", e.target.value)} className={inputCls} /></Inp>

@@ -598,15 +598,34 @@ function FileUploadField({
 
   // Show current file
   if (value && !uploading) {
+    const displayName = fileName || (typeof value === "string" ? value.split("/").pop() : "File attached");
+    const fileUrl = typeof value === "string" ? value : "";
+    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(displayName || "") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(fileUrl);
+    const isPdf = /\.pdf$/i.test(displayName || "") || /\.pdf$/i.test(fileUrl);
+    const previewUrl = fileUrl.startsWith("http") ? fileUrl : fileUrl ? `${API_BASE()}${fileUrl.startsWith("/") ? "" : "/"}${fileUrl}` : "";
+
     return (
-      <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg">
-        <FileText className="w-4 h-4 text-blue-500 shrink-0" />
-        <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">
-          {fileName || (typeof value === "string" ? value.split("/").pop() : "File attached")}
-        </span>
-        <button type="button" onClick={clearFile} className="p-1 text-gray-400 hover:text-red-500">
-          <XIcon className="w-3.5 h-3.5" />
-        </button>
+      <div className="space-y-2">
+        {isImage && previewUrl && (
+          <div className="relative group">
+            <img src={previewUrl} alt={displayName || "Preview"} className="max-h-48 rounded-lg border border-gray-200 dark:border-gray-600 object-contain bg-white dark:bg-gray-800" />
+          </div>
+        )}
+        <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg">
+          <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+          {previewUrl ? (
+            <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate flex-1">
+              {displayName}
+            </a>
+          ) : (
+            <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1">
+              {displayName}
+            </span>
+          )}
+          <button type="button" onClick={clearFile} className="p-1 text-gray-400 hover:text-red-500">
+            <XIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
     );
   }

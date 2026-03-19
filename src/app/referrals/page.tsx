@@ -370,9 +370,11 @@ function ReferralFormPanel({
     if (!form.patientName.trim()) e.patientName = "Patient name is required";
     if (!form.reason.trim()) e.reason = "Reason is required";
     if (!form.specialistName.trim()) e.specialistName = "Specialist name is required";
+    else if (!/^[A-Za-z\s\-'.]+$/.test(form.specialistName.trim())) e.specialistName = "Specialist name must contain only letters";
     if (!form.facilityName.trim()) e.facilityName = "Facility name is required";
+    else if (!/^[A-Za-z0-9\s\-'.,&#()\/]+$/.test(form.facilityName.trim())) e.facilityName = "Facility name contains invalid characters";
     if (!form.referralDate.trim()) e.referralDate = "Referral date is required";
-    if (form.facilityPhone.trim() && !isValidUSPhone(form.facilityPhone)) e.facilityPhone = "Mobile number must be exactly 10 digits";
+    if (form.facilityPhone.trim() && !isValidUSPhone(form.facilityPhone)) e.facilityPhone = "Phone number must be exactly 10 digits";
     if (form.facilityFax.trim() && !isValidFax(form.facilityFax)) e.facilityFax = "Invalid fax number";
     if (form.specialistNpi.trim() && !isValidNpi(form.specialistNpi)) e.specialistNpi = "NPI must be exactly 10 digits";
     if (form.expiryDate && form.referralDate && form.expiryDate < form.referralDate) e.expiryDate = "Expiry date must be after referral date";

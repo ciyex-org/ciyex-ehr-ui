@@ -140,8 +140,11 @@ export default function TaskFormPanel({
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               placeholder="Enter task title"
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${form.title !== undefined && form.title !== "" && !form.title.trim() ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition`}
             />
+            {form.title !== undefined && form.title !== "" && !form.title.trim() && (
+              <p className="text-xs text-red-500 mt-1">Title cannot be only whitespace</p>
+            )}
           </div>
 
           {/* Description */}

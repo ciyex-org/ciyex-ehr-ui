@@ -1001,11 +1001,11 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                   className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.testCode ? 'border-orange-500' : 'border-slate-300'}`}
                   value={draft.testCode ?? ""}
                   onChange={(e) => {
-                    // Only allow alphanumeric, hyphens and dots for test codes
-                    const val = e.target.value.replace(/[^A-Za-z0-9\-_.]/g, '');
+                    // Only allow numeric, hyphens and dots for test codes
+                    const val = e.target.value.replace(/[^0-9\-.]/g, '');
                     upd('testCode', val);
                   }}
-                  placeholder="CBC"
+                  placeholder="12345"
                 />
                 {errors.testCode && (
                   <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">

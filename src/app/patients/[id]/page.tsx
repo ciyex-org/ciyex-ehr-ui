@@ -501,7 +501,7 @@ export default function PatientDashboardPage() {
                 { key: "encounters", label: "Encounters", icon: Stethoscope },
                 { key: "medicalproblems", label: "Problems", icon: HeartPulse },
                 { key: "allergies", label: "Allergies", icon: ShieldAlert },
-                { key: "medications", label: "Meds", icon: Pill },
+                { key: "medications", label: "Medications", icon: Pill },
                 { key: "vitals", label: "Vitals", icon: Activity },
                 { key: "labs", label: "Labs", icon: FlaskConical },
                 { key: "immunizations", label: "Immunizations", icon: Syringe },

@@ -66,8 +66,8 @@ export const LabResultRow: React.FC<LabResultRowProps> = ({ result, onChange, on
       <Td>
         <input
           value={result.testCode || ""}
-          onChange={(e) => onChange({ testCode: e.target.value })}
-          placeholder="Code"
+          onChange={(e) => onChange({ testCode: e.target.value.replace(/[^0-9\-.]/g, '') })}
+          placeholder="12345"
           className="w-28 border rounded px-2 py-1 text-xs font-mono"
         />
         <select

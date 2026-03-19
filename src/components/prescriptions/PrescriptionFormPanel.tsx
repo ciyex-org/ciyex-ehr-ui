@@ -159,6 +159,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     if (form.prescriberName && !/^[A-Za-z\s\-'.]+$/.test(form.prescriberName.trim())) e.prescriberName = "Prescriber name must contain only letters";
     if (form.pharmacyName && !/^[A-Za-z0-9\s\-'.,&#]+$/.test(form.pharmacyName.trim())) e.pharmacyName = "Pharmacy name contains invalid characters";
     if (form.pharmacyPhone && !/^[+]?[\d\s().\-]{7,20}$/.test(form.pharmacyPhone.trim())) e.pharmacyPhone = "Enter a valid phone number";
+    if (form.prescriberNpi && !/^\d{10}$/.test(form.prescriberNpi.trim())) e.prescriberNpi = "NPI must be exactly 10 digits";
+    if (form.medicationCode && form.medicationSystem === "NDC" && !/^(\d{5}-\d{4}-\d{2}|\d{11}|\d{4}-\d{4}-\d{2}|\d{5}-\d{3}-\d{2})$/.test(form.medicationCode.trim())) e.medicationCode = "Invalid NDC code format";
     if (form.pharmacyAddress && form.pharmacyAddress.trim().length < 5) e.pharmacyAddress = "Enter a valid address (at least 5 characters)";
     if (form.startDate && form.endDate && form.endDate < form.startDate) e.endDate = "End date must be on or after start date";
     setErrors(e);
@@ -276,7 +278,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
               </div>
               <div>
                 <label className={labelCls}>Prescriber NPI</label>
-                <input className={inputCls()} value={form.prescriberNpi || ""} onChange={(e) => set("prescriberNpi", e.target.value)} placeholder="1234567890" />
+                <input className={inputCls("prescriberNpi")} value={form.prescriberNpi || ""} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 10); set("prescriberNpi", v); }} placeholder="1234567890" />
+                {errors.prescriberNpi && <p className="text-xs text-red-500 mt-1">{errors.prescriberNpi}</p>}
               </div>
             </div>
           </Section>
@@ -292,7 +295,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                 </div>
                 <div>
                   <label className={labelCls}>Medication Code</label>
-                  <input className={inputCls()} value={form.medicationCode || ""} onChange={(e) => set("medicationCode", e.target.value)} placeholder="0781-1764-01" />
+                  <input className={inputCls("medicationCode")} value={form.medicationCode || ""} onChange={(e) => set("medicationCode", e.target.value)} placeholder="0781-1764-01" />
+                  {errors.medicationCode && <p className="text-xs text-red-500 mt-1">{errors.medicationCode}</p>}
                 </div>
                 <div>
                   <label className={labelCls}>Code System</label>

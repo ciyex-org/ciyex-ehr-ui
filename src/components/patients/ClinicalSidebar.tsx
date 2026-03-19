@@ -90,7 +90,8 @@ export default function ClinicalSidebar({
             }
             if (vRes.status === "fulfilled" && vRes.value) {
                 const content = vRes.value.data?.content || [];
-                setVitals(content.length > 0 ? content[0] : null);
+                const first = content.length > 0 ? content[0] : null;
+                setVitals(first && typeof first === "object" ? first : null);
             }
             setLoaded(true);
         });
@@ -204,7 +205,7 @@ export default function ClinicalSidebar({
                     >
                         <Pill className="w-3 h-3 shrink-0 text-blue-400" />
                         <span className="flex-1 text-left truncate">
-                            <span className="font-medium">Meds: </span>
+                            <span className="font-medium">Medications: </span>
                             {!loaded ? "..." : medications.length === 0 ? "None" : medications.slice(0, 2).map(m => m.medication_name || m.medicationName || m.name || m.medicationDisplay || "Medication").join(", ")}
                         </span>
                         {medications.length > 0 && (

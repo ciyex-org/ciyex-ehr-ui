@@ -296,12 +296,12 @@ export default function PriorAuthorizationsPage() {
     if (!insuranceQuery.trim() || insuranceQuery.length < 2) { setInsuranceResults([]); return; }
     debounceSearch("insurance", async () => {
       try {
-        const res = await fetchWithAuth(`${base()}/api/insurance-companies`);
+        const res = await fetchWithAuth(`${base()}/api/insurance-companies?page=0&size=200`);
         if (!res.ok) { console.warn("Insurance search failed:", res.status); return; }
         const json = await res.json();
         const all = extractList(json);
         const q = insuranceQuery.toLowerCase();
-        const list = all.filter((i: any) => (i.name || i.insuranceName || i.payerName || i.companyName || "").toLowerCase().includes(q));
+        const list = all.filter((i: any) => (i.name || i.insuranceName || i.payerName || i.companyName || i.payerId || "").toLowerCase().includes(q));
         setInsuranceResults(list);
         setShowInsuranceDropdown(true);
       } catch (err) { console.warn("Insurance search error:", err); }
