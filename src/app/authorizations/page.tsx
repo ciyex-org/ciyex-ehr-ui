@@ -262,7 +262,7 @@ export default function PriorAuthorizationsPage() {
   const runPatientSearch = useCallback(async (query: string) => {
     if (!query.trim()) { setPatientResults([]); return; }
     try {
-      const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(query)}&size=20`);
+      const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(query)}&size=20`, { cache: "no-store" });
       if (!res.ok) { console.warn("Patient search failed:", res.status); return; }
       const json = await res.json();
       const list = extractList(json);
@@ -271,12 +271,11 @@ export default function PriorAuthorizationsPage() {
     } catch (err) { console.warn("Patient search error:", err); }
   }, []);
 
-  // Patient search — skip re-search when query matches the already-selected patient name
+  // Patient search — always search so updated names are reflected
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
-    if (formData.patientName && patientQuery === formData.patientName) return;
     debounceSearch("patient", () => runPatientSearch(patientQuery));
-  }, [patientQuery, runPatientSearch, formData.patientName]);
+  }, [patientQuery, runPatientSearch]);
 
   // Provider search
   useEffect(() => {
@@ -387,9 +386,7 @@ export default function PriorAuthorizationsPage() {
   }, [procedureQuery]);
 
   const getPatientDisplayName = (p: any) => {
-    if (p.fullName) return p.fullName;
-    if (p.name) return p.name;
-    // Try top-level firstName/lastName
+    // Prefer firstName + lastName (always up-to-date) over fullName (may be a stale cached field)
     const fn = p.firstName || p.first_name || "";
     const ln = p.lastName || p.last_name || "";
     if ((fn + ln).trim()) return `${fn} ${ln}`.trim();
@@ -398,6 +395,9 @@ export default function PriorAuthorizationsPage() {
     const ifn = idn.firstName || idn.first_name || "";
     const iln = idn.lastName || idn.last_name || "";
     if ((ifn + iln).trim()) return `${ifn} ${iln}`.trim();
+    // Fall back to fullName, name, or id
+    if (p.fullName) return p.fullName;
+    if (p.name) return p.name;
     return String(p.id || "");
   };
 
