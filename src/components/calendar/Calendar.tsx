@@ -22,9 +22,9 @@ import { ShieldX } from "lucide-react";
 import Link from "next/link";
 
 const monthViewStyles = `
-/* Hide horizontal scrollbar only */
+/* Hide horizontal scrollbar only — use clip (not hidden) so position:sticky still works */
 .fc-view-harness {
-  overflow-x: hidden !important;
+  overflow-x: clip !important;
 }
 
 /* Month view: day cell minimum height */
@@ -46,21 +46,23 @@ const monthViewStyles = `
 
 /* Hide FullCalendar scrollbar to prevent double scrollbars */
 .fc-scroller {
-  overflow-x: hidden !important;
+  overflow-x: clip !important;
 }
 
 .fc-daygrid-body {
   overflow: hidden !important;
 }
 
-/* Sticky day column headers */
-.fc .fc-col-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+/* Sticky day-of-week header row for Month / Week views */
+.fc .fc-scrollgrid-section-sticky > td,
+.fc .fc-scrollgrid-section-sticky > th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20 !important;
   background: white;
 }
-.dark .fc .fc-col-header {
+.dark .fc .fc-scrollgrid-section-sticky > td,
+.dark .fc .fc-scrollgrid-section-sticky > th {
   background: #1a2231;
 }
 

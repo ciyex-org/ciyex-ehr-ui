@@ -230,9 +230,9 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
                     <div key={activity.id} className="flex items-start space-x-2 p-2 rounded-lg hover:bg-gray-50">
                         <div className="text-xl mt-1">{getActivityIcon(activity.type)}</div>
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                                <h6 className="text-xs font-medium text-gray-900 truncate">{activity.title}</h6>
-                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${getStatusColor(activity.status)}`}>
+                            <div className="flex items-center justify-between gap-2">
+                                <h6 className="text-xs font-medium text-gray-900 truncate flex-1 min-w-0">{activity.title}</h6>
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] shrink-0 ${getStatusColor(activity.status)}`}>
                                     {activity.status}
                                 </span>
                             </div>

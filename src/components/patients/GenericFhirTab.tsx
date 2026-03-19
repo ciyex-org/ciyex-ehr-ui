@@ -296,11 +296,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, required: true };
                     }
                 }
-                // Issue 12: Allergies — ensure allergy/allergyName field exists and is labeled properly
-                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergyName" || f.key === "allergy_name" || f.key === "substance" || f.key === "name")) {
-                    if (!f.label || f.label.toLowerCase() === "allergen") {
-                        section.fields[i] = { ...f, label: "Allergy" };
-                    }
+                // Issue 12: Allergies — ensure allergy/allergyName field is labeled "Allergy" (not "Allergen")
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergyName" || f.key === "allergy_name" || f.key === "substance" || f.key === "name" || f.key === "allergen" || f.key === "code" || f.key === "codeText")) {
+                    section.fields[i] = { ...f, label: "Allergy" };
                 }
                 // Issue 13: Insurance — insurance company dropdown from dedicated API
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "payerName" || f.key === "insurerName" || f.key === "companyName" || f.key === "insurer" || f.key === "payor")) {
@@ -365,11 +363,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true }, required: true };
                     }
                 }
-                // Issue 26-27: Submissions/Denials — insurer dropdown must be an organization lookup
-                if ((tabKey === "submissions" || tabKey === "claim-responses" || tabKey === "denials" || tabKey === "remittance") && (f.key === "insurer" || f.key === "insurerName" || f.key === "payerName" || f.key === "payor")) {
-                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
-                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
-                    }
+                // Issue 26-27: Submissions/Denials — insurer must be an insurance-company dropdown
+                if ((tabKey === "submissions" || tabKey === "claim-submissions" || tabKey === "claim-responses" || tabKey === "denials" || tabKey === "remittance") && (f.key === "insurer" || f.key === "insurerName" || f.key === "payerName" || f.key === "payor" || f.key === "payer")) {
+                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-companies", displayField: "name", valueField: "name", searchable: true } };
                 }
                 // Issue 29: Transactions — amount must be required
                 if ((tabKey === "transactions" || tabKey === "transaction") && (f.key === "amount" || f.key === "totalAmount" || f.key === "paymentAmount")) {
@@ -2892,7 +2888,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
                         />
                     </div>
-                    {uniqueStatuses.length > 1 && (
+                    {uniqueStatuses.length > 0 && (
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
