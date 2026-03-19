@@ -29,11 +29,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingPatientId, setEditingPatientId] = useState<number | null>(null);
     const { toggleSidebar } = useSidebar();
-    const { canWriteResource, hasCategory, hasCategoryWrite } = usePermissions();
+    const { canWriteResource } = usePermissions();
     const canWritePatient = canWriteResource("Patient");
-    // Require scheduling.write; fall back if scheduling perms not configured at all.
-    const canEditSchedule = hasCategoryWrite("scheduling") || !hasCategory("scheduling");
-    const canWriteAppointment = canWriteResource("Appointment") && canEditSchedule;
+    const canWriteAppointment = canWriteResource("Appointment");
     const inputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 

@@ -232,10 +232,8 @@ const getLocationIdFromSchedule = (sched: Schedule): string | null => {
  * ======================= */
 const AppointmentModal: React.FC = () => {
     const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
-    const { canWriteResource, hasCategory, hasCategoryWrite } = usePermissions();
-    // Require scheduling.write; fall back if scheduling perms not configured at all.
-    const canEditSchedule = hasCategoryWrite("scheduling") || !hasCategory("scheduling");
-    const canWriteAppointment = canWriteResource("Appointment") && canEditSchedule;
+    const { canWriteResource } = usePermissions();
+    const canWriteAppointment = canWriteResource("Appointment");
 
     const [open, setOpen] = useState(false);
 
