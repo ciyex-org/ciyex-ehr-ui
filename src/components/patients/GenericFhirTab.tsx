@@ -215,7 +215,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     const lk = f.key.toLowerCase();
                     // Only these keys count as the primary mobile phone
                     const isPrimaryPhone = lk === "phonenumber" || lk === "phone" || lk === "mobilephone" || lk === "mobile" || lk === "cellphone" || lk === "phone_number" || lk === "mobile_phone";
-                    if (!isPrimaryPhone && f.required) {
+                    if (isPrimaryPhone && !f.required) {
+                        // Primary mobile phone MUST be required and show indicator
+                        section.fields[i] = { ...f, required: true };
+                    } else if (!isPrimaryPhone && f.required) {
                         // All other phone fields (home, work, emergency, guardian, pharmacy, etc.) must not be required
                         section.fields[i] = { ...f, required: false };
                     }
@@ -312,6 +315,16 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 // Issue 15: Documents — attachment/file field must be required
                 if ((tabKey === "documents" || tabKey === "document-references") && (f.key === "attachment" || f.key === "file" || f.key === "fileUrl" || f.key === "documentUrl" || f.key === "content")) {
                     section.fields[i] = { ...f, required: true };
+                }
+                // SSN fields — enforce maxLength of 11 (9 digits + 2 dashes) to prevent excess input
+                const ssnKeys = ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"];
+                if (ssnKeys.includes(f.key)) {
+                    section.fields[i] = { ...section.fields[i] || f, maxLength: 11, placeholder: "XXX-XX-XXXX" };
+                }
+                // Phone/mobile fields — enforce maxLength of 15 to prevent excess input
+                const flk = f.key.toLowerCase();
+                if (flk.includes("phone") || flk.includes("mobile") || flk.includes("cell") || flk.includes("fax")) {
+                    section.fields[i] = { ...section.fields[i] || f, maxLength: 15 };
                 }
                 // Issue 19: Clinical Alerts — author/provider search
                 if ((tabKey === "clinical-alerts" || tabKey === "clinicalAlerts" || tabKey === "cds" || tabKey === "alerts") && (f.key === "author" || f.key === "authorName" || f.key === "provider" || f.key === "practitioner")) {
@@ -1300,6 +1313,15 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 } else {
                     setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
                 }
+            }
+        }
+        // SSN fields — restrict to digits and hyphens, max 11 chars (xxx-xx-xxxx)
+        const ssnFieldKeys = ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"];
+        if (ssnFieldKeys.includes(key) && typeof value === "string") {
+            value = value.replace(/[^0-9\-]/g, "").slice(0, 11);
+            const digitsOnly = value.replace(/\D/g, "");
+            if (digitsOnly.length > 9) {
+                value = value.slice(0, value.length - (digitsOnly.length - 9));
             }
         }
         setFormData((prev) => {
@@ -2754,7 +2776,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Report Document</label>
                             <input
                                 type="file"
-                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.dicom"
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.dicom,.csv,.xls,.xlsx,.txt"
                                 onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;

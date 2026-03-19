@@ -485,12 +485,43 @@ export default function RecallPage() {
               <option value="">All Providers</option>
               {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            {/* Date range */}
-            <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(0); }}
-              className="h-8 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs" />
-            <span className="text-xs text-slate-400">to</span>
-            <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(0); }}
-              className="h-8 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs" />
+            {/* Date range dropdown */}
+            <select
+              value={dateFrom && dateTo ? `${dateFrom}|${dateTo}` : ""}
+              onChange={e => {
+                const val = e.target.value;
+                if (!val) { setDateFrom(""); setDateTo(""); setPage(0); return; }
+                const [from, to] = val.split("|");
+                setDateFrom(from); setDateTo(to); setPage(0);
+              }}
+              className="h-8 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 text-xs"
+            >
+              <option value="">All Dates</option>
+              {(() => {
+                const today = new Date();
+                const fmt = (d: Date) => d.toISOString().split("T")[0];
+                const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+                const startOfWeek = new Date(today); startOfWeek.setDate(today.getDate() - today.getDay());
+                const endOfWeek = addDays(startOfWeek, 6);
+                const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                const startOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+                const endOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+                const past30 = addDays(today, -30);
+                const next30 = addDays(today, 30);
+                const next90 = addDays(today, 90);
+                return [
+                  <option key="overdue" value={`2020-01-01|${fmt(addDays(today, -1))}`}>Overdue</option>,
+                  <option key="today" value={`${fmt(today)}|${fmt(today)}`}>Today</option>,
+                  <option key="week" value={`${fmt(startOfWeek)}|${fmt(endOfWeek)}`}>This Week</option>,
+                  <option key="month" value={`${fmt(startOfMonth)}|${fmt(endOfMonth)}`}>This Month</option>,
+                  <option key="next-month" value={`${fmt(startOfNextMonth)}|${fmt(endOfNextMonth)}`}>Next Month</option>,
+                  <option key="next-30" value={`${fmt(today)}|${fmt(next30)}`}>Next 30 Days</option>,
+                  <option key="next-90" value={`${fmt(today)}|${fmt(next90)}`}>Next 90 Days</option>,
+                  <option key="past-30" value={`${fmt(past30)}|${fmt(today)}`}>Past 30 Days</option>,
+                ];
+              })()}
+            </select>
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />

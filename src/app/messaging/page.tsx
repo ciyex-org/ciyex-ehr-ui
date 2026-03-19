@@ -239,7 +239,14 @@ export default function MessagingPage() {
         mentions: extractMentions(content),
       });
       if (msg?.id) {
-        dispatch({ type: "ADD_MESSAGE", message: msg });
+        // Ensure senderName is populated — API may return null for the current user
+        const enrichedMsg = {
+          ...msg,
+          senderName: msg.senderName || currentUser.displayName || "You",
+          senderId: msg.senderId || currentUser.id,
+          senderAvatar: msg.senderAvatar || currentUser.avatar,
+        };
+        dispatch({ type: "ADD_MESSAGE", message: enrichedMsg });
         if (files?.length) {
           for (const file of files) {
             try {

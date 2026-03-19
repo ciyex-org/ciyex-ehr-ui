@@ -17,7 +17,18 @@ type Props = {
     onCancel?: () => void;
 };
 
+type UnitSystem = "metric" | "imperial";
+
+// Conversion helpers
+const lbsToKg = (lbs: number) => lbs * 0.453592;
+const kgToLbs = (kg: number) => kg / 0.453592;
+const inToCm = (inches: number) => inches * 2.54;
+const cmToIn = (cm: number) => cm / 2.54;
+const fToC = (f: number) => (f - 32) * (5 / 9);
+const cToF = (c: number) => c * (9 / 5) + 32;
+
 export default function Vitalsform({ patientId, encounterId, editing, onSaved, onCancel }: Props) {
+    const [unitSystem, setUnitSystem] = useState<UnitSystem>("imperial");
     const [weightKg, setWeightKg] = useState<string>("");
     const [heightCm, setHeightCm] = useState<string>("");
     const [bpSystolic, setBpSystolic] = useState<string>("");
@@ -29,10 +40,15 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
     const [bmi, setBmi] = useState<string>("");
     const [notes, setNotes] = useState<string>("");
 
+    // Display values (in current unit system)
+    const [weightDisplay, setWeightDisplay] = useState<string>("");
+    const [heightDisplay, setHeightDisplay] = useState<string>("");
+    const [tempDisplay, setTempDisplay] = useState<string>("");
+
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
-    // Auto-calculate BMI from weight and height
+    // Auto-calculate BMI from weight(kg) and height(cm)
     useEffect(() => {
         const w = parseFloat(weightKg);
         const h = parseFloat(heightCm);
@@ -58,6 +74,59 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
         return             { label: "Obese",         color: "text-red-600" };
     }
 
+    // Handle weight input in display units, convert to kg for storage
+    function handleWeightChange(displayVal: string) {
+        setWeightDisplay(displayVal);
+        const num = parseFloat(displayVal);
+        if (!isNaN(num) && num > 0) {
+            const kg = unitSystem === "imperial" ? lbsToKg(num) : num;
+            setWeightKg(kg.toFixed(2));
+        } else {
+            setWeightKg("");
+        }
+    }
+
+    // Handle height input in display units, convert to cm for storage
+    function handleHeightChange(displayVal: string) {
+        setHeightDisplay(displayVal);
+        const num = parseFloat(displayVal);
+        if (!isNaN(num) && num > 0) {
+            const cm = unitSystem === "imperial" ? inToCm(num) : num;
+            setHeightCm(cm.toFixed(2));
+        } else {
+            setHeightCm("");
+        }
+    }
+
+    // Handle temperature input
+    function handleTempChange(displayVal: string) {
+        setTempDisplay(displayVal);
+        const num = parseFloat(displayVal);
+        if (!isNaN(num)) {
+            const c = unitSystem === "imperial" ? fToC(num) : num;
+            setTemperatureC(c.toFixed(1));
+        } else {
+            setTemperatureC("");
+        }
+    }
+
+    // Sync display values when unit system changes
+    useEffect(() => {
+        const w = parseFloat(weightKg);
+        const h = parseFloat(heightCm);
+        const t = parseFloat(temperatureC);
+        if (!isNaN(w) && w > 0) {
+            setWeightDisplay(unitSystem === "imperial" ? kgToLbs(w).toFixed(1) : w.toFixed(1));
+        }
+        if (!isNaN(h) && h > 0) {
+            setHeightDisplay(unitSystem === "imperial" ? cmToIn(h).toFixed(1) : h.toFixed(1));
+        }
+        if (!isNaN(t)) {
+            setTempDisplay(unitSystem === "imperial" ? cToF(t).toFixed(1) : t.toFixed(1));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [unitSystem]);
+
     useEffect(() => {
         const encounterData = getEncounterData(patientId, encounterId);
         if (encounterData.vitals && !editing?.id) {
@@ -72,6 +141,13 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
             setOxygenSaturation(data.oxygenSaturation || "");
             setBmi(data.bmi || "");
             setNotes(data.notes || "");
+            // Set display values
+            const w = parseFloat(data.weightKg || "");
+            const h = parseFloat(data.heightCm || "");
+            const t = parseFloat(data.temperatureC || "");
+            setWeightDisplay(!isNaN(w) && w > 0 ? (unitSystem === "imperial" ? kgToLbs(w).toFixed(1) : String(w)) : "");
+            setHeightDisplay(!isNaN(h) && h > 0 ? (unitSystem === "imperial" ? cmToIn(h).toFixed(1) : String(h)) : "");
+            setTempDisplay(!isNaN(t) ? (unitSystem === "imperial" ? cToF(t).toFixed(1) : String(t)) : "");
         } else if (editing?.id) {
             setWeightKg(editing.weightKg?.toString() || "");
             setHeightCm(editing.heightCm?.toString() || "");
@@ -83,6 +159,13 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
             setOxygenSaturation(editing.oxygenSaturation?.toString() || "");
             setBmi(editing.bmi?.toString() || "");
             setNotes(editing.notes || "");
+            // Set display values
+            const w = editing.weightKg;
+            const h = editing.heightCm;
+            const t = editing.temperatureC;
+            setWeightDisplay(w ? (unitSystem === "imperial" ? kgToLbs(w).toFixed(1) : String(w)) : "");
+            setHeightDisplay(h ? (unitSystem === "imperial" ? cmToIn(h).toFixed(1) : String(h)) : "");
+            setTempDisplay(t ? (unitSystem === "imperial" ? cToF(t).toFixed(1) : String(t)) : "");
         } else {
             setWeightKg("");
             setHeightCm("");
@@ -94,7 +177,11 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
             setOxygenSaturation("");
             setBmi("");
             setNotes("");
+            setWeightDisplay("");
+            setHeightDisplay("");
+            setTempDisplay("");
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editing, patientId, encounterId]);
 
     useEffect(() => {
@@ -152,6 +239,9 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
                 setOxygenSaturation("");
                 setBmi("");
                 setNotes("");
+                setWeightDisplay("");
+                setHeightDisplay("");
+                setTempDisplay("");
             }
         } catch (e: unknown) {
             setErr(e instanceof Error ? e.message : "Something went wrong");
@@ -160,39 +250,61 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
         }
     }
 
+    const weightLabel = unitSystem === "imperial" ? "Weight (lbs)" : "Weight (kg)";
+    const heightLabel = unitSystem === "imperial" ? "Height (in)" : "Height (cm)";
+    const tempLabel = unitSystem === "imperial" ? "Temperature (°F)" : "Temperature (°C)";
+
     return (
         <form
             onSubmit={handleSubmit}
             className="space-y-4 rounded-2xl border p-4 shadow-sm bg-white"
         >
-            <h3 className="text-lg font-semibold">
-                {editing?.id ? "Edit Vitals" : "Add Vitals"}
-            </h3>
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">
+                    {editing?.id ? "Edit Vitals" : "Add Vitals"}
+                </h3>
+                <div className="flex items-center gap-1 rounded-lg border p-0.5 text-xs">
+                    <button
+                        type="button"
+                        onClick={() => setUnitSystem("imperial")}
+                        className={`px-2.5 py-1 rounded-md transition-colors ${unitSystem === "imperial" ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                    >
+                        Imperial
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setUnitSystem("metric")}
+                        className={`px-2.5 py-1 rounded-md transition-colors ${unitSystem === "metric" ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"}`}
+                    >
+                        Metric
+                    </button>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                    <label className="block text-sm font-medium mb-1">Weight (kg) <span className="text-red-600">*</span></label>
+                    <label className="block text-sm font-medium mb-1">{weightLabel} <span className="text-red-600">*</span></label>
                     <input
                         type="number"
                         step="0.1"
                         min="0"
                         className="w-full rounded-lg border px-3 py-2"
-                        placeholder="Weight (kg)"
-                        value={weightKg}
-                        onChange={(e) => setWeightKg(e.target.value)}
+                        placeholder={weightLabel}
+                        value={weightDisplay}
+                        onChange={(e) => handleWeightChange(e.target.value)}
                         required
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">Height (cm) <span className="text-red-600">*</span></label>
+                    <label className="block text-sm font-medium mb-1">{heightLabel} <span className="text-red-600">*</span></label>
                     <input
                         type="number"
                         step="0.1"
                         min="0"
                         className="w-full rounded-lg border px-3 py-2"
-                        placeholder="Height (cm)"
-                        value={heightCm}
-                        onChange={(e) => setHeightCm(e.target.value)}
+                        placeholder={heightLabel}
+                        value={heightDisplay}
+                        onChange={(e) => handleHeightChange(e.target.value)}
                         required
                     />
                 </div>
@@ -230,9 +342,9 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
                 </div>
                 <input
                     className="w-full rounded-lg border px-3 py-2"
-                    placeholder="Temperature (°C)"
-                    value={temperatureC}
-                    onChange={(e) => setTemperatureC(e.target.value)}
+                    placeholder={tempLabel}
+                    value={tempDisplay}
+                    onChange={(e) => handleTempChange(e.target.value)}
                 />
                 <input
                     className="w-full rounded-lg border px-3 py-2"

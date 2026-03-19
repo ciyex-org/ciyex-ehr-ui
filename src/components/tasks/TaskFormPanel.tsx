@@ -140,10 +140,14 @@ export default function TaskFormPanel({
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               placeholder="Enter task title"
-              className={`w-full px-3 py-2 text-sm rounded-lg border ${form.title !== undefined && form.title !== "" && !form.title.trim() ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition`}
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${form.title !== undefined && form.title !== "" && (!form.title.trim() || /[<>{}[\]\\^~`|]/.test(form.title)) ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition`}
+              maxLength={200}
             />
             {form.title !== undefined && form.title !== "" && !form.title.trim() && (
               <p className="text-xs text-red-500 mt-1">Title cannot be only whitespace</p>
+            )}
+            {form.title !== undefined && form.title.trim() && /[<>{}[\]\\^~`|]/.test(form.title) && (
+              <p className="text-xs text-red-500 mt-1">Title contains invalid characters</p>
             )}
           </div>
 
@@ -361,10 +365,16 @@ export default function TaskFormPanel({
               <input
                 type="text"
                 value={form.referenceId}
-                onChange={(e) => set("referenceId", e.target.value)}
-                placeholder="Reference ID"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || /^\d+$/.test(v)) set("referenceId", v);
+                }}
+                placeholder="Reference ID (numeric)"
+                className={`w-full px-3 py-2 text-sm rounded-lg border ${form.referenceId && !/^\d+$/.test(form.referenceId) ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition`}
               />
+              {form.referenceId && !/^\d+$/.test(form.referenceId) && (
+                <p className="text-xs text-red-500 mt-1">Reference ID must be numeric</p>
+              )}
             </div>
           </div>
 
@@ -393,7 +403,7 @@ export default function TaskFormPanel({
           </button>
           <button
             onClick={onSave}
-            disabled={saving || !form.title.trim()}
+            disabled={saving || !form.title.trim() || /[<>{}[\]\\^~`|]/.test(form.title)}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition-colors"
           >
             {saving ? (

@@ -373,6 +373,9 @@ function ReferralFormPanel({
     else if (!/^[A-Za-z\s\-'.]+$/.test(form.specialistName.trim())) e.specialistName = "Specialist name must contain only letters";
     if (!form.facilityName.trim()) e.facilityName = "Facility name is required";
     else if (!/^[A-Za-z0-9\s\-'.,&#()\/]+$/.test(form.facilityName.trim())) e.facilityName = "Facility name contains invalid characters";
+    else if (!/[A-Za-z]/.test(form.facilityName.trim())) e.facilityName = "Facility name must contain at least one letter";
+    else if (form.facilityName.trim().length < 2) e.facilityName = "Facility name must be at least 2 characters";
+    else if (form.facilityName.trim().length > 200) e.facilityName = "Facility name must be less than 200 characters";
     if (!form.referralDate.trim()) e.referralDate = "Referral date is required";
     if (form.facilityPhone.trim() && !isValidUSPhone(form.facilityPhone)) e.facilityPhone = "Phone number must be exactly 10 digits";
     if (form.facilityFax.trim() && !isValidFax(form.facilityFax)) e.facilityFax = "Invalid fax number";

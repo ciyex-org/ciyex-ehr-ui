@@ -489,6 +489,13 @@ export default function AddPatient() {
         if (formData.contactInfo.homePhone && !isValidUSPhone(formData.contactInfo.homePhone)) errs.homePhone = "Enter a valid 10-digit US phone number";
         if (formData.contactInfo.email && !isValidEmail(formData.contactInfo.email)) errs.email = "Enter a valid email address";
         if (formData.personalInfo.ptssn && formData.personalInfo.ptssn.trim() && !isValidSSN(formData.personalInfo.ptssn)) errs.ptssn = "SSN must be exactly 9 digits";
+        // Validate DOB is not in the future
+        if (formData.personalInfo.dob) {
+            const dobDate = new Date(formData.personalInfo.dob);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (dobDate > today) errs.dob = "Date of birth cannot be a future date";
+        }
         if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
         setFormErrors({});
 
@@ -654,11 +661,17 @@ export default function AddPatient() {
                                     <input
                                         type="date"
                                         value={formData.personalInfo.dob}
-                                        onChange={(e) => handleChange("personalInfo", "dob", e.target.value)}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const today = new Date().toISOString().split("T")[0];
+                                            if (val > today) return; // Prevent future dates
+                                            handleChange("personalInfo", "dob", val);
+                                        }}
                                         max={new Date().toISOString().split("T")[0]}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.dob ? "border-red-500" : "border-gray-300"}`}
                                         required
                                     />
+                                    {formErrors.dob && <p className="text-xs text-red-500 mt-1">{formErrors.dob}</p>}
                                 </div>
 
                                 <div>

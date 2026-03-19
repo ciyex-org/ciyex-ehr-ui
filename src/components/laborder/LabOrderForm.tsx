@@ -1097,7 +1097,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                     </div>
                   )}
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Physician Name <span className="text-red-600">*</span></label>
                   <input
                     ref={physicianNameInputRef}
@@ -1113,7 +1113,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                     </div>
                   )}
                   {showPhysicianDropdown && physicianMatches.length > 0 && (
-                    <div className="absolute mt-1 bg-white border border-slate-200 rounded shadow max-h-44 overflow-y-auto z-40 w-full">
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-44 overflow-y-auto z-50 w-full">
                       {physicianMatches.map((p,i) => (
                         <button key={i} onClick={() => { setDraft(d => ({ ...d, physicianName: p })); setShowPhysicianDropdown(false); }} className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm">{p}</button>
                       ))}

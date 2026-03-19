@@ -6,6 +6,7 @@ import {
   FileText, Download, X as XIcon, ExternalLink,
 } from "lucide-react";
 import type { MessageItem as MessageItemType, Reaction, MessageAttachment } from "./types";
+import { downloadAttachment } from "./messagingApi";
 
 interface Props {
   message: MessageItemType;
@@ -107,7 +108,7 @@ export default function MessageItemComponent({
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
-          <AttachmentList attachments={message.attachments} />
+          <AttachmentList attachments={message.attachments} messageId={message.id} />
         )}
 
         {/* Reactions */}
@@ -220,11 +221,28 @@ export default function MessageItemComponent({
   );
 }
 
-function AttachmentList({ attachments }: { attachments: MessageAttachment[] }) {
+function AttachmentList({ attachments, messageId }: { attachments: MessageAttachment[]; messageId: string }) {
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const images = attachments.filter((a) => a.fileType?.startsWith("image/"));
   const files = attachments.filter((a) => !a.fileType?.startsWith("image/"));
+
+  const handleDownload = async (att: MessageAttachment) => {
+    try {
+      const blob = await downloadAttachment(messageId, att.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = att.fileName || "download";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback to direct URL download
+      window.open(att.fileUrl, "_blank");
+    }
+  };
 
   return (
     <>
@@ -262,17 +280,13 @@ function AttachmentList({ attachments }: { attachments: MessageAttachment[] }) {
                   onClick={() => setLightbox(att.fileUrl)}
                 />
                 <div className="absolute bottom-1.5 right-1.5 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  <a
-                    href={att.fileUrl}
-                    download={att.fileName}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
                     className="rounded-lg bg-black/60 p-1.5 text-white backdrop-blur-sm hover:bg-black/80"
                     title="Download"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); handleDownload(att); }}
                   >
                     <Download className="h-3.5 w-3.5" />
-                  </a>
+                  </button>
                 </div>
               </div>
             ))}
@@ -283,23 +297,20 @@ function AttachmentList({ attachments }: { attachments: MessageAttachment[] }) {
         {files.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {files.map((att) => (
-              <a
+              <button
                 key={att.id}
-                href={att.fileUrl}
-                download={att.fileName}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={() => handleDownload(att)}
                 className="flex items-center gap-2.5 rounded-xl border border-gray-200/80 bg-gray-50/80 px-3.5 py-2.5 text-xs transition-colors hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-900/20">
                   <FileText className="h-4 w-4 text-brand-600 dark:text-brand-400" />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 text-left">
                   <p className="truncate max-w-[180px] font-medium text-gray-800 dark:text-gray-200">{att.fileName}</p>
                   <p className="text-gray-400">{formatFileSize(att.fileSize)}</p>
                 </div>
                 <Download className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-              </a>
+              </button>
             ))}
           </div>
         )}

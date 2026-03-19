@@ -1177,15 +1177,31 @@ const noShowAnalysis: ReportDefinition = {
     if (records.length === 0) {
       records = await safeFetch(`${apiUrl}/api/fhir-resource/appointments?page=0&size=1000`, fetchFn);
     }
-    // Normalize fields from FHIR format
+    // Normalize fields from FHIR format — handle all possible field naming conventions
     for (const a of records) {
       if (!a.appointmentStartDate && a.start) {
         const iso = String(a.start);
         a.appointmentStartDate = iso.includes("T") ? iso.split("T")[0] : iso;
       }
       if (!a.providerName && a.providerDisplay) a.providerName = a.providerDisplay;
+      if (!a.providerName && a.practitioner) a.providerName = a.practitioner;
+      if (!a.providerName && a.practitionerDisplay) a.providerName = a.practitionerDisplay;
       if (!a.patientName && a.patientDisplay) a.patientName = a.patientDisplay;
+      if (!a.patientName && a.participant) a.patientName = a.participant;
       if (!a.visitType && a.appointmentType) a.visitType = a.appointmentType;
+      if (!a.visitType && a.serviceType) a.visitType = a.serviceType;
+      if (!a.visitType && a.serviceCategory) a.visitType = a.serviceCategory;
+      if (!a.visitType && a.type) a.visitType = a.type;
+      // Extract visitType from FHIR CodeableConcept arrays
+      if (!a.visitType && Array.isArray(a.serviceType)) {
+        const st = a.serviceType[0];
+        a.visitType = st?.text || st?.coding?.[0]?.display || st?.display || "";
+      }
+      if (!a.cancelReason && a.cancellationReason) a.cancelReason = a.cancellationReason;
+      if (!a.cancelReason && a.reasonCode) {
+        const rc = Array.isArray(a.reasonCode) ? a.reasonCode[0] : a.reasonCode;
+        a.cancelReason = rc?.text || rc?.coding?.[0]?.display || (typeof rc === "string" ? rc : "");
+      }
     }
     records = filterByProvider(records, filters.provider as string | undefined);
     const noShows = records.filter(a => (a.status || "").toLowerCase().includes("no") || (a.status || "").toLowerCase() === "noshow");

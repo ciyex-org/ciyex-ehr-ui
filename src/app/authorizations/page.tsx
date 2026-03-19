@@ -253,7 +253,7 @@ export default function PriorAuthorizationsPage() {
 
   // Extracted patient search — callable from both useEffect and onFocus
   const runPatientSearch = useCallback(async (query: string) => {
-    if (!query.trim() || query.length < 2) { setPatientResults([]); return; }
+    if (!query.trim()) { setPatientResults([]); return; }
     try {
       const res = await fetchWithAuth(`${base()}/api/patients?search=${encodeURIComponent(query)}&size=20`);
       if (!res.ok) { console.warn("Patient search failed:", res.status); return; }
@@ -291,9 +291,9 @@ export default function PriorAuthorizationsPage() {
     });
   }, [providerQuery]);
 
-  // Insurance search
+  // Insurance search — trigger from 1 char so partial names work
   useEffect(() => {
-    if (!insuranceQuery.trim() || insuranceQuery.length < 2) { setInsuranceResults([]); return; }
+    if (!insuranceQuery.trim()) { setInsuranceResults([]); setShowInsuranceDropdown(false); return; }
     debounceSearch("insurance", async () => {
       try {
         const res = await fetchWithAuth(`${base()}/api/insurance-companies?page=0&size=200`);
@@ -301,9 +301,12 @@ export default function PriorAuthorizationsPage() {
         const json = await res.json();
         const all = extractList(json);
         const q = insuranceQuery.toLowerCase();
-        const list = all.filter((i: any) => (i.name || i.insuranceName || i.payerName || i.companyName || i.payerId || "").toLowerCase().includes(q));
+        const list = all.filter((i: any) => {
+          const searchStr = [i.name, i.insuranceName, i.payerName, i.companyName, i.payerId, i.displayName].filter(Boolean).join(" ").toLowerCase();
+          return searchStr.includes(q);
+        });
         setInsuranceResults(list);
-        setShowInsuranceDropdown(true);
+        setShowInsuranceDropdown(list.length > 0);
       } catch (err) { console.warn("Insurance search error:", err); }
     });
   }, [insuranceQuery]);
@@ -482,6 +485,10 @@ export default function PriorAuthorizationsPage() {
   }
 
   async function handleSave() {
+    // Validate member ID
+    if (formData.memberId && formData.memberId.trim().length > 0 && formData.memberId.trim().length < 3) {
+      return;
+    }
     setSaving(true);
     try {
       const url = editingAuth
@@ -1011,7 +1018,7 @@ export default function PriorAuthorizationsPage() {
                         onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
                         onFocus={() => {
                           // Always re-search on focus so fresh/updated patient names are shown
-                          if (patientQuery.trim().length >= 2) {
+                          if (patientQuery.trim().length >= 1) {
                             runPatientSearch(patientQuery);
                             setShowPatientDropdown(true);
                           } else if (patientResults.length > 0) {
@@ -1137,13 +1144,21 @@ export default function PriorAuthorizationsPage() {
                       }
                     />
                   </FormRow>
-                  <FormField
-                    label="Member ID"
-                    value={formData.memberId}
-                    onChange={(v) =>
-                      setFormData({ ...formData, memberId: v.replace(/[^a-zA-Z0-9-]/g, "") })
-                    }
-                  />
+                  <div>
+                    <FormField
+                      label="Member ID"
+                      value={formData.memberId}
+                      onChange={(v) =>
+                        setFormData({ ...formData, memberId: v.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 30) })
+                      }
+                    />
+                    {formData.memberId && !/^[a-zA-Z0-9-]+$/.test(formData.memberId) && (
+                      <p className="text-xs text-red-500 mt-1">Member ID must contain only letters, numbers, and hyphens</p>
+                    )}
+                    {formData.memberId && formData.memberId.length > 0 && formData.memberId.length < 3 && (
+                      <p className="text-xs text-amber-500 mt-1">Member ID should be at least 3 characters</p>
+                    )}
+                  </div>
                 </FormSection>
 
                 {/* Section: Procedure / Diagnosis */}
