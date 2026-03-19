@@ -235,7 +235,7 @@ export default function MessagingPage() {
     try {
       const msg = await api.sendMessage(state.activeChannelId, {
         content: content || (files?.length ? files.map((f) => f.name).join(", ") : ""),
-        parentId: replyingTo?.id,
+        parentId: replyingTo?.id || undefined,
         mentions: extractMentions(content),
       });
       if (msg?.id) {

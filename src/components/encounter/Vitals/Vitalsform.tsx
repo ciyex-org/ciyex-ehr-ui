@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import type { ApiResponse, VitalsDto } from "@/utils/types";
 import { getEncounterData, setEncounterSection, removeEncounterSection } from "@/utils/encounterStorage";
@@ -37,7 +37,6 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
     const [respiration, setRespiration] = useState<string>("");
     const [temperatureC, setTemperatureC] = useState<string>("");
     const [oxygenSaturation, setOxygenSaturation] = useState<string>("");
-    const [bmi, setBmi] = useState<string>("");
     const [notes, setNotes] = useState<string>("");
 
     // Display values (in current unit system)
@@ -48,21 +47,17 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
-    // Auto-calculate BMI from weight(kg) and height(cm)
-    useEffect(() => {
+    // Auto-calculate BMI from weight and height (derived, always in sync)
+    const bmi = useMemo(() => {
         const w = parseFloat(weightKg);
         const h = parseFloat(heightCm);
         if (w > 0 && h > 0) {
             const heightM = h / 100;
             if (heightM > 0) {
-                const calculated = (w / (heightM * heightM)).toFixed(1);
-                setBmi(calculated);
-            } else {
-                setBmi("");
+                return (w / (heightM * heightM)).toFixed(1);
             }
-        } else {
-            setBmi("");
         }
+        return "";
     }, [weightKg, heightCm]);
 
     function getBmiStatus(bmiValue: string): { label: string; color: string } | null {
@@ -139,7 +134,6 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
             setRespiration(data.respiration || "");
             setTemperatureC(data.temperatureC || "");
             setOxygenSaturation(data.oxygenSaturation || "");
-            setBmi(data.bmi || "");
             setNotes(data.notes || "");
             // Set display values
             const w = parseFloat(data.weightKg || "");
@@ -157,7 +151,6 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
             setRespiration(editing.respiration?.toString() || "");
             setTemperatureC(editing.temperatureC?.toString() || "");
             setOxygenSaturation(editing.oxygenSaturation?.toString() || "");
-            setBmi(editing.bmi?.toString() || "");
             setNotes(editing.notes || "");
             // Set display values
             const w = editing.weightKg;
@@ -175,7 +168,6 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
             setRespiration("");
             setTemperatureC("");
             setOxygenSaturation("");
-            setBmi("");
             setNotes("");
             setWeightDisplay("");
             setHeightDisplay("");
@@ -185,14 +177,14 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
     }, [editing, patientId, encounterId]);
 
     useEffect(() => {
-        if (weightKg || heightCm || bpSystolic || bpDiastolic || pulse || respiration || temperatureC || oxygenSaturation || bmi || notes) {
+        if (weightKg || heightCm || bpSystolic || bpDiastolic || pulse || respiration || temperatureC || oxygenSaturation || notes) {
             setEncounterSection(patientId, encounterId, "vitals", {
                 weightKg, heightCm, bpSystolic, bpDiastolic,
                 pulse, respiration, temperatureC, oxygenSaturation,
-                bmi, notes
+                notes
             });
         }
-    }, [weightKg, heightCm, bpSystolic, bpDiastolic, pulse, respiration, temperatureC, oxygenSaturation, bmi, notes, patientId, encounterId]);
+    }, [weightKg, heightCm, bpSystolic, bpDiastolic, pulse, respiration, temperatureC, oxygenSaturation, notes, patientId, encounterId]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -237,7 +229,6 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
                 setRespiration("");
                 setTemperatureC("");
                 setOxygenSaturation("");
-                setBmi("");
                 setNotes("");
                 setWeightDisplay("");
                 setHeightDisplay("");

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { X, Pill, User, Building2, FileText, Loader2, Stethoscope } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
@@ -93,6 +93,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const [patientQuery, setPatientQuery] = useState("");
   const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [patientDropdownStyle, setPatientDropdownStyle] = useState<React.CSSProperties>({});
+  const patientInputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) {
@@ -104,6 +106,20 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       setShowPatientDropdown(false);
     }
   }, [open, prescription]);
+
+  /* Update dropdown position when shown */
+  useEffect(() => {
+    if (showPatientDropdown && patientInputRef.current) {
+      const rect = patientInputRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropHeight = Math.min(192, patientResults.length * 44);
+      if (spaceBelow < dropHeight && rect.top > dropHeight) {
+        setPatientDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      } else {
+        setPatientDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      }
+    }
+  }, [showPatientDropdown, patientResults.length]);
 
   /* Debounced patient search */
   useEffect(() => {
@@ -229,7 +245,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
           {/* Patient Info */}
           <Section title="Patient Information" icon={<User className="w-4 h-4" />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="relative">
+              <div className="relative" ref={patientInputRef}>
                 <label className={labelCls}>Patient Name *</label>
                 <input
                   className={inputCls("patientName")}
@@ -241,16 +257,18 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                     setShowPatientDropdown(true);
                   }}
                   onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
                   placeholder="Search patient by name..."
                   autoComplete="off"
                 />
                 {errors.patientName && <p className="text-xs text-red-500 mt-1">{errors.patientName}</p>}
                 {showPatientDropdown && patientResults.length > 0 && (
-                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                  <div style={patientDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
                     {patientResults.map((p) => (
                       <button
                         key={p.id}
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => selectPatient(p)}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0"
                       >
@@ -349,7 +367,22 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Refills</label>
-                  <input type="number" min={0} className={inputCls()} value={form.refills ?? ""} onChange={(e) => set("refills", e.target.value === "" ? 0 : parseInt(e.target.value, 10))} onBlur={() => { if (form.refills == null || isNaN(form.refills as number)) set("refills", 0); }} />
+                  <input
+                    type="number"
+                    min={0}
+                    className={inputCls()}
+                    value={form.refills != null ? form.refills : ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        set("refills", 0);
+                      } else {
+                        const n = parseInt(v, 10);
+                        if (!isNaN(n) && n >= 0) set("refills", n);
+                      }
+                    }}
+                    placeholder="0"
+                  />
                 </div>
                 <div>
                   <label className={labelCls}>Priority</label>

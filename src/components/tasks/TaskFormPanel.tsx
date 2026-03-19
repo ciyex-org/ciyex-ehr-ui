@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Save, Loader2 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
@@ -61,13 +61,29 @@ export default function TaskFormPanel({
   const [patientQuery, setPatientQuery] = useState("");
   const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [patientDropdownStyle, setPatientDropdownStyle] = useState<React.CSSProperties>({});
+  const patientInputRef = useRef<HTMLDivElement>(null);
 
   // Sync patient query with form data
   useEffect(() => {
     setPatientQuery(form.patientName || "");
   }, [form.patientName, open]);
 
-  // Debounced patient search — skip if query matches already-selected patient name
+  // Update dropdown position when shown
+  useEffect(() => {
+    if (showPatientDropdown && patientInputRef.current) {
+      const rect = patientInputRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropHeight = Math.min(192, patientResults.length * 44);
+      if (spaceBelow < dropHeight && rect.top > dropHeight) {
+        setPatientDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      } else {
+        setPatientDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      }
+    }
+  }, [showPatientDropdown, patientResults.length]);
+
+  // Debounced patient search
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
     if (form.patientName && patientQuery === form.patientName && form.patientId) return;
@@ -282,7 +298,7 @@ export default function TaskFormPanel({
 
           {/* Row: Patient Name + Patient ID */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="relative">
+            <div className="relative" ref={patientInputRef}>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 Patient Name
               </label>
@@ -296,16 +312,18 @@ export default function TaskFormPanel({
                   setShowPatientDropdown(true);
                 }}
                 onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
+                onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
                 placeholder="Search patient by name..."
                 autoComplete="off"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
               />
               {showPatientDropdown && patientResults.length > 0 && (
-                <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                <div style={patientDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
                   {patientResults.map((p) => (
                     <button
                       key={p.id}
                       type="button"
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => selectPatient(p)}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
                     >

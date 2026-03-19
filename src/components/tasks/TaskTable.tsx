@@ -60,6 +60,7 @@ function StatusBadge({ status }: { status: TaskStatus }) {
     completed: "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800",
     cancelled: "bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700",
     deferred: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800",
+    overdue: "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800",
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colors[status]}`}>
@@ -142,7 +143,7 @@ export default function TaskTable({
                           : "text-gray-900 dark:text-gray-100"
                       }`}
                     >
-                      {task.title}
+                      {task.title || "--"}
                     </p>
                     {task.description && (
                       <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">

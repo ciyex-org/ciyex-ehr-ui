@@ -77,7 +77,7 @@ export default function MessageItemComponent({
         {isFirstInGroup && (
           <div className="mb-1 flex items-center gap-2">
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
-              {message.senderName}
+              {message.senderName || "Unknown"}
             </span>
             <span className="text-xs text-gray-400">{timeStr}</span>
             {message.isPinned && (
