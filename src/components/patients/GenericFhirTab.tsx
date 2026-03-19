@@ -44,9 +44,6 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
     const [deleteConfirmRecord, setDeleteConfirmRecord] = useState<Record<string, any> | null>(null);
     const [statusFilter, setStatusFilter] = useState<string>("");
 
-    // Insurance: dynamic plan options based on selected company
-    const [insurancePlanOptions, setInsurancePlanOptions] = useState<{ value: string; label: string }[]>([]);
-
     // Pagination
     const [page, setPage] = useState(0);
     const [pageSize] = useState(20);
@@ -309,9 +306,11 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "payerName" || f.key === "insurerName" || f.key === "companyName" || f.key === "insurer" || f.key === "payor")) {
                     section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-companies", displayField: "name", valueField: "name", searchable: true }, required: true };
                 }
-                // Issue 13: Insurance — planName must be a select dependent on insurance company
+                // Issue 13: Insurance — planName must be a select (no free-text)
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "planName" || f.key === "plan" || f.key === "coveragePlan")) {
-                    section.fields[i] = { ...f, type: "select", placeholder: "Select insurance company first" };
+                    if (f.type === "text" || f.type === "combobox") {
+                        section.fields[i] = { ...f, type: "select" };
+                    }
                 }
                 // Issue 15: Documents — attachment/file field must be required + allow CSV/XLS/TXT uploads
                 if ((tabKey === "documents" || tabKey === "document-references") && (f.key === "attachment" || f.key === "file" || f.key === "fileUrl" || f.key === "documentUrl" || f.key === "content")) {
@@ -1350,77 +1349,6 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             return next;
         });
 
-        // Insurance: if user tries to select planName without selecting company first, show warning
-        if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") &&
-            (key === "planName" || key === "plan" || key === "coveragePlan") && !value) {
-            const insurerKeys = ["payerName", "insurerName", "companyName", "insurer", "payor"];
-            const hasInsurer = insurerKeys.some(ik => {
-                const v = formData[ik];
-                return v && typeof v === "string" && v.trim();
-            });
-            if (!hasInsurer) {
-                setValidationErrors(prev => {
-                    const next = { ...prev };
-                    for (const ik of insurerKeys) { next[ik] = "Please select an Insurance Company first"; }
-                    return next;
-                });
-                setTimeout(() => {
-                    setValidationErrors(prev => {
-                        const next = { ...prev };
-                        for (const ik of insurerKeys) { if (next[ik] === "Please select an Insurance Company first") delete next[ik]; }
-                        return next;
-                    });
-                }, 3000);
-                return;
-            }
-        }
-
-        // Insurance: when company/insurer changes, fetch plans for that company
-        if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") &&
-            (key === "payerName" || key === "insurerName" || key === "companyName" || key === "insurer" || key === "payor")) {
-            // Clear plan when company changes
-            setFormData(prev => {
-                const next = { ...prev };
-                for (const pk of ["planName", "plan", "coveragePlan"]) {
-                    if (pk in next) next[pk] = "";
-                }
-                return next;
-            });
-            setInsurancePlanOptions([]);
-            if (value && typeof value === "string") {
-                (async () => {
-                    try {
-                        const res = await fetchWithAuth(`${API_BASE()}/api/insurance-companies?search=${encodeURIComponent(value)}&size=50`);
-                        if (res.ok) {
-                            const json = await res.json();
-                            const companies = json.data?.content || json.data || json.content || (Array.isArray(json) ? json : []);
-                            const match = companies.find((c: any) => (c.name || "").toLowerCase() === value.toLowerCase());
-                            if (match) {
-                                const plans: string[] = match.plans || match.planNames || [];
-                                if (plans.length > 0) {
-                                    setInsurancePlanOptions(plans.map((p: string) => ({ value: p, label: p })));
-                                } else {
-                                    // Try fetching plans from dedicated endpoint
-                                    try {
-                                        const planRes = await fetchWithAuth(`${API_BASE()}/api/insurance-companies/${match.id || encodeURIComponent(value)}/plans`);
-                                        if (planRes.ok) {
-                                            const planJson = await planRes.json();
-                                            const planList = planJson.data || planJson.content || (Array.isArray(planJson) ? planJson : []);
-                                            setInsurancePlanOptions(planList.map((p: any) =>
-                                                typeof p === "string" ? { value: p, label: p } : { value: p.name || p.planName || p.id, label: p.name || p.planName || p.id }
-                                            ));
-                                        }
-                                    } catch { /* no plans endpoint */ }
-                                }
-                            }
-                        }
-                    } catch (err) {
-                        console.error("Failed to fetch insurance plans", err);
-                    }
-                })();
-            }
-        }
-
         // If a file field with uploadEndpoint received a value, the upload endpoint
         // already stored the file. Show a notification but DO NOT auto-close the form
         // so the user can still fill in title, author, date, etc. before saving.
@@ -1462,18 +1390,12 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
             }
         }
-        // For messaging tab: auto-fill patient with name (display) and ID (value)
+        // For messaging tab: auto-fill patientId so backend can resolve patient name
         if (tabKey === "messaging") {
-            const displayName = patientName || `Patient #${patientId}`;
             defaults.patientId = defaults.patientId || patientId;
-            defaults.patient = defaults.patient || displayName;
-            defaults.patientName = defaults.patientName || displayName;
-            defaults.to = defaults.to || displayName;
-            defaults.recipient = defaults.recipient || displayName;
-            // Store display values for lookup fields
-            defaults.toDisplay = defaults.toDisplay || displayName;
-            defaults.recipientDisplay = defaults.recipientDisplay || displayName;
-            defaults.patientDisplay = defaults.patientDisplay || displayName;
+            defaults.patient = defaults.patient || patientId;
+            defaults.to = defaults.to || patientId;
+            defaults.recipient = defaults.recipient || patientId;
             // Auto-fill date if not already set
             if (!defaults.date && !defaults.sentDate) {
                 defaults.date = new Date().toISOString().slice(0, 10);
@@ -1706,16 +1628,15 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     }
                 }
             }
-            // ERA/Remittance: Service To date must be on or after Service From date
-            if (tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance" ||
-                tabKey === "billing" || tabKey === "claims" || tabKey === "submissions") {
+            // ERA/Remittance: Service To date must not be before Service From date
+            if (tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance") {
                 const svcFrom = formData.serviceFrom || formData.serviceDateFrom || formData.serviceFromDate || formData.billablePeriodStart;
                 const svcTo = formData.serviceTo || formData.serviceDateTo || formData.serviceToDate || formData.billablePeriodEnd;
                 if (svcFrom && svcTo) {
                     const fromDt = new Date(String(svcFrom));
                     const toDt = new Date(String(svcTo));
-                    if (!isNaN(fromDt.getTime()) && !isNaN(toDt.getTime()) && toDt < fromDt) {
-                        const msg = "Service To must be on or after Service From date";
+                    if (!isNaN(fromDt.getTime()) && !isNaN(toDt.getTime()) && toDt <= fromDt) {
+                        const msg = "Service To must be after Service From (same date not allowed)";
                         errors.serviceTo = msg;
                         errors.serviceToDate = msg;
                         errors.serviceDateTo = msg;
@@ -1980,10 +1901,6 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
 
             // Pre-save field mapping: ensure backend receives expected field names
             const payload = { ...formData };
-            // Remove internal UI-only fields (delivery channel toggles, display values)
-            for (const k of Object.keys(payload)) {
-                if (k.startsWith("send_") || k.endsWith("Display")) delete payload[k];
-            }
             if (tabKey === "visit-notes") {
                 // Backend expects noteDateTime for the date
                 if (payload.date && !payload.noteDateTime) payload.noteDateTime = payload.date;
@@ -2299,13 +2216,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     }];
                 }
                 if (payload.provider && typeof payload.provider === "string") {
-                    const provId = payload.provider.includes("/") ? payload.provider.split("/").pop() : payload.provider;
-                    payload.provider = { reference: `Practitioner/${provId}` };
-                } else if (payload.provider && typeof payload.provider === "object" && !payload.provider.reference) {
-                    const provId = payload.provider.id || payload.provider.fhirId || payload.provider.value;
-                    if (provId) payload.provider = { reference: `Practitioner/${provId}` };
+                    payload.provider = { reference: `Practitioner/${payload.provider}` };
                 } else if (!payload.provider) {
-                    payload.provider = { reference: `Practitioner/1` };
+                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
+                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
                 }
                 if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
@@ -2317,16 +2231,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             // Issues 17, 21: Claims & Transactions — add Claim.provider + patient
             if (tabKey === "claims" || tabKey === "transactions") {
                 if (payload.provider && typeof payload.provider === "string") {
-                    // Strip existing reference prefix if present (e.g. "Practitioner/123" → "123")
-                    const provId = payload.provider.includes("/") ? payload.provider.split("/").pop() : payload.provider;
-                    payload.provider = { reference: `Practitioner/${provId}` };
-                } else if (payload.provider && typeof payload.provider === "object" && !payload.provider.reference) {
-                    // Object without reference property — wrap it
-                    const provId = payload.provider.id || payload.provider.fhirId || payload.provider.value;
-                    if (provId) payload.provider = { reference: `Practitioner/${provId}` };
+                    payload.provider = { reference: `Practitioner/${payload.provider}` };
                 } else if (!payload.provider) {
-                    // No provider — required field, but provide a safe Practitioner fallback
-                    payload.provider = { reference: `Practitioner/1` };
+                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
+                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
                 }
                 if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
@@ -2338,13 +2246,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             // Issue 18: Claim Submissions — add Claim.provider
             if (tabKey === "submissions" || tabKey === "claim-submissions") {
                 if (payload.provider && typeof payload.provider === "string") {
-                    const provId = payload.provider.includes("/") ? payload.provider.split("/").pop() : payload.provider;
-                    payload.provider = { reference: `Practitioner/${provId}` };
-                } else if (payload.provider && typeof payload.provider === "object" && !payload.provider.reference) {
-                    const provId = payload.provider.id || payload.provider.fhirId || payload.provider.value;
-                    if (provId) payload.provider = { reference: `Practitioner/${provId}` };
+                    payload.provider = { reference: `Practitioner/${payload.provider}` };
                 } else if (!payload.provider) {
-                    payload.provider = { reference: `Practitioner/1` };
+                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
+                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
                 }
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
                 if (!payload.use) payload.use = "claim";
@@ -2397,29 +2302,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     setFormData({});
                     setSelectedRecord(null);
                 }
-                // Messaging: send message via selected delivery channels
-                if (tabKey === "messaging" && !isEdit) {
-                    const channels: string[] = ["IN_APP"]; // always include in-app
-                    if (formData.send_email !== false) channels.push("EMAIL");
-                    if (formData.send_sms !== false) channels.push("SMS");
-                    try {
-                        await fetchWithAuth(`${API_BASE()}/api/messages/send`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                patientId,
-                                channels,
-                                subject: formData.subject || formData.title || "New Message",
-                                body: formData.message || formData.content || formData.body || formData.text || formData.note || "",
-                                from: formData.from || formData.sender || formData.fromProvider || "",
-                            }),
-                        });
-                    } catch (err) {
-                        console.warn("Message delivery API not available:", err);
-                    }
-                }
-
-                setSuccessMsg(tabKey === "messaging" ? "Message sent successfully" : `Record ${label} successfully`);
+                setSuccessMsg(`Record ${label} successfully`);
                 setTimeout(() => setSuccessMsg(null), 3000);
                 // Notify appointments page and calendar to refresh
                 if (tabKey === "appointments" || tabKey === "appointment") {
@@ -2768,25 +2651,6 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         );
     }
 
-    // Inject dynamic insurance plan options into fieldConfig for rendering
-    const effectiveFieldConfig = React.useMemo(() => {
-        if (!fieldConfig) return fieldConfig;
-        const isInsuranceTab = tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage";
-        if (!isInsuranceTab || insurancePlanOptions.length === 0) return fieldConfig;
-        return {
-            ...fieldConfig,
-            sections: fieldConfig.sections.map(s => ({
-                ...s,
-                fields: Array.isArray(s.fields) ? s.fields.map(f => {
-                    if (f.key === "planName" || f.key === "plan" || f.key === "coveragePlan") {
-                        return { ...f, options: insurancePlanOptions, placeholder: "Select a plan" };
-                    }
-                    return f;
-                }) : [],
-            })),
-        };
-    }, [fieldConfig, tabKey, insurancePlanOptions]);
-
     // ---- Single-Record Detail Mode (e.g., Demographics) ----
     if (singleRecord && (mode === "view" || mode === "edit")) {
         return (
@@ -2841,7 +2705,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     )}
                     {fieldConfig && (
                         <DynamicFormRenderer
-                            fieldConfig={effectiveFieldConfig || fieldConfig}
+                            fieldConfig={fieldConfig}
                             formData={formData}
                             onChange={handleFieldChange}
                             readOnly={mode === "view"}
@@ -2899,37 +2763,13 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     )}
                     {fieldConfig && (
                         <DynamicFormRenderer
-                            fieldConfig={effectiveFieldConfig || fieldConfig}
+                            fieldConfig={fieldConfig}
                             formData={formData}
                             onChange={handleFieldChange}
                             readOnly={mode === "view"}
                             errors={validationErrors}
                             patientId={patientId}
                         />
-                    )}
-                    {/* Messaging: delivery channel selection */}
-                    {tabKey === "messaging" && mode !== "view" && (
-                        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send via</label>
-                            <div className="flex items-center gap-4">
-                                {[
-                                    { key: "inApp", label: "In-App Message", icon: "💬" },
-                                    { key: "email", label: "Email", icon: "📧" },
-                                    { key: "sms", label: "SMS", icon: "📱" },
-                                ].map(ch => (
-                                    <label key={ch.key} className="flex items-center gap-1.5 cursor-pointer select-none">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData[`send_${ch.key}`] !== false}
-                                            onChange={(e) => handleFieldChange(`send_${ch.key}`, e.target.checked)}
-                                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">{ch.icon} {ch.label}</span>
-                                    </label>
-                                ))}
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">Select how to deliver the message to the patient. In-App is always enabled.</p>
-                        </div>
                     )}
                     {/* File upload for reports tab */}
                     {(tabKey === "report" || tabKey === "reports") && mode !== "view" && (

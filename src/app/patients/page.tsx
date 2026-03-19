@@ -337,12 +337,12 @@ export default function PatientListPage() {
         <AdminLayout>
             <div className="flex flex-col h-full overflow-hidden -m-4 md:-m-6">
                 {/* Top bar: recent patients + actions */}
-                <div className="flex flex-wrap justify-between gap-1.5 px-4 py-1 items-center">
+                <div className="flex flex-wrap justify-between gap-2 px-4 py-2 items-start">
                     <div className="flex-1 min-w-0">
                         {recentPatients.length > 0 && (
                             <>
-                                <div className="text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-0.5">Recent</div>
-                                <div className="flex flex-wrap gap-1">
+                                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5">Recent patients</div>
+                                <div className="flex flex-wrap gap-1.5">
                                     {recentPatients.slice(0, 5).map((patient) => (
                                         <Link
                                             key={patient.id}
@@ -380,7 +380,7 @@ export default function PatientListPage() {
                 </div>
 
                 {/* Filter bar */}
-                <div className="flex flex-wrap items-center gap-3 px-4 py-1.5 border-y border-gray-200 bg-gray-50/80">
+                <div className="flex flex-wrap items-center gap-3 px-4 py-2 border-y border-gray-200 bg-gray-50/80">
                     {/* Search */}
                     <div className="relative flex-1 min-w-[200px] max-w-xs">
                         <span className="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
