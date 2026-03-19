@@ -154,15 +154,18 @@ export default function MessageItemComponent({
       {/* Floating action bar */}
       {showActions && (
         <div className="absolute -top-3 right-6 flex items-center gap-0.5 rounded-xl border border-gray-200/80 bg-white px-1.5 py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
-          {quickEmojis.slice(0, 3).map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => onReact(message.id, emoji)}
-              className="rounded-lg p-1 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              {emoji}
-            </button>
-          ))}
+          {quickEmojis.slice(0, 3).map((emoji) => {
+            const hasReacted = message.reactions?.find((r) => r.emoji === emoji)?.hasReacted;
+            return (
+              <button
+                key={emoji}
+                onClick={() => hasReacted ? onRemoveReaction(message.id, emoji) : onReact(message.id, emoji)}
+                className={`rounded-lg p-1 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${hasReacted ? "bg-brand-50 dark:bg-brand-900/20" : ""}`}
+              >
+                {emoji}
+              </button>
+            );
+          })}
           <div className="mx-0.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -206,15 +209,18 @@ export default function MessageItemComponent({
       {/* Quick emoji picker */}
       {showEmojiPicker && (
         <div className="absolute -top-11 right-6 z-50 flex gap-1 rounded-xl border border-gray-200/80 bg-white p-2 shadow-xl dark:border-gray-700 dark:bg-gray-800">
-          {quickEmojis.map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => { onReact(message.id, emoji); setShowEmojiPicker(false); }}
-              className="rounded-lg p-1.5 text-lg transition-colors hover:bg-gray-100 hover:scale-110 dark:hover:bg-gray-700"
-            >
-              {emoji}
-            </button>
-          ))}
+          {quickEmojis.map((emoji) => {
+            const hasReacted = message.reactions?.find((r) => r.emoji === emoji)?.hasReacted;
+            return (
+              <button
+                key={emoji}
+                onClick={() => { hasReacted ? onRemoveReaction(message.id, emoji) : onReact(message.id, emoji); setShowEmojiPicker(false); }}
+                className={`rounded-lg p-1.5 text-lg transition-colors hover:bg-gray-100 hover:scale-110 dark:hover:bg-gray-700 ${hasReacted ? "bg-brand-50 dark:bg-brand-900/20" : ""}`}
+              >
+                {emoji}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
