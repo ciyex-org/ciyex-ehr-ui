@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast, confirmDialog } from "@/utils/toast";
 
 interface PendingUser {
   id: number;
@@ -48,7 +49,7 @@ export default function PatientApprovals() {
   };
 
   const handleApprove = async (userId: number) => {
-    if (!confirm('Are you sure you want to approve this patient registration?')) {
+    if (!(await confirmDialog('Are you sure you want to approve this patient registration?'))) {
       return;
     }
 
@@ -65,14 +66,14 @@ export default function PatientApprovals() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Patient approved successfully and synced to EHR!');
+        toast.success('Patient approved successfully and synced to EHR!');
         fetchPendingUsers(); // Refresh the list
       } else {
-        alert(`Failed to approve patient: ${data.message}`);
+        toast.error(`Failed to approve patient: ${data.message}`);
       }
     } catch (error) {
       console.error('Error approving user:', error);
-      alert('Failed to approve patient. Please try again.');
+      toast.error('Failed to approve patient. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -82,7 +83,7 @@ export default function PatientApprovals() {
     const reason = prompt('Please provide a reason for rejection (optional):');
     if (reason === null) return; // User cancelled
 
-    if (!confirm('Are you sure you want to reject this patient registration?')) {
+    if (!(await confirmDialog('Are you sure you want to reject this patient registration?'))) {
       return;
     }
 
@@ -99,14 +100,14 @@ export default function PatientApprovals() {
       const data = await response.json();
 
       if (data.success) {
-        alert('Patient registration rejected successfully.');
+        toast.success('Patient registration rejected successfully.');
         fetchPendingUsers(); // Refresh the list
       } else {
-        alert(`Failed to reject patient: ${data.message}`);
+        toast.error(`Failed to reject patient: ${data.message}`);
       }
     } catch (error) {
       console.error('Error rejecting user:', error);
-      alert('Failed to reject patient. Please try again.');
+      toast.error('Failed to reject patient. Please try again.');
     } finally {
       setActionLoading(null);
     }

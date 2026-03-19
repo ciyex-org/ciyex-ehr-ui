@@ -9,6 +9,7 @@ import {
   GripVertical, ArrowUp, ArrowDown, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { FHIR_RESOURCES, FHIR_PATH_SUGGESTIONS, FIELD_TYPES } from "@/utils/FhirPathHelper";
+import { confirmDialog } from "@/utils/toast";
 import type { FieldDef, SectionDef, FieldConfig } from "@/components/patients/DynamicFormRenderer";
 import DynamicFormRenderer from "@/components/patients/DynamicFormRenderer";
 
@@ -380,7 +381,7 @@ export default function FieldConfigEditor({
     setExpandedSection(key);
   };
 
-  const removeSection = (sectionKey: string) => {
+  const removeSection = async (sectionKey: string) => {
     if (!fieldConfig) return;
     setPendingConfirm({ title: "Delete Section", message: "Delete this section and all its fields?", onConfirm: () => setFieldConfig({ sections: fieldConfig.sections.filter((s) => s.key !== sectionKey) }) });
   };

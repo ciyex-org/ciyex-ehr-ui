@@ -295,9 +295,8 @@
 
 
 @layer utilities {
-  /* For Remove Time Spinner Icon only */
-  input[type="time"]::-webkit-inner-spin-button,
-  input[type="time"]::-webkit-calendar-picker-indicator {
+  /* Time input: hide spinner but keep clock picker icon */
+  input[type="time"]::-webkit-inner-spin-button {
     display: none;
     -webkit-appearance: none;
   }

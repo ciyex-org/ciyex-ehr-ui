@@ -3,7 +3,7 @@
 import { getEnv } from "@/utils/env";
 import { useEffect, useState, useMemo } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { Activity, Plus, TrendingUp, TrendingDown, Minus, Save, X, Loader2 } from "lucide-react";
+import { Activity, Plus, TrendingUp, TrendingDown, Minus, Save, X, Loader2, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -78,6 +78,9 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
     const [showAddForm, setShowAddForm] = useState(false);
     const [saving, setSaving] = useState(false);
     const [addForm, setAddForm] = useState<Record<string, string>>({});
+    const [currentPage, setCurrentPage] = useState(0);
+    const [sortAsc, setSortAsc] = useState(false);
+    const PAGE_SIZE = 10;
 
     const loadVitals = async () => {
         try {
@@ -144,23 +147,49 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
         }
     };
 
+    const handleToggleSign = async (record: VitalsRecord) => {
+        const id = record.id || record.fhirId;
+        if (!id) return;
+        const isSigned = record.signed === true || record.signed === "true" || record.signed === "final";
+        try {
+            const res = await fetchWithAuth(
+                `${API_BASE()}/api/fhir-resource/vitals/patient/${patientId}/${id}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...record, signed: isSigned ? false : "final" }),
+                }
+            );
+            if (res.ok) {
+                await new Promise(r => setTimeout(r, 1500));
+                await loadVitals();
+            }
+        } catch (err) {
+            console.error("Failed to toggle sign:", err);
+        }
+    };
+
     // Deduplicate by date — group records that share the same date, take latest per date
-    const columns = useMemo(() => {
+    const allColumns = useMemo(() => {
         if (!records.length) return [];
-        // Sort newest first
         const sorted = [...records].sort((a, b) => {
             const da = new Date(String(a.recordedAt || "")).getTime() || 0;
             const db = new Date(String(b.recordedAt || "")).getTime() || 0;
-            return db - da;
+            return sortAsc ? da - db : db - da;
         });
-        // Deduplicate: keep only records that have at least one vital value
         return sorted.filter(r =>
             VITAL_ROWS.some(v => r[v.key] != null && r[v.key] !== "" && r[v.key] !== undefined)
-        ).slice(0, 10); // Show up to 10 most recent encounters
-    }, [records]);
+        );
+    }, [records, sortAsc]);
+
+    const totalPages = Math.max(1, Math.ceil(allColumns.length / PAGE_SIZE));
+    const columns = useMemo(() => {
+        const start = currentPage * PAGE_SIZE;
+        return allColumns.slice(start, start + PAGE_SIZE);
+    }, [allColumns, currentPage]);
 
     // Also count records with NO values (broken data)
-    const emptyCount = records.length - columns.length;
+    const emptyCount = records.length - allColumns.length;
 
     if (loading) {
         return (
@@ -188,11 +217,15 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                 <div className="flex items-center gap-2 flex-wrap">
                     <Activity className="w-5 h-5 text-indigo-600 shrink-0" />
                     <h3 className="text-base font-semibold text-gray-800">Vitals Flowsheet</h3>
-                    {columns.length > 0 && (
+                    {allColumns.length > 0 && (
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {columns.length} recording{columns.length !== 1 ? "s" : ""}
+                            {allColumns.length} recording{allColumns.length !== 1 ? "s" : ""}
                         </span>
                     )}
+                    <button onClick={() => setSortAsc(!sortAsc)} className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded" title="Toggle sort order">
+                        <ArrowUpDown className="w-3 h-3" />
+                        {sortAsc ? "Oldest first" : "Newest first"}
+                    </button>
                     {emptyCount > 0 && (
                         <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                             {emptyCount} empty record{emptyCount !== 1 ? "s" : ""}
@@ -269,9 +302,9 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                     <p className="text-sm">No vitals recorded yet</p>
                     <p className="text-xs mt-1">Vitals are recorded during encounters</p>
                 </div>
-            ) : (
-                <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 280px)" }}>
-                    <table className="text-sm border-collapse" style={{ minWidth: "100%" }}>
+            ) : (<>
+                <div className="flex-1 overflow-auto border rounded-lg bg-white" style={{ minHeight: 0 }}>
+                    <table className="text-sm border-collapse w-full table-fixed" style={{ minWidth: "100%" }}>
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-gray-50 border-b">
                                 {/* Row label column (sticky left, fixed width) */}
@@ -357,7 +390,7 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                                     </td>
                                 ))}
                             </tr>
-                            {/* Signed row */}
+                            {/* Signed row with sign/unsign toggle */}
                             <tr className="bg-gray-50/50 hover:bg-blue-50/30">
                                 <td className="sticky left-0 z-10 bg-inherit px-3 py-2 border-r">
                                     <div className="flex items-center gap-2">
@@ -365,25 +398,56 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                                         <div className="font-medium text-gray-700 text-xs">Signed</div>
                                     </div>
                                 </td>
-                                {columns.map((col, ci) => (
-                                    <td
-                                        key={String(col.id || ci)}
-                                        className={`text-center px-3 py-2 border-r ${
-                                            ci === 0 ? "bg-indigo-50/30" : ""
-                                        }`}
-                                    >
-                                        {col.signed === true || col.signed === "true" || col.signed === "final" ? (
-                                            <span className="text-green-600 text-xs">✓</span>
-                                        ) : (
-                                            <span className="text-gray-300 text-xs">—</span>
-                                        )}
-                                    </td>
-                                ))}
+                                {columns.map((col, ci) => {
+                                    const isSigned = col.signed === true || col.signed === "true" || col.signed === "final";
+                                    return (
+                                        <td
+                                            key={String(col.id || ci)}
+                                            className={`text-center px-2 py-1.5 border-r ${ci === 0 ? "bg-indigo-50/30" : ""}`}
+                                        >
+                                            <button
+                                                onClick={() => handleToggleSign(col)}
+                                                className={`text-xs px-2 py-0.5 rounded ${
+                                                    isSigned
+                                                        ? "bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700"
+                                                        : "bg-gray-100 text-gray-500 hover:bg-green-100 hover:text-green-700"
+                                                }`}
+                                                title={isSigned ? "Click to unsign" : "Click to sign"}
+                                            >
+                                                {isSigned ? "Signed ✓" : "Sign"}
+                                            </button>
+                                        </td>
+                                    );
+                                })}
                             </tr>
                         </tbody>
                     </table>
                 </div>
-            )}
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-2 shrink-0 px-1">
+                        <span className="text-xs text-gray-500">
+                            Page {currentPage + 1} of {totalPages} ({allColumns.length} records)
+                        </span>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                                disabled={currentPage === 0}
+                                className="p-1 rounded hover:bg-gray-100 disabled:opacity-40"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                                disabled={currentPage >= totalPages - 1}
+                                className="p-1 rounded hover:bg-gray-100 disabled:opacity-40"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </>)}
         </div>
     );
 }

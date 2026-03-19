@@ -8,6 +8,7 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import {fetchWithAuth} from "@/utils/fetchWithAuth";
+import { toast } from "@/utils/toast";
 
 type Address = {
     street?: string;
@@ -58,7 +59,7 @@ export default function UserAddressCard() {
 
     const handleSave = async () => {
         if (!userEmail) {
-            alert("Missing user email");
+            toast.error("Missing user email");
             return;
         }
 
@@ -88,10 +89,10 @@ export default function UserAddressCard() {
             localStorage.setItem("user", JSON.stringify(mergedUser));
             setAddress(mergedUser);
             closeModal();
-            alert("Address updated successfully");
+            toast.success("Address updated successfully");
         } catch (err) {
             console.error("Failed to save address:", err);
-            alert("Failed to update address");
+            toast.error("Failed to update address");
         }
     };
 

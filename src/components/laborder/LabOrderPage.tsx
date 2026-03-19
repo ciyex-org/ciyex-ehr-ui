@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { usePermissions } from "@/context/PermissionContext";
 import { handleLabOrderPrint } from "@/components/laborder/LabOrderForm";
+import { confirmDialog } from "@/utils/toast";
 
 /* Types */
 type LabOrder = {
@@ -325,7 +326,7 @@ export default function LabOrdersPage() {
 
   const deleteOrder = async (o: LabOrder) => {
     if (!o?.id || !o?.patientId) { setToast({ type: "error", text: "Order or patient ID missing" }); return; }
-    if (!confirm("Delete this order?")) return;
+    if (!(await confirmDialog("Delete this order?"))) return;
     try {
       const org = resolveOrgId();
       const res = await fetchWithAuth(`${apiBase()}/api/lab-order/${o.patientId}/${o.id}`, { method: "DELETE", headers: { orgId: org, "X-Org-Id": org } });
@@ -360,7 +361,7 @@ export default function LabOrdersPage() {
 
   const batchCancel = async () => {
     if (!batchIds.size) return;
-    if (!confirm(`Cancel ${batchIds.size} selected order(s)?`)) return;
+    if (!(await confirmDialog(`Cancel ${batchIds.size} selected order(s)?`))) return;
     let ok = 0;
     for (const id of batchIds) {
       const o = orders.find(x => x.id === id);

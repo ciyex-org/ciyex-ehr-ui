@@ -4,6 +4,7 @@ import { getEnv } from "@/utils/env";
 import React, { useEffect, useMemo, useState } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { toast } from "@/utils/toast";
 
 /** ================================
  * Types
@@ -138,9 +139,9 @@ export default function PatientCodesList() {
             }
             const payload = Array.isArray(j?.data) ? j!.data! : [];
             setRows(payload.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
-            alert("Saved successfully");
+            toast.success("Saved successfully");
         } catch (e: unknown) {
-            alert((e as Error).message ||"Failed to save");
+            toast.error((e as Error).message ||"Failed to save");
         } finally {
             setSaving(false);
         }
@@ -170,7 +171,7 @@ export default function PatientCodesList() {
             }
             setRows((prev) => prev.filter((_, i) => i !== idx));
         } catch (e: unknown) {
-            alert((e as Error).message ||"Failed to delete");
+            toast.error((e as Error).message ||"Failed to delete");
         } finally {
             setSaving(false);
         }
@@ -201,7 +202,7 @@ export default function PatientCodesList() {
             // Either returns a single row or refreshed list — reload to be safe
             await reload();
         } catch (e: unknown) {
-            alert((e as Error).message ||"Failed to set default");
+            toast.error((e as Error).message ||"Failed to set default");
         } finally {
             setSaving(false);
         }

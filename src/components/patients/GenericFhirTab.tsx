@@ -8,6 +8,7 @@ import { usePermissions } from "@/context/PermissionContext";
 import DynamicFormRenderer, { FieldConfig, FieldConfigFeatures, SectionDef, FieldDef } from "./DynamicFormRenderer";
 import { Plus, Pencil, Trash2, X, Save, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText, CheckCircle2 } from "lucide-react";
 import { isValidEmail, isValidPhone, isValidFax, isValidUrl, isValidName, isValidUSPhone, isValidSSN, isStringOnly, isValidDriverLicense, isValidMedicaidId, isValidMedicareBeneficiaryId } from "@/utils/validation";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -41,6 +42,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
     const [searchTerm, setSearchTerm] = useState("");
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const [deleteConfirmRecord, setDeleteConfirmRecord] = useState<Record<string, any> | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string>("");
 
     // Pagination
     const [page, setPage] = useState(0);
@@ -286,6 +288,75 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     if (isDocFileField && !f.required) {
                         section.fields[i] = { ...f, required: true };
                     }
+                }
+                // Issue 12: Allergies — ensure allergy/allergyName field exists and is labeled properly
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergyName" || f.key === "allergy_name" || f.key === "substance" || f.key === "name")) {
+                    if (!f.label || f.label.toLowerCase() === "allergen") {
+                        section.fields[i] = { ...f, label: "Allergy" };
+                    }
+                }
+                // Issue 13: Insurance — ensure insurerName/companyName is a lookup for insurance companies
+                if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "payerName" || f.key === "insurerName" || f.key === "companyName" || f.key === "insurer" || f.key === "payor")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true }, required: true };
+                    }
+                }
+                // Issue 15: Documents — attachment/file field must be required
+                if ((tabKey === "documents" || tabKey === "document-references") && (f.key === "attachment" || f.key === "file" || f.key === "fileUrl" || f.key === "documentUrl" || f.key === "content")) {
+                    section.fields[i] = { ...f, required: true };
+                }
+                // Issue 19: Clinical Alerts — author/provider search
+                if ((tabKey === "clinical-alerts" || tabKey === "clinicalAlerts" || tabKey === "cds" || tabKey === "alerts") && (f.key === "author" || f.key === "authorName" || f.key === "provider" || f.key === "practitioner")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
+                // Issue 23: Medications — prescriber and dosage must be required
+                if ((tabKey === "medications" || tabKey === "medication-requests") && (f.key === "prescriber" || f.key === "prescribingDoctor" || f.key === "requester")) {
+                    section.fields[i] = { ...f, required: true };
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...section.fields[i], type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
+                if ((tabKey === "medications" || tabKey === "medication-requests") && (f.key === "dosage" || f.key === "dosageInstruction" || f.key === "dose")) {
+                    section.fields[i] = { ...f, required: true };
+                }
+                // Issue 24: Procedures — performer must be required
+                if ((tabKey === "procedures" || tabKey === "procedure") && (f.key === "performer" || f.key === "performerName" || f.key === "practitioner")) {
+                    section.fields[i] = { ...f, required: true };
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...section.fields[i], type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
+                    }
+                }
+                // Issue 25: Claims — provider must use Practitioner reference, not Organization
+                if ((tabKey === "claims" || tabKey === "claim") && (f.key === "provider" || f.key === "providerId" || f.key === "practitioner")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true }, required: true };
+                    }
+                }
+                // Issue 26-27: Submissions/Denials — insurer dropdown must be an organization lookup
+                if ((tabKey === "submissions" || tabKey === "claim-responses" || tabKey === "denials" || tabKey === "remittance") && (f.key === "insurer" || f.key === "insurerName" || f.key === "payerName" || f.key === "payor")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true } };
+                    }
+                }
+                // Issue 29: Transactions — amount must be required
+                if ((tabKey === "transactions" || tabKey === "transaction") && (f.key === "amount" || f.key === "totalAmount" || f.key === "paymentAmount")) {
+                    section.fields[i] = { ...f, required: true };
+                }
+                // Issue 30: Issues — issue, status, onsetDate must be required
+                if ((tabKey === "issues" || tabKey === "conditions") && (f.key === "issue" || f.key === "condition" || f.key === "conditionName" || f.key === "name" || f.key === "code" || f.key === "displayText")) {
+                    section.fields[i] = { ...f, required: true };
+                }
+                if ((tabKey === "issues" || tabKey === "conditions") && (f.key === "status" || f.key === "clinicalStatus")) {
+                    section.fields[i] = { ...f, required: true };
+                }
+                if ((tabKey === "issues" || tabKey === "conditions") && (f.key === "onsetDate" || f.key === "onset" || f.key === "onsetDateTime")) {
+                    section.fields[i] = { ...f, required: true };
+                }
+                // Messaging: patient field should be read-only in patient context
+                if (tabKey === "messaging" && (f.key === "patient" || f.key === "patientId" || f.key === "patientName" || f.key === "to" || f.key === "recipient")) {
+                    section.fields[i] = { ...f, readOnly: true };
                 }
             }
         }
@@ -1222,7 +1293,29 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
             }
         }
-        setFormData((prev) => ({ ...prev, [key]: value }));
+        setFormData((prev) => {
+            const next = { ...prev, [key]: value };
+            // Auto-calculate duration from start/end time for appointments
+            if (tabKey === "appointments") {
+                const startKeys = ["appointmentStartTime", "startTime", "start"];
+                const endKeys = ["appointmentEndTime", "endTime", "end"];
+                const durKeys = ["duration", "minutesDuration", "durationMinutes"];
+                const isStartOrEnd = startKeys.includes(key) || endKeys.includes(key);
+                if (isStartOrEnd) {
+                    const st = startKeys.map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
+                    const et = endKeys.map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
+                    if (st && et) {
+                        const [sh, sm] = st.split(":").map(Number);
+                        const [eh, em] = et.split(":").map(Number);
+                        const diff = (eh * 60 + em) - (sh * 60 + sm);
+                        if (diff > 0) {
+                            for (const dk of durKeys) { next[dk] = diff; }
+                        }
+                    }
+                }
+            }
+            return next;
+        });
 
         // If a file field with uploadEndpoint received a value, the upload endpoint
         // already stored the file. Show a notification but DO NOT auto-close the form
@@ -1268,11 +1361,21 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         // For messaging tab: auto-fill patientId so backend can resolve patient name
         if (tabKey === "messaging") {
             defaults.patientId = defaults.patientId || patientId;
+            defaults.patient = defaults.patient || patientId;
+            defaults.to = defaults.to || patientId;
+            defaults.recipient = defaults.recipient || patientId;
             // Auto-fill date if not already set
             if (!defaults.date && !defaults.sentDate) {
                 defaults.date = new Date().toISOString().slice(0, 10);
                 defaults.sentDate = new Date().toISOString().slice(0, 10);
             }
+        }
+        // For appointments tab: auto-fill patientId
+        if (tabKey === "appointments") {
+            defaults.patientId = defaults.patientId || patientId;
+            defaults.patient = defaults.patient || patientId;
+            defaults.patientName = defaults.patientName || patientId;
+            defaults.subject = defaults.subject || patientId;
         }
         setFormData(defaults);
         setSelectedRecord(null);
@@ -1316,6 +1419,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         setDeleteConfirmRecord(null);
         if (!record) return;
         const resourceId = record.id || record.fhirId;
+        if (!resourceId) return;
 
         try {
             const res = await fetchWithAuth(
@@ -1489,6 +1593,21 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     const val = formData[key];
                     if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
                         errors[key] = "Alert must contain letters, not just numbers";
+                    }
+                }
+            }
+            // ERA/Remittance: Service To date must not be before Service From date
+            if (tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance") {
+                const svcFrom = formData.serviceFrom || formData.serviceDateFrom || formData.serviceFromDate || formData.billablePeriodStart;
+                const svcTo = formData.serviceTo || formData.serviceDateTo || formData.serviceToDate || formData.billablePeriodEnd;
+                if (svcFrom && svcTo) {
+                    const fromDt = new Date(String(svcFrom));
+                    const toDt = new Date(String(svcTo));
+                    if (!isNaN(fromDt.getTime()) && !isNaN(toDt.getTime()) && toDt < fromDt) {
+                        errors.serviceTo = "Service To date cannot be earlier than Service From date";
+                        errors.serviceToDate = "Service To date cannot be earlier than Service From date";
+                        errors.serviceDateTo = "Service To date cannot be earlier than Service From date";
+                        errors.billablePeriodEnd = "Service To date cannot be earlier than Service From date";
                     }
                 }
             }
@@ -2059,7 +2178,12 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         diagnosisCodeableConcept: wrapCoding(code, "http://hl7.org/fhir/sid/icd-10"),
                     }];
                 }
-                if (!payload.provider) payload.provider = { reference: `Organization/1` };
+                if (payload.provider && typeof payload.provider === "string") {
+                    payload.provider = { reference: `Practitioner/${payload.provider}` };
+                } else if (!payload.provider) {
+                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
+                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
+                }
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
                 if (!payload.use) payload.use = "claim";
                 if (!payload.status) payload.status = "active";
@@ -2068,7 +2192,12 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
 
             // Issues 17, 21: Claims & Transactions — add Claim.provider
             if (tabKey === "claims" || tabKey === "transactions") {
-                if (!payload.provider) payload.provider = { reference: `Organization/1` };
+                if (payload.provider && typeof payload.provider === "string") {
+                    payload.provider = { reference: `Practitioner/${payload.provider}` };
+                } else if (!payload.provider) {
+                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
+                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
+                }
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
                 if (!payload.use) payload.use = "claim";
                 if (!payload.status) payload.status = "active";
@@ -2077,7 +2206,12 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
 
             // Issue 18: Claim Submissions — add Claim.provider
             if (tabKey === "submissions" || tabKey === "claim-submissions") {
-                if (!payload.provider) payload.provider = { reference: `Organization/1` };
+                if (payload.provider && typeof payload.provider === "string") {
+                    payload.provider = { reference: `Practitioner/${payload.provider}` };
+                } else if (!payload.provider) {
+                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
+                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
+                }
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
                 if (!payload.use) payload.use = "claim";
                 if (!payload.status) payload.status = "active";
@@ -2425,23 +2559,43 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         } catch { return "-"; }
     };
 
-    // Filter records by search term (flatten nested objects for deep search)
-    const filteredRecords = searchTerm
-        ? records.filter((r) => {
-            const term = searchTerm.toLowerCase();
-            return Object.entries(r).some(([, v]) => {
-                if (v == null) return false;
-                if (typeof v === "string") return v.toLowerCase().includes(term);
-                if (typeof v === "number" || typeof v === "boolean") return String(v).toLowerCase().includes(term);
-                if (typeof v === "object" && !Array.isArray(v)) {
-                    return Object.values(v).some((nested) =>
-                        nested != null && String(nested).toLowerCase().includes(term)
-                    );
-                }
-                return String(v).toLowerCase().includes(term);
+    // Extract unique statuses for filter dropdown
+    const uniqueStatuses = React.useMemo(() => {
+        const statuses = new Set<string>();
+        for (const r of records) {
+            const s = r.status || r.clinicalStatus || r.verificationStatus;
+            if (s && typeof s === "string") statuses.add(s);
+        }
+        return Array.from(statuses).sort();
+    }, [records]);
+
+    // Filter records by search term and status
+    const filteredRecords = React.useMemo(() => {
+        let result = records;
+        if (statusFilter) {
+            result = result.filter((r) => {
+                const s = r.status || r.clinicalStatus || r.verificationStatus || "";
+                return String(s).toLowerCase() === statusFilter.toLowerCase();
             });
-        })
-        : records;
+        }
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            result = result.filter((r) =>
+                Object.entries(r).some(([, v]) => {
+                    if (v == null) return false;
+                    if (typeof v === "string") return v.toLowerCase().includes(term);
+                    if (typeof v === "number" || typeof v === "boolean") return String(v).toLowerCase().includes(term);
+                    if (typeof v === "object" && !Array.isArray(v)) {
+                        return Object.values(v).some((nested) =>
+                            nested != null && String(nested).toLowerCase().includes(term)
+                        );
+                    }
+                    return String(v).toLowerCase().includes(term);
+                })
+            );
+        }
+        return result;
+    }, [records, searchTerm, statusFilter]);
 
     // ---- Loading ----
     if (loading) {
@@ -2638,6 +2792,18 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
                         />
                     </div>
+                    {uniqueStatuses.length > 1 && (
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white px-2 py-1.5 focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">All Statuses</option>
+                            {uniqueStatuses.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                    )}
                     <span className="text-xs text-gray-400">{totalElements} records</span>
                 </div>
                 {canWrite && (

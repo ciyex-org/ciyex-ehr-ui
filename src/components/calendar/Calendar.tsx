@@ -22,9 +22,9 @@ import { ShieldX } from "lucide-react";
 import Link from "next/link";
 
 const monthViewStyles = `
-/* Hide FullCalendar scrollbars */
+/* Hide horizontal scrollbar only */
 .fc-view-harness {
-  overflow: hidden !important;
+  overflow-x: hidden !important;
 }
 
 /* Month view: day cell minimum height */
@@ -46,11 +46,22 @@ const monthViewStyles = `
 
 /* Hide FullCalendar scrollbar to prevent double scrollbars */
 .fc-scroller {
-  overflow: hidden !important;
+  overflow-x: hidden !important;
 }
 
 .fc-daygrid-body {
   overflow: hidden !important;
+}
+
+/* Sticky day column headers */
+.fc .fc-col-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+}
+.dark .fc .fc-col-header {
+  background: #1a2231;
 }
 
 /* Multi-provider day view: hide time axis labels in non-first columns */
@@ -2147,7 +2158,8 @@ const Calendar: React.FC = () => {
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                             Start Time
                                         </label>
-                                        <input
+                                        <div className="relative">
+                                            <input
                                                 type="time"
                                                 value={startTime}
                                                 onChange={(e) => {
@@ -2159,22 +2171,27 @@ const Calendar: React.FC = () => {
                                                         setEndTime(`${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`);
                                                     }
                                                 }}
-                                                className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                                className="h-9 w-full rounded-lg border border-gray-300 pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                             />
+                                            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" strokeWidth="2" d="M12 6v6l4 2"/></svg>
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                             End Time
                                         </label>
-                                        <input
+                                        <div className="relative">
+                                            <input
                                                 type="time"
                                                 value={endTime}
                                                 onChange={(e) => {
                                                     setEndTime(e.target.value);
                                                     setEndDateInput(endDate ? endDate.split('-').reverse().join('/') : '');
                                                 }}
-                                                className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                                className="h-9 w-full rounded-lg border border-gray-300 pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                             />
+                                            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" strokeWidth="2" d="M12 6v6l4 2"/></svg>
+                                        </div>
                                     </div>
                                 </div>
 

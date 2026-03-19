@@ -15,6 +15,7 @@ import {
     Check,
     AlertTriangle,
 } from "lucide-react";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const MARKETPLACE_BASE = () =>
     (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
@@ -84,7 +85,7 @@ export default function ApiKeysPage() {
     };
 
     const handleRevoke = async (keyId: string) => {
-        if (!confirm("Are you sure you want to revoke this API key? This cannot be undone.")) return;
+        if (!(await confirmDialog("Are you sure you want to revoke this API key? This cannot be undone."))) return;
         setRevoking(keyId);
         try {
             const res = await fetchWithAuth(`${MARKETPLACE_BASE()}/api/v1/vendors/me/api-keys/${keyId}`, {

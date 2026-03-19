@@ -11,6 +11,7 @@ import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronRight,
   RotateCcw, Pencil, X, Check, Eye, EyeOff, Undo2, Code,
 } from "lucide-react";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const API_URL = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -182,7 +183,7 @@ export default function MenuConfigurationPage() {
   // Hide a menu item (store override)
   const handleHideItem = async (itemId: string) => {
     const item = items.find(i => i.id === itemId);
-    if (!confirm(`Hide "${item?.label}" from sidebar? You can restore it later.`)) return;
+    if (!(await confirmDialog(`Hide "${item?.label}" from sidebar? You can restore it later.`))) return;
     try {
       setSaving(true);
       const base = API_URL();
@@ -260,7 +261,7 @@ export default function MenuConfigurationPage() {
   // Revert modifications on a single item
   const handleRevertItem = async (itemId: string) => {
     const item = items.find(i => i.id === itemId);
-    if (!confirm(`Revert changes to "${item?.label}"?`)) return;
+    if (!(await confirmDialog(`Revert changes to "${item?.label}"?`))) return;
     try {
       setSaving(true);
       const base = API_URL();
@@ -283,7 +284,7 @@ export default function MenuConfigurationPage() {
   // Delete a custom item (remove the add override)
   const handleDeleteCustomItem = async (itemId: string) => {
     const item = items.find(i => i.id === itemId);
-    if (!confirm(`Delete custom item "${item?.label}"?`)) return;
+    if (!(await confirmDialog(`Delete custom item "${item?.label}"?`))) return;
     try {
       setSaving(true);
       const base = API_URL();
@@ -385,7 +386,7 @@ export default function MenuConfigurationPage() {
 
   // Reset all customizations
   const handleResetToDefaults = async () => {
-    if (!confirm("Reset sidebar menu to defaults? All your customizations (hidden items, label changes, reordering, custom items) will be removed.")) return;
+    if (!(await confirmDialog("Reset sidebar menu to defaults? All your customizations (hidden items, label changes, reordering, custom items) will be removed."))) return;
     try {
       setSaving(true);
       const base = API_URL();

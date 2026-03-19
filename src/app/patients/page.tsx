@@ -5,6 +5,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
+import { toast, confirmDialog } from "@/utils/toast";
 import AdminLayout from "@/app/(admin)/layout";
 import Link from "next/link";
 import {
@@ -227,7 +228,7 @@ export default function PatientListPage() {
             fetchPatients(currentPage, patientsPerPage, search, showInactive ? "Inactive" : "Active", genderFilter);
             setEditPatient(null);
         } catch (err: unknown) {
-            alert(err instanceof Error ? err.message : "Failed to update patient");
+            toast.error(err instanceof Error ? err.message : "Failed to update patient");
         } finally {
             setSaving(false);
         }
@@ -281,7 +282,7 @@ export default function PatientListPage() {
             fetchPatients(1, patientsPerPage, search, showInactive ? "Inactive" : "Active", genderFilter);
             setCurrentPage(1);
         } catch (err: unknown) {
-            alert(err instanceof Error ? err.message : "Failed to create patient");
+            toast.error(err instanceof Error ? err.message : "Failed to create patient");
         } finally {
             setSaving(false);
         }
@@ -317,7 +318,7 @@ export default function PatientListPage() {
             }
             fetchPatients(currentPage, patientsPerPage, search, showInactive ? "Inactive" : "Active", genderFilter);
         } catch (err: unknown) {
-            alert(err instanceof Error ? err.message : "Failed to toggle status");
+            toast.error(err instanceof Error ? err.message : "Failed to toggle status");
         } finally {
             setTogglingId(null);
         }
@@ -336,7 +337,7 @@ export default function PatientListPage() {
         <AdminLayout>
             <div className="flex flex-col h-full overflow-hidden">
                 {/* Top bar: recent patients + actions */}
-                <div className="flex flex-wrap justify-between gap-3 px-4 py-3 items-start">
+                <div className="flex flex-wrap justify-between gap-2 px-4 py-2 items-start">
                     <div className="flex-1 min-w-0">
                         {recentPatients.length > 0 && (
                             <>

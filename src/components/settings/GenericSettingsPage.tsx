@@ -12,6 +12,7 @@ import {
     ChevronLeft, ChevronRight, LayoutGrid,
 } from "lucide-react";
 import { isValidEmail, isValidPhone, isValidUSPhone, isValidFax, isValidUrl, formatUSPhone } from "@/utils/validation";
+import { confirmDialog } from "@/utils/toast";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -482,6 +483,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
         setDeleteConfirmRecord(null);
         if (!record) return;
         const resourceId = record.id || record.fhirId;
+        if (!resourceId) return;
 
         try {
             const res = await fetchWithAuth(fhirUrl(`/${resourceId}`), { method: "DELETE" });

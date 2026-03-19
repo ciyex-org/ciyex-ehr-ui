@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Loader2, ChevronRight, Plus, Trash2, GripVertical, Save, X, Zap, OctagonX, ArrowRight, Hash, StickyNote } from "lucide-react";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -162,9 +163,9 @@ export default function FormOptionsEditor() {
     const activeGroup = groups.find((g) => g.tabKey === activeTab);
     const activeFieldData = activeGroup?.fields.find((f) => f.key === activeField);
 
-    const handleSelectField = (field: SelectField) => {
+    const handleSelectField = async (field: SelectField) => {
         if (dirty) {
-            const confirmed = window.confirm("You have unsaved changes. Discard?");
+            const confirmed = await confirmDialog("You have unsaved changes. Discard?");
             if (!confirmed) return;
         }
         setActiveField(field.key);
@@ -207,7 +208,7 @@ export default function FormOptionsEditor() {
 
         const invalid = editOptions.some((o) => !o.value.trim());
         if (invalid) {
-            alert("All options must have a value.");
+            toast.error("All options must have a value.");
             return;
         }
 
@@ -226,7 +227,7 @@ export default function FormOptionsEditor() {
             setDirty(false);
             await fetchConfigs();
         } catch (err) {
-            alert("Failed to save options. Please try again.");
+            toast.error("Failed to save options. Please try again.");
             console.error(err);
         }
         setSaving(false);

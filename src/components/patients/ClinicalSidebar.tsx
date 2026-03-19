@@ -188,7 +188,7 @@ export default function ClinicalSidebar({
                     >
                         <HeartPulse className="w-3 h-3 shrink-0 text-orange-400" />
                         <span className="flex-1 text-left truncate">
-                            {!loaded ? "..." : problems.length === 0 ? "No problems" : problems.slice(0, 2).map(p => p.title || p.code).join(", ")}
+                            {!loaded ? "..." : problems.length === 0 ? "No Problems" : problems.slice(0, 2).map(p => p.conditionName || p.title || p.code || p.name || "Problem").join(", ")}
                         </span>
                         {problems.length > 0 && (
                             <span className="px-1 py-0.5 rounded bg-orange-50 text-orange-600 text-[10px] font-medium">{problems.length}</span>
@@ -202,7 +202,7 @@ export default function ClinicalSidebar({
                     >
                         <Pill className="w-3 h-3 shrink-0 text-blue-400" />
                         <span className="flex-1 text-left truncate">
-                            {!loaded ? "..." : medications.length === 0 ? "No meds" : medications.slice(0, 2).map(m => m.medication_name || m.name).join(", ")}
+                            {!loaded ? "..." : medications.length === 0 ? "No Medications" : medications.slice(0, 2).map(m => m.medication_name || m.medicationName || m.name || m.medicationDisplay || "Medication").join(", ")}
                         </span>
                         {medications.length > 0 && (
                             <span className="px-1 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-medium">{medications.length}</span>

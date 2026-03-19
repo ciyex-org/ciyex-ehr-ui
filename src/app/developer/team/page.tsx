@@ -16,6 +16,7 @@ import {
     Clock,
     CheckCircle2,
 } from "lucide-react";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const MARKETPLACE_BASE = () =>
     (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
@@ -97,7 +98,7 @@ export default function TeamPage() {
     };
 
     const handleRemove = async (memberId: string) => {
-        if (!confirm("Remove this team member?")) return;
+        if (!(await confirmDialog("Remove this team member?"))) return;
         setRemovingId(memberId);
         try {
             const res = await fetchWithAuth(`${MARKETPLACE_BASE()}/api/v1/vendors/me/team/${memberId}`, {

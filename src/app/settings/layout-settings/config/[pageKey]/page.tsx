@@ -12,6 +12,7 @@ import JsonCodeView from "@/components/settings/JsonCodeView";
 import {
     Settings, Loader2, Save, RotateCcw, X, Eye, Columns, Code,
 } from "lucide-react";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -124,7 +125,7 @@ export default function PageConfigPage() {
     };
 
     const handleResetToDefaults = async () => {
-        if (!confirm("Reset to practice type defaults? Your custom tab layout will be removed.")) return;
+        if (!(await confirmDialog("Reset to practice type defaults? Your custom tab layout will be removed."))) return;
         setSaving(true);
         try {
             const res = await fetchWithAuth(`${API_BASE()}/api/tab-field-config/layout`, { method: "DELETE" });

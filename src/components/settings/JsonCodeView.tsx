@@ -7,6 +7,7 @@ import "prismjs/components/prism-json";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Save, X, Loader2, AlertTriangle, Code } from "lucide-react";
+import { confirmDialog } from "@/utils/toast";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -95,8 +96,8 @@ export default function JsonCodeView(props: JsonCodeViewProps) {
         }
     }, [isControlled, props.tabKey]);
 
-    const selectTab = (key: string, allConfigs?: any[]) => {
-        if (dirty && !confirm("Discard unsaved JSON changes?")) return;
+    const selectTab = async (key: string, allConfigs?: any[]) => {
+        if (dirty && !(await confirmDialog("Discard unsaved JSON changes?"))) return;
         const items = allConfigs || configs;
         const config = items.find((c: any) => c.tabKey === key);
         setSelectedTabState(key);

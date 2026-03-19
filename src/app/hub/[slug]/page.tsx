@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getAppIcon, getAppColorClass } from "@/components/hub/appIcons";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 const MARKETPLACE_BASE = () => (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
@@ -138,7 +139,7 @@ export default function AppDetailPage() {
     };
 
     const handleUninstall = async () => {
-        if (!confirm("Are you sure you want to uninstall this app?")) return;
+        if (!(await confirmDialog("Are you sure you want to uninstall this app?"))) return;
         setUninstalling(true);
         try {
             const res = await fetchWithAuth(`${API_BASE()}/api/app-installations/${slug}`, {

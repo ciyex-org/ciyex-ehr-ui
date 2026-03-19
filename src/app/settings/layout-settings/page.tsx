@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { FieldConfig } from "@/components/patients/DynamicFormRenderer";
 import FieldConfigEditor from "@/components/settings/FieldConfigEditor";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const METADATA_API_BASE = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -106,7 +107,7 @@ export default function TabConfigurationPage() {
     };
 
     const handleResetToDefaults = async () => {
-        if (!confirm("Reset to practice type defaults? Your custom tab layout will be removed.")) return;
+        if (!(await confirmDialog("Reset to practice type defaults? Your custom tab layout will be removed."))) return;
         setSaving(true);
         try {
             const res = await fetchWithAuth(`${METADATA_API_BASE}/api/tab-field-config/layout`, { method: "DELETE" });

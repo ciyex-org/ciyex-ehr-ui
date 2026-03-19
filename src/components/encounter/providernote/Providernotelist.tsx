@@ -5,6 +5,7 @@ import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import type { ApiResponse, ProviderNoteDto } from "@/utils/types";
 import Providernoteform from "./Providernoteform";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { toast } from "@/utils/toast";
 
 type Props = { patientId: number; encounterId: number };
 
@@ -131,7 +132,7 @@ export default function Providernotelist({ patientId, encounterId }: Props) {
             window.open(url, "_blank", "noopener,noreferrer");
             setTimeout(() => URL.revokeObjectURL(url), 60_000);
         } catch (e: unknown) {
-            window.alert(e instanceof Error ? e.message : "Unable to print");
+            toast.error(e instanceof Error ? e.message : "Unable to print");
         } finally {
             setBusyId(null);
         }

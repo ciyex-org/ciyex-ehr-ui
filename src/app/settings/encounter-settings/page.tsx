@@ -10,6 +10,7 @@ import {
     Eye, EyeOff, ArrowUp, ArrowDown, Search, GripVertical,
     ChevronDown, ChevronRight, Code,
 } from "lucide-react";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -171,7 +172,7 @@ export default function EncounterSettingsPage() {
 
     // Reset to defaults
     const handleReset = useCallback(async () => {
-        if (!confirm("Reset to defaults? Your custom encounter configuration will be removed.")) return;
+        if (!(await confirmDialog("Reset to defaults? Your custom encounter configuration will be removed."))) return;
         setSaving(true);
         try {
             const base = API_BASE();

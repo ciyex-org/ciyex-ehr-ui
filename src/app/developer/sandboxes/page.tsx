@@ -15,6 +15,7 @@ import {
     Copy,
     Check,
 } from "lucide-react";
+import { toast, confirmDialog } from "@/utils/toast";
 
 const MARKETPLACE_BASE = () =>
     (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
@@ -78,7 +79,7 @@ export default function SandboxesPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Delete this sandbox? This cannot be undone.")) return;
+        if (!(await confirmDialog("Delete this sandbox? This cannot be undone."))) return;
         setActionId(id);
         try {
             const res = await fetchWithAuth(`${MARKETPLACE_BASE()}/api/v1/vendors/me/sandboxes/${id}`, {
@@ -94,7 +95,7 @@ export default function SandboxesPage() {
     };
 
     const handleReset = async (id: string) => {
-        if (!confirm("Reset this sandbox? Credentials will be regenerated.")) return;
+        if (!(await confirmDialog("Reset this sandbox? Credentials will be regenerated."))) return;
         setActionId(id);
         try {
             const res = await fetchWithAuth(`${MARKETPLACE_BASE()}/api/v1/vendors/me/sandboxes/${id}/reset`, {

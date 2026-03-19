@@ -10,6 +10,7 @@ import {
     type LucideIcon,
 } from "lucide-react";
 import { FHIR_PATIENT_SEARCH_PARAMS } from "@/utils/FhirPathHelper";
+import { confirmDialog } from "@/utils/toast";
 import FhirResourcePicker from "./FhirResourcePicker";
 
 export interface TabItem {
@@ -165,7 +166,7 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
     };
 
     // Remove group (move its tabs to top-level or delete if empty)
-    const removeGroup = (catIdx: number) => {
+    const removeGroup = async (catIdx: number) => {
         const cat = categories[catIdx];
         const doRemove = () => {
             const updated = [...categories];
@@ -209,7 +210,7 @@ export default function TabManager({ categories, onChange }: TabManagerProps) {
     };
 
     // Remove a tab
-    const removeTab = (catIdx: number, tabIdx: number) => {
+    const removeTab = async (catIdx: number, tabIdx: number) => {
         const tab = categories[catIdx].tabs[tabIdx];
         setPendingConfirm({ title: "Remove Tab", message: `Remove "${tab.label}" from the layout?`, onConfirm: () => {
             const updated = [...categories];

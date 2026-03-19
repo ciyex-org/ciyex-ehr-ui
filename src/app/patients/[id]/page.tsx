@@ -193,8 +193,16 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
             cancelled: 'text-red-600 bg-red-100',
             new: 'text-purple-600 bg-purple-100',
             updated: 'text-indigo-600 bg-indigo-100',
+            active: 'text-green-600 bg-green-100',
+            booked: 'text-blue-600 bg-blue-100',
+            arrived: 'text-teal-600 bg-teal-100',
+            fulfilled: 'text-green-600 bg-green-100',
+            noshow: 'text-red-600 bg-red-100',
+            'checked-in': 'text-teal-600 bg-teal-100',
+            'in-progress': 'text-blue-600 bg-blue-100',
+            final: 'text-green-600 bg-green-100',
         };
-        return colors[status] || 'text-gray-600 bg-gray-100';
+        return colors[status?.toLowerCase()] || 'text-gray-600 bg-gray-100';
     };
 
     if (loading) {
