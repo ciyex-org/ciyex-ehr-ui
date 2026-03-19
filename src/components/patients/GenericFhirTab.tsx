@@ -2841,20 +2841,22 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             </div>
                         </div>
                     )}
-                    {/* File upload for reports tab */}
-                    {(tabKey === "report" || tabKey === "reports") && mode !== "view" && (
+                    {/* File upload for reports and documents tabs */}
+                    {(tabKey === "report" || tabKey === "reports" || tabKey === "documents" || tabKey === "document-references") && mode !== "view" && (
                         <div className="mt-4 p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Report Document</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {(tabKey === "documents" || tabKey === "document-references") ? "Upload Document" : "Upload Report Document"}
+                            </label>
                             <input
                                 type="file"
-                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.dicom,.csv,.xls,.xlsx,.txt"
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.dicom,.csv,.xls,.xlsx,.txt,.zip"
                                 onChange={async (e) => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
                                     const fd = new FormData();
                                     fd.append("file", file);
                                     fd.append("patientId", String(patientId));
-                                    fd.append("category", "report");
+                                    fd.append("category", (tabKey === "documents" || tabKey === "document-references") ? "document" : "report");
                                     try {
                                         const { fetchWithAuth: fw } = await import("@/utils/fetchWithAuth");
                                         const { getEnv: ge } = await import("@/utils/env");
@@ -2925,7 +2927,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
                     >
                         <Plus className="w-4 h-4" />
-                        {(tabKey === "report" || tabKey === "reports") ? "Upload Report" : "Add"}
+                        {(tabKey === "report" || tabKey === "reports") ? "Upload Report" : (tabKey === "documents" || tabKey === "document-references") ? "Upload Document" : "Add"}
                     </button>
                 )}
             </div>
