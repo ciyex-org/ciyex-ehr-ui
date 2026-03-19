@@ -1926,15 +1926,19 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     payload.category = [{ coding: [{ system: "http://terminology.hl7.org/CodeSystem/condition-category", code: "problem-list-item", display: "Problem List Item" }] }];
                 }
             }
-            if (tabKey === "allergies") {
+            if (tabKey === "allergies" || tabKey === "allergy-intolerances") {
                 // Validate end date is not before onset date
                 const allergyOnset = payload.onsetDate || payload.onsetDateTime || payload.onset;
-                const allergyEnd = payload.endDate || payload.end;
-                if (allergyOnset && allergyEnd && allergyEnd < allergyOnset) {
-                    setValidationErrors({ endDate: "End date must be after onset date" });
-                    setError("End date must be after onset date");
-                    setSaving(false);
-                    return;
+                const allergyEnd = payload.endDate || payload.end || payload.abatementDate || payload.abatement;
+                if (allergyOnset && allergyEnd) {
+                    const onsetDt = new Date(String(allergyOnset));
+                    const endDt = new Date(String(allergyEnd));
+                    if (!isNaN(onsetDt.getTime()) && !isNaN(endDt.getTime()) && endDt < onsetDt) {
+                        setValidationErrors({ endDate: "End date must be after onset date" });
+                        setError("End date must be after onset date");
+                        setSaving(false);
+                        return;
+                    }
                 }
                 if (payload.severity && !payload.criticality) payload.criticality = payload.severity;
                 // Issue 3: wrap allergyName/code in CodeableConcept with system
