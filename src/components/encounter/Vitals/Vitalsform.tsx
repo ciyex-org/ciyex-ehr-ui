@@ -173,6 +173,9 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
                 <div>
                     <label className="block text-sm font-medium mb-1">Weight (kg) <span className="text-red-600">*</span></label>
                     <input
+                        type="number"
+                        step="0.1"
+                        min="0"
                         className="w-full rounded-lg border px-3 py-2"
                         placeholder="Weight (kg)"
                         value={weightKg}
@@ -183,6 +186,9 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
                 <div>
                     <label className="block text-sm font-medium mb-1">Height (cm) <span className="text-red-600">*</span></label>
                     <input
+                        type="number"
+                        step="0.1"
+                        min="0"
                         className="w-full rounded-lg border px-3 py-2"
                         placeholder="Height (cm)"
                         value={heightCm}

@@ -422,7 +422,19 @@ export default function PatientDashboardPage() {
         window.history.replaceState({}, "", url.toString());
     };
 
-    const formatDateLocal = (date: string) => date ? new Date(date.includes("T") ? date : date + "T00:00:00").toLocaleDateString() : "\u2014";
+    const formatDateLocal = (date: string) => {
+        if (!date) return "\u2014";
+        const d = new Date(date.includes("T") ? date : date + "T00:00:00");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        const yyyy = d.getFullYear();
+        return `${mm}/${dd}/${yyyy}`;
+    };
+    const genderLabel = (g?: string) => {
+        if (!g) return "";
+        const map: Record<string, string> = { M: "Male", F: "Female", O: "Other", U: "Unknown", Male: "Male", Female: "Female", Other: "Other", Unknown: "Unknown" };
+        return map[g] || g;
+    };
     const calculateAgeLocal = (dob: string) => {
         if (!dob) return "\u2014";
         const birth = new Date(dob.includes("T") ? dob : dob + "T00:00:00");
@@ -652,7 +664,7 @@ export default function PatientDashboardPage() {
                                     DOB: {formatDateLocal(patient.dateOfBirth)} ({calculateAgeLocal(patient.dateOfBirth)})
                                 </span>
                                 {patient.gender && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{patient.gender}</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{genderLabel(patient.gender)}</span>
                                 )}
                                 <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{patient.phoneNumber || "\u2014"}</span>
                                 {patient.status && (

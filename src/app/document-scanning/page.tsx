@@ -148,7 +148,7 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif"
+        accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.csv,.doc,.docx,.xls,.xlsx"
         className="hidden"
         onChange={(e) => handleUpload(e.target.files)}
       />
@@ -157,7 +157,7 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
         Upload Documents
       </h3>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-        PDF, PNG, JPG, TIFF — drag &amp; drop or click to browse
+        PDF, PNG, JPG, TIFF, CSV, DOC, XLS — drag &amp; drop or click to browse
       </p>
 
       <div className="flex items-center justify-center gap-3 mb-3 flex-wrap">

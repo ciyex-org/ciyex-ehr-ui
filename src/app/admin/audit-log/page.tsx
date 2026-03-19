@@ -147,10 +147,10 @@ export default function AuditLogPage() {
         // Normalize field names — backend may use snake_case, camelCase, or nested variants
         const content: AuditLogEntry[] = rawContent.map((e: any) => ({
           ...e,
-          userName:     e.userName     || e.user_name    || e.username      || e.performedBy  || e.createdBy    || e.operator     || "",
+          userName:     e.userName     || e.user_name    || e.username      || e.performedBy  || e.createdBy    || e.operator     || e.user || e.actor || e.modifiedBy || e.updatedBy || e.changedBy || e.initiator || "",
           userRole:     e.userRole     || e.user_role    || e.role          || "",
-          resourceType: e.resourceType || e.resource_type|| e.entityType    || e.entity_type  || "",
-          resourceName: e.resourceName || e.resource_name|| e.entityName    || e.entity_name  || e.name         || "",
+          resourceType: e.resourceType || e.resource_type|| e.entityType    || e.entity_type  || e.type || e.targetType || e.objectType || e.category || "",
+          resourceName: e.resourceName || e.resource_name|| e.entityName    || e.entity_name  || e.name         || e.target || e.object || e.subject || e.display || "",
           resourceId:   e.resourceId   || e.resource_id  || e.entityId      || e.entity_id    || "",
           ipAddress:    e.ipAddress    || e.ip_address   || e.ip            || "",
           action:       e.action       || e.actionType   || e.operation     || "",

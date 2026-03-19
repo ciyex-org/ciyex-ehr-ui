@@ -895,7 +895,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                 placeholder="Search patient by name, MRN or ID"
               />
               {showPatientDropdown && patientMatches.length > 0 && (
-                <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-md shadow-lg max-h-56 overflow-y-auto z-40 text-sm">
+                <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-md shadow-lg max-h-56 overflow-y-auto z-[100] text-sm">
                   {patientMatches.map(p => (
                     <button
                       key={p.patientId}
@@ -1000,7 +1000,11 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                   ref={testCodeInputRef}
                   className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.testCode ? 'border-orange-500' : 'border-slate-300'}`}
                   value={draft.testCode ?? ""}
-                  onChange={(e) => upd('testCode', e.target.value)}
+                  onChange={(e) => {
+                    // Only allow alphanumeric, hyphens and dots for test codes
+                    const val = e.target.value.replace(/[^A-Za-z0-9\-_.]/g, '');
+                    upd('testCode', val);
+                  }}
                   placeholder="CBC"
                 />
                 {errors.testCode && (

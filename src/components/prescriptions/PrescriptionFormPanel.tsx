@@ -179,13 +179,20 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
         method: isEdit ? "PUT" : "POST",
         body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (res.ok && json.success) {
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
         showToast({ type: "success", text: isEdit ? "Prescription updated" : "Prescription created" });
         onSaved();
         onClose();
       } else {
-        showToast({ type: "error", text: json.message || "Failed to save prescription" });
+        // Show user-friendly message instead of raw backend JSON errors
+        let errorMsg = "Failed to save prescription";
+        if (json?.message && !json.message.includes("JSON parse error") && !json.message.includes("Cannot deserialize") && !json.message.includes("Unexpected")) {
+          errorMsg = json.message;
+        } else if (json?.message) {
+          errorMsg = "Invalid data entered. Please check your input and try again.";
+        }
+        showToast({ type: "error", text: errorMsg });
       }
     } catch {
       showToast({ type: "error", text: "Network error saving prescription" });
@@ -338,7 +345,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Refills</label>
-                  <input type="number" min={0} className={inputCls()} value={form.refills ?? 0} onChange={(e) => set("refills", Number(e.target.value))} />
+                  <input type="number" min={0} className={inputCls()} value={form.refills != null ? form.refills : 0} onChange={(e) => set("refills", e.target.value === "" ? 0 : parseInt(e.target.value, 10) || 0)} />
                 </div>
                 <div>
                   <label className={labelCls}>Priority</label>

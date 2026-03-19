@@ -198,7 +198,7 @@ export default function PrescriptionTable({
                     <div className="text-xs text-gray-400 dark:text-gray-500">{rx.patientId || ""}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                    <div className="font-medium text-gray-900 dark:text-gray-100 capitalize">
                       {rx.medicationName || "--"}
                       {rx.strength && <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">{rx.strength}</span>}
                     </div>
@@ -217,10 +217,10 @@ export default function PrescriptionTable({
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <div className="text-gray-700 dark:text-gray-300">
-                      {rx.quantity != null ? rx.quantity : "--"}{rx.quantityUnit ? ` ${rx.quantityUnit}` : ""}
+                      {rx.quantity != null ? `${rx.quantity} ${rx.quantityUnit || "units"}` : "--"}
                     </div>
                     <div className="text-xs text-gray-400 dark:text-gray-500">
-                      {rx.daysSupply != null ? `${rx.daysSupply} days` : "--"}
+                      {rx.daysSupply != null ? `${rx.daysSupply} day${rx.daysSupply !== 1 ? "s" : ""}` : "--"}
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
@@ -236,7 +236,12 @@ export default function PrescriptionTable({
                     <div className="text-gray-700 dark:text-gray-300 truncate max-w-[150px]">{rx.pharmacyName || "--"}</div>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
-                    <div className="text-gray-700 dark:text-gray-300 truncate max-w-[150px]">{rx.prescriberName || "--"}</div>
+                    <div className="text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
+                      {/* Show prescriber name; if name looks like an NPI (all digits), show as NPI instead */}
+                      {rx.prescriberName && /^\d{10}$/.test(rx.prescriberName.trim())
+                        ? "--"
+                        : (rx.prescriberName || "--")}
+                    </div>
                     {rx.prescriberNpi && <div className="text-xs text-gray-400 dark:text-gray-500">NPI: {rx.prescriberNpi}</div>}
                   </td>
                   <td className="px-4 py-3">

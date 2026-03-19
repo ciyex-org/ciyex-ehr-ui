@@ -67,9 +67,10 @@ export default function TaskFormPanel({
     setPatientQuery(form.patientName || "");
   }, [form.patientName, open]);
 
-  // Debounced patient search
+  // Debounced patient search — skip if query matches already-selected patient name
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    if (form.patientName && patientQuery === form.patientName && form.patientId) return;
     const t = setTimeout(async () => {
       try {
         const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
@@ -83,7 +84,7 @@ export default function TaskFormPanel({
       } catch { /* silent */ }
     }, 300);
     return () => clearTimeout(t);
-  }, [patientQuery]);
+  }, [patientQuery, form.patientName, form.patientId]);
 
   const pName = (p: typeof patientResults[0]) =>
     p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
@@ -93,6 +94,7 @@ export default function TaskFormPanel({
     onChange({ ...form, patientId: p.id, patientName: name });
     setPatientQuery(name);
     setShowPatientDropdown(false);
+    setPatientResults([]);
   };
 
   return (

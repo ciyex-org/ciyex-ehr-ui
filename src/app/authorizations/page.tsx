@@ -1013,6 +1013,7 @@ export default function PriorAuthorizationsPage() {
                           // Always re-search on focus so fresh/updated patient names are shown
                           if (patientQuery.trim().length >= 2) {
                             runPatientSearch(patientQuery);
+                            setShowPatientDropdown(true);
                           } else if (patientResults.length > 0) {
                             setShowPatientDropdown(true);
                           }
@@ -1140,7 +1141,7 @@ export default function PriorAuthorizationsPage() {
                     label="Member ID"
                     value={formData.memberId}
                     onChange={(v) =>
-                      setFormData({ ...formData, memberId: v })
+                      setFormData({ ...formData, memberId: v.replace(/[^a-zA-Z0-9-]/g, "") })
                     }
                   />
                 </FormSection>

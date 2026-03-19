@@ -202,7 +202,14 @@ export default function TasksPage() {
         loadStats();
       } else {
         const json = await res.json().catch(() => null);
-        addToast("error", json?.message || `Failed to ${editingId ? "update" : "create"} task`);
+        // Show user-friendly message instead of raw backend JSON errors
+        let errorMsg = `Failed to ${editingId ? "update" : "create"} task`;
+        if (json?.message && !json.message.includes("JSON parse error") && !json.message.includes("Cannot deserialize")) {
+          errorMsg = json.message;
+        } else if (json?.message) {
+          errorMsg = "Invalid data entered. Please check your input and try again.";
+        }
+        addToast("error", errorMsg);
       }
     } catch (err) {
       console.error("Save task error:", err);

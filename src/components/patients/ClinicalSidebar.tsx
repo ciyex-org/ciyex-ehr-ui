@@ -174,7 +174,8 @@ export default function ClinicalSidebar({
                     >
                         <ShieldAlert className="w-3 h-3 shrink-0 text-red-400" />
                         <span className="flex-1 text-left truncate">
-                            {!loaded ? "..." : allergies.length === 0 ? <span title="No Known Allergies">NKA (No Known Allergies)</span> : allergies.slice(0, 2).map(a => a.allergyName || a.substance).join(", ")}
+                            <span className="font-medium">Allergies: </span>
+                            {!loaded ? "..." : allergies.length === 0 ? <span title="No Known Allergies">NKA</span> : allergies.slice(0, 2).map(a => a.allergyName || a.substance).join(", ")}
                         </span>
                         {allergies.length > 0 && (
                             <span className="px-1 py-0.5 rounded bg-red-50 text-red-600 text-[10px] font-medium">{allergies.length}</span>
@@ -188,7 +189,8 @@ export default function ClinicalSidebar({
                     >
                         <HeartPulse className="w-3 h-3 shrink-0 text-orange-400" />
                         <span className="flex-1 text-left truncate">
-                            {!loaded ? "..." : problems.length === 0 ? "No Problems" : problems.slice(0, 2).map(p => p.conditionName || p.title || p.code || p.name || "Problem").join(", ")}
+                            <span className="font-medium">Problems: </span>
+                            {!loaded ? "..." : problems.length === 0 ? "None" : problems.slice(0, 2).map(p => p.conditionName || p.title || p.code || p.name || "Problem").join(", ")}
                         </span>
                         {problems.length > 0 && (
                             <span className="px-1 py-0.5 rounded bg-orange-50 text-orange-600 text-[10px] font-medium">{problems.length}</span>
@@ -202,7 +204,8 @@ export default function ClinicalSidebar({
                     >
                         <Pill className="w-3 h-3 shrink-0 text-blue-400" />
                         <span className="flex-1 text-left truncate">
-                            {!loaded ? "..." : medications.length === 0 ? "No Medications" : medications.slice(0, 2).map(m => m.medication_name || m.medicationName || m.name || m.medicationDisplay || "Medication").join(", ")}
+                            <span className="font-medium">Meds: </span>
+                            {!loaded ? "..." : medications.length === 0 ? "None" : medications.slice(0, 2).map(m => m.medication_name || m.medicationName || m.name || m.medicationDisplay || "Medication").join(", ")}
                         </span>
                         {medications.length > 0 && (
                             <span className="px-1 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-medium">{medications.length}</span>
@@ -215,12 +218,13 @@ export default function ClinicalSidebar({
                         className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] ${activeTab === "vitals" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
                     >
                         <Activity className="w-3 h-3 shrink-0 text-green-500" />
-                        <span className="flex-1 text-left truncate text-gray-600">
-                            {!loaded ? "..." : !vitals ? "No vitals" : [
+                        <span className="flex-1 text-left truncate">
+                            <span className="font-medium">Vitals: </span>
+                            <span className="text-gray-600">{!loaded ? "..." : !vitals ? "No recorded vitals" : [
                                 vitals.vitals_bp_systolic ? `BP ${vitals.vitals_bp_systolic}/${vitals.vitals_bp_diastolic}` : null,
                                 vitals.vitals_hr ? `HR ${vitals.vitals_hr}` : null,
                                 vitals.vitals_temp ? `T ${vitals.vitals_temp}` : null,
-                            ].filter(Boolean).join(" · ") || "No vitals"}
+                            ].filter(Boolean).join(" \u00b7 ") || "No recorded vitals"}</span>
                         </span>
                     </button>
                 </div>
@@ -233,7 +237,7 @@ export default function ClinicalSidebar({
                         <div key={cat.label} className="border-b border-gray-100 last:border-b-0">
                             <button
                                 onClick={() => toggleCat(cat.label)}
-                                className="w-full flex items-center gap-1 px-3 py-0.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider hover:bg-gray-50"
+                                className="w-full flex items-center gap-1 px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider hover:bg-gray-50"
                             >
                                 <span className="flex-1 text-left">{cat.label}</span>
                                 {hasActiveTab && !isCollapsed && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
