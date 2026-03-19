@@ -385,6 +385,12 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (tabKey === "messaging" && (f.key === "patient" || f.key === "patientId" || f.key === "patientName" || f.key === "to" || f.key === "recipient")) {
                     section.fields[i] = { ...f, readOnly: true };
                 }
+                // Prior Auth: patient field should be a searchable patient lookup (not locked)
+                if ((tabKey === "prior-auth" || tabKey === "prior-authorizations" || tabKey === "priorauth" || tabKey === "prior_authorizations" || tabKey === "prior-authorization") && (f.key === "patient" || f.key === "patientId" || f.key === "patientName" || f.key === "subject" || f.key === "patientRef")) {
+                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/patients", displayField: "fullName", valueField: "id", searchable: true } };
+                    }
+                }
             }
         }
         return patched;
@@ -2985,13 +2991,26 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                         {cols.map((col) => {
                                             const fv = (() => { const v = formatValue(record[col.key], col.key, record); return (v !== null && typeof v === "object" && !("$$typeof" in (v as object))) ? JSON.stringify(v) : v; })();
                                             const strVal = typeof fv === "string" ? fv : undefined;
+                                            // For multi-value strings (comma-separated conditions), show as wrapped bullet list
+                                            const isMultiValue = strVal && strVal.includes(", ") && strVal.split(", ").length > 1;
                                             return (
                                                 <td
                                                     key={col.key}
-                                                    className="px-4 py-2.5 text-gray-700 dark:text-gray-300 max-w-[200px]"
-                                                    title={strVal && strVal.length > 60 ? strVal : undefined}
+                                                    className="px-4 py-2.5 text-gray-700 dark:text-gray-300 max-w-[240px]"
+                                                    title={strVal && strVal.length > 80 && !isMultiValue ? strVal : undefined}
                                                 >
-                                                    <div className="truncate">{fv}</div>
+                                                    {isMultiValue ? (
+                                                        <ul className="space-y-0.5">
+                                                            {strVal!.split(", ").map((item, i) => (
+                                                                <li key={i} className="flex items-start gap-1 text-xs">
+                                                                    <span className="mt-1 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
+                                                                    <span>{item}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    ) : (
+                                                        <div className="truncate">{fv}</div>
+                                                    )}
                                                 </td>
                                             );
                                         })}

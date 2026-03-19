@@ -221,11 +221,23 @@ export default function ClinicalSidebar({
                         <Activity className="w-3 h-3 shrink-0 text-green-500" />
                         <span className="flex-1 text-left truncate">
                             <span className="font-medium">Vitals: </span>
-                            <span className="text-gray-600">{!loaded ? "..." : !vitals ? "No recorded vitals" : [
-                                vitals.bpSystolic ? `BP ${vitals.bpSystolic}/${vitals.bpDiastolic ?? "?"}` : null,
-                                vitals.pulse ? `HR ${vitals.pulse}` : null,
-                                vitals.temperatureC ? `T ${vitals.temperatureC}°C` : null,
-                            ].filter(Boolean).join(" \u00b7 ") || "No recorded vitals"}</span>
+                            <span className="text-gray-600">{!loaded ? "..." : !vitals ? "No recorded vitals" : (() => {
+                                const v = vitals;
+                                const sys = v.bpSystolic ?? v.systolicBP ?? v.systolic ?? v.bloodPressureSystolic ?? v.sbp ?? null;
+                                const dia = v.bpDiastolic ?? v.diastolicBP ?? v.diastolic ?? v.bloodPressureDiastolic ?? v.dbp ?? null;
+                                const hr  = v.pulse ?? v.heartRate ?? v.pulseRate ?? v.hr ?? null;
+                                const temp = v.temperatureC ?? v.temperature ?? v.temp ?? null;
+                                const spo2 = v.oxygenSaturation ?? v.spO2 ?? v.spo2 ?? v.o2Saturation ?? null;
+                                const rr = v.respiratoryRate ?? v.respirations ?? v.rr ?? null;
+                                const parts = [
+                                    sys != null ? `BP ${sys}/${dia ?? "?"}` : null,
+                                    hr != null ? `HR ${hr}` : null,
+                                    temp != null ? `T ${temp}°` : null,
+                                    spo2 != null ? `SpO₂ ${spo2}%` : null,
+                                    rr != null ? `RR ${rr}` : null,
+                                ].filter(Boolean);
+                                return parts.length > 0 ? parts.join(" · ") : "No recorded vitals";
+                            })()}</span>
                         </span>
                     </button>
                 </div>
