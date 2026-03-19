@@ -99,6 +99,11 @@ export default function EditPatientPage() {
         if (!formData.email?.trim()) errs.email = "Email is required";
         else if (!isValidEmail(formData.email)) errs.email = "Enter a valid email address";
         if (formData.ssn && formData.ssn.trim() && !isValidSSN(formData.ssn)) errs.ssn = "SSN must be exactly 9 digits";
+        if (formData.dateOfBirth) {
+            const dob = new Date(formData.dateOfBirth);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            if (dob > today) errs.dateOfBirth = "Date of birth cannot be a future date";
+        }
         if (Object.keys(errs).length > 0) { setFormErrors(errs); return; }
         setFormErrors({});
 
@@ -237,11 +242,21 @@ export default function EditPatientPage() {
                             id="dateOfBirth"
                             name="dateOfBirth"
                             value={formData.dateOfBirth || ""}
-                            onChange={handleChange}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                const today = new Date().toISOString().split("T")[0];
+                                if (val > today) {
+                                    setFormErrors(prev => ({ ...prev, dateOfBirth: "Date of birth cannot be a future date" }));
+                                    return;
+                                }
+                                setFormErrors(prev => { const n = { ...prev }; delete n.dateOfBirth; return n; });
+                                setFormData(prev => prev ? { ...prev, dateOfBirth: val } : prev);
+                            }}
                             max={new Date().toISOString().split("T")[0]}
-                            className={inputCls()}
+                            className={inputCls(formErrors.dateOfBirth)}
                             required
                         />
+                        {formErrors.dateOfBirth && <p className="text-xs text-red-500 mt-1">{formErrors.dateOfBirth}</p>}
                     </div>
                     <div className="mb-4">
                         <label htmlFor="gender" className="block text-sm font-medium text-gray-700">Gender</label>
