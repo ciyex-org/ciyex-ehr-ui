@@ -319,9 +319,9 @@ function FormDrawer({
         const e: Record<string, string> = {};
         if (!form.vaccineName?.trim()) e.vaccineName = "Vaccine name is required";
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
-        // Lot number: alphanumeric only if provided
-        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(form.lotNumber.trim())) {
-            e.lotNumber = "Lot number must start and end with alphanumeric characters (letters, numbers, internal hyphens only)";
+        // Lot number: digits only if provided
+        if (form.lotNumber && form.lotNumber.trim() && !/^\d+$/.test(form.lotNumber.trim())) {
+            e.lotNumber = "Lot number must contain numbers only";
         }
         // Dose: must be a positive number if provided
         if (form.dose !== undefined && form.dose !== null) {
@@ -396,8 +396,17 @@ function FormDrawer({
                         <Field
                             label="Lot Number"
                             value={form.lotNumber ?? ""}
-                            onChange={(v) => set("lotNumber", v)}
-                            placeholder="e.g., AB1234"
+                            onChange={(v) => {
+                                // Strip any non-digit characters on input
+                                const digits = v.replace(/\D/g, "");
+                                set("lotNumber", digits);
+                                if (v !== digits && v.length > 0) {
+                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must contain numbers only" }));
+                                } else {
+                                    setErrors(prev => { const n = { ...prev }; delete n.lotNumber; return n; });
+                                }
+                            }}
+                            placeholder="e.g., 123456"
                             error={errors.lotNumber}
                         />
                     </div>
