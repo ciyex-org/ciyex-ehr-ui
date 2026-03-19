@@ -1072,7 +1072,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
           </div>
 
           {/* Provider / Specimen Card */}
-            <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-5">
+            <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-5 overflow-visible">
               <div className="grid grid-cols-2 gap-5">
                 <div className="relative">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Ordering Provider <span className="text-red-600">*</span></label>
@@ -1090,7 +1090,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                     </div>
                   )}
                   {showProviderDropdown && providerMatches.length > 0 && (
-                    <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-44 overflow-y-auto z-40">
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-44 overflow-y-auto z-[100]">
                       {providerMatches.map((p,i) => (
                         <button key={i} onClick={() => { setDraft(d => ({ ...d, orderingProvider: p })); setShowProviderDropdown(false); }} className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm">{p}</button>
                       ))}
@@ -1113,7 +1113,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                     </div>
                   )}
                   {showPhysicianDropdown && physicianMatches.length > 0 && (
-                    <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-44 overflow-y-auto z-50 w-full">
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-44 overflow-y-auto z-[100] w-full">
                       {physicianMatches.map((p,i) => (
                         <button key={i} onClick={() => { setDraft(d => ({ ...d, physicianName: p })); setShowPhysicianDropdown(false); }} className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm">{p}</button>
                       ))}

@@ -48,21 +48,20 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState<string | null>(null);
 
-    // Auto-calculate BMI from weight(kg) and height(cm)
-    useEffect(() => {
-        const w = parseFloat(weightKg);
-        const h = parseFloat(heightCm);
+    // Calculate BMI from weight(kg) and height(cm) — extracted for reuse
+    const calculateBmi = (wKg: string, hCm: string) => {
+        const w = parseFloat(wKg);
+        const h = parseFloat(hCm);
         if (w > 0 && h > 0) {
             const heightM = h / 100;
-            if (heightM > 0) {
-                const calculated = (w / (heightM * heightM)).toFixed(1);
-                setBmi(calculated);
-            } else {
-                setBmi("");
-            }
-        } else {
-            setBmi("");
+            if (heightM > 0) return (w / (heightM * heightM)).toFixed(1);
         }
+        return "";
+    };
+
+    // Auto-calculate BMI from weight(kg) and height(cm)
+    useEffect(() => {
+        setBmi(calculateBmi(weightKg, heightCm));
     }, [weightKg, heightCm]);
 
     function getBmiStatus(bmiValue: string): { label: string; color: string } | null {
@@ -292,6 +291,7 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
                         placeholder={weightLabel}
                         value={weightDisplay}
                         onChange={(e) => handleWeightChange(e.target.value)}
+                        onBlur={() => setBmi(calculateBmi(weightKg, heightCm))}
                         required
                     />
                 </div>
@@ -305,6 +305,7 @@ export default function Vitalsform({ patientId, encounterId, editing, onSaved, o
                         placeholder={heightLabel}
                         value={heightDisplay}
                         onChange={(e) => handleHeightChange(e.target.value)}
+                        onBlur={() => setBmi(calculateBmi(weightKg, heightCm))}
                         required
                     />
                 </div>

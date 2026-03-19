@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { MessageItem as MessageItemType, Reaction, MessageAttachment } from "./types";
 import { downloadAttachment } from "./messagingApi";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 interface Props {
   message: MessageItemType;
@@ -228,8 +229,7 @@ function AttachmentList({ attachments, messageId }: { attachments: MessageAttach
   const files = attachments.filter((a) => !a.fileType?.startsWith("image/"));
 
   const handleDownload = async (att: MessageAttachment) => {
-    try {
-      const blob = await downloadAttachment(messageId, att.id);
+    const triggerDownload = (blob: Blob) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -238,10 +238,21 @@ function AttachmentList({ attachments, messageId }: { attachments: MessageAttach
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch {
-      // Fallback to direct URL download
-      window.open(att.fileUrl, "_blank");
-    }
+    };
+    try {
+      // Try dedicated download endpoint first
+      const blob = await downloadAttachment(messageId, att.id);
+      if (blob.size > 0) { triggerDownload(blob); return; }
+    } catch { /* fall through */ }
+    try {
+      // Fallback: fetch fileUrl with auth
+      if (att.fileUrl) {
+        const res = await fetchWithAuth(att.fileUrl);
+        if (res.ok) { triggerDownload(await res.blob()); return; }
+      }
+    } catch { /* fall through */ }
+    // Last resort: open URL directly
+    if (att.fileUrl) window.open(att.fileUrl, "_blank");
   };
 
   return (

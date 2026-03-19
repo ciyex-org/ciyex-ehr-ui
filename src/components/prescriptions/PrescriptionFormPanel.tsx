@@ -349,7 +349,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Refills</label>
-                  <input type="number" min={0} className={inputCls()} value={form.refills ?? ""} onChange={(e) => set("refills", e.target.value === "" ? 0 : parseInt(e.target.value, 10))} onBlur={() => { if (form.refills == null || isNaN(form.refills as number)) set("refills", 0); }} />
+                  <input type="number" min={0} className={inputCls()} value={form.refills != null && form.refills !== "" as any ? form.refills : ""} onChange={(e) => set("refills", e.target.value === "" ? undefined : parseInt(e.target.value, 10))} onBlur={() => { if (form.refills == null || form.refills === "" as any || isNaN(Number(form.refills))) set("refills", 0); }} />
                 </div>
                 <div>
                   <label className={labelCls}>Priority</label>

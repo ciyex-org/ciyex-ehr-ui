@@ -2081,6 +2081,7 @@ export default function DynamicFormRenderer({
             placeholder={field.placeholder}
             onChange={(e) => onChange(field.key, e.target.value)}
             error={!!error}
+            maxLength={(field as any).maxLength || undefined}
           />
         );
       case "phone":
