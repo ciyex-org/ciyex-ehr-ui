@@ -337,17 +337,37 @@ function LookupField({
     }
   }, [showDropdown, results]);
 
+  const fetchAll = useCallback(
+    async () => {
+      if (!field.lookupConfig?.endpoint) return;
+      const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+      const ep = field.lookupConfig.endpoint.startsWith("/") ? field.lookupConfig.endpoint : `/${field.lookupConfig.endpoint}`;
+      try {
+        const res = await fetchWithAuth(`${base}${ep}?page=0&size=200`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = Array.isArray(data) ? data
+          : Array.isArray(data.data) ? data.data
+          : Array.isArray(data.data?.content) ? data.data.content
+          : Array.isArray(data.content) ? data.content
+          : [];
+        if (items.length > 0) setResults(items);
+      } catch { /* ignore */ }
+    },
+    [field.lookupConfig]
+  );
+
   const search = useCallback(
     async (q: string) => {
-      if (!q || q.length < 2 || !field.lookupConfig?.endpoint) return;
+      if (!q || q.length < 1 || !field.lookupConfig?.endpoint) return;
       const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
       const ep = field.lookupConfig.endpoint.startsWith("/") ? field.lookupConfig.endpoint : `/${field.lookupConfig.endpoint}`;
       const eq = encodeURIComponent(q);
       // Try multiple query parameter patterns; use whichever returns results
       const urls = [
-        `${base}${ep}?search=${eq}`,
-        `${base}${ep}?q=${eq}`,
-        `${base}${ep}?name=${eq}`,
+        `${base}${ep}?search=${eq}&size=200`,
+        `${base}${ep}?q=${eq}&size=200`,
+        `${base}${ep}?name=${eq}&size=200`,
       ];
       for (const url of urls) {
         try {
@@ -362,7 +382,7 @@ function LookupField({
           if (items.length > 0) { setResults(items); return; }
         } catch { /* try next */ }
       }
-      setResults([]);
+      // If API search returned nothing, keep existing results (client-side filter will narrow them)
     },
     [field.lookupConfig]
   );
@@ -380,18 +400,40 @@ function LookupField({
         placeholder={field.placeholder || `Search ${field.label}...`}
         value={query || displayValue}
         onChange={(e) => {
-          setQuery(e.target.value);
+          const val = e.target.value;
+          setQuery(val);
+          setDisplayValue("");
           setShowDropdown(true);
-          search(e.target.value);
+          if (val.length >= 1) {
+            search(val);
+          }
+        }}
+        onFocus={() => {
+          setShowDropdown(true);
+          if (results.length === 0) fetchAll();
         }}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
       />
-      {showDropdown && results.length > 0 && ReactDOM.createPortal(
+      {showDropdown && (() => {
+        // Always filter client-side by query so typing narrows the list
+        // regardless of whether the API supports server-side search
+        const qLower = query.toLowerCase();
+        const filteredResults = query
+          ? results.filter(item => {
+              const disp = String(
+                item[field.lookupConfig!.displayField] ||
+                (item.firstName && item.lastName ? `${item.firstName} ${item.lastName}` : "") ||
+                item.firstName || item.lastName || item.name || item.label || item.display || ""
+              ).toLowerCase();
+              return disp.includes(qLower);
+            })
+          : results;
+        return filteredResults.length > 0 && ReactDOM.createPortal(
         <div
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
           style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
         >
-          {results.map((item, idx) => {
+          {filteredResults.map((item, idx) => {
             const display = item[field.lookupConfig!.displayField] ||
               (item.firstName && item.lastName ? `${item.firstName} ${item.lastName}`.trim() : null) ||
               item.firstName || item.lastName || item.name || item.label || item.display;
@@ -430,7 +472,8 @@ function LookupField({
           })}
         </div>,
         document.body
-      )}
+        );
+      })()}
     </div>
   );
 }
