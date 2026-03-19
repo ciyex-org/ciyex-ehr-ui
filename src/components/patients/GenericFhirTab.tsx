@@ -1695,6 +1695,16 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         errors[key] = "SSN must be exactly 9 digits";
                     }
                 }
+                // Date of birth — must not be a future date
+                for (const key of ["dateOfBirth", "dob", "birthDate", "birthdate", "birth_date", "date_of_birth", "ptDob", "patientDob"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim()) {
+                        const parsed = new Date(val.includes("T") ? val : val + "T00:00:00");
+                        if (!isNaN(parsed.getTime()) && parsed > new Date()) {
+                            errors[key] = "Date of birth cannot be a future date";
+                        }
+                    }
+                }
                 // All phone/mobile/fax fields — exactly 10 digits
                 for (const key of Object.keys(formData)) {
                     const lk = key.toLowerCase();

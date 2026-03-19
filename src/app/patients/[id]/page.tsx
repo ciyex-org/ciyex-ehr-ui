@@ -425,10 +425,8 @@ export default function PatientDashboardPage() {
     const formatDateLocal = (date: string) => {
         if (!date) return "\u2014";
         const d = new Date(date.includes("T") ? date : date + "T00:00:00");
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        const yyyy = d.getFullYear();
-        return `${mm}/${dd}/${yyyy}`;
+        if (isNaN(d.getTime())) return "\u2014";
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     };
     const genderLabel = (g?: string) => {
         if (!g) return "";
@@ -451,11 +449,9 @@ export default function PatientDashboardPage() {
             years--;
             months += 12;
         }
-        const parts: string[] = [];
-        if (years > 0) parts.push(`${years}Y`);
-        if (months > 0) parts.push(`${months}M`);
-        if (days > 0 || parts.length === 0) parts.push(`${days}D`);
-        return parts.join(" ");
+        if (years > 0) return `${years} yr${years !== 1 ? "s" : ""}${months > 0 ? ` ${months} mo` : ""}`;
+        if (months > 0) return `${months} mo${days > 0 ? ` ${days} d` : ""}`;
+        return `${days} d`;
     };
 
     if (loading) {
@@ -664,7 +660,7 @@ export default function PatientDashboardPage() {
                                     DOB: {formatDateLocal(patient.dateOfBirth)} ({calculateAgeLocal(patient.dateOfBirth)})
                                 </span>
                                 {patient.gender && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{genderLabel(patient.gender)}</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Sex: {genderLabel(patient.gender)}</span>
                                 )}
                                 <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{patient.phoneNumber || "\u2014"}</span>
                                 {patient.status && (

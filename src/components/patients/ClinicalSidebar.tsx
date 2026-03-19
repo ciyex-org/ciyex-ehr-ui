@@ -222,9 +222,9 @@ export default function ClinicalSidebar({
                         <span className="flex-1 text-left truncate">
                             <span className="font-medium">Vitals: </span>
                             <span className="text-gray-600">{!loaded ? "..." : !vitals ? "No recorded vitals" : [
-                                vitals.vitals_bp_systolic ? `BP ${vitals.vitals_bp_systolic}/${vitals.vitals_bp_diastolic}` : null,
-                                vitals.vitals_hr ? `HR ${vitals.vitals_hr}` : null,
-                                vitals.vitals_temp ? `T ${vitals.vitals_temp}` : null,
+                                vitals.bpSystolic ? `BP ${vitals.bpSystolic}/${vitals.bpDiastolic ?? "?"}` : null,
+                                vitals.pulse ? `HR ${vitals.pulse}` : null,
+                                vitals.temperatureC ? `T ${vitals.temperatureC}°C` : null,
                             ].filter(Boolean).join(" \u00b7 ") || "No recorded vitals"}</span>
                         </span>
                     </button>
@@ -245,7 +245,7 @@ export default function ClinicalSidebar({
                                 {isCollapsed ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
                             </button>
                             {!isCollapsed && (
-                                <div className="px-2 pb-1 space-y-0">
+                                <div className="pl-3 pr-2 pb-1 space-y-0">
                                     {cat.tabs.map(tab => {
                                         const Icon = tab.icon;
                                         const isActive = activeTab === tab.key;

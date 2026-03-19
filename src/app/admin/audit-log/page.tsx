@@ -147,10 +147,10 @@ export default function AuditLogPage() {
         // Normalize field names — backend may use snake_case, camelCase, or nested variants
         const content: AuditLogEntry[] = rawContent.map((e: any) => ({
           ...e,
-          userName:     e.userName     || e.user_name    || e.username      || e.performedBy  || e.createdBy    || e.operator     || e.user || e.actor || e.modifiedBy || e.updatedBy || e.changedBy || e.initiator || e.userId || e.user_id || e.email || e.subject || e.login || "",
+          userName:     e.userName     || e.user_name    || e.username      || e.performedBy  || e.performedByName || e.createdBy || e.createdByName || e.operator || e.operatorName || (typeof e.user === "string" ? e.user : (e.user?.name || e.user?.fullName || e.user?.username || e.user?.email || "")) || e.actor || e.actorName || e.modifiedBy || e.updatedBy || e.changedBy || e.initiator || (typeof e.userId === "number" ? String(e.userId) : e.userId) || e.user_id || e.email || e.subject || e.login || "",
           userRole:     e.userRole     || e.user_role    || e.role          || "",
-          resourceType: e.resourceType || e.resource_type|| e.entityType    || e.entity_type  || e.type || e.targetType || e.objectType || e.category || e.resource || e.module || "",
-          resourceName: e.resourceName || e.resource_name|| e.entityName    || e.entity_name  || e.name         || e.target || e.object || e.subject || e.display || "",
+          resourceType: e.resourceType || e.resource_type|| e.entityType    || e.entity_type  || e.type || e.targetType || e.targetEntityType || e.objectType || e.category || (typeof e.resource === "string" ? e.resource : e.resource?.type || e.resource?.resourceType || "") || e.module || "",
+          resourceName: e.resourceName || e.resource_name|| e.entityName    || e.entity_name  || e.targetName || e.targetEntityName || e.affectedResource || e.name || e.target || e.object || e.subject || e.display || (e.resource && typeof e.resource === "object" ? e.resource.name || e.resource.display || "" : "") || "",
           resourceId:   e.resourceId   || e.resource_id  || e.entityId      || e.entity_id    || "",
           ipAddress:    e.ipAddress    || e.ip_address   || e.ip            || "",
           action:       e.action       || e.actionType   || e.operation     || "",

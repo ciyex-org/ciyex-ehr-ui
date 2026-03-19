@@ -2045,12 +2045,16 @@ export default function DynamicFormRenderer({
             return undefined;
           };
 
+          const isDobField = /^(dateOfBirth|dob|birthDate|birthdate|birth_date|date_of_birth|ptDob|patientDob)$/i.test(field.key);
+          const todayStr = new Date().toISOString().slice(0, 10);
           const minDate = isEndDateKey
             ? findDateInFormData([/onset/i, /^start/i, /recorded/i, /identified/i])
             : undefined;
-          const maxDate = isOnsetKey
-            ? findDateInFormData([/^end/i, /resolv/i, /abate/i, /conclus/i])
-            : undefined;
+          const maxDate = isDobField
+            ? todayStr
+            : isOnsetKey
+              ? findDateInFormData([/^end/i, /resolv/i, /abate/i, /conclus/i])
+              : undefined;
           return (
             <Input
               type="date"
