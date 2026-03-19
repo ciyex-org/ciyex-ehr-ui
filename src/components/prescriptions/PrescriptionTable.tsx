@@ -224,25 +224,31 @@ export default function PrescriptionTable({
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
-                    <div className="text-gray-700 dark:text-gray-300">
+                    <div className="text-gray-700 dark:text-gray-300" title={rx.refillsRemaining != null && rx.refills != null ? `${rx.refillsRemaining} remaining of ${rx.refills} authorized` : undefined}>
                       {rx.refillsRemaining != null && rx.refills != null
-                        ? `${rx.refillsRemaining} / ${rx.refills}`
+                        ? <><span className="font-medium">{rx.refillsRemaining}</span><span className="text-gray-400 text-xs"> / {rx.refills}</span></>
                         : rx.refills != null
-                          ? `${rx.refills}`
+                          ? String(rx.refills)
                           : "--"}
                     </div>
+                    {rx.refillsRemaining != null && rx.refills != null && (
+                      <div className="text-xs text-gray-400 dark:text-gray-500">rem / auth</div>
+                    )}
                   </td>
                   <td className="px-4 py-3 hidden xl:table-cell">
                     <div className="text-gray-700 dark:text-gray-300 truncate max-w-[150px]">{rx.pharmacyName || "--"}</div>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <div className="text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
-                      {/* Show prescriber name; if name looks like an NPI (all digits), show as NPI instead */}
-                      {rx.prescriberName && /^\d{10}$/.test(rx.prescriberName.trim())
-                        ? "--"
-                        : (rx.prescriberName || "--")}
+                      {rx.prescriberName && !/^\d{10}$/.test(rx.prescriberName.trim())
+                        ? rx.prescriberName
+                        : rx.prescriberNpi
+                          ? `NPI: ${rx.prescriberNpi}`
+                          : "--"}
                     </div>
-                    {rx.prescriberNpi && <div className="text-xs text-gray-400 dark:text-gray-500">NPI: {rx.prescriberNpi}</div>}
+                    {rx.prescriberName && !/^\d{10}$/.test(rx.prescriberName.trim()) && rx.prescriberNpi && (
+                      <div className="text-xs text-gray-400 dark:text-gray-500">NPI: {rx.prescriberNpi}</div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={rx.status} />
