@@ -335,7 +335,7 @@ export default function PatientListPage() {
 
     return (
         <AdminLayout>
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-full overflow-hidden -m-4 md:-m-6">
                 {/* Top bar: recent patients + actions */}
                 <div className="flex flex-wrap justify-between gap-2 px-4 py-2 items-start">
                     <div className="flex-1 min-w-0">

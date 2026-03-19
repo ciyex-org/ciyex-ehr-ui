@@ -257,6 +257,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, type: "text", readOnly: true } as any;
                     }
                 }
+                // Appointments: duration is auto-calculated — make it read-only
+                if ((tabKey === "appointments" || tabKey === "appointment") && (f.key === "duration" || f.key === "durationMinutes" || f.key === "minutesDuration" || f.key === "appointmentDuration")) {
+                    section.fields[i] = { ...f, readOnly: true } as any;
+                }
                 // Appointments: ensure provider/practitioner field is a provider lookup
                 if (tabKey === "appointments" && (f.key === "provider" || f.key === "providerId" || f.key === "practitioner" || f.key === "practitionerId")) {
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
@@ -295,10 +299,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, label: "Allergy" };
                     }
                 }
-                // Issue 13: Insurance — ensure insurerName/companyName is a lookup for insurance companies
+                // Issue 13: Insurance — insurance company dropdown from dedicated API
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "payerName" || f.key === "insurerName" || f.key === "companyName" || f.key === "insurer" || f.key === "payor")) {
-                    if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
-                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/organization", displayField: "name", valueField: "id", searchable: true }, required: true };
+                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-companies", displayField: "name", valueField: "name", searchable: true }, required: true };
+                }
+                // Issue 13: Insurance — planName must be a select (no free-text)
+                if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "planName" || f.key === "plan" || f.key === "coveragePlan")) {
+                    if (f.type === "text" || f.type === "combobox") {
+                        section.fields[i] = { ...f, type: "select" };
                     }
                 }
                 // Issue 15: Documents — attachment/file field must be required
@@ -1604,11 +1612,12 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (svcFrom && svcTo) {
                     const fromDt = new Date(String(svcFrom));
                     const toDt = new Date(String(svcTo));
-                    if (!isNaN(fromDt.getTime()) && !isNaN(toDt.getTime()) && toDt < fromDt) {
-                        errors.serviceTo = "Service To date cannot be earlier than Service From date";
-                        errors.serviceToDate = "Service To date cannot be earlier than Service From date";
-                        errors.serviceDateTo = "Service To date cannot be earlier than Service From date";
-                        errors.billablePeriodEnd = "Service To date cannot be earlier than Service From date";
+                    if (!isNaN(fromDt.getTime()) && !isNaN(toDt.getTime()) && toDt <= fromDt) {
+                        const msg = "Service To must be after Service From (same date not allowed)";
+                        errors.serviceTo = msg;
+                        errors.serviceToDate = msg;
+                        errors.serviceDateTo = msg;
+                        errors.billablePeriodEnd = msg;
                     }
                 }
             }
@@ -2189,13 +2198,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
                     payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
                 }
+                if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
                 if (!payload.use) payload.use = "claim";
                 if (!payload.status) payload.status = "active";
                 if (!payload.priority) payload.priority = wrapCoding("normal", "http://terminology.hl7.org/CodeSystem/processpriority");
             }
 
-            // Issues 17, 21: Claims & Transactions — add Claim.provider
+            // Issues 17, 21: Claims & Transactions — add Claim.provider + patient
             if (tabKey === "claims" || tabKey === "transactions") {
                 if (payload.provider && typeof payload.provider === "string") {
                     payload.provider = { reference: `Practitioner/${payload.provider}` };
@@ -2203,6 +2213,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
                     payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
                 }
+                if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
                 if (!payload.use) payload.use = "claim";
                 if (!payload.status) payload.status = "active";
