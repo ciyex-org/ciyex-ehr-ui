@@ -1363,15 +1363,24 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             if (tabKey === "appointments") {
                 const startKeys = ["appointmentStartTime", "startTime", "start"];
                 const endKeys = ["appointmentEndTime", "endTime", "end"];
-                const durKeys = ["duration", "minutesDuration", "durationMinutes"];
+                const durKeys = ["duration", "minutesDuration", "durationMinutes", "appointmentDuration"];
                 const isStartOrEnd = startKeys.includes(key) || endKeys.includes(key);
                 if (isStartOrEnd) {
-                    const st = startKeys.map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
-                    const et = endKeys.map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
-                    if (st && et) {
-                        const [sh, sm] = st.split(":").map(Number);
-                        const [eh, em] = et.split(":").map(Number);
-                        const diff = (eh * 60 + em) - (sh * 60 + sm);
+                    // Extract [hours, minutes] from either "HH:mm" or ISO "YYYY-MM-DDTHH:mm:ss"
+                    const parseTime = (v: unknown): [number, number] | null => {
+                        if (!v || typeof v !== "string") return null;
+                        const timePart = v.includes("T") ? v.split("T")[1] : v;
+                        const parts = timePart.split(":");
+                        const h = Number(parts[0]);
+                        const m = Number(parts[1]);
+                        return isNaN(h) || isNaN(m) ? null : [h, m];
+                    };
+                    const stRaw = startKeys.map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
+                    const etRaw = endKeys.map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
+                    const stParts = parseTime(stRaw);
+                    const etParts = parseTime(etRaw);
+                    if (stParts && etParts) {
+                        const diff = (etParts[0] * 60 + etParts[1]) - (stParts[0] * 60 + stParts[1]);
                         if (diff > 0) {
                             for (const dk of durKeys) { next[dk] = diff; }
                         }
