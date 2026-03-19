@@ -351,15 +351,14 @@ function DynamicDataFilters({
         <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">Data Filters</span>
       </div>
       {dynamicFilters.map(f => (
-        <div key={f.key} className="flex flex-col gap-1" style={{ position: "relative", zIndex: 30 }}>
+        <div key={f.key} className="flex flex-col gap-1">
           <label className="text-xs font-medium text-slate-500">{f.label}</label>
           <select
             value={dataFilters[f.key] || ""}
             onChange={e => onChange(f.key, e.target.value)}
-            className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer ${
+            className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer appearance-auto ${
               dataFilters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
             }`}
-            style={{ WebkitAppearance: "menulist", appearance: "auto" }}
           >
             <option value="">All {f.label}</option>
             {f.uniqueValues.map(v => <option key={v} value={v}>{v}</option>)}
@@ -768,7 +767,7 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
   return (
     <div className="flex flex-col gap-4">
       {/* Unified filter bar: date range + generate + data filters */}
-      <div className="flex flex-wrap items-end gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+      <div className="flex flex-wrap items-end gap-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 relative z-20">
         <Filter className="w-4 h-4 text-slate-400 self-center" />
         {hasDateRange && (
           <>
@@ -791,10 +790,9 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
               <select
                 value={(filters[f.key] as string) || ""}
                 onChange={e => setFilters({ ...filters, [f.key]: e.target.value })}
-                className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer ${
+                className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer appearance-auto ${
                   filters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
                 }`}
-                style={{ WebkitAppearance: "menulist", appearance: "auto" }}
               >
                 {opts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
@@ -803,15 +801,14 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
         })}
         {/* Data filters inline (after data is loaded) */}
         {!loading && result && dynamicFilters.map(f => (
-          <div key={f.key} className="flex flex-col gap-1" style={{ position: "relative", zIndex: 30 }}>
+          <div key={f.key} className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">{f.label}</label>
             <select
               value={dataFilters[f.key] || ""}
               onChange={e => handleDataFilterChange(f.key, e.target.value)}
-              className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer ${
+              className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer appearance-auto ${
                 dataFilters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
               }`}
-              style={{ WebkitAppearance: "menulist", appearance: "auto" }}
             >
               <option value="">All {f.label}</option>
               {f.uniqueValues.map(v => <option key={v} value={v}>{v}</option>)}
