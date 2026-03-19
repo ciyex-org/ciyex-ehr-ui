@@ -18,6 +18,7 @@ import { CDSRule, CDSAlert, CDSStats } from "@/components/cds/types";
 import CDSRuleTable from "@/components/cds/CDSRuleTable";
 import CDSRuleFormPanel from "@/components/cds/CDSRuleFormPanel";
 import CDSAlertHistory from "@/components/cds/CDSAlertHistory";
+import { confirmDialog } from "@/utils/toast";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
@@ -199,7 +200,8 @@ export default function CDSPage() {
   };
 
   const handleDelete = async (rule: CDSRule) => {
-    if (!confirm(`Delete rule "${rule.name}"?`)) return;
+    const confirmed = await confirmDialog(`Delete rule "${rule.name}"?`);
+    if (!confirmed) return;
     const res = await fetchWithAuth(`${API()}/api/cds/rules/${rule.id}`, { method: "DELETE" });
     if (res.ok) {
       setToast({ type: "success", text: "Rule deleted" });

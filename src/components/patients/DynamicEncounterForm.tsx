@@ -12,6 +12,7 @@ import PluginSlot from "@/components/plugins/PluginSlot";
 import CloneEncounterModal from "@/components/encounter/CloneEncounterModal";
 import { PluginContextProvider } from "@/context/PluginContextProvider";
 import { usePluginEventBus } from "@/context/PluginEventBus";
+import { toast } from "@/utils/toast";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -328,7 +329,7 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
           });
           const blocker = hookResults.find((r: any) => r?.block);
           if (blocker) {
-            alert(blocker.reason || "A plugin has blocked signing this encounter.");
+            toast.warning(blocker.reason || "A plugin has blocked signing this encounter.");
             setStatusLoading(false);
             return;
           }
@@ -343,10 +344,10 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
           pluginEvents.emit("encounter:saved", { encounterId, status: next });
         } else {
           const json = await res.json().catch(() => null);
-          alert(json?.message || `Failed to ${action} encounter`);
+          toast.error(json?.message || `Failed to ${action} encounter`);
         }
       } catch {
-        alert(`Failed to ${action} encounter`);
+        toast.error(`Failed to ${action} encounter`);
       } finally {
         setStatusLoading(false);
       }
@@ -379,7 +380,7 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
       window.URL.revokeObjectURL(blobUrl);
       document.body.removeChild(a);
     } catch (e) {
-      alert("Failed to generate PDF: " + (e instanceof Error ? e.message : "Unknown error"));
+      toast.error("Failed to generate PDF: " + (e instanceof Error ? e.message : "Unknown error"));
     }
   }, [patientId, encounterId]);
 

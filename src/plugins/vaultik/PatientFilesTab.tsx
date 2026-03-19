@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useVaultikApi } from "./useVaultikApi";
 import type { VaultikFile } from "./types";
+import { confirmDialog } from "@/utils/toast";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B";
@@ -75,7 +76,8 @@ export default function PatientFilesTab({ patientId }: { patientId: string }) {
   };
 
   const handleDelete = async (fileId: string, fileName: string) => {
-    if (!confirm(`Delete "${fileName}"?`)) return;
+    const confirmed = await confirmDialog(`Delete "${fileName}"?`);
+    if (!confirmed) return;
     try {
       await api.deleteFile(fileId);
       await fetchFiles();

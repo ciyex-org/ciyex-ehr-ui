@@ -16,6 +16,7 @@ import { usePermissions } from "@/context/PermissionContext";
 import { ShieldX } from "lucide-react";
 import Link from "next/link";
 import * as XLSX from "xlsx";
+import { toast } from "@/utils/toast";
 
 type PanelState =
   | { mode: "closed" }
@@ -152,6 +153,16 @@ function formatToMMDDYYYY(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   if (isNaN(d.getTime())) return iso;
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
+}
+
+function formatTimeTo12h(timeStr: string): string {
+  if (!timeStr) return "";
+  const [h, m] = timeStr.split(":");
+  const hour = parseInt(h, 10);
+  if (isNaN(hour)) return timeStr;
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${h12}:${m} ${ampm}`;
 }
 
 function parseMMDDYYYY(s: string): string | null {
@@ -442,19 +453,47 @@ export default function AppointmentPage() {
     })();
   }, []);
 
-  // Fetch room options
+  // Fetch room options — try dedicated endpoint, then tab_field_config, then locations as fallback
   useEffect(() => {
     (async () => {
       try {
         const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/appointments/room-options`);
         if (res.ok) {
           const data = await res.json();
-          const options: string[] = data.data || [];
-          if (options.length > 0) setRoomOptions(options);
+          const opts = data.data || [];
+          if (opts.length > 0) { setRoomOptions(opts); return; }
         }
       } catch (e) {
         console.error("Failed to fetch room options:", e);
       }
+      // Fallback: try to get room options from tab_field_config
+      try {
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/tab-field-config/appointments`);
+        if (res.ok) {
+          const json = await res.json();
+          const config = json.data || json;
+          const fc = typeof config.fieldConfig === "string" ? JSON.parse(config.fieldConfig) : config.fieldConfig;
+          const sections: Array<{ fields?: Array<{ key: string; options?: Array<{ value?: string; label?: string }> }> }> = fc?.sections || [];
+          for (const section of sections) {
+            for (const field of section.fields || []) {
+              if ((field.key === "room" || field.key === "roomNumber" || field.key === "roomName") && field.options?.length) {
+                setRoomOptions(field.options.map((o: any) => typeof o === "string" ? o : (o.value || o.label || "")));
+                return;
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
+      // Fallback: use location names as room options
+      try {
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/locations?page=0&size=100`);
+        if (res.ok) {
+          const data = await res.json();
+          const locs = data.data?.content || data.content || data.data || [];
+          const names = locs.map((l: any) => l.name || l.locationName).filter(Boolean);
+          if (names.length > 0) setRoomOptions(names);
+        }
+      } catch { /* ignore */ }
     })();
   }, []);
 
@@ -654,7 +693,7 @@ export default function AppointmentPage() {
         window.dispatchEvent(new Event("appointments-changed"));
       } catch (e: any) {
         console.error(e);
-        alert(e.message || "Failed to update status");
+        toast.error(e.message || "Failed to update status");
       }
     },
     []
@@ -693,7 +732,7 @@ export default function AppointmentPage() {
       );
     } catch (e: any) {
       console.error(e);
-      alert(e.message || "Failed to create encounter");
+      toast.error(e.message || "Failed to create encounter");
     }
   }, []);
 
@@ -720,7 +759,7 @@ export default function AppointmentPage() {
         setToast(`Room assigned: ${newRoom || "cleared"}`);
       } catch (e: any) {
         console.error(e);
-        alert(e.message || "Failed to update room");
+        toast.error(e.message || "Failed to update room");
       }
     },
     []
@@ -1026,7 +1065,7 @@ export default function AppointmentPage() {
                       <td className="py-1.5 px-3 text-sm whitespace-nowrap">
                         <div className="font-medium">{formatToMMDDYYYY(r.appointmentStartDate)}</div>
                         <div className="text-xs text-gray-500">
-                          {r.appointmentStartTime || "—"} - {r.appointmentEndTime || "—"}
+                          {formatTimeTo12h(r.appointmentStartTime) || "—"} - {formatTimeTo12h(r.appointmentEndTime) || "—"}
                         </div>
                         {duration && (
                           <div className="text-xs text-gray-400">{duration}</div>

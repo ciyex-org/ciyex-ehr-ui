@@ -6,6 +6,7 @@ import {
     Check, Loader2, Pencil, Trash2, Wallet
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { confirmDialog } from "@/utils/toast";
 
 interface PaymentPostingTabProps {
     patientId: number;
@@ -314,7 +315,8 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     };
 
     const handleDelete = async (paymentId: string) => {
-        if (!confirm("Delete this payment?")) return;
+        const confirmed = await confirmDialog("Delete this payment?");
+        if (!confirmed) return;
         setDeletingId(paymentId);
         try {
             const res = await fetchWithAuth(`/api/fhir-resource/payment/patient/${patientId}/${paymentId}`, {

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import Vitalsform from "./Vitalsform";
 import type { ApiResponse, VitalsDto } from "@/utils/types";
+import { toast, confirmDialog } from "@/utils/toast";
 
 type Props = {
     patientId: number;
@@ -43,7 +44,8 @@ export default function Vitalslist({ patientId, encounterId }: Props) {
     }, [patientId, encounterId]);
 
     async function remove(id: number) {
-        if (!confirm("Delete this vitals record?")) return;
+        const confirmed = await confirmDialog("Delete this vitals record?");
+        if (!confirmed) return;
         try {
             setBusyId(id);
             const res = await fetchWithOrg(`/api/vitals/${patientId}/${encounterId}/${id}`, {
@@ -97,7 +99,7 @@ export default function Vitalslist({ patientId, encounterId }: Props) {
             const url = URL.createObjectURL(blob);
             window.open(url, "_blank");
         } catch (e) {
-            window.alert(e instanceof Error ? e.message : "Unable to print");
+            toast.error(e instanceof Error ? e.message : "Unable to print");
         }
     }
 

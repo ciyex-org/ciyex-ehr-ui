@@ -192,7 +192,7 @@
 // </html>`);
 //             win.document.close();
 //         } catch (e: unknown) {
-//             window.alert(e instanceof Error ? e.message : "Unable to print");
+//             toast.error(e instanceof Error ? e.message : "Unable to print");
 //         }
 //     }
 //
@@ -371,6 +371,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import type { ApiResponse, ProcedureDto } from "@/utils/types";
 import Procedureform from "./Procedureform";
+import { toast, confirmDialog } from "@/utils/toast";
 
 type Props = { patientId: number; encounterId: number };
 
@@ -455,7 +456,8 @@ export default function Procedurelist({ patientId, encounterId }: Props) {
     }
 
     async function remove(id: number) {
-        if (!confirm("Delete this procedure?")) return;
+        const confirmed = await confirmDialog("Delete this procedure?");
+        if (!confirmed) return;
         try {
             setBusyId(id);
             const res = await fetchWithOrg(
@@ -581,7 +583,7 @@ export default function Procedurelist({ patientId, encounterId }: Props) {
 </html>`);
             win.document.close();
         } catch (e: unknown) {
-            window.alert(e instanceof Error ? e.message : "Unable to print");
+            toast.error(e instanceof Error ? e.message : "Unable to print");
         }
     }
 

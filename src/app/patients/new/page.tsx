@@ -6,6 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { isValidName, isValidPhone, isValidEmail, isValidUSPhone, formatUSPhone, isValidSSN } from "@/utils/validation";
 import { usePermissions } from "@/context/PermissionContext";
+import { toast } from "@/utils/toast";
 
 // Define interfaces for your form data structure
 interface PersonalInfo {
@@ -548,7 +549,7 @@ export default function AddPatient() {
             const message = error instanceof Error
                 ? error.message
                 : 'Failed to create patient. Please try again.';
-            alert(message);
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
         }

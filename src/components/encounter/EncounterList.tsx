@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import type { ApiResponse, EncounterDto } from "@/utils/types";
 import Link from "next/link";
+import { toast, confirmDialog } from "@/utils/toast";
 
 type Props = {
     patientId: number;
@@ -45,11 +46,12 @@ export default function EncounterList({ patientId }: Props) {
     }, [patientId]);
 
     async function remove(id: number) {
-        if (!confirm("Delete this encounter?")) return;
+        const confirmed = await confirmDialog("Delete this encounter?");
+        if (!confirmed) return;
         const res = await fetchWithOrg(`/api/encounters/${id}`, { method: "DELETE" });
         const json = (await res.json()) as ApiResponse<void>;
         if (!res.ok || !json.success) {
-            alert(json.message || "Delete failed");
+            toast.error(json.message || "Delete failed");
             return;
         }
         setItems((p) => p.filter((x) => x.id !== id));

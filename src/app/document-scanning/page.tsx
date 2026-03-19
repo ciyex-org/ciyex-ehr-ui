@@ -32,6 +32,7 @@ import {
   OCR_STATUS_LABELS,
 } from "@/components/document-scanning/types";
 import { usePermissions } from "@/context/PermissionContext";
+import { confirmDialog } from "@/utils/toast";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
@@ -328,7 +329,8 @@ export default function DocumentScanningPage() {
   }, [searchDraft]);
 
   const handleDelete = async (doc: ScannedDocument) => {
-    if (!confirm(`Delete "${doc.originalFileName}"?`)) return;
+    const confirmed = await confirmDialog(`Delete "${doc.originalFileName}"?`);
+    if (!confirmed) return;
     try {
       const res = await fetchWithAuth(`${API()}/api/document-scanning/${doc.id}`, { method: "DELETE" });
       if (res.ok) {

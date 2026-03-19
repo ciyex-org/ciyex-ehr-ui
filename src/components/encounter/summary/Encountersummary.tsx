@@ -9,6 +9,7 @@ import { getEnv } from "@/utils/env";
 import { useEffect, useMemo, useRef, useState,useCallback } from "react";
 import Image from "next/image";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
+import { toast } from "@/utils/toast";
 
 type ApiResponse<T = unknown> = { success: boolean; message?: string; data?: T };
 
@@ -512,7 +513,7 @@ useEffect(() => {
 const downloadPdf = useCallback(async () => {
     try {
         if (!summaryRef.current) {
-            window.alert("No summary content to download.");
+            toast.warning("No summary content to download.");
             return;
         }
 
@@ -581,7 +582,7 @@ const downloadPdf = useCallback(async () => {
         document.body.removeChild(a);
     } catch (e) {
         console.error("PDF download error:", e);
-        window.alert("Failed to generate PDF: " + (e instanceof Error ? e.message : "Unknown error"));
+        toast.error("Failed to generate PDF: " + (e instanceof Error ? e.message : "Unknown error"));
     }
 }, [patientId, encounterId]);
 
