@@ -2018,17 +2018,17 @@ export default function DynamicFormRenderer({
           // Detect end-date and onset-date fields by key OR label
           const fieldLabel = (field.label || "").toLowerCase();
           const isEndDateKey =
-            /end.*date|^end$|enddate|endtime|resolv|abate|conclus/i.test(field.key) ||
-            /end\s*date|end\s*time|resolv|abate/i.test(fieldLabel);
+            /end.*date|^end$|enddate|endtime|resolv|abate|conclus|serviceTo|serviceToDate|billablePeriodEnd/i.test(field.key) ||
+            /end\s*date|end\s*time|resolv|abate|service\s*to/i.test(fieldLabel);
           const isOnsetKey =
-            /onset.*date|^onset$|onset.*time|start.*date|^recorded|^identified/i.test(field.key) ||
-            /onset|start\s*date/i.test(fieldLabel);
+            /onset.*date|^onset$|onset.*time|start.*date|^recorded|^identified|serviceFrom|serviceFromDate|billablePeriodStart/i.test(field.key) ||
+            /onset|start\s*date|service\s*from/i.test(fieldLabel);
 
           // Dynamically find onset date from formData (any key containing "onset" or "start")
           const findDateInFormData = (patterns: RegExp[]): string | undefined => {
             // Check exact known keys first
-            const knownOnset = ["onsetDate", "onset", "onsetDateTime", "onsetTime", "startDate", "recordedDate", "identifiedDate"];
-            const knownEnd = ["endDate", "end", "endDateTime", "resolvedDate", "abatementDate", "conclusionDate"];
+            const knownOnset = ["onsetDate", "onset", "onsetDateTime", "onsetTime", "startDate", "recordedDate", "identifiedDate", "serviceFrom", "serviceFromDate", "billablePeriodStart"];
+            const knownEnd = ["endDate", "end", "endDateTime", "resolvedDate", "abatementDate", "conclusionDate", "serviceTo", "serviceToDate", "billablePeriodEnd"];
             const keys = patterns.some(p => p.source.includes("onset") || p.source.includes("start") || p.source.includes("record"))
               ? knownOnset : knownEnd;
             for (const k of keys) {

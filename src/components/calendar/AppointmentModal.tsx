@@ -805,6 +805,28 @@ const AppointmentModal: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Duration (auto-calculated) */}
+                    <div className="col-span-2">
+                        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">Duration</label>
+                        <input
+                            type="text"
+                            readOnly
+                            value={(() => {
+                                if (!startTime || !endTime || !startDate || !endDate) return "";
+                                const startMs = new Date(`${startDate}T${startTime}`).getTime();
+                                const endMs = new Date(`${endDate}T${endTime}`).getTime();
+                                if (isNaN(startMs) || isNaN(endMs) || endMs <= startMs) return "";
+                                const diffMins = Math.round((endMs - startMs) / 60000);
+                                if (diffMins < 60) return `${diffMins} min`;
+                                const hrs = Math.floor(diffMins / 60);
+                                const mins = diffMins % 60;
+                                return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+                            })()}
+                            placeholder="Auto-calculated from time range"
+                            className="h-9 w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm text-gray-600 cursor-not-allowed dark:border-gray-700 dark:bg-dark-800 dark:text-gray-400"
+                        />
+                    </div>
+
                     {/* Priority */}
                     <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">Priority</label>
