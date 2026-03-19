@@ -2073,16 +2073,27 @@ export default function DynamicFormRenderer({
   const renderInput = (field: FieldDef, value: any, error?: string) => {
     switch (field.type) {
       case "text":
-      case "email":
+      case "email": {
+        const ssnKeys = ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"];
+        const isSsn = ssnKeys.includes(field.key);
         return (
           <Input
             type={field.type}
             value={value || ""}
             placeholder={field.placeholder}
-            onChange={(e) => onChange(field.key, e.target.value)}
+            onChange={(e) => {
+              if (isSsn) {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
+                onChange(field.key, digits);
+              } else {
+                onChange(field.key, e.target.value);
+              }
+            }}
+            maxLength={isSsn ? 9 : (field as any).maxLength}
             error={!!error}
           />
         );
+      }
       case "phone":
         return (
           <Input

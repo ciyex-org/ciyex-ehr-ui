@@ -226,6 +226,13 @@ export default function PriorAuthorizationsPage() {
   const [insuranceResults, setInsuranceResults] = useState<{ id: string; name?: string; insuranceName?: string; payerName?: string; payerId?: string; externalId?: string; fhirId?: string }[]>([]);
   const [showInsuranceDropdown, setShowInsuranceDropdown] = useState(false);
 
+  const patientInputRef = useRef<HTMLDivElement>(null);
+  const providerInputRef = useRef<HTMLDivElement>(null);
+  const insuranceInputRef = useRef<HTMLDivElement>(null);
+  const [patientDropdownStyle, setPatientDropdownStyle] = useState<React.CSSProperties>({});
+  const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
+  const [insuranceDropdownStyle, setInsuranceDropdownStyle] = useState<React.CSSProperties>({});
+
   const [diagnosisQuery, setDiagnosisQuery] = useState("");
   const [diagnosisResults, setDiagnosisResults] = useState<{ code: string; description?: string; shortDescription?: string }[]>([]);
   const [showDiagnosisDropdown, setShowDiagnosisDropdown] = useState(false);
@@ -310,6 +317,46 @@ export default function PriorAuthorizationsPage() {
       } catch (err) { console.warn("Insurance search error:", err); }
     });
   }, [insuranceQuery]);
+
+  // Fixed dropdown positions to escape overflow-y-auto clipping
+  useEffect(() => {
+    if (showPatientDropdown && patientInputRef.current) {
+      const rect = patientInputRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropHeight = Math.min(192, patientResults.length * 44);
+      if (spaceBelow < dropHeight && rect.top > dropHeight) {
+        setPatientDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      } else {
+        setPatientDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      }
+    }
+  }, [showPatientDropdown, patientResults.length]);
+
+  useEffect(() => {
+    if (showProviderDropdown && providerInputRef.current) {
+      const rect = providerInputRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropHeight = Math.min(192, providerResults.length * 44);
+      if (spaceBelow < dropHeight && rect.top > dropHeight) {
+        setProviderDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      } else {
+        setProviderDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      }
+    }
+  }, [showProviderDropdown, providerResults.length]);
+
+  useEffect(() => {
+    if (showInsuranceDropdown && insuranceInputRef.current) {
+      const rect = insuranceInputRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropHeight = Math.min(192, insuranceResults.length * 44);
+      if (spaceBelow < dropHeight && rect.top > dropHeight) {
+        setInsuranceDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      } else {
+        setInsuranceDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      }
+    }
+  }, [showInsuranceDropdown, insuranceResults.length]);
 
   // Diagnosis code search
   useEffect(() => {
@@ -1005,7 +1052,7 @@ export default function PriorAuthorizationsPage() {
                       }
                     />
                     {/* Patient Name - Searchable */}
-                    <div className="relative">
+                    <div className="relative" ref={patientInputRef}>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Patient Name</label>
                       <input
                         type="text"
@@ -1029,7 +1076,7 @@ export default function PriorAuthorizationsPage() {
                         className={autocompleteInputClass}
                       />
                       {showPatientDropdown && patientResults.length > 0 && (
-                        <div className={dropdownClass}>
+                        <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg" style={patientDropdownStyle}>
                           {patientResults.map((p) => (
                             <button
                               key={p.id}
@@ -1055,7 +1102,7 @@ export default function PriorAuthorizationsPage() {
                     </div>
                   </FormRow>
                   {/* Provider Name - Searchable */}
-                  <div className="relative">
+                  <div className="relative" ref={providerInputRef}>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Provider Name</label>
                     <input
                       type="text"
@@ -1070,7 +1117,7 @@ export default function PriorAuthorizationsPage() {
                       className={autocompleteInputClass}
                     />
                     {showProviderDropdown && providerResults.length > 0 && (
-                      <div className={dropdownClass}>
+                      <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg" style={providerDropdownStyle}>
                         {providerResults.map((p) => (
                           <button
                             key={p.id}
@@ -1099,7 +1146,7 @@ export default function PriorAuthorizationsPage() {
                 >
                   <FormRow>
                     {/* Insurance Name - Searchable */}
-                    <div className="relative">
+                    <div className="relative" ref={insuranceInputRef}>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Insurance Name</label>
                       <input
                         type="text"
@@ -1114,7 +1161,7 @@ export default function PriorAuthorizationsPage() {
                         className={autocompleteInputClass}
                       />
                       {showInsuranceDropdown && insuranceResults.length > 0 && (
-                        <div className={dropdownClass}>
+                        <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg" style={insuranceDropdownStyle}>
                           {insuranceResults.map((ins) => {
                             const displayName = ins.insuranceName || ins.payerName || ins.name || "";
                             return (

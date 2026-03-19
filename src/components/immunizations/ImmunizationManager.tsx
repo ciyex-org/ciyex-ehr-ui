@@ -316,8 +316,8 @@ function FormDrawer({
         if (!form.vaccineName?.trim()) e.vaccineName = "Vaccine name is required";
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
         // Lot number: alphanumeric only if provided
-        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim())) {
-            e.lotNumber = "Lot number must be alphanumeric (letters, numbers, hyphens only)";
+        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(form.lotNumber.trim())) {
+            e.lotNumber = "Lot number must start and end with alphanumeric characters (letters, numbers, internal hyphens only)";
         }
         // Dose: must be a positive number if provided
         if (form.dose !== undefined && form.dose !== null) {

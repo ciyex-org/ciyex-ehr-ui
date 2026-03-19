@@ -1232,7 +1232,7 @@ const noShowAnalysis: ReportDefinition = {
         byProvider: Object.entries(providerCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, ct]) => ({ name, rate: ct })),
         reasons: toChartData(reasonCounts, "name", "count").slice(0, 8),
       },
-      tableData: combined.slice(0, 100).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || ""), patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || "", status: a.status || "", reason: a.cancelReason || a.reason || "" })),
+      tableData: combined.slice(0, 100).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || ""), patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || a.serviceType || a.description || a.note || "—", status: a.status || "", reason: a.cancelReason || a.reason || a.cancellationNote || a.comment || "—" })),
       totalRecords: combined.length,
     };
   },
