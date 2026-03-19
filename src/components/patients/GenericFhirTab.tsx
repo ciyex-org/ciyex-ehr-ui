@@ -326,7 +326,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
                 // SSN fields — enforce maxLength of 11 (9 digits + 2 dashes) to prevent excess input
                 const ssnKeys = ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"];
-                if (ssnKeys.includes(f.key)) {
+                if (ssnKeys.includes(f.key) || f.key.toLowerCase().includes("ssn")) {
                     section.fields[i] = { ...section.fields[i] || f, maxLength: 11, placeholder: "XXX-XX-XXXX" };
                 }
                 // Phone/mobile fields — enforce maxLength of 15 to prevent excess input
@@ -1323,7 +1323,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         }
         // SSN fields — restrict to digits and hyphens, max 11 chars (xxx-xx-xxxx)
         const ssnFieldKeys = ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"];
-        if (ssnFieldKeys.includes(key) && typeof value === "string") {
+        if ((ssnFieldKeys.includes(key) || key.toLowerCase().includes("ssn")) && typeof value === "string") {
             value = value.replace(/[^0-9\-]/g, "").slice(0, 11);
             const digitsOnly = value.replace(/\D/g, "");
             if (digitsOnly.length > 9) {
@@ -1688,8 +1688,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         errors[key] = "Tribal affiliation must contain only letters";
                     }
                 }
-                // SSN — exactly 9 digits
-                for (const key of ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"]) {
+                // SSN — exactly 9 digits (covers any field key containing "ssn")
+                for (const key of Object.keys(formData)) {
+                    if (!["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"].includes(key) && !key.toLowerCase().includes("ssn")) continue;
                     const val = formData[key];
                     if (typeof val === "string" && val.trim() && !isValidSSN(val)) {
                         errors[key] = "SSN must be exactly 9 digits";
@@ -2958,19 +2959,18 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             ) : (
                 <>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm table-fixed">
+                        <table className="w-full text-sm min-w-[600px]">
                             <thead>
-                                <tr className="bg-gray-50 dark:bg-gray-800">
+                                <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                                     {cols.map((col) => (
                                         <th
                                             key={col.key}
-                                            className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                                            style={{ width: `${Math.floor((100 - 8) / cols.length)}%` }}
+                                            className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap"
                                         >
                                             {col.label}
                                         </th>
                                     ))}
-                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ width: '8%' }}>
+                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap w-20">
                                         Actions
                                     </th>
                                 </tr>
@@ -2982,14 +2982,19 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                         className="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
                                         onClick={() => handleRowClick(record)}
                                     >
-                                        {cols.map((col) => (
-                                            <td
-                                                key={col.key}
-                                                className="px-4 py-2.5 text-gray-700 dark:text-gray-300 break-words"
-                                            >
-                                                {(() => { const fv = formatValue(record[col.key], col.key, record); return (fv !== null && typeof fv === "object" && !("$$typeof" in (fv as object))) ? JSON.stringify(fv) : fv; })()}
-                                            </td>
-                                        ))}
+                                        {cols.map((col) => {
+                                            const fv = (() => { const v = formatValue(record[col.key], col.key, record); return (v !== null && typeof v === "object" && !("$$typeof" in (v as object))) ? JSON.stringify(v) : v; })();
+                                            const strVal = typeof fv === "string" ? fv : undefined;
+                                            return (
+                                                <td
+                                                    key={col.key}
+                                                    className="px-4 py-2.5 text-gray-700 dark:text-gray-300 max-w-[200px]"
+                                                    title={strVal && strVal.length > 60 ? strVal : undefined}
+                                                >
+                                                    <div className="truncate">{fv}</div>
+                                                </td>
+                                            );
+                                        })}
                                         <td className="px-4 py-2.5 text-right">
                                             {canWrite && (
                                                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>

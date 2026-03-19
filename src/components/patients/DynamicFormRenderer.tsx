@@ -1607,14 +1607,18 @@ function FamilyHistoryList({
           className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
         >
           {readOnly ? (
-            <div className="flex items-center gap-3">
-              <span className="text-xs px-2 py-0.5 rounded font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 whitespace-nowrap">
+            <div className="flex flex-wrap items-start gap-2">
+              <span className="text-xs px-2 py-0.5 rounded font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 whitespace-nowrap shrink-0">
                 {relationshipOptions.find((o) => o.value === item.relationship)?.label || item.relationship}
               </span>
-              <span className="text-sm text-gray-700 dark:text-gray-300 flex-1">{item.condition || "—"}</span>
-              {showAgeOfOnset && item.ageOfOnset && <span className="text-xs text-gray-500">Onset: {item.ageOfOnset}</span>}
-              {showDeceased && item.deceased && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">Deceased</span>}
-              {showNotes && item.notes && <span className="text-xs text-gray-400 italic">{item.notes}</span>}
+              <div className="flex-1 min-w-0">
+                <span className="text-sm text-gray-700 dark:text-gray-300">{item.condition || "—"}</span>
+                <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                  {showAgeOfOnset && item.ageOfOnset && <span className="text-xs text-gray-500">Onset: {item.ageOfOnset}</span>}
+                  {showDeceased && item.deceased && <span className="text-xs px-1.5 py-0.5 rounded bg-gray-200 text-gray-600">Deceased</span>}
+                  {showNotes && item.notes && <span className="text-xs text-gray-400 italic">{item.notes}</span>}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
