@@ -306,11 +306,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "payerName" || f.key === "insurerName" || f.key === "companyName" || f.key === "insurer" || f.key === "payor")) {
                     section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-companies", displayField: "name", valueField: "name", searchable: true }, required: true };
                 }
-                // Issue 13: Insurance — planName must be a select (no free-text)
+                // Issue 13: Insurance — planName must be a lookup filtered by selected company
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "planName" || f.key === "plan" || f.key === "coveragePlan")) {
-                    if (f.type === "text" || f.type === "combobox") {
-                        section.fields[i] = { ...f, type: "select" };
-                    }
+                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-plans", displayField: "name", valueField: "name", searchable: true }, placeholder: "Select company first, then plan" };
                 }
                 // Issue 15: Documents — attachment/file field must be required + allow common doc types including CSV
                 if ((tabKey === "documents" || tabKey === "document-references") && (f.key === "attachment" || f.key === "file" || f.key === "fileUrl" || f.key === "documentUrl" || f.key === "content")) {
@@ -1338,6 +1336,27 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         }
         setFormData((prev) => {
             const next = { ...prev, [key]: value };
+            // Insurance: plan selection requires company to be selected first
+            const isInsuranceTab = tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage";
+            const isPlanKey = key === "planName" || key === "plan" || key === "coveragePlan";
+            if (isInsuranceTab && isPlanKey) {
+                const companyKeys = ["payerName", "insurerName", "companyName", "insurer", "payor"];
+                const hasCompany = companyKeys.some(k => next[k] && String(next[k]).trim());
+                if (!hasCompany) {
+                    setValidationErrors(prev => ({ ...prev, payerName: "Please select an Insurance Company first", insurerName: "Please select an Insurance Company first" }));
+                    return prev; // Prevent plan selection without company
+                }
+            }
+            // ERA/Remittance: auto-update serviceTo when serviceFrom changes
+            const isEraTab = tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance";
+            const isServiceFromKey = key === "serviceFrom" || key === "serviceFromDate" || key === "serviceDateFrom" || key === "billablePeriodStart";
+            if (isEraTab && isServiceFromKey && value) {
+                const toKeys = ["serviceTo", "serviceToDate", "serviceDateTo", "billablePeriodEnd"];
+                const currentTo = toKeys.map(k => next[k]).find(v => v);
+                if (currentTo && new Date(String(currentTo)) < new Date(String(value))) {
+                    for (const tk of toKeys) { if (next[tk] != null) next[tk] = value; }
+                }
+            }
             // Auto-calculate duration from start/end time for appointments
             if (tabKey === "appointments") {
                 const startKeys = ["appointmentStartTime", "startTime", "start"];
@@ -1401,12 +1420,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
             }
         }
-        // For messaging tab: auto-fill patientId so backend can resolve patient name
+        // For messaging tab: auto-fill patient (locked to current patient context)
         if (tabKey === "messaging") {
+            const displayName = patientName || String(patientId);
             defaults.patientId = defaults.patientId || patientId;
-            defaults.patient = defaults.patient || patientId;
-            defaults.to = defaults.to || patientId;
-            defaults.recipient = defaults.recipient || patientId;
+            defaults.patient = defaults.patient || displayName;
+            defaults.patientName = defaults.patientName || displayName;
+            defaults.to = defaults.to || displayName;
+            defaults.recipient = defaults.recipient || displayName;
             // Auto-fill date if not already set
             if (!defaults.date && !defaults.sentDate) {
                 defaults.date = new Date().toISOString().slice(0, 10);
@@ -1646,8 +1667,8 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (svcFrom && svcTo) {
                     const fromDt = new Date(String(svcFrom));
                     const toDt = new Date(String(svcTo));
-                    if (!isNaN(fromDt.getTime()) && !isNaN(toDt.getTime()) && toDt <= fromDt) {
-                        const msg = "Service To must be after Service From (same date not allowed)";
+                    if (!isNaN(fromDt.getTime()) && !isNaN(toDt.getTime()) && toDt < fromDt) {
+                        const msg = "Service To must be on or after Service From";
                         errors.serviceTo = msg;
                         errors.serviceToDate = msg;
                         errors.serviceDateTo = msg;
@@ -2228,9 +2249,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
                 if (payload.provider && typeof payload.provider === "string") {
                     payload.provider = { reference: `Practitioner/${payload.provider}` };
-                } else if (!payload.provider) {
-                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
-                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
+                } else if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string" && payload.provider.reference.startsWith("Organization/")) {
+                    // Reject Organization reference — Claim.provider must be Practitioner
+                    delete payload.provider;
                 }
                 if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
@@ -2243,9 +2264,8 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             if (tabKey === "claims" || tabKey === "transactions") {
                 if (payload.provider && typeof payload.provider === "string") {
                     payload.provider = { reference: `Practitioner/${payload.provider}` };
-                } else if (!payload.provider) {
-                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
-                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
+                } else if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string" && payload.provider.reference.startsWith("Organization/")) {
+                    delete payload.provider;
                 }
                 if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
@@ -2258,9 +2278,8 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             if (tabKey === "submissions" || tabKey === "claim-submissions") {
                 if (payload.provider && typeof payload.provider === "string") {
                     payload.provider = { reference: `Practitioner/${payload.provider}` };
-                } else if (!payload.provider) {
-                    const storedOrgId = typeof window !== "undefined" ? localStorage.getItem("orgId") : null;
-                    payload.provider = { reference: `Organization/${storedOrgId || "1"}` };
+                } else if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string" && payload.provider.reference.startsWith("Organization/")) {
+                    delete payload.provider;
                 }
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
                 if (!payload.use) payload.use = "claim";
@@ -2781,6 +2800,33 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             errors={validationErrors}
                             patientId={patientId}
                         />
+                    )}
+                    {/* Send channel selector for messaging tab */}
+                    {tabKey === "messaging" && mode !== "view" && (
+                        <div className="mt-4 p-4 border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send via</label>
+                            <div className="flex gap-3 flex-wrap">
+                                {[
+                                    { value: "in-app", label: "In-App Message", icon: "💬" },
+                                    { value: "email", label: "Email", icon: "✉️" },
+                                    { value: "sms", label: "SMS", icon: "📱" },
+                                ].map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => handleFieldChange("sendVia", opt.value)}
+                                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm transition-colors ${
+                                            (formData.sendVia || "in-app") === opt.value
+                                                ? "border-blue-500 bg-blue-600 text-white"
+                                                : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-blue-300"
+                                        }`}
+                                    >
+                                        <span>{opt.icon}</span>
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     )}
                     {/* File upload for reports tab */}
                     {(tabKey === "report" || tabKey === "reports") && mode !== "view" && (

@@ -1943,7 +1943,7 @@ export default function DynamicFormRenderer({
                 onChange(targetKey, sourceValue);
               }
             }
-          } : undefined} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
+          } : undefined} readOnly={readOnly || !!(field as any).readOnly} displayLabel={formData[field.key + "Display"] || (readOnly || (field as any).readOnly ? value : undefined)} />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       );
@@ -1963,7 +1963,7 @@ export default function DynamicFormRenderer({
                 onChange(targetKey, sourceValue);
               }
             }
-          } : undefined} readOnly={readOnly} displayLabel={formData[field.key + "Display"]} />
+          } : undefined} readOnly={readOnly || !!(field as any).readOnly} displayLabel={formData[field.key + "Display"] || (readOnly || (field as any).readOnly ? value : undefined)} />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       );

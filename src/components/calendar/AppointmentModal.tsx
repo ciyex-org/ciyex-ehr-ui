@@ -769,8 +769,8 @@ const AppointmentModal: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Time Row: Start Time | End Time */}
-                    <div className="col-span-2 grid grid-cols-2 gap-3">
+                    {/* Time Row: Start Time | End Time | Duration */}
+                    <div className="col-span-2 grid grid-cols-3 gap-3">
                         <div>
                             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                 Start Time
@@ -801,6 +801,20 @@ const AppointmentModal: React.FC = () => {
                                     className="h-9 w-full rounded-lg border border-gray-300 pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                 />
                                 <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" strokeWidth="2" d="M12 6v6l4 2"/></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Duration
+                            </label>
+                            <div className="h-9 flex items-center px-3 rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-dark-800 text-sm text-gray-600 dark:text-gray-400">
+                                {(() => {
+                                    const diff = hmToMinutes(endTime) - hmToMinutes(startTime);
+                                    if (diff <= 0) return <span className="text-gray-400">—</span>;
+                                    const h = Math.floor(diff / 60);
+                                    const m = diff % 60;
+                                    return h > 0 ? `${h}h ${m > 0 ? m + "m" : ""}`.trim() : `${m} min`;
+                                })()}
                             </div>
                         </div>
                     </div>
