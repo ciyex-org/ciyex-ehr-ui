@@ -633,8 +633,11 @@ export default function PatientDashboardPage() {
     return (
         <PluginContextProvider patient={{ id: patient.id, name: `${patient.firstName} ${patient.lastName}`, birthDate: patient.dateOfBirth, gender: patient.gender }}>
         <AdminLayout>
-            {/* Negate AdminLayout padding so chart goes full-bleed */}
-            <div className="pageScroll bg-gray-50 h-full -m-4 md:-m-6 flex flex-col">
+            {/* Negate AdminLayout padding so chart goes full-bleed.
+                overflow-hidden prevents the outer AdminLayout scroll container from activating
+                (all scrolling happens in main.overflow-y-auto, preventing the sticky patient
+                header from overlapping content). Fixed/absolute panels (z-50) are unaffected. */}
+            <div className="pageScroll bg-gray-50 h-full -m-4 md:-m-6 flex flex-col overflow-hidden">
                 {/* Patient header bar */}
                 <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2">
@@ -710,7 +713,7 @@ export default function PatientDashboardPage() {
                         onNavigate={onTabClick}
                         tabCategories={tabCategories}
                     />
-                    <main className="flex-1 min-w-0 p-4 overflow-y-auto">
+                    <main className="flex-1 min-w-0 min-h-0 p-4 overflow-y-auto">
                         {renderTabContent(viewMode)}
                     </main>
                     {/* Plugin sidebar widgets (e.g., Chat, AI Assistant, RPM panel) */}

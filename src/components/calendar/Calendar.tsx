@@ -53,16 +53,19 @@ const monthViewStyles = `
   overflow: hidden !important;
 }
 
-/* Sticky day-of-week header row for Month / Week views */
-.fc .fc-scrollgrid-section-sticky > td,
-.fc .fc-scrollgrid-section-sticky > th {
+/* Sticky day-of-week header row for Month / Week views
+   Target fc-scrollgrid-section-header directly (works without stickyHeaderDates prop).
+   overflow-x:clip on fc-view-harness is NOT a sticky containing block (only overflow:hidden/auto/scroll are),
+   so sticky correctly propagates up to scrollContainerRef (overflow-auto). */
+.fc .fc-scrollgrid-section-header > td,
+.fc .fc-scrollgrid-section-header > th {
   position: sticky !important;
   top: 0 !important;
   z-index: 20 !important;
   background: white;
 }
-.dark .fc .fc-scrollgrid-section-sticky > td,
-.dark .fc .fc-scrollgrid-section-sticky > th {
+.dark .fc .fc-scrollgrid-section-header > td,
+.dark .fc .fc-scrollgrid-section-header > th {
   background: #1a2231;
 }
 
