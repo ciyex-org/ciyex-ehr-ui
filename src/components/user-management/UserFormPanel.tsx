@@ -144,7 +144,7 @@ export default function UserFormPanel({ open, editUser, onClose, onSave }: Props
 
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email *</label>
-            <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); if (formErrors.email) setFormErrors(p => { const n = {...p}; delete n.email; return n; }); }} required
+            <input type="email" name="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); if (formErrors.email) setFormErrors(p => { const n = {...p}; delete n.email; return n; }); }} required
               className={`w-full px-3 py-2 rounded-lg border bg-white dark:bg-slate-800 text-sm ${formErrors.email ? "border-red-400" : "border-slate-300 dark:border-slate-600"}`} />
             {formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}
             {showAutoLinkNote && (
