@@ -1197,9 +1197,6 @@ const noShowAnalysis: ReportDefinition = {
         const st = a.serviceType[0];
         a.visitType = st?.text || st?.coding?.[0]?.display || st?.display || "";
       }
-      if (!a.visitType && typeof a.serviceType === "object" && a.serviceType?.text) a.visitType = a.serviceType.text;
-      if (!a.visitType && a.description) a.visitType = a.description;
-      if (!a.visitType && a.class) a.visitType = typeof a.class === "object" ? (a.class.display || a.class.code || "") : a.class;
       if (!a.cancelReason && a.cancellationReason) a.cancelReason = a.cancellationReason;
       if (!a.cancelReason && a.reasonCode) {
         const rc = Array.isArray(a.reasonCode) ? a.reasonCode[0] : a.reasonCode;
@@ -1755,7 +1752,7 @@ const auditLog: ReportDefinition = {
         byAction: records.length > 0 ? toChartData(actionCounts, "name", "count") : [{ name: "Chart View", count: 450 }, { name: "Login", count: 280 }, { name: "Order", count: 180 }, { name: "Note Edit", count: 160 }, { name: "Rx Write", count: 95 }, { name: "Config Change", count: 45 }],
         dailyTrend: Array.from({ length: 14 }, (_, i) => ({ date: daysAgo(13 - i), count: 80 + Math.floor(Math.random() * 40) })),
       },
-      tableData: records.length > 0 ? records.slice(0, 100).map(a => ({ timestamp: a.timestamp || a.createdAt || a.date || a.eventTime || "", user: a.user || a.username || a.userName || a.performedBy || a.actor || a.userId || a.modifiedBy || a.createdBy || "", action: a.action || a.actionType || a.eventType || a.type || a.activity || "", resource: a.resource || a.entityType || a.resourceType || a.target || a.objectType || a.entity || a.subject || "", details: a.details || a.description || a.message || a.summary || a.note || "", ipAddress: a.ipAddress || a.ip || a.sourceIp || a.clientIp || "" })) : Array.from({ length: 20 }, (_, i) => ({ timestamp: new Date(Date.now() - i * 3600000).toISOString(), user: ["michael.chen", "dr.sarah.williams", "jennifer.martinez"][i % 3], action: ["Login", "Chart View", "Note Edit", "Order", "Rx Write"][i % 5], resource: `Patient #${1000 + i}`, details: "Routine access", ipAddress: "192.168.1." + (10 + i) })),
+      tableData: records.length > 0 ? records.slice(0, 100).map(a => ({ timestamp: a.timestamp || a.createdAt || "", user: a.user || a.username || "", action: a.action || a.actionType || "", resource: a.resource || a.entityType || "", details: a.details || a.description || "", ipAddress: a.ipAddress || a.ip || "" })) : Array.from({ length: 20 }, (_, i) => ({ timestamp: new Date(Date.now() - i * 3600000).toISOString(), user: ["michael.chen", "dr.sarah.williams", "jennifer.martinez"][i % 3], action: ["Login", "Chart View", "Note Edit", "Order", "Rx Write"][i % 5], resource: `Patient #${1000 + i}`, details: "Routine access", ipAddress: "192.168.1." + (10 + i) })),
       totalRecords: records.length || 1250,
     };
   },

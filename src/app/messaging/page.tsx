@@ -57,25 +57,14 @@ export default function MessagingPage() {
   const loadMessages = useCallback(async (channelId: string) => {
     try {
       const messages = await api.getMessages(channelId);
-      const list = Array.isArray(messages) ? messages : [];
-      // Enrich messages that have null/empty senderName (API may omit for current user)
-      const enriched = list.map((msg) => {
-        if (!msg.senderName && msg.senderId === currentUser.id) {
-          return { ...msg, senderName: currentUser.displayName || "You", senderAvatar: msg.senderAvatar || currentUser.avatar };
-        }
-        if (!msg.senderName) {
-          return { ...msg, senderName: msg.senderId || "Unknown" };
-        }
-        return msg;
-      });
-      dispatch({ type: "SET_MESSAGES", messages: enriched });
+      dispatch({ type: "SET_MESSAGES", messages: Array.isArray(messages) ? messages : [] });
       api.markChannelRead(channelId).catch(() => {});
       dispatch({ type: "MARK_CHANNEL_READ", channelId });
     } catch (err) {
       console.error("Failed to load messages:", err);
       dispatch({ type: "SET_MESSAGES", messages: [] });
     }
-  }, [currentUser]);
+  }, []);
 
   // Load channel members
   const loadMembers = useCallback(async (channelId: string) => {

@@ -266,7 +266,7 @@ export default function PriorAuthorizationsPage() {
 
   // Patient search — skip re-search when query matches the already-selected patient name
   useEffect(() => {
-    if (!patientQuery.trim()) { setPatientResults([]); return; }
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
     if (formData.patientName && patientQuery === formData.patientName) return;
     debounceSearch("patient", () => runPatientSearch(patientQuery));
   }, [patientQuery, runPatientSearch, formData.patientName]);

@@ -312,10 +312,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, type: "select" };
                     }
                 }
-                // Issue 15: Documents — attachment/file field must be required + allow CSV/XLS/TXT uploads
+                // Issue 15: Documents — attachment/file field must be required
                 if ((tabKey === "documents" || tabKey === "document-references") && (f.key === "attachment" || f.key === "file" || f.key === "fileUrl" || f.key === "documentUrl" || f.key === "content")) {
-                    const docAllowed = ["pdf", "doc", "docx", "jpg", "jpeg", "png", "gif", "dicom", "csv", "xls", "xlsx", "txt", "rtf", "application/pdf", "image/jpeg", "image/png", "text/csv", "text/plain"];
-                    section.fields[i] = { ...f, required: true, fileConfig: { ...((f as any).fileConfig || {}), allowedTypes: (f as any).fileConfig?.allowedTypes?.length > 0 ? [...new Set([...(f as any).fileConfig.allowedTypes, ...docAllowed])] : docAllowed } };
+                    section.fields[i] = { ...f, required: true };
                 }
                 // SSN fields — enforce maxLength of 11 (9 digits + 2 dashes) to prevent excess input
                 const ssnKeys = ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"];
