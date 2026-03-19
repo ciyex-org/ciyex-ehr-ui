@@ -123,22 +123,15 @@ export default function CDSPage() {
   const fetchStats = useCallback(async () => {
     try {
       const res = await fetchWithAuth(`${API()}/api/cds/stats`);
-      if (!res.ok) {
-        // If stats endpoint fails, build stats from rules data
-        setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
-        return;
-      }
-      const json = await res.json();
-      if (json.success) setStats(json.data);
-      else setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
-    } catch {
-      // Fallback stats from local data
-      setStats({ totalRules: rules.length, activeRules: rules.filter(r => r.isActive).length, totalAlerts: 0, unresolvedAlerts: 0 } as CDSStats);
-    }
-  }, [rules]);
+      if (!res.ok) { setStats(null); return; }
+      const json = await res.json().catch(() => null);
+      if (json?.success) setStats(json.data);
+    } catch { /* stats are optional — silently ignore */ }
+  }, []);
 
   useEffect(() => { fetchRules(); }, [fetchRules]);
-  useEffect(() => { fetchAlerts(); fetchStats(); }, [fetchAlerts, fetchStats]);
+  useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
+  useEffect(() => { fetchStats(); }, [fetchStats]);
 
   /* Debounced search */
   useEffect(() => {
@@ -186,16 +179,20 @@ export default function CDSPage() {
   const handleSave = async (data: Partial<CDSRule>) => {
     const url = editingRule ? `${API()}/api/cds/rules/${editingRule.id}` : `${API()}/api/cds/rules`;
     const method = editingRule ? "PUT" : "POST";
-    const res = await fetchWithAuth(url, { method, body: JSON.stringify(data) });
-    const json = await res.json();
-    if (res.ok && json.success) {
-      setToast({ type: "success", text: editingRule ? "Rule updated" : "Rule created" });
-      setPanelOpen(false);
-      setEditingRule(null);
-      fetchRules();
-      fetchStats();
-    } else {
-      setToast({ type: "error", text: json.message || "Failed to save rule" });
+    try {
+      const res = await fetchWithAuth(url, { method, body: JSON.stringify(data) });
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        setToast({ type: "success", text: editingRule ? "Rule updated" : "Rule created" });
+        setPanelOpen(false);
+        setEditingRule(null);
+        fetchRules();
+        fetchStats();
+      } else {
+        setToast({ type: "error", text: json?.message || "Failed to save rule" });
+      }
+    } catch {
+      setToast({ type: "error", text: "An error occurred while saving the rule" });
     }
   };
 

@@ -156,7 +156,7 @@ export default function TaskFormPanel({
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               placeholder="Enter task title"
-              className={`w-full px-3 py-2 text-sm rounded-lg border ${form.title !== undefined && form.title !== "" && (!form.title.trim() || /[<>{}[\]\\^~`|]/.test(form.title)) ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition`}
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${form.title !== undefined && form.title !== "" && (!form.title.trim() || /[<>{}[\]\\^~`|]/.test(form.title) || /^-|-$/.test(form.title.trim())) ? "border-red-400 dark:border-red-500" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition`}
               maxLength={200}
             />
             {form.title !== undefined && form.title !== "" && !form.title.trim() && (
@@ -164,6 +164,9 @@ export default function TaskFormPanel({
             )}
             {form.title !== undefined && form.title.trim() && /[<>{}[\]\\^~`|]/.test(form.title) && (
               <p className="text-xs text-red-500 mt-1">Title contains invalid characters</p>
+            )}
+            {form.title !== undefined && form.title.trim() && !(/[<>{}[\]\\^~`|]/.test(form.title)) && /^-|-$/.test(form.title.trim()) && (
+              <p className="text-xs text-red-500 mt-1">Title cannot start or end with a hyphen</p>
             )}
           </div>
 
@@ -421,7 +424,7 @@ export default function TaskFormPanel({
           </button>
           <button
             onClick={onSave}
-            disabled={saving || !form.title.trim() || /[<>{}[\]\\^~`|]/.test(form.title)}
+            disabled={saving || !form.title.trim() || /[<>{}[\]\\^~`|]/.test(form.title) || /^-|-$/.test(form.title.trim())}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition-colors"
           >
             {saving ? (

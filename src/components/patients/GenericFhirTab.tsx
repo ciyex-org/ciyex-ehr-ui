@@ -1891,7 +1891,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 for (const key of ["name", "facilityName", "facility_name", "locationName"]) {
                     const val = formData[key];
                     if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
-                        errors[key] = "Facility name must contain only letters";
+                        errors[key] = "Facility name must contain at least one letter";
                     }
                 }
                 for (const key of Object.keys(formData)) {

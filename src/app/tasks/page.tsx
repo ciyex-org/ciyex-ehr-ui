@@ -177,6 +177,7 @@ export default function TasksPage() {
 
   const handleSaveTask = useCallback(async () => {
     if (!formData.title.trim()) { addToast("error", "Task title is required"); return; }
+    if (/^-|-$/.test(formData.title.trim())) { addToast("error", "Task title cannot start or end with a hyphen"); return; }
     setSaving(true);
     try {
       const url = editingId ? apiUrl(`/api/tasks/${editingId}`) : apiUrl("/api/tasks");
