@@ -322,8 +322,11 @@ function getDateRange(preset: string): { from: string; to: string } {
 }
 
 export default function AppointmentPage() {
-  const { canWriteResource, hasCategory, loading: permLoading } = usePermissions();
-  const canWriteAppointment = canWriteResource("Appointment");
+  const { canWriteResource, hasCategory, hasCategoryWrite, loading: permLoading } = usePermissions();
+  // Require scheduling.write permission to modify appointments.
+  // Fall back to allowing if no scheduling category is configured at all (no scheduling.* perms).
+  const canEditSchedule = hasCategoryWrite("scheduling") || !hasCategory("scheduling");
+  const canWriteAppointment = canWriteResource("Appointment") && canEditSchedule;
   const canWriteEncounter = canWriteResource("Encounter");
 
   // Block access if user lacks scheduling permission

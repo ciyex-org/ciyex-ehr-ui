@@ -457,7 +457,10 @@ type ViewType = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay';
 
 
 const Calendar: React.FC = () => {
-    const { hasCategory, loading: permLoading } = usePermissions();
+    const { hasCategory, hasCategoryWrite, loading: permLoading } = usePermissions();
+    // Require scheduling.write to create/edit appointments.
+    // Fall back if no scheduling category perms are configured at all.
+    const canEditSchedule = hasCategoryWrite("scheduling") || !hasCategory("scheduling");
 
     // Block access if user lacks scheduling permission
     if (!permLoading && !hasCategory("scheduling")) {
@@ -1213,6 +1216,8 @@ const Calendar: React.FC = () => {
 
     // Default 15-minute end when selecting on grid
     const handleDateSelect = useCallback((selectInfo: DateSelectArg, providerId?: string) => {
+        // Block if user lacks write permission
+        if (!canEditSchedule) return;
         // Block past dates — only allow today or future
         const now = new Date();
         now.setHours(0, 0, 0, 0);
@@ -2320,7 +2325,8 @@ const Calendar: React.FC = () => {
                                     onClick={handleAddOrUpdateAppointment}
                                     type="button"
                                     className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 sm:w-auto"
-                                    disabled={isSaving || !appointmentProviderId || !startDate || !startTime || !endDate || !endTime}
+                                    disabled={isSaving || !appointmentProviderId || !startDate || !startTime || !endDate || !endTime || !canEditSchedule}
+                                    title={!canEditSchedule ? "You don't have permission to edit the schedule" : undefined}
                                 >
                                     {isSaving ? 'Saving...' : (selectedEvent ? 'Update Appointment' : 'Save Appointment')}
                                 </button>
