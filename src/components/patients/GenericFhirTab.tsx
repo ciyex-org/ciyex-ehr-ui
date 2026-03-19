@@ -2500,10 +2500,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (value.length === 0) return "-";
                 const first = value[0];
                 if (first != null && typeof first === "object") {
-                    // Array of CodeableConcepts
+                    // Array of CodeableConcepts — show ALL items, not just the first
                     if (first.coding || first.text) {
-                        const d = first.coding?.[0]?.display || first.coding?.[0]?.code || (typeof first.text === "string" ? first.text : null);
-                        if (typeof d === "string") return d;
+                        const labels: string[] = [];
+                        for (const item of value) {
+                            const d = item?.coding?.[0]?.display || item?.coding?.[0]?.code || (typeof item?.text === "string" ? item.text : null);
+                            if (typeof d === "string") labels.push(d);
+                        }
+                        if (labels.length > 0) return labels.join(", ");
                     }
                     // FHIR AllergyIntolerance reaction array [{manifestation, severity, description, substance}]
                     if ("manifestation" in first || "severity" in first || "description" in first) {
@@ -2529,7 +2533,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
                 // Plain string/number array
                 if (typeof first === "string" || typeof first === "number") {
-                    return value.slice(0, 3).join(", ");
+                    return value.join(", ");
                 }
                 return JSON.stringify(value);
             }
@@ -2559,7 +2563,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             return JSON.stringify(value);
         }
         const str = String(value);
-        return str.length > 50 ? str.substring(0, 50) + "..." : str;
+        return str.length > 120 ? str.substring(0, 120) + "..." : str;
         } catch { return "-"; }
     };
 
@@ -2856,18 +2860,19 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             ) : (
                 <>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="w-full text-sm table-fixed">
                             <thead>
                                 <tr className="bg-gray-50 dark:bg-gray-800">
                                     {cols.map((col) => (
                                         <th
                                             key={col.key}
                                             className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                                            style={{ width: `${Math.floor((100 - 8) / cols.length)}%` }}
                                         >
                                             {col.label}
                                         </th>
                                     ))}
-                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-24">
+                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ width: '8%' }}>
                                         Actions
                                     </th>
                                 </tr>
@@ -2882,7 +2887,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                         {cols.map((col) => (
                                             <td
                                                 key={col.key}
-                                                className="px-4 py-2.5 text-gray-700 dark:text-gray-300"
+                                                className="px-4 py-2.5 text-gray-700 dark:text-gray-300 break-words"
                                             >
                                                 {(() => { const fv = formatValue(record[col.key], col.key, record); return (fv !== null && typeof fv === "object" && !("$$typeof" in (fv as object))) ? JSON.stringify(fv) : fv; })()}
                                             </td>
