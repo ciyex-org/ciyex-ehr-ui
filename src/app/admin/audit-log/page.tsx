@@ -145,19 +145,33 @@ export default function AuditLogPage() {
       if (json.success !== false && responseData) {
         const rawContent: any[] = responseData.content ?? (Array.isArray(responseData) ? responseData : responseData.items ?? responseData.records ?? []);
         // Normalize field names — backend may use snake_case, camelCase, or nested variants
-        const content: AuditLogEntry[] = rawContent.map((e: any) => ({
-          ...e,
-          userName:     e.userName     || e.user_name    || e.username      || e.performedBy  || e.performedByName || e.createdBy || e.createdByName || e.operator || e.operatorName || (typeof e.user === "string" ? e.user : (e.user?.name || e.user?.fullName || e.user?.username || e.user?.email || "")) || e.actor || e.actorName || e.modifiedBy || e.updatedBy || e.changedBy || e.initiator || (typeof e.userId === "number" ? String(e.userId) : e.userId) || e.user_id || e.email || e.subject || e.login || "",
-          userRole:     e.userRole     || e.user_role    || e.role          || "",
-          resourceType: e.resourceType || e.resource_type|| e.entityType    || e.entity_type  || e.type || e.targetType || e.targetEntityType || e.objectType || e.category || (typeof e.resource === "string" ? e.resource : e.resource?.type || e.resource?.resourceType || "") || e.module || "",
-          resourceName: e.resourceName || e.resource_name|| e.entityName    || e.entity_name  || e.targetName || e.targetEntityName || e.affectedResource || e.name || e.target || e.object || e.subject || e.display || (e.resource && typeof e.resource === "object" ? e.resource.name || e.resource.display || "" : "") || "",
-          resourceId:   e.resourceId   || e.resource_id  || e.entityId      || e.entity_id    || "",
-          ipAddress:    e.ipAddress    || e.ip_address   || e.ip            || "",
-          action:       e.action       || e.actionType   || e.operation     || "",
-          createdAt:    e.createdAt    || e.created_at   || e.timestamp     || e.date          || "",
-          patientName:  e.patientName  || e.patient_name || "",
-          details:      e.details      || e.description  || e.message       || null,
-        }));
+        // Also parse details JSON as a last-resort fallback for missing user/resource fields
+        const parseDetailsJson = (raw: any): Record<string, any> => {
+          if (!raw) return {};
+          if (typeof raw === "object") return raw;
+          try { return JSON.parse(raw); } catch { return {}; }
+        };
+        const content: AuditLogEntry[] = rawContent.map((e: any) => {
+          const d = parseDetailsJson(e.details || e.description || e.message);
+          const rawUserId = e.userId || e.user_id || d.userId || d.user_id || "";
+          const rawResourceId = e.resourceId || e.resource_id || e.entityId || e.entity_id || d.resourceId || "";
+          // If resourceId is "ResourceType/id" (FHIR format), extract the type prefix
+          const resourceTypeFromId = (typeof rawResourceId === "string" && rawResourceId.includes("/"))
+            ? rawResourceId.split("/")[0] : "";
+          return {
+            ...e,
+            userName:     e.userName     || e.user_name    || e.username      || e.performedBy  || e.performedByName || e.createdBy || e.createdByName || e.operator || e.operatorName || (typeof e.user === "string" ? e.user : (e.user?.name || e.user?.fullName || e.user?.username || e.user?.email || "")) || e.actor || e.actorName || e.modifiedBy || e.updatedBy || e.changedBy || e.initiator || rawUserId || e.email || e.subject || e.login || d.userName || d.performedBy || d.createdBy || d.operator || d.actor || d.user || "",
+            userRole:     e.userRole     || e.user_role    || e.role          || d.userRole || d.role || "",
+            resourceType: e.resourceType || e.resource_type|| e.entityType    || e.entity_type  || e.type || e.targetType || e.targetEntityType || e.objectType || e.category || (typeof e.resource === "string" ? e.resource : e.resource?.type || e.resource?.resourceType || "") || e.module || d.resourceType || d.entityType || d.type || resourceTypeFromId || "",
+            resourceName: e.resourceName || e.resource_name|| e.entityName    || e.entity_name  || e.targetName || e.targetEntityName || e.affectedResource || e.name || e.target || e.object || (e.subject && e.subject !== e.userName ? e.subject : "") || e.display || (e.resource && typeof e.resource === "object" ? e.resource.name || e.resource.display || "" : "") || d.resourceName || d.entityName || d.name || "",
+            resourceId:   rawResourceId,
+            ipAddress:    e.ipAddress    || e.ip_address   || e.ip            || "",
+            action:       e.action       || e.actionType   || e.operation     || "",
+            createdAt:    e.createdAt    || e.created_at   || e.timestamp     || e.date          || "",
+            patientName:  e.patientName  || e.patient_name || "",
+            details:      e.details      || e.description  || e.message       || null,
+          };
+        });
         setLogs(content);
         setTotalElements(responseData.totalElements ?? responseData.total ?? content.length ?? 0);
         setTotalPages(responseData.totalPages ?? (responseData.totalElements ? Math.ceil(responseData.totalElements / pageSize) : (content.length > 0 ? 1 : 0)));

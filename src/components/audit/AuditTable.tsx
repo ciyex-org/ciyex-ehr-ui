@@ -181,7 +181,7 @@ export default function AuditTable({
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
-                            {log.userName || "\u2014"}
+                            {log.userName || (log.userId ? log.userId : "\u2014")}
                           </div>
                           {log.userRole && (
                             <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 mt-0.5">
