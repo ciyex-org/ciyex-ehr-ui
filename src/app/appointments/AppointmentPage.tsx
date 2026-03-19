@@ -250,8 +250,9 @@ const fetchPatientInfo = async (id: number): Promise<{ name: string; phone?: str
     const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
     if (!res.ok) return { name: String(id) };
     const data = await res.json();
+    if (!data?.data) return { name: String(id) };
     return {
-      name: `${data.data.firstName} ${data.data.lastName}`,
+      name: `${data.data.firstName ?? ""} ${data.data.lastName ?? ""}`.trim() || String(id),
       phone: data.data.phoneNumber || undefined,
     };
   } catch {

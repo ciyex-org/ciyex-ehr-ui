@@ -124,7 +124,15 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
         try {
             const payload: Record<string, any> = { recordedAt: new Date().toISOString() };
             for (const row of VITAL_ROWS) {
+                if (row.key === "bmi") continue; // calculated below
                 if (addForm[row.key]) payload[row.key] = parseFloat(addForm[row.key]);
+            }
+            // Always calculate BMI inline to avoid stale-state race condition
+            const w = parseFloat(addForm.weightKg || "");
+            const h = parseFloat(addForm.heightCm || "");
+            if (w > 0 && h > 0) {
+                const heightM = h / 100;
+                if (heightM > 0) payload.bmi = parseFloat((w / (heightM * heightM)).toFixed(1));
             }
             if (addForm.notes) payload.notes = addForm.notes;
             const res = await fetchWithAuth(

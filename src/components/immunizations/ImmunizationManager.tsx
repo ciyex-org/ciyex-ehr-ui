@@ -234,7 +234,11 @@ finally {
                                     <td className="px-4 py-3">{it.site || "-"}</td>
                                     <td className="px-4 py-3">
                       <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs">
-                        {it.status || "-"}
+                        {it.status === "completed" ? "Completed"
+                          : it.status === "in-progress" ? "In Progress"
+                          : it.status === "not-done" ? "Not Done"
+                          : it.status === "entered-in-error" ? "Entered in Error"
+                          : it.status || "-"}
                       </span>
                                     </td>
                                     <td className="px-4 py-3 max-w-[280px]">
@@ -371,13 +375,12 @@ function FormDrawer({
                         <Select
                             label="Status"
                             value={form.status ?? ""}
-                            // OLD: onChange={(v) => set("status", v as any)}
                             onChange={(v) => set("status", v === "" ? null : (v as ImmunizationDto["status"]))}
                             options={[
-                                "completed",
-                                "in-progress",
-                                "not-done",
-                                "entered-in-error",
+                                { value: "completed", label: "Completed" },
+                                { value: "in-progress", label: "In Progress" },
+                                { value: "not-done", label: "Not Done" },
+                                { value: "entered-in-error", label: "Entered in Error" },
                             ]}
                         />
 
@@ -533,7 +536,7 @@ function Select({
     label: string;
     value: string;
     onChange: (v: string) => void;
-    options: string[];
+    options: (string | { value: string; label: string })[];
 }) {
     return (
         <label className="block">
@@ -546,11 +549,15 @@ function Select({
                 <option value="" disabled>
                     Select…
                 </option>
-                {options.map((o) => (
-                    <option key={o} value={o}>
-                        {o}
-                    </option>
-                ))}
+                {options.map((o) => {
+                    const val = typeof o === "string" ? o : o.value;
+                    const lbl = typeof o === "string" ? o : o.label;
+                    return (
+                        <option key={val} value={val}>
+                            {lbl}
+                        </option>
+                    );
+                })}
             </select>
         </label>
     );

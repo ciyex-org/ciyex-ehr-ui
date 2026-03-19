@@ -88,6 +88,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const [form, setForm] = useState<Prescription>(blankPrescription());
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [refillsInput, setRefillsInput] = useState<string>("0");
 
   /* Patient search state */
   const [patientQuery, setPatientQuery] = useState("");
@@ -104,6 +105,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       setPatientQuery(p.patientName || "");
       setPatientResults([]);
       setShowPatientDropdown(false);
+      setRefillsInput(p.refills != null ? String(p.refills) : "0");
     }
   }, [open, prescription]);
 
@@ -371,15 +373,21 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                     type="number"
                     min={0}
                     className={inputCls()}
-                    value={form.refills != null ? form.refills : ""}
+                    value={refillsInput}
                     onChange={(e) => {
                       const v = e.target.value;
+                      setRefillsInput(v);
                       if (v === "") {
+                        // Keep form refills as 0 but let input show empty while typing
                         set("refills", 0);
                       } else {
                         const n = parseInt(v, 10);
                         if (!isNaN(n) && n >= 0) set("refills", n);
                       }
+                    }}
+                    onBlur={(e) => {
+                      // On blur, normalize empty to "0"
+                      if (e.target.value === "") setRefillsInput("0");
                     }}
                     placeholder="0"
                   />
