@@ -510,81 +510,67 @@ useEffect(() => {
 
 
    
-const downloadPdf = useCallback(async () => {
-    try {
-        if (!summaryRef.current) {
-            toast.warning("No summary content to download.");
-            return;
-        }
-
-        // Grab the rendered HTML from the summary div
-        const htmlContent = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; color: #333; }
-              .rounded-2xl { border-radius: 1rem; }
-              .border { border: 1px solid #e5e7eb; }
-              .bg-white { background: #fff; }
-              .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-              .p-4 { padding: 1rem; }
-              .mb-2 { margin-bottom: 0.5rem; }
-              .font-semibold { font-weight: 600; }
-              .text-gray-800 { color: #1f2937; }
-              .text-sm { font-size: 0.875rem; }
-              .text-xs { font-size: 0.75rem; }
-              .text-gray-500 { color: #6b7280; }
-              .text-gray-700 { color: #374151; }
-              .text-gray-900 { color: #111827; }
-              .text-blue-900 { color: #1e3a5f; }
-              .grid { display: grid; }
-              .gap-4 { gap: 1rem; }
-              .space-y-1 > * + * { margin-top: 0.25rem; }
-              .space-y-2 > * + * { margin-top: 0.5rem; }
-              .list-disc { list-style-type: disc; }
-              .pl-5 { padding-left: 1.25rem; }
-              .rounded-lg { border-radius: 0.5rem; }
-              .p-3 { padding: 0.75rem; }
-              .p-6 { padding: 1.5rem; }
-              .mb-4 { margin-bottom: 1rem; }
-              .border-b-2 { border-bottom: 2px solid; }
-              .border-blue-200 { border-color: #bfdbfe; }
-              .pb-2 { padding-bottom: 0.5rem; }
-              .min-w-\\[140px\\] { min-width: 140px; }
-              .font-medium { font-weight: 500; }
-              b, strong { font-weight: 700; }
-              @media print { body { padding: 10px; } }
-            </style>
-          </head>
-          <body>${summaryRef.current.innerHTML}</body>
-          </html>`;
-
-        const res = await fetch(`/api/encounters/${patientId}/${encounterId}/summary/print`, {
-            method: "POST",
-            headers: { "Content-Type": "text/plain" },
-            body: htmlContent,
-        });
-
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(text || "Failed to generate PDF");
-        }
-
-        const blob = await res.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = blobUrl;
-        a.download = `encounter-${encounterId}-summary.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(blobUrl);
-        document.body.removeChild(a);
-    } catch (e) {
-        console.error("PDF download error:", e);
-        toast.error("Failed to generate PDF: " + (e instanceof Error ? e.message : "Unknown error"));
+const downloadPdf = useCallback(() => {
+    if (!summaryRef.current) {
+        toast.warning("No summary content to download.");
+        return;
     }
-}, [patientId, encounterId]);
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+        toast.error("Pop-up blocked. Please allow pop-ups for this site.");
+        return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Encounter ${encounterId} Summary</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; color: #333; }
+          .rounded-2xl { border-radius: 1rem; }
+          .border { border: 1px solid #e5e7eb; }
+          .bg-white { background: #fff; }
+          .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+          .p-4 { padding: 1rem; }
+          .mb-2 { margin-bottom: 0.5rem; }
+          .font-semibold { font-weight: 600; }
+          .text-gray-800 { color: #1f2937; }
+          .text-sm { font-size: 0.875rem; }
+          .text-xs { font-size: 0.75rem; }
+          .text-gray-500 { color: #6b7280; }
+          .text-gray-700 { color: #374151; }
+          .text-gray-900 { color: #111827; }
+          .text-blue-900 { color: #1e3a5f; }
+          .grid { display: grid; }
+          .gap-4 { gap: 1rem; }
+          .space-y-1 > * + * { margin-top: 0.25rem; }
+          .space-y-2 > * + * { margin-top: 0.5rem; }
+          .list-disc { list-style-type: disc; }
+          .pl-5 { padding-left: 1.25rem; }
+          .rounded-lg { border-radius: 0.5rem; }
+          .p-3 { padding: 0.75rem; }
+          .p-6 { padding: 1.5rem; }
+          .mb-4 { margin-bottom: 1rem; }
+          .border-b-2 { border-bottom: 2px solid; }
+          .border-blue-200 { border-color: #bfdbfe; }
+          .pb-2 { padding-bottom: 0.5rem; }
+          .min-w-\\[140px\\] { min-width: 140px; }
+          .font-medium { font-weight: 500; }
+          b, strong { font-weight: 700; }
+          @media print { body { padding: 10px; } }
+        </style>
+      </head>
+      <body>${summaryRef.current.innerHTML}</body>
+      </html>`;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.onload = () => {
+        printWindow.print();
+    };
+}, [encounterId]);
 
 
     const hasAnyData = useMemo(() => {
