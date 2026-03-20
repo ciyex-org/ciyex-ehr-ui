@@ -12,6 +12,7 @@ import CodesPage from "@/components/codes/CodesPage";
 import { ICONS } from "@/components/settings/IconPicker";
 import { Settings, Loader2, FileText, SlidersHorizontal, Monitor, Palette, Users, Shield } from "lucide-react";
 import { usePluginRegistry } from "@/context/PluginRegistryContext";
+import { usePermissions } from "@/context/PermissionContext";
 import PluginErrorBoundary from "@/components/plugins/PluginErrorBoundary";
 import UserManagementPage from "@/app/settings/user-management/page";
 import RolesPermissionsPage from "@/app/settings/roles-permissions/page";
@@ -40,6 +41,8 @@ export default function SettingsPage() {
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const { getSlotContributions, loaded: pluginsLoaded } = usePluginRegistry();
+    const { hasCategory } = usePermissions();
+    const isAdmin = hasCategory("admin");
 
     const pluginNavItems = pluginsLoaded ? getSlotContributions("settings:nav-item") : [];
 
@@ -124,53 +127,54 @@ export default function SettingsPage() {
                         );
                     })}
 
-                    {/* Divider before admin pages */}
-                    {items.length > 0 && (
-                        <div className="border-t border-gray-200 my-2" />
+                    {/* Admin-only pages (Users, Roles, Form Options, Display, Calendar Colors) */}
+                    {isAdmin && (
+                        <>
+                            {items.length > 0 && (
+                                <div className="border-t border-gray-200 my-2" />
+                            )}
+
+                            {ADMIN_PAGES.map((item) => {
+                                const Icon = getIcon(item.icon);
+                                const isActive = activeKey === item.tabKey;
+                                return (
+                                    <button
+                                        key={item.tabKey}
+                                        onClick={() => setActiveKey(item.tabKey)}
+                                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                                            isActive
+                                                ? "bg-blue-600 text-white"
+                                                : "text-gray-700 hover:bg-gray-100"
+                                        }`}
+                                    >
+                                        <Icon className="w-4 h-4 shrink-0" />
+                                        <span className="truncate">{item.label}</span>
+                                    </button>
+                                );
+                            })}
+
+                            <div className="border-t border-gray-200 my-2" />
+
+                            {BUILTIN_PAGES.map((item) => {
+                                const Icon = getIcon(item.icon);
+                                const isActive = activeKey === item.tabKey;
+                                return (
+                                    <button
+                                        key={item.tabKey}
+                                        onClick={() => setActiveKey(item.tabKey)}
+                                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
+                                            isActive
+                                                ? "bg-blue-600 text-white"
+                                                : "text-gray-700 hover:bg-gray-100"
+                                        }`}
+                                    >
+                                        <Icon className="w-4 h-4 shrink-0" />
+                                        <span className="truncate">{item.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </>
                     )}
-
-                    {/* Admin pages */}
-                    {ADMIN_PAGES.map((item) => {
-                        const Icon = getIcon(item.icon);
-                        const isActive = activeKey === item.tabKey;
-                        return (
-                            <button
-                                key={item.tabKey}
-                                onClick={() => setActiveKey(item.tabKey)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
-                                    isActive
-                                        ? "bg-blue-600 text-white"
-                                        : "text-gray-700 hover:bg-gray-100"
-                                }`}
-                            >
-                                <Icon className="w-4 h-4 shrink-0" />
-                                <span className="truncate">{item.label}</span>
-                            </button>
-                        );
-                    })}
-
-                    {/* Divider before built-in pages */}
-                    <div className="border-t border-gray-200 my-2" />
-
-                    {/* Built-in pages */}
-                    {BUILTIN_PAGES.map((item) => {
-                        const Icon = getIcon(item.icon);
-                        const isActive = activeKey === item.tabKey;
-                        return (
-                            <button
-                                key={item.tabKey}
-                                onClick={() => setActiveKey(item.tabKey)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors ${
-                                    isActive
-                                        ? "bg-blue-600 text-white"
-                                        : "text-gray-700 hover:bg-gray-100"
-                                }`}
-                            >
-                                <Icon className="w-4 h-4 shrink-0" />
-                                <span className="truncate">{item.label}</span>
-                            </button>
-                        );
-                    })}
 
                     {/* Plugin-contributed settings nav items */}
                     {pluginNavItems.length > 0 && (
