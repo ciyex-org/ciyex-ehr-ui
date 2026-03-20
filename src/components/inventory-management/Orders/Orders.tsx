@@ -180,6 +180,7 @@ export default function Orders() {
     setFormError("");
     if (!supplierId) { setFormError("Select a supplier"); return; }
     if (!lines.some(l => l.itemId > 0)) { setFormError("Add at least one line item"); return; }
+    if (expectedDate && orderDate && expectedDate < orderDate) { setFormError("Expected Date cannot be before Order Date"); return; }
 
     const body: any = {
       supplierId, status: formStatus, orderDate, expectedDate, notes,
@@ -369,7 +370,7 @@ export default function Orders() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Expected Date</label>
-              <input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} className={inputCls} />
+              <input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} min={orderDate} className={inputCls} />
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
