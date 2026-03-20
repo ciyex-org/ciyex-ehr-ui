@@ -61,6 +61,8 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
     const errs: Record<string, string> = {};
     if (form.referenceUrl && !isValidUrl(form.referenceUrl)) errs.referenceUrl = "Must be a valid URL (https://...)";
     if (!form.name?.trim()) errs.name = "Name is required";
+    else if (form.name.length > 100) errs.name = "Name must be 100 characters or less";
+    else if (!/^[a-zA-Z0-9\s\-/()&.,:']+$/.test(form.name.trim())) errs.name = "Name contains invalid characters";
     if (!form.message?.trim()) errs.message = "Alert message is required";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
@@ -94,11 +96,12 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
           <div>
             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Rule Name *</label>
             <input
-              type="text" required value={form.name || ""}
-              onChange={(e) => set("name", e.target.value)}
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              type="text" required value={form.name || ""} maxLength={100}
+              onChange={(e) => { set("name", e.target.value); if (errors.name) setErrors(prev => { const n = {...prev}; delete n.name; return n; }); }}
+              className={`w-full rounded-lg border ${errors.name ? "border-red-400 ring-1 ring-red-300" : "border-slate-300 dark:border-slate-600"} bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="e.g., Diabetes A1C Screening"
             />
+            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
           </div>
 
           {/* Description */}

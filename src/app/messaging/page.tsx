@@ -417,6 +417,7 @@ export default function MessagingPage() {
             onToggleDetail={() => dispatch({ type: "TOGGLE_DETAIL_PANEL" })}
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
+            mentionUsers={availableUsers}
           />
 
           {/* Search overlay */}

@@ -251,12 +251,27 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Language</label>
-              <input
+              <select
                 className={inputCls()}
                 value={form.language}
                 onChange={(e) => set("language", e.target.value)}
-                placeholder="en"
-              />
+              >
+                <option value="en">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="de">German</option>
+                <option value="pt">Portuguese</option>
+                <option value="zh">Chinese</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+                <option value="ar">Arabic</option>
+                <option value="hi">Hindi</option>
+                <option value="vi">Vietnamese</option>
+                <option value="tl">Tagalog</option>
+                <option value="ru">Russian</option>
+                <option value="it">Italian</option>
+                <option value="other">Other</option>
+              </select>
             </div>
             <div>
               <label className={labelCls}>Audience</label>

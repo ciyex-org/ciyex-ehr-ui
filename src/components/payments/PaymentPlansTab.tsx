@@ -58,6 +58,7 @@ export default function PaymentPlansTab({ showToast }: Props) {
 
   /* Form */
   const [formOpen, setFormOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<PaymentPlan | null>(null);
   const [form, setForm] = useState({
     totalAmount: "",
     installmentAmount: "",
@@ -136,6 +137,7 @@ export default function PaymentPlansTab({ showToast }: Props) {
   };
 
   const openCreate = () => {
+    setEditingPlan(null);
     setForm({
       totalAmount: "",
       installmentAmount: "",
@@ -149,7 +151,22 @@ export default function PaymentPlansTab({ showToast }: Props) {
     setFormOpen(true);
   };
 
-  const handleCreate = async () => {
+  const openEdit = (plan: PaymentPlan) => {
+    setEditingPlan(plan);
+    setForm({
+      totalAmount: String(plan.totalAmount || ""),
+      installmentAmount: String(plan.installmentAmount || ""),
+      frequency: plan.frequency || "monthly",
+      startDate: plan.startDate || new Date().toISOString().slice(0, 10),
+      paymentMethodId: plan.paymentMethodId ?? null,
+      autoCharge: plan.autoCharge ?? false,
+      notes: plan.notes || "",
+    });
+    fetchPatientMethods();
+    setFormOpen(true);
+  };
+
+  const handleSave = async () => {
     if (!selectedPatient) return;
     if (!form.totalAmount || parseFloat(form.totalAmount) <= 0) {
       showToast({ type: "error", text: "Valid total amount required" });
@@ -160,9 +177,11 @@ export default function PaymentPlansTab({ showToast }: Props) {
       return;
     }
     setSaving(true);
+    const isEdit = !!editingPlan;
     try {
-      const res = await fetchWithAuth(apiUrl("/api/payments/plans"), {
-        method: "POST",
+      const url = isEdit ? apiUrl(`/api/payments/plans/${editingPlan!.id}`) : apiUrl("/api/payments/plans");
+      const res = await fetchWithAuth(url, {
+        method: isEdit ? "PUT" : "POST",
         body: JSON.stringify({
           patientId: selectedPatient.id,
           patientName: selectedPatient.name,
@@ -177,11 +196,12 @@ export default function PaymentPlansTab({ showToast }: Props) {
       });
       const json = await res.json();
       if (res.ok && (json.success !== false)) {
-        showToast({ type: "success", text: "Payment plan created" });
+        showToast({ type: "success", text: isEdit ? "Payment plan updated" : "Payment plan created" });
         setFormOpen(false);
+        setEditingPlan(null);
         fetchPlans();
       } else {
-        showToast({ type: "error", text: json.message || "Failed to create plan" });
+        showToast({ type: "error", text: json.message || `Failed to ${isEdit ? "update" : "create"} plan` });
       }
     } catch {
       showToast({ type: "error", text: "Network error" });
@@ -297,14 +317,22 @@ export default function PaymentPlansTab({ showToast }: Props) {
                         </div>
                         <div className="flex items-center gap-2">
                           {p.status === "active" && (
-                            <button
-                              onClick={() => handleCancel(p)}
-                              disabled={cancelling === p.id}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 transition disabled:opacity-50"
-                            >
-                              {cancelling === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                              Cancel
-                            </button>
+                            <>
+                              <button
+                                onClick={() => openEdit(p)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 transition"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleCancel(p)}
+                                disabled={cancelling === p.id}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 transition disabled:opacity-50"
+                              >
+                                {cancelling === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                                Cancel
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -358,7 +386,7 @@ export default function PaymentPlansTab({ showToast }: Props) {
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 shadow-xl border border-gray-200 dark:border-slate-700 flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
               <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-slate-700">
-                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Create Payment Plan</h3>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{editingPlan ? "Edit Payment Plan" : "Create Payment Plan"}</h3>
                 <button onClick={() => setFormOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500">
                   <X className="w-5 h-5" />
                 </button>
@@ -430,12 +458,12 @@ export default function PaymentPlansTab({ showToast }: Props) {
               </div>
 
               <div className="shrink-0 px-6 py-3 border-t border-gray-200 dark:border-slate-700 flex items-center justify-end gap-3 bg-gray-50 dark:bg-slate-800/50 rounded-b-xl">
-                <button onClick={() => setFormOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition">
+                <button onClick={() => { setFormOpen(false); setEditingPlan(null); }} className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition">
                   Cancel
                 </button>
-                <button onClick={handleCreate} disabled={saving} className="px-5 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition flex items-center gap-2">
+                <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition flex items-center gap-2">
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Create Plan
+                  {editingPlan ? "Update Plan" : "Create Plan"}
                 </button>
               </div>
             </div>

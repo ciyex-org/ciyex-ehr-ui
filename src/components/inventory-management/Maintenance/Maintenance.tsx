@@ -57,6 +57,7 @@ export default function Maintenance() {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<AlertData | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => { if (alert) { const t = setTimeout(() => setAlert(null), 4000); return () => clearTimeout(t); } }, [alert]);
 
@@ -93,7 +94,12 @@ export default function Maintenance() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.equipmentName.trim()) return;
+    const errs: Record<string, string> = {};
+    if (!form.equipmentName.trim()) errs.equipmentName = "Equipment name is required";
+    if (form.equipmentId.trim() && !/^[A-Za-z0-9\-_./]+$/.test(form.equipmentId.trim())) errs.equipmentId = "Only letters, numbers, hyphens, underscores, dots, and slashes allowed";
+    if (form.equipmentId.length > 50) errs.equipmentId = "Equipment ID must be 50 characters or less";
+    setFormErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     try {
       const isEdit = modal === "edit" && editId;
       const res = await fetchWithAuth(isEdit ? `${API()}/${editId}` : API(), {
@@ -207,8 +213,8 @@ export default function Maintenance() {
               <button onClick={close} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">X</button>
             </div>
             <form onSubmit={save} className="p-6 grid grid-cols-2 gap-4 text-sm">
-              <div><Label>Equipment Name <span className="text-red-500">*</span></Label><Input value={form.equipmentName} onChange={e => F("equipmentName", e.target.value)} /></div>
-              <div><Label>Equipment ID</Label><Input value={form.equipmentId} onChange={e => F("equipmentId", e.target.value)} /></div>
+              <div><Label>Equipment Name <span className="text-red-500">*</span></Label><Input value={form.equipmentName} onChange={e => { F("equipmentName", e.target.value); if (formErrors.equipmentName) setFormErrors(p => { const n = {...p}; delete n.equipmentName; return n; }); }} className={formErrors.equipmentName ? "border-red-400" : ""} />{formErrors.equipmentName && <p className="text-xs text-red-500 mt-1">{formErrors.equipmentName}</p>}</div>
+              <div><Label>Equipment ID</Label><Input value={form.equipmentId} onChange={e => { F("equipmentId", e.target.value); if (formErrors.equipmentId) setFormErrors(p => { const n = {...p}; delete n.equipmentId; return n; }); }} maxLength={50} className={formErrors.equipmentId ? "border-red-400" : ""} />{formErrors.equipmentId && <p className="text-xs text-red-500 mt-1">{formErrors.equipmentId}</p>}</div>
               <div><Label>Category</Label>
                 <select value={form.category} onChange={e => F("category", e.target.value)} className={selClass}>
                   <option value="preventive">Preventive</option><option value="corrective">Corrective</option>

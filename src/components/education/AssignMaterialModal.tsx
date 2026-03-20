@@ -148,6 +148,12 @@ export default function AssignMaterialModal({
         }),
       });
       if (res.ok) {
+        // Show success toast
+        const toast = document.createElement("div");
+        toast.className = "fixed top-4 right-4 z-[99999] px-4 py-3 rounded-lg bg-green-600 text-white text-sm font-medium shadow-lg transition-opacity duration-300";
+        toast.textContent = "Material assigned successfully";
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 300); }, 3000);
         onAssigned();
         onClose();
       } else {

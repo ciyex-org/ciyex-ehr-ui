@@ -236,7 +236,15 @@ const patientDemographics: ReportDefinition = {
     }).filter(a => a > 0);
     const avgAge = ages.length ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length) : 0;
     const ageCounts = countBy(records, p => ageGroup(p.dateOfBirth || p.birthDate || ""));
-    const genderCounts = countBy(records, p => (p.gender || p.sex || "Unknown").toString());
+    const normalizeGender = (g: string) => {
+      const val = (g || "").toLowerCase().trim();
+      if (val === "m" || val === "male" || val === "1") return "Male";
+      if (val === "f" || val === "female" || val === "2") return "Female";
+      if (val === "other" || val === "o" || val === "non-binary" || val === "nonbinary") return "Other";
+      if (!val || val === "unknown" || val === "u") return "Unknown";
+      return g.charAt(0).toUpperCase() + g.slice(1).toLowerCase();
+    };
+    const genderCounts = countBy(records, p => normalizeGender((p.gender || p.sex || "Unknown").toString()));
     const statusCounts = countBy(records, p => (p.status || "Active").toString());
 
     return {

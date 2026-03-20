@@ -22,6 +22,7 @@ interface Props {
   onToggleDetail: () => void;
   replyingTo: MessageItem | null;
   onCancelReply: () => void;
+  mentionUsers?: { id: string; name: string }[];
 }
 
 function ChannelIcon({ type, className }: { type: Channel["type"]; className?: string }) {
@@ -36,7 +37,7 @@ export default function MessagePanel({
   channel, messages, currentUserId, typingUsers,
   onSendMessage, onOpenThread, onReact, onRemoveReaction,
   onPin, onDelete, onReply, onToggleSearch, onToggleDetail,
-  replyingTo, onCancelReply,
+  replyingTo, onCancelReply, mentionUsers,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMsgCount = useRef(0);
@@ -233,6 +234,7 @@ export default function MessagePanel({
         onSend={onSendMessage}
         replyingTo={replyingTo}
         onCancelReply={onCancelReply}
+        mentionUsers={mentionUsers}
       />
     </div>
   );

@@ -145,11 +145,35 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
   }
 
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function handleSubmit() {
+    const errs: Record<string, string> = {};
+    // Title validation
+    if (!form.title.trim()) {
+      errs.title = "Title is required";
+    } else if (form.title.trim().length < 2) {
+      errs.title = "Title must be at least 2 characters";
+    } else if (form.title.trim().length > 200) {
+      errs.title = "Title must be 200 characters or less";
+    } else if (/[<>{}[\]\\^~`|]/.test(form.title)) {
+      errs.title = "Title contains invalid characters";
+    }
+    // Author name validation
+    if (form.authorName && form.authorName.trim().length > 0) {
+      if (!/^[A-Za-z\s\-'.]+$/.test(form.authorName.trim())) {
+        errs.authorName = "Author name must contain only letters, spaces, hyphens, apostrophes, or periods";
+      } else if (form.authorName.trim().length < 2) {
+        errs.authorName = "Author name must be at least 2 characters";
+      }
+    }
     // Validate end date is after start date
     if (form.startDate && form.endDate && form.endDate < form.startDate) {
-      setFormError("End date must be after start date");
+      errs.endDate = "End date must be after start date";
+    }
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      setFormError(errs.endDate || null);
       return;
     }
     setFormError(null);
@@ -198,10 +222,12 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
               <input
                 type="text"
                 value={form.title}
-                onChange={(e) => setField("title", e.target.value)}
-                className={inputClass}
+                onChange={(e) => { setField("title", e.target.value); if (fieldErrors.title) setFieldErrors(prev => { const n = {...prev}; delete n.title; return n; }); }}
+                className={`${inputClass} ${fieldErrors.title ? "border-red-400 dark:border-red-500 ring-1 ring-red-300" : ""}`}
                 placeholder="Care plan title"
+                maxLength={200}
               />
+              {fieldErrors.title && <p className="text-xs text-red-500 mt-1">{fieldErrors.title}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -317,10 +343,11 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
               <input
                 type="text"
                 value={form.authorName}
-                onChange={(e) => setField("authorName", e.target.value)}
-                className={inputClass}
+                onChange={(e) => { setField("authorName", e.target.value); if (fieldErrors.authorName) setFieldErrors(prev => { const n = {...prev}; delete n.authorName; return n; }); }}
+                className={`${inputClass} ${fieldErrors.authorName ? "border-red-400 dark:border-red-500 ring-1 ring-red-300" : ""}`}
                 placeholder="Author / provider name"
               />
+              {fieldErrors.authorName && <p className="text-xs text-red-500 mt-1">{fieldErrors.authorName}</p>}
             </div>
 
             <div>
@@ -548,7 +575,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={saving || !form.title}
+            disabled={saving || !form.title.trim()}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}

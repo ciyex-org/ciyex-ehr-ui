@@ -91,8 +91,21 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (form.faxNumber && !isValidFax(form.faxNumber)) {
-      setFaxError("Please enter a valid fax number (digits, spaces, dashes, parentheses only)");
+    if (!form.recipientName.trim()) {
+      setFaxError("Recipient name is required");
+      return;
+    }
+    if (!form.faxNumber.trim()) {
+      setFaxError("Fax number is required");
+      return;
+    }
+    const digitCount = form.faxNumber.replace(/\D/g, "").length;
+    if (!isValidFax(form.faxNumber) || digitCount < 7) {
+      setFaxError("Please enter a valid fax number with at least 7 digits");
+      return;
+    }
+    if (!form.subject.trim()) {
+      setFaxError("Subject is required");
       return;
     }
     setFaxError("");

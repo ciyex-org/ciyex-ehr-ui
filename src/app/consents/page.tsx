@@ -324,7 +324,19 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
             </div>
             <div>
               <label className={labelCls}>Version</label>
-              <input className={inputCls} value={form.version || ""} onChange={(e) => set("version", e.target.value)} placeholder="1.0" />
+              <input
+                className={`${inputCls} ${form.version && !/^\d+(\.\d+){0,2}$/.test(form.version.trim()) ? "border-red-400 ring-1 ring-red-300" : ""}`}
+                value={form.version || ""}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9.]/g, "");
+                  set("version", v);
+                }}
+                placeholder="1.0"
+                maxLength={20}
+              />
+              {form.version && !/^\d+(\.\d+){0,2}$/.test(form.version.trim()) && (
+                <p className="text-xs text-red-500 mt-1">Version must be in format like 1.0 or 1.0.0</p>
+              )}
             </div>
           </div>
           <div>

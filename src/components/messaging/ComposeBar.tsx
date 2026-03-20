@@ -2,15 +2,21 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  Send, Paperclip, Smile, X, Bold, Italic, Code, List, Link2, AtSign, FileText, Image,
+  Send, Paperclip, Smile, X, Bold, Italic, Code, List, Link2, AtSign, FileText, Image, Camera,
 } from "lucide-react";
 import type { MessageItem } from "./types";
+
+interface MentionUser {
+  id: string;
+  name: string;
+}
 
 interface Props {
   channelName: string;
   onSend: (content: string, files?: File[]) => void;
   replyingTo: MessageItem | null;
   onCancelReply: () => void;
+  mentionUsers?: MentionUser[];
 }
 
 function formatBytes(bytes: number) {
@@ -19,13 +25,20 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function ComposeBar({ channelName, onSend, replyingTo, onCancelReply }: Props) {
+export default function ComposeBar({ channelName, onSend, replyingTo, onCancelReply, mentionUsers = [] }: Props) {
   const [content, setContent] = useState("");
   const [showFormatting, setShowFormatting] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionStartPos, setMentionStartPos] = useState(-1);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
 
   // Generate object URLs for image previews
   useEffect(() => {
@@ -84,12 +97,25 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
     }, 0);
   };
 
+  // Close attach menu on click outside
+  useEffect(() => {
+    if (!showAttachMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target as Node)) {
+        setShowAttachMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showAttachMenu]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length) {
       setPendingFiles((prev) => [...prev, ...files]);
     }
     e.target.value = "";
+    setShowAttachMenu(false);
   };
 
   const removeFile = (idx: number) => {
@@ -173,18 +199,61 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
       <div className="flex items-end gap-2 rounded-2xl border border-gray-200/80 bg-gray-50/50 px-4 py-2 transition-all focus-within:border-brand-300 focus-within:bg-white focus-within:shadow-sm focus-within:ring-2 focus-within:ring-brand-100 dark:border-gray-700 dark:bg-gray-800/50 dark:focus-within:border-brand-600 dark:focus-within:ring-brand-900/30">
         {/* Left actions */}
         <div className="mb-1.5 flex items-center gap-0.5">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-200/80 hover:text-gray-600 dark:hover:bg-gray-700"
-            title="Attach file"
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
+          <div className="relative" ref={attachMenuRef}>
+            <button
+              onClick={() => setShowAttachMenu((prev) => !prev)}
+              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-200/80 hover:text-gray-600 dark:hover:bg-gray-700"
+              title="Attach file"
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+            {showAttachMenu && (
+              <div className="absolute bottom-full left-0 mb-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 overflow-hidden z-50">
+                <button
+                  onClick={() => imageInputRef.current?.click()}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Image className="h-4 w-4 text-blue-500" />
+                  Image
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <FileText className="h-4 w-4 text-green-500" />
+                  File
+                </button>
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Camera className="h-4 w-4 text-purple-500" />
+                  Camera
+                </button>
+              </div>
+            )}
+          </div>
+          <input
+            ref={imageInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
           <input
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={handleFileSelect}
           />
@@ -199,17 +268,69 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
           </button>
         </div>
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder={`Message ${channelName.startsWith("#") ? channelName : "#" + channelName}...`}
-          rows={1}
-          className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent py-2.5 text-sm leading-relaxed text-gray-900 placeholder-gray-400 outline-none dark:text-gray-100"
-        />
+        {/* Textarea + Mention dropdown */}
+        <div className="relative flex-1">
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => {
+              const val = e.target.value;
+              setContent(val);
+              // Detect @mention trigger
+              const pos = e.target.selectionStart;
+              const textBefore = val.substring(0, pos);
+              const atMatch = textBefore.match(/@(\w*)$/);
+              if (atMatch && mentionUsers.length > 0) {
+                setMentionStartPos(pos - atMatch[0].length);
+                setMentionQuery(atMatch[1].toLowerCase());
+                setShowMentionDropdown(true);
+              } else {
+                setShowMentionDropdown(false);
+              }
+            }}
+            onInput={handleInput}
+            onKeyDown={(e) => {
+              if (showMentionDropdown && e.key === "Escape") {
+                e.preventDefault();
+                setShowMentionDropdown(false);
+                return;
+              }
+              handleKeyDown(e);
+            }}
+            placeholder={`Message ${channelName.startsWith("#") ? channelName : "#" + channelName}...`}
+            rows={1}
+            className="max-h-40 min-h-[44px] w-full resize-none bg-transparent py-2.5 text-sm leading-relaxed text-gray-900 placeholder-gray-400 outline-none dark:text-gray-100"
+          />
+          {showMentionDropdown && (
+            <div className="absolute bottom-full left-0 mb-1 w-56 max-h-40 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50">
+              {mentionUsers
+                .filter((u) => u.name.toLowerCase().includes(mentionQuery))
+                .slice(0, 8)
+                .map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      const before = content.substring(0, mentionStartPos);
+                      const after = content.substring(textareaRef.current?.selectionStart || mentionStartPos);
+                      const username = u.name.replace(/\s+/g, "_");
+                      setContent(`${before}@${username} ${after}`);
+                      setShowMentionDropdown(false);
+                      setTimeout(() => textareaRef.current?.focus(), 0);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <AtSign className="h-3.5 w-3.5 text-brand-500" />
+                    <span className="truncate">{u.name}</span>
+                  </button>
+                ))}
+              {mentionUsers.filter((u) => u.name.toLowerCase().includes(mentionQuery)).length === 0 && (
+                <div className="px-3 py-2 text-xs text-gray-400">No users found</div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Right actions */}
         <div className="mb-1.5 flex items-center gap-0.5">
