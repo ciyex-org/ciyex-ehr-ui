@@ -319,7 +319,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     }
                 }
                 // Issues/Conditions: ensure onsetDate is a date field
-                if ((tabKey === "issues" || tabKey === "conditions" || tabKey === "problems") && (f.key === "onsetDate" || f.key === "onsetDateTime" || f.key === "onset")) {
+                if ((tabKey === "issues" || tabKey === "conditions" || tabKey === "problems" || tabKey === "medicalproblems" || tabKey === "medical-problems") && (f.key === "onsetDate" || f.key === "onsetDateTime" || f.key === "onset")) {
                     if (f.type !== "date" && f.type !== "datetime") {
                         section.fields[i] = { ...f, type: "date" };
                     }
@@ -414,13 +414,13 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     section.fields[i] = { ...f, required: true };
                 }
                 // Issue 30: Issues — issue, status, onsetDate must be required
-                if ((tabKey === "issues" || tabKey === "conditions") && (f.key === "issue" || f.key === "condition" || f.key === "conditionName" || f.key === "name" || f.key === "code" || f.key === "displayText")) {
+                if ((tabKey === "issues" || tabKey === "conditions" || tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "problems") && (f.key === "issue" || f.key === "condition" || f.key === "conditionName" || f.key === "name" || f.key === "code" || f.key === "displayText")) {
                     section.fields[i] = { ...f, required: true };
                 }
-                if ((tabKey === "issues" || tabKey === "conditions") && (f.key === "status" || f.key === "clinicalStatus")) {
+                if ((tabKey === "issues" || tabKey === "conditions" || tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "problems") && (f.key === "status" || f.key === "clinicalStatus")) {
                     section.fields[i] = { ...f, required: true };
                 }
-                if ((tabKey === "issues" || tabKey === "conditions") && (f.key === "onsetDate" || f.key === "onset" || f.key === "onsetDateTime")) {
+                if ((tabKey === "issues" || tabKey === "conditions" || tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "problems") && (f.key === "onsetDate" || f.key === "onset" || f.key === "onsetDateTime")) {
                     section.fields[i] = { ...f, required: true };
                 }
                 // Messaging: patient field should be read-only in patient context
@@ -568,16 +568,23 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         }
         if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
         if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
-        // Flatten clinicalStatus / verificationStatus CodeableConcept → plain string
+        // Flatten clinicalStatus / verificationStatus CodeableConcept → plain string (title-case)
+        const toTitleCase = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s;
         if (r.clinicalStatus != null && typeof r.clinicalStatus === "object") {
-            r.clinicalStatus = (r.clinicalStatus as any).text ||
+            const raw = (r.clinicalStatus as any).text ||
                 (r.clinicalStatus as any).coding?.[0]?.display ||
                 (r.clinicalStatus as any).coding?.[0]?.code || null;
+            r.clinicalStatus = raw ? toTitleCase(String(raw)) : null;
+        } else if (typeof r.clinicalStatus === "string" && r.clinicalStatus) {
+            r.clinicalStatus = toTitleCase(r.clinicalStatus);
         }
         if (r.verificationStatus != null && typeof r.verificationStatus === "object") {
-            r.verificationStatus = (r.verificationStatus as any).text ||
+            const raw = (r.verificationStatus as any).text ||
                 (r.verificationStatus as any).coding?.[0]?.display ||
                 (r.verificationStatus as any).coding?.[0]?.code || null;
+            r.verificationStatus = raw ? toTitleCase(String(raw)) : null;
+        } else if (typeof r.verificationStatus === "string" && r.verificationStatus) {
+            r.verificationStatus = toTitleCase(r.verificationStatus);
         }
 
         // --- Encounter: reasonForVisit from reasonCode/reason ---
@@ -2757,28 +2764,52 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
 
     // Extract unique statuses for filter dropdown
     const isAllergyTab = tabKey === "allergies" || tabKey === "allergy-intolerances";
+    const isMedicalProblemsTab = tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "conditions" || tabKey === "issues" || tabKey === "problems";
+    const isStatusTab = isAllergyTab || isMedicalProblemsTab;
+
+    // Helper: extract plain string status from a record (CodeableConcepts already flattened by normalizeRecord)
+    const getRecordStatus = (r: Record<string, any>): string => {
+        const v = isStatusTab
+            ? (r.clinicalStatus || r.status || r.verificationStatus || "")
+            : (r.status || r.clinicalStatus || r.verificationStatus || "");
+        return typeof v === "string" ? v : "";
+    };
+
+    // Gather predefined options from the fieldConfig's clinicalStatus / status select field
+    const configStatusOptions = React.useMemo(() => {
+        if (!isMedicalProblemsTab || !fieldConfig) return [] as string[];
+        for (const section of fieldConfig.sections || []) {
+            for (const field of section.fields || []) {
+                if (field.key === "clinicalStatus" || field.key === "status") {
+                    if (Array.isArray((field as any).options)) {
+                        return ((field as any).options as Array<{ value?: string; label?: string }>)
+                            .map((o) => o.label || o.value || "")
+                            .filter(Boolean);
+                    }
+                }
+            }
+        }
+        return [] as string[];
+    }, [isMedicalProblemsTab, fieldConfig]);
 
     const uniqueStatuses = React.useMemo(() => {
         const statuses = new Set<string>();
+        // Always include options defined in the field config (so user can filter even if all records share one status)
+        for (const opt of configStatusOptions) statuses.add(opt);
+        // Add any values actually present in the current records
         for (const r of records) {
-            const s = isAllergyTab
-                ? (r.clinicalStatus || r.status || r.verificationStatus)
-                : (r.status || r.clinicalStatus || r.verificationStatus);
-            if (s && typeof s === "string") statuses.add(s);
+            const s = getRecordStatus(r);
+            if (s) statuses.add(s);
         }
         return Array.from(statuses).sort();
-    }, [records, isAllergyTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [records, isStatusTab, configStatusOptions]);
 
     // Filter records by search term and status
     const filteredRecords = React.useMemo(() => {
         let result = records;
         if (statusFilter) {
-            result = result.filter((r) => {
-                const s = isAllergyTab
-                    ? (r.clinicalStatus || r.status || r.verificationStatus || "")
-                    : (r.status || r.clinicalStatus || r.verificationStatus || "");
-                return String(s).toLowerCase() === statusFilter.toLowerCase();
-            });
+            result = result.filter((r) => getRecordStatus(r).toLowerCase() === statusFilter.toLowerCase());
         }
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
@@ -3029,7 +3060,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             onChange={(e) => setStatusFilter(e.target.value)}
                             className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white px-2 py-1.5 focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="">{isAllergyTab ? "All Clinical Statuses" : "All Statuses"}</option>
+                            <option value="">{isStatusTab ? "All Clinical Statuses" : "All Statuses"}</option>
                             {uniqueStatuses.map((s) => (
                                 <option key={s} value={s}>{s}</option>
                             ))}
