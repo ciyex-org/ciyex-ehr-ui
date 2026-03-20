@@ -57,7 +57,8 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
     fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?status=ACTIVE`)
       .then((r) => r.json())
       .then((json) => {
-        const list = (json?.data ?? []).map((p: any) => ({
+        const raw = Array.isArray(json?.data?.content) ? json.data.content : (json?.data ?? []);
+        const list = raw.map((p: any) => ({
           id: p.id,
           name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
         })).filter((p: { name: string }) => p.name);
@@ -74,10 +75,36 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
 
   // Author/provider search state
   const [authorQuery, setAuthorQuery] = useState(initial.authorName || "");
+  const [authorResults, setAuthorResults] = useState<{ id: number; name: string }[]>([]);
   const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
-  const filteredProviders = providers.filter((p) =>
-    p.name.toLowerCase().includes(authorQuery.toLowerCase())
-  );
+  const [authorSearching, setAuthorSearching] = useState(false);
+  const authorSearchRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Debounced author/provider search
+  useEffect(() => {
+    if (!authorQuery.trim() || authorQuery.length < 2) { setAuthorResults([]); return; }
+    // Skip search if author already selected and query matches
+    if (form.authorName && authorQuery === form.authorName) return;
+    if (authorSearchRef.current) clearTimeout(authorSearchRef.current);
+    authorSearchRef.current = setTimeout(async () => {
+      setAuthorSearching(true);
+      try {
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?status=ACTIVE&search=${encodeURIComponent(authorQuery)}`);
+        const json = await res.json();
+        let list: any[] = [];
+        if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json?.data)) list = json.data;
+        const mapped = list.map((p: any) => ({
+          id: p.id,
+          name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
+        })).filter((p: { name: string }) => p.name);
+        setAuthorResults(mapped);
+        setShowAuthorDropdown(true);
+      } catch { /* silent */ }
+      finally { setAuthorSearching(false); }
+    }, 300);
+    return () => { if (authorSearchRef.current) clearTimeout(authorSearchRef.current); };
+  }, [authorQuery]);
 
   const getPatientName = (p: typeof patientResults[0]) =>
     p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
@@ -155,6 +182,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
 
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [goalErrors, setGoalErrors] = useState<Record<number, string>>({});
 
   async function handleSubmit() {
     const errs: Record<string, string> = {};
@@ -176,12 +204,20 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
         errs.authorName = "Author name must be at least 2 characters";
       }
     }
+    // Validate goal target values are numeric
+    const gErrs: Record<number, string> = {};
+    form.goals.forEach((g, idx) => {
+      if (g.targetValue && !/^\d*\.?\d*$/.test(g.targetValue)) {
+        gErrs[idx] = "Must be a numeric value";
+      }
+    });
+    setGoalErrors(gErrs);
     // Validate end date is after start date
     if (form.startDate && form.endDate && form.endDate < form.startDate) {
       errs.endDate = "End date must be after start date";
     }
     setFieldErrors(errs);
-    if (Object.keys(errs).length > 0) {
+    if (Object.keys(errs).length > 0 || Object.keys(gErrs).length > 0) {
       setFormError(errs.endDate || null);
       return;
     }
@@ -359,14 +395,19 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                   setShowAuthorDropdown(true);
                   if (fieldErrors.authorName) setFieldErrors(prev => { const n = {...prev}; delete n.authorName; return n; });
                 }}
-                onFocus={() => { if (authorQuery && filteredProviders.length > 0) setShowAuthorDropdown(true); }}
+                onFocus={() => { if (authorResults.length > 0) setShowAuthorDropdown(true); }}
                 onBlur={() => { setTimeout(() => setShowAuthorDropdown(false), 150); }}
                 className={`${inputClass} ${fieldErrors.authorName ? "border-red-400 dark:border-red-500 ring-1 ring-red-300" : ""}`}
                 placeholder="Search provider..."
               />
-              {showAuthorDropdown && authorQuery && filteredProviders.length > 0 && (
+              {authorSearching && (
+                <div className="absolute right-3 top-8">
+                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                </div>
+              )}
+              {showAuthorDropdown && authorResults.length > 0 && (
                 <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-                  {filteredProviders.map((p) => (
+                  {authorResults.map((p) => (
                     <button
                       key={p.id}
                       type="button"
@@ -487,12 +528,16 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                         value={goal.targetValue}
                         onChange={(e) => {
                           const val = e.target.value;
+                          updateGoal(idx, { targetValue: val });
                           if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                            updateGoal(idx, { targetValue: val });
+                            setGoalErrors((prev) => { const n = { ...prev }; delete n[idx]; return n; });
+                          } else {
+                            setGoalErrors((prev) => ({ ...prev, [idx]: "Must be a numeric value" }));
                           }
                         }}
-                        className={inputClass}
+                        className={`${inputClass} ${goalErrors[idx] ? "border-red-400 dark:border-red-500 ring-1 ring-red-300" : ""}`}
                       />
+                      {goalErrors[idx] && <p className="text-xs text-red-500 mt-1">{goalErrors[idx]}</p>}
                     </div>
                   </div>
                   <div>

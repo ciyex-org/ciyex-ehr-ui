@@ -90,6 +90,7 @@ export default function Orders() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [items, setItems] = useState<InvItem[]>([]);
   const [formError, setFormError] = useState("");
+  const [expectedDateError, setExpectedDateError] = useState("");
 
   useEffect(() => { if (alert) { const t = setTimeout(() => setAlert(null), 4000); return () => clearTimeout(t); } }, [alert]);
 
@@ -136,7 +137,7 @@ export default function Orders() {
     loadDropdowns();
     setSupplierId(0); setOrderDate(new Date().toISOString().slice(0, 10));
     setExpectedDate(""); setNotes(""); setLines([emptyLine()]);
-    setFormStatus("draft"); setFormError("");
+    setFormStatus("draft"); setFormError(""); setExpectedDateError("");
     setModalMode("create");
   };
 
@@ -145,7 +146,7 @@ export default function Orders() {
     setCurrent(o); setSupplierId(o.supplierId); setOrderDate(o.orderDate ?? "");
     setExpectedDate(o.expectedDate ?? ""); setNotes(o.notes ?? "");
     setLines(o.lines?.length ? o.lines.map(l => ({ ...l })) : [emptyLine()]);
-    setFormStatus(o.status); setFormError("");
+    setFormStatus(o.status); setFormError(""); setExpectedDateError("");
     setModalMode("edit");
   };
 
@@ -180,7 +181,7 @@ export default function Orders() {
     setFormError("");
     if (!supplierId) { setFormError("Select a supplier"); return; }
     if (!lines.some(l => l.itemId > 0)) { setFormError("Add at least one line item"); return; }
-    if (expectedDate && orderDate && expectedDate < orderDate) { setFormError("Expected Date cannot be before Order Date"); return; }
+    if (expectedDate && orderDate && expectedDate < orderDate) { setExpectedDateError("Expected Delivery Date must be on or after the Order Date"); setFormError("Expected Delivery Date must be on or after the Order Date"); return; }
 
     const body: any = {
       supplierId, status: formStatus, orderDate, expectedDate, notes,
@@ -366,11 +367,28 @@ export default function Orders() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Order Date</label>
-              <input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className={inputCls} />
+              <input type="date" value={orderDate} onChange={e => {
+                const val = e.target.value;
+                setOrderDate(val);
+                if (expectedDate && val && expectedDate < val) {
+                  setExpectedDateError("Expected Delivery Date must be on or after the Order Date");
+                } else {
+                  setExpectedDateError("");
+                }
+              }} className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Expected Date</label>
-              <input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} min={orderDate} className={inputCls} />
+              <input type="date" value={expectedDate} onChange={e => {
+                const val = e.target.value;
+                setExpectedDate(val);
+                if (val && orderDate && val < orderDate) {
+                  setExpectedDateError("Expected Delivery Date must be on or after the Order Date");
+                } else {
+                  setExpectedDateError("");
+                }
+              }} min={orderDate} className={`${inputCls}${expectedDateError ? " border-rose-500 focus:border-rose-500 focus:ring-rose-500" : ""}`} />
+              {expectedDateError && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{expectedDateError}</p>}
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>

@@ -169,7 +169,7 @@ export default function RecallPage() {
   const [formData, setFormData] = useState({
     patientId: "", patientName: "", patientPhone: "", patientEmail: "",
     recallTypeId: "", providerId: "", providerName: "", dueDate: "",
-    preferredContact: "PHONE", priority: "NORMAL", notes: "",
+    preferredContact: "PHONE", priority: "NORMAL", status: "DUE", notes: "",
   });
 
   // Patient search in modal
@@ -291,7 +291,7 @@ export default function RecallPage() {
     setFormData({
       patientId: "", patientName: "", patientPhone: "", patientEmail: "",
       recallTypeId: "", providerId: "", providerName: "", dueDate: "",
-      preferredContact: "PHONE", priority: "NORMAL", notes: "",
+      preferredContact: "PHONE", priority: "NORMAL", status: "DUE", notes: "",
     });
     setPatientQuery(""); setPatientResults([]); setShowPatientDropdown(false);
     setShowCreateModal(true);
@@ -306,7 +306,7 @@ export default function RecallPage() {
       providerId: r.providerId ? String(r.providerId) : "",
       providerName: r.providerName ?? "",
       dueDate: r.dueDate ?? "", preferredContact: r.preferredContact ?? "PHONE",
-      priority: r.priority ?? "NORMAL", notes: r.notes ?? "",
+      priority: r.priority ?? "NORMAL", status: r.status ?? "DUE", notes: r.notes ?? "",
     });
     setPatientQuery(""); setShowCreateModal(true);
   };
@@ -341,6 +341,7 @@ export default function RecallPage() {
       dueDate: formData.dueDate,
       preferredContact: formData.preferredContact,
       priority: formData.priority,
+      status: formData.status,
       notes: formData.notes || null,
     };
 
@@ -756,6 +757,23 @@ export default function RecallPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* Status (shown in edit mode) */}
+                {editRecall && (
+                  <div>
+                    <Label>Status</Label>
+                    <select value={formData.status}
+                      onChange={e => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm">
+                      <option value="DUE">Due</option>
+                      <option value="SCHEDULED">Scheduled</option>
+                      <option value="NOTIFIED">Notified</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="CANCELLED">Cancelled</option>
+                      <option value="OVERDUE">Overdue</option>
+                    </select>
+                  </div>
+                )}
 
                 {/* Contact Info */}
                 <div className="grid grid-cols-2 gap-4">

@@ -122,6 +122,10 @@ function UploadPanel({ onUploaded, onError }: { onUploaded: () => void; onError?
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    if (!selectedPatientId) {
+      onError?.("Please select a patient before uploading documents.");
+      return;
+    }
     setUploading(true);
     let success = 0;
     for (let i = 0; i < files.length; i++) {
@@ -188,8 +192,8 @@ function UploadPanel({ onUploaded, onError }: { onUploaded: () => void; onError?
               type="text"
               value={patientSearch}
               onChange={(e) => handlePatientSearchInput(e.target.value)}
-              placeholder="Link to patient..."
-              className="text-xs rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 w-48"
+              placeholder="Select patient (required)..."
+              className={`text-xs rounded-lg border ${!selectedPatientId ? 'border-red-300 dark:border-red-600' : 'border-slate-300 dark:border-slate-600'} bg-white dark:bg-slate-800 px-2 py-1.5 w-48`}
             />
             {selectedPatientId && (
               <button

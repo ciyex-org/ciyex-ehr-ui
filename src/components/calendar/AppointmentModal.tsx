@@ -510,6 +510,18 @@ const AppointmentModal: React.FC = () => {
             return;
         }
 
+        // Block appointments in the past
+        const now = new Date();
+        const apptStart = new Date(`${startDate}T${startTime}:00`);
+        if (apptStart < now) {
+            setAlertData({
+                variant: "error",
+                title: "Invalid Time",
+                message: "Cannot create appointments in the past. Please select a future time slot.",
+            });
+            return;
+        }
+
         if (new Date(combinedEnd).getTime() <= new Date(combinedStart).getTime()) {
             setAlertData({
                 variant: "error",

@@ -1873,6 +1873,17 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         errors[key] = "Duration must be a number";
                     }
                 }
+                // Validate End Date >= Start Date
+                const startRaw = formData.startDate || formData.start || formData["period.start"];
+                const endRaw = formData.endDate || formData.end || formData["period.end"];
+                if (startRaw && endRaw) {
+                    const s = new Date(startRaw as string);
+                    const e = new Date(endRaw as string);
+                    if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && e < s) {
+                        const endKey = formData.endDate !== undefined ? "endDate" : formData.end !== undefined ? "end" : "period.end";
+                        errors[endKey] = "End date/time cannot be before start date/time";
+                    }
+                }
             }
             // Medications: name must be alphanumeric; dosage must be numeric
             if (tabKey === "medications" || tabKey === "medication" || tabKey === "prescriptions" || tabKey === "prescription") {
@@ -2189,8 +2200,13 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     payload.appointmentType = wrapCoding(payload.appointmentType, "http://terminology.hl7.org/CodeSystem/v2-0276");
                 }
                 if (!payload.participant) {
-                    const patRef = payload.patient || `Patient/${patientId}`;
+                    // Always use proper FHIR reference format — payload.patient may be a display name string
+                    const patRef = `Patient/${patientId}`;
                     payload.participant = [{ actor: { reference: patRef }, required: "required", status: "accepted" }];
+                }
+                // Ensure patient field is a proper FHIR reference, not a display name
+                if (payload.patient && typeof payload.patient === "string" && !payload.patient.startsWith("Patient/")) {
+                    payload.patient = { reference: `Patient/${patientId}`, display: payload.patient };
                 }
             }
 

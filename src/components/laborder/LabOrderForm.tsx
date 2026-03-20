@@ -1053,10 +1053,10 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Order Date</label>
                 <input
+                  type="date"
                   className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={toDisplayDate(draft.orderDate ?? "")}
-                  onChange={(e) => upd('orderDate', fromDisplayDate(e.target.value, draft.orderDate || new Date().toISOString().slice(0,10)))}
-                  placeholder="DD-MM-YYYY"
+                  value={draft.orderDate ?? new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => upd('orderDate', e.target.value)}
                 />
               </div>
               <div>

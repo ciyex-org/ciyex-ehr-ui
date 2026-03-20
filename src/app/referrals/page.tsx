@@ -95,6 +95,8 @@ const STATUS_TABS: { key: ReferralStatus | "all"; label: string }[] = [
   { key: "acknowledged", label: "Acknowledged" },
   { key: "scheduled", label: "Scheduled" },
   { key: "completed", label: "Completed" },
+  { key: "denied", label: "Denied" },
+  { key: "cancelled", label: "Cancelled" },
 ];
 
 const URGENCY_OPTIONS: { key: string; label: string }[] = [

@@ -37,7 +37,7 @@ export default function AssignMaterialModal({
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
   const [assignedBy, setAssignedBy] = useState("");
-  const [providerResults, setProviderResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
+  const [providerResults, setProviderResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string; identification?: { firstName?: string; lastName?: string }; 'identification.firstName'?: string; 'identification.lastName'?: string }[]>([]);
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
   const providerSearchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [saving, setSaving] = useState(false);
@@ -63,21 +63,29 @@ export default function AssignMaterialModal({
     }, 300);
   }, [patientQuery]);
 
+  const getProviderDisplayName = (p: typeof providerResults[0]) => {
+    const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
+    const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
+    return p.fullName || p.name || `${firstName} ${lastName}`.trim() || p.id;
+  };
+
   // Provider search for "Assigned By"
   useEffect(() => {
-    if (!assignedBy.trim() || assignedBy.length < 2) { setProviderResults([]); return; }
+    if (!assignedBy.trim() || assignedBy.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
     if (providerSearchTimer.current) clearTimeout(providerSearchTimer.current);
     providerSearchTimer.current = setTimeout(async () => {
       try {
         const res = await fetchWithAuth(apiUrl("/api/providers?status=ACTIVE"));
         const json = await res.json();
         let list: typeof providerResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json?.data)) list = json.data;
         else if (Array.isArray(json)) list = json;
         const query = assignedBy.toLowerCase();
         const filtered = list.filter((p) => {
-          const name = (p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim()).toLowerCase();
+          const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
+          const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
+          const name = (p.fullName || p.name || `${firstName} ${lastName}`.trim()).toLowerCase();
           return name.includes(query);
         });
         setProviderResults(filtered);
@@ -379,7 +387,7 @@ export default function AssignMaterialModal({
               {showProviderDropdown && providerResults.length > 0 && (
                 <div className="absolute z-10 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
                   {providerResults.map((p) => {
-                    const name = p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+                    const name = getProviderDisplayName(p);
                     return (
                       <button
                         key={p.id}

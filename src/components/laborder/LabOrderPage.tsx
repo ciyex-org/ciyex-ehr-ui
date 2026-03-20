@@ -182,6 +182,7 @@ export default function LabOrdersPage() {
   const debounceRef = useRef<number | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [resultFilter, setResultFilter] = useState("all");
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -295,10 +296,11 @@ export default function LabOrdersPage() {
     const matchQ = !q || (/^\d+$/.test(q) ? (String(o.patientId) === q || String(o.mrn) === q || hay.includes(q)) : hay.includes(q));
     const matchS = statusFilter === "all" || o.status === statusFilter;
     const matchP = priorityFilter === "all" || o.priority === priorityFilter;
-    return matchQ && matchS && matchP;
-  }), [orders, query, statusFilter, priorityFilter, patientCache]);
+    const matchR = resultFilter === "all" || (o.result || "Pending") === resultFilter;
+    return matchQ && matchS && matchP && matchR;
+  }), [orders, query, statusFilter, priorityFilter, resultFilter, patientCache]);
 
-  useEffect(() => { setPage(1); }, [query, statusFilter, priorityFilter]);
+  useEffect(() => { setPage(1); }, [query, statusFilter, priorityFilter, resultFilter]);
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
@@ -499,6 +501,12 @@ export default function LabOrdersPage() {
           <label className="block text-xs text-gray-500 mb-1">Priority</label>
           <select className="border rounded-lg px-3 py-2 text-sm w-full text-gray-800 bg-white" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
             <option value="all">All</option><option value="routine">Routine</option><option value="urgent">Urgent</option><option value="stat">STAT</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs text-gray-500 mb-1">Result</label>
+          <select className="border rounded-lg px-3 py-2 text-sm w-full text-gray-800 bg-white" value={resultFilter} onChange={(e) => setResultFilter(e.target.value)}>
+            <option value="all">All</option><option value="Pending">Pending</option><option value="Partial">Partial</option><option value="Final">Final</option>
           </select>
         </div>
       </div>

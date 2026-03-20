@@ -64,6 +64,46 @@ export default function TaskFormPanel({
   const [patientDropdownStyle, setPatientDropdownStyle] = useState<React.CSSProperties>({});
   const patientInputRef = useRef<HTMLDivElement>(null);
 
+  // Provider search for "Assigned To"
+  const [providerResults, setProviderResults] = useState<{ id: number; name: string }[]>([]);
+  const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+  const providerInputRef = useRef<HTMLDivElement>(null);
+  const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    const q = form.assignedTo;
+    if (!q || q.length < 2) { setProviderResults([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
+        const res = await fetchWithAuth(`${base}/api/providers?status=ACTIVE`);
+        const json = await res.json();
+        const list = (json?.data?.content || json?.data || [])
+          .map((p: any) => ({
+            id: p.id,
+            name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.displayName || `Provider #${p.id}`,
+          }))
+          .filter((p: { name: string }) => p.name.toLowerCase().includes(q.toLowerCase()));
+        setProviderResults(list);
+        setShowProviderDropdown(list.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [form.assignedTo]);
+
+  useEffect(() => {
+    if (showProviderDropdown && providerInputRef.current) {
+      const rect = providerInputRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropHeight = Math.min(192, providerResults.length * 44);
+      if (spaceBelow < dropHeight && rect.top > dropHeight) {
+        setProviderDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      } else {
+        setProviderDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      }
+    }
+  }, [showProviderDropdown, providerResults.length]);
+
   // Sync patient query with form data
   useEffect(() => {
     setPatientQuery(form.patientName || "");
@@ -276,17 +316,42 @@ export default function TaskFormPanel({
 
           {/* Row: Assigned To + Assigned By */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="relative" ref={providerInputRef}>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 Assigned To
               </label>
               <input
                 type="text"
                 value={form.assignedTo}
-                onChange={(e) => set("assignedTo", e.target.value)}
-                placeholder="e.g. Dr. Smith"
+                onChange={(e) => {
+                  set("assignedTo", e.target.value);
+                  setShowProviderDropdown(true);
+                }}
+                onFocus={() => providerResults.length > 0 && setShowProviderDropdown(true)}
+                onBlur={() => setTimeout(() => setShowProviderDropdown(false), 150)}
+                placeholder="Search provider..."
+                autoComplete="off"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
               />
+              {showProviderDropdown && providerResults.length > 0 && (
+                <div style={providerDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                  {providerResults.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        set("assignedTo", p.name);
+                        setShowProviderDropdown(false);
+                        setProviderResults([]);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
