@@ -91,6 +91,8 @@ interface GenericSettingsPageProps {
     pageKey: string;
     /** When true, skip AdminLayout wrapper (used when embedded inside another page) */
     embedded?: boolean;
+    /** Override FHIR write check — allow Add/Edit/Delete regardless of SMART scopes */
+    forceWritable?: boolean;
 }
 
 /** Patch field configs for known settings pages to ensure proper field types */
@@ -247,7 +249,7 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
 // Stable wrapper components (defined outside render to keep React identity stable)
 const PassThrough = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
-export default function GenericSettingsPage({ pageKey, embedded = false }: GenericSettingsPageProps) {
+export default function GenericSettingsPage({ pageKey, embedded = false, forceWritable = false }: GenericSettingsPageProps) {
     const Wrapper = embedded ? PassThrough : AdminLayout;
 
     const [config, setConfig] = useState<PageConfig | null>(null);
@@ -275,7 +277,7 @@ export default function GenericSettingsPage({ pageKey, embedded = false }: Gener
     // Write permission check based on FHIR resource type
     const { canWriteResource } = usePermissions();
     const primaryResource = config?.fhirResources?.[0]?.type || "";
-    const canWrite = !primaryResource || canWriteResource(primaryResource);
+    const canWrite = forceWritable || !primaryResource || canWriteResource(primaryResource);
 
     // Reset view state when page changes
     useEffect(() => {

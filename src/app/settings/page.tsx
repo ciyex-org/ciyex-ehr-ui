@@ -244,7 +244,12 @@ export default function SettingsPage() {
                 ) : activeKey ? (
                     <>
                         {activeKey === "practice" && <PracticeLogoUpload />}
-                        <GenericSettingsPage key={activeKey} pageKey={activeKey} embedded />
+                        <GenericSettingsPage
+                            key={activeKey}
+                            pageKey={activeKey}
+                            embedded
+                            forceWritable={["insurance", "referral-practices", "referral-providers"].includes(activeKey)}
+                        />
                     </>
                 ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">
