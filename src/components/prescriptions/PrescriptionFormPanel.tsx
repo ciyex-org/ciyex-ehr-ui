@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { X, Pill, User, Building2, FileText, Loader2, Stethoscope } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Prescription, ToastState } from "./types";
@@ -93,6 +93,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [patientDropdownStyle, setPatientDropdownStyle] = useState<React.CSSProperties>({});
   const patientInputRef = useRef<HTMLDivElement>(null);
+  const skipPatientSearchRef = useRef(false);
 
   /* Prescriber search state */
   const [prescriberQuery, setPrescriberQuery] = useState("");
@@ -106,6 +107,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       const p = prescription ? { ...prescription } : blankPrescription();
       setForm(p);
       setErrors({});
+      skipPatientSearchRef.current = true; // suppress the search triggered by the patientQuery change below
       setPatientQuery(p.patientName || "");
       setPatientResults([]);
       setShowPatientDropdown(false);
@@ -130,26 +132,30 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     }
   }, [showPatientDropdown, patientResults.length]);
 
+  /* Patient search function — shared by effect and onFocus */
+  const runPatientSearch = useCallback(async (q: string) => {
+    if (!q.trim() || q.length < 2) { setPatientResults([]); return; }
+    try {
+      const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(q)}&size=20`);
+      if (!res.ok) return;
+      const json = await res.json();
+      let list: typeof patientResults = [];
+      if (Array.isArray(json?.data?.content)) list = json.data.content;
+      else if (Array.isArray(json?.data)) list = json.data;
+      else if (Array.isArray(json?.content)) list = json.content;
+      else if (Array.isArray(json)) list = json;
+      setPatientResults(list);
+      setShowPatientDropdown(list.length > 0);
+    } catch { /* silent */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* Debounced patient search */
   useEffect(() => {
+    if (skipPatientSearchRef.current) { skipPatientSearchRef.current = false; return; }
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
-    // Skip search if editing and patient already selected
-    if (form.patientId && form.patientName && patientQuery === form.patientName) return;
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(patientQuery)}`);
-        if (!res.ok) return;
-        const json = await res.json();
-        let list: typeof patientResults = [];
-        if (Array.isArray(json?.data?.content)) list = json.data.content;
-        else if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json)) list = json;
-        setPatientResults(list);
-        setShowPatientDropdown(list.length > 0);
-      } catch { /* silent */ }
-    }, 300);
+    const t = setTimeout(() => runPatientSearch(patientQuery), 300);
     return () => clearTimeout(t);
-  }, [patientQuery]);
+  }, [patientQuery, runPatientSearch]);
 
   /* Update prescriber dropdown position when shown */
   useEffect(() => {
@@ -322,7 +328,14 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                     set("patientId", "");
                     setShowPatientDropdown(true);
                   }}
-                  onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
+                  onFocus={() => {
+                    if (patientResults.length > 0) {
+                      setShowPatientDropdown(true);
+                    } else if (patientQuery.trim().length >= 2) {
+                      // Re-trigger search if field has text but results were cleared (e.g. after blur)
+                      runPatientSearch(patientQuery);
+                    }
+                  }}
                   onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
                   placeholder="Search patient by name..."
                   autoComplete="off"
