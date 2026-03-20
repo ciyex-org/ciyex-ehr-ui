@@ -39,6 +39,48 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
     const [mode, setMode] = useState<"list" | "create" | "edit" | "view">("list");
     const [selectedRecord, setSelectedRecord] = useState<Record<string, any> | null>(null);
     const [formData, setFormData] = useState<Record<string, any>>({});
+
+    // For appointments: derive formatted duration from start/end times at render time
+    // so the Duration field always reflects the current values regardless of key names.
+    const decoratedFormData = React.useMemo(() => {
+        if (tabKey !== "appointments" && tabKey !== "appointment") return formData;
+        const isApptStartKey = (k: string) =>
+            /^(appointmentStartTime|startTime|start|scheduledStart|startDateTime|appointmentStart)$/i.test(k) ||
+            (/start/i.test(k) && /time/i.test(k) && !/end/i.test(k));
+        const isApptEndKey = (k: string) =>
+            /^(appointmentEndTime|endTime|end|scheduledEnd|endDateTime|appointmentEnd)$/i.test(k) ||
+            (/end/i.test(k) && /time/i.test(k) && !/start/i.test(k));
+        const durKeys = ["duration", "minutesDuration", "durationMinutes", "appointmentDuration"];
+        const parseTime = (v: unknown): [number, number] | null => {
+            if (!v || typeof v !== "string") return null;
+            const timePart = v.includes("T") ? v.split("T")[1] : v;
+            const parts = timePart.split(":");
+            const h = Number(parts[0]);
+            const m = Number(parts[1]);
+            return isNaN(h) || isNaN(m) ? null : [h, m];
+        };
+        const allKeys = Object.keys(formData);
+        const stRaw = allKeys.filter(isApptStartKey).map(k => formData[k]).find(v => v && typeof v === "string" && v.includes(":"));
+        const etRaw = allKeys.filter(isApptEndKey).map(k => formData[k]).find(v => v && typeof v === "string" && v.includes(":"));
+        const stParts = parseTime(stRaw);
+        const etParts = parseTime(etRaw);
+        if (stParts && etParts) {
+            const diff = (etParts[0] * 60 + etParts[1]) - (stParts[0] * 60 + stParts[1]);
+            if (diff > 0) {
+                const h = Math.floor(diff / 60);
+                const m = diff % 60;
+                const formatted = h > 0 ? `${h}h ${m > 0 ? m + "m" : ""}`.trim() : `${m} min`;
+                const updated = { ...formData };
+                for (const dk of durKeys) { updated[dk] = formatted; }
+                for (const k of allKeys) {
+                    if (/duration/i.test(k)) updated[k] = formatted;
+                }
+                return updated;
+            }
+        }
+        return formData;
+    }, [formData, tabKey]);
+
     const [searchTerm, setSearchTerm] = useState("");
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const [deleteConfirmRecord, setDeleteConfirmRecord] = useState<Record<string, any> | null>(null);
@@ -1360,11 +1402,15 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
             }
             // Auto-calculate duration from start/end time for appointments
-            if (tabKey === "appointments") {
-                const startKeys = ["appointmentStartTime", "startTime", "start"];
-                const endKeys = ["appointmentEndTime", "endTime", "end"];
+            if (tabKey === "appointments" || tabKey === "appointment") {
+                const isApptStartKey = (k: string) =>
+                    /^(appointmentStartTime|startTime|start|scheduledStart|startDateTime|appointmentStart)$/i.test(k) ||
+                    (/start/i.test(k) && /time/i.test(k) && !/end/i.test(k));
+                const isApptEndKey = (k: string) =>
+                    /^(appointmentEndTime|endTime|end|scheduledEnd|endDateTime|appointmentEnd)$/i.test(k) ||
+                    (/end/i.test(k) && /time/i.test(k) && !/start/i.test(k));
                 const durKeys = ["duration", "minutesDuration", "durationMinutes", "appointmentDuration"];
-                const isStartOrEnd = startKeys.includes(key) || endKeys.includes(key);
+                const isStartOrEnd = isApptStartKey(key) || isApptEndKey(key);
                 if (isStartOrEnd) {
                     // Extract [hours, minutes] from either "HH:mm" or ISO "YYYY-MM-DDTHH:mm:ss"
                     const parseTime = (v: unknown): [number, number] | null => {
@@ -1375,14 +1421,19 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         const m = Number(parts[1]);
                         return isNaN(h) || isNaN(m) ? null : [h, m];
                     };
-                    const stRaw = startKeys.map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
-                    const etRaw = endKeys.map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
+                    const allNextKeys = Object.keys(next);
+                    const stRaw = allNextKeys.filter(isApptStartKey).map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
+                    const etRaw = allNextKeys.filter(isApptEndKey).map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
                     const stParts = parseTime(stRaw);
                     const etParts = parseTime(etRaw);
                     if (stParts && etParts) {
                         const diff = (etParts[0] * 60 + etParts[1]) - (stParts[0] * 60 + stParts[1]);
                         if (diff > 0) {
                             for (const dk of durKeys) { next[dk] = diff; }
+                            // Also update any other duration-named field that already exists in formData
+                            for (const k of allNextKeys) {
+                                if (/duration/i.test(k) && !durKeys.includes(k)) next[k] = diff;
+                            }
                         }
                     }
                 }
@@ -2797,7 +2848,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     {fieldConfig && (
                         <DynamicFormRenderer
                             fieldConfig={fieldConfig}
-                            formData={formData}
+                            formData={decoratedFormData}
                             onChange={handleFieldChange}
                             readOnly={mode === "view"}
                             errors={validationErrors}
@@ -2855,7 +2906,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     {fieldConfig && (
                         <DynamicFormRenderer
                             fieldConfig={fieldConfig}
-                            formData={formData}
+                            formData={decoratedFormData}
                             onChange={handleFieldChange}
                             readOnly={mode === "view"}
                             errors={validationErrors}
