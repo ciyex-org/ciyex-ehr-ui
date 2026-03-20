@@ -81,7 +81,7 @@ export default function TaskFormPanel({
         const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(q)}`);
         if (!res.ok) return;
         const json = await res.json();
-        const raw = Array.isArray(json) ? json : (json?.data?.content || json?.data || []);
+        const raw = Array.isArray(json) ? json : (json?.data?.content || json?.content || json?.data || []);
         const list = (Array.isArray(raw) ? raw : [])
           .map((p: any) => ({
             id: p.id,
@@ -138,6 +138,7 @@ export default function TaskFormPanel({
         const json = await res.json();
         let list: typeof patientResults = [];
         if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json?.content)) list = json.content;
         else if (Array.isArray(json?.data)) list = json.data;
         else if (Array.isArray(json)) list = json;
         setPatientResults(list);

@@ -2204,32 +2204,32 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (payload.appointmentType && typeof payload.appointmentType === "string") {
                     payload.appointmentType = wrapCoding(payload.appointmentType, "http://terminology.hl7.org/CodeSystem/v2-0276");
                 }
-                // Ensure patient field is a proper FHIR reference, not a display name
-                if (payload.patient && typeof payload.patient === "string" && !payload.patient.startsWith("Patient/")) {
-                    payload.patient = { reference: `Patient/${patientId}`, display: payload.patient };
-                }
-                // Also handle patientName field used as patient reference
-                if (!payload.patient && payload.patientName) {
-                    payload.patient = { reference: `Patient/${patientId}`, display: String(payload.patientName) };
-                }
-                // Ensure participant always includes a proper patient reference
+                // Ensure patient field is a proper FHIR reference object (handle string, numeric ID, or display name)
                 const patRef = `Patient/${patientId}`;
-                if (!payload.participant) {
-                    payload.participant = [{ actor: { reference: patRef }, required: "required", status: "accepted" }];
-                } else if (Array.isArray(payload.participant)) {
-                    const hasPatient = payload.participant.some((p: any) => (p?.actor?.reference || "").startsWith("Patient/"));
-                    if (!hasPatient) {
-                        payload.participant.push({ actor: { reference: patRef }, required: "required", status: "accepted" });
-                    } else {
-                        // Fix any patient participant that has a name instead of ID
-                        payload.participant = payload.participant.map((p: any) => {
-                            const ref = p?.actor?.reference || "";
-                            if (ref.startsWith("Patient/") && !/^\d+$/.test(ref.split("/")[1] || "")) {
-                                return { ...p, actor: { ...p.actor, reference: patRef } };
-                            }
-                            return p;
-                        });
+                const patDisplay = patientName || String(patientId);
+                if (payload.patient != null) {
+                    const pv = payload.patient;
+                    if (typeof pv === "number" || (typeof pv === "string" && !(pv as string).startsWith("{"))) {
+                        payload.patient = { reference: patRef, display: typeof pv === "string" && !/^\d+$/.test(pv) ? pv : patDisplay };
                     }
+                } else if (payload.patientName) {
+                    payload.patient = { reference: patRef, display: String(payload.patientName) };
+                } else {
+                    payload.patient = { reference: patRef, display: patDisplay };
+                }
+                // Ensure participant always includes a correct Patient reference — replace any incorrect patient entries
+                if (!Array.isArray(payload.participant)) {
+                    payload.participant = [{ actor: { reference: patRef, display: patDisplay }, required: "required", status: "accepted" }];
+                } else {
+                    // Keep non-patient participants; replace all patient entries with the correct one
+                    const nonPatient = (payload.participant as any[]).filter((p: any) => {
+                        const ref: string = p?.actor?.reference || "";
+                        return !ref.startsWith("Patient/");
+                    });
+                    payload.participant = [
+                        ...nonPatient,
+                        { actor: { reference: patRef, display: patDisplay }, required: "required", status: "accepted" },
+                    ];
                 }
             }
 

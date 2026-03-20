@@ -211,6 +211,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const selectPatient = (p: typeof patientResults[0]) => {
     const name = pName(p);
     setForm((prev) => ({ ...prev, patientId: p.id, patientName: name }));
+    skipPatientSearchRef.current = true;
     setPatientQuery(name);
     setShowPatientDropdown(false);
   };

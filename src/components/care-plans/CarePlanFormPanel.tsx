@@ -66,7 +66,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
         else if (Array.isArray(json)) raw = json;
         const list = raw.map((p: any) => ({
           id: p.id,
-          name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
+          name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.fullName || p.displayName || `Provider #${p.id}`,
         })).filter((p: { name: string }) => p.name);
         setProviders(list);
       })
@@ -111,7 +111,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
         else if (Array.isArray(json)) list = json;
         const mapped = list.map((p: any) => ({
           id: p.id,
-          name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
+          name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.fullName || p.displayName || `Provider #${p.id}`,
         })).filter((p: { name: string }) => p.name);
         setAuthorResults(mapped);
         setShowAuthorDropdown(true);
@@ -549,16 +549,13 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                         value={goal.targetValue}
                         onChange={(e) => {
                           const val = e.target.value;
+                          // Block non-numeric input (allow digits and single decimal point only)
+                          if (val !== "" && !/^\d*\.?\d*$/.test(val)) return;
                           updateGoal(idx, { targetValue: val });
-                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                            setGoalErrors((prev) => { const n = { ...prev }; delete n[idx]; return n; });
-                          } else {
-                            setGoalErrors((prev) => ({ ...prev, [idx]: "Must be a numeric value" }));
-                          }
+                          setGoalErrors((prev) => { const n = { ...prev }; delete n[idx]; return n; });
                         }}
-                        className={`${inputClass} ${goalErrors[idx] ? "border-red-400 dark:border-red-500 ring-1 ring-red-300" : ""}`}
+                        className={inputClass}
                       />
-                      {goalErrors[idx] && <p className="text-xs text-red-500 mt-1">{goalErrors[idx]}</p>}
                     </div>
                   </div>
                   <div>

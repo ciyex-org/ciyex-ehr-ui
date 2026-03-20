@@ -1220,12 +1220,8 @@ const Calendar: React.FC = () => {
 
     // Default 15-minute end when selecting on grid
     const handleDateSelect = useCallback((selectInfo: DateSelectArg, providerId?: string) => {
-        // Block past dates — only allow today or future
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        const selStart = new Date(selectInfo.start);
-        selStart.setHours(0, 0, 0, 0);
-        if (selStart < now) return;
+        // Block past time slots — only allow current time or future
+        if (selectInfo.start < new Date()) return;
 
         resetModalFields();
 

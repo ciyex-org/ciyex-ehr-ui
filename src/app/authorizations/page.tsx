@@ -229,6 +229,7 @@ export default function PriorAuthorizationsPage() {
   const patientInputRef = useRef<HTMLDivElement>(null);
   const providerInputRef = useRef<HTMLDivElement>(null);
   const insuranceInputRef = useRef<HTMLDivElement>(null);
+  const skipInsuranceSearchRef = useRef(false);
   const [patientDropdownStyle, setPatientDropdownStyle] = useState<React.CSSProperties>({});
   const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
   const [insuranceDropdownStyle, setInsuranceDropdownStyle] = useState<React.CSSProperties>({});
@@ -321,6 +322,7 @@ export default function PriorAuthorizationsPage() {
 
   // Insurance search — trigger from 1 char so partial names work
   useEffect(() => {
+    if (skipInsuranceSearchRef.current) { skipInsuranceSearchRef.current = false; return; }
     if (!insuranceQuery.trim()) { setInsuranceResults([]); setShowInsuranceDropdown(false); return; }
     debounceSearch("insurance", () => runInsuranceSearch(insuranceQuery));
   }, [insuranceQuery, runInsuranceSearch]);
@@ -511,6 +513,7 @@ export default function PriorAuthorizationsPage() {
     const { id, ...rest } = auth;
     setFormData(rest);
     setPatientQuery(auth.patientName); setProviderQuery(auth.providerName);
+    skipInsuranceSearchRef.current = true;
     setInsuranceQuery(auth.insuranceName); setDiagnosisQuery(auth.diagnosisCode);
     setProcedureQuery(auth.procedureCode);
     setShowForm(true);
@@ -1206,7 +1209,7 @@ export default function PriorAuthorizationsPage() {
                       {showInsuranceDropdown && insuranceResults.length > 0 && (
                         <div className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg" style={insuranceDropdownStyle}>
                           {insuranceResults.map((ins) => {
-                            const displayName = ins.insuranceName || ins.payerName || ins.name || "";
+                            const displayName = ins.insuranceName || ins.payerName || ins.name || (ins as any).companyName || (ins as any).displayName || "";
                             return (
                               <button
                                 key={ins.id}
@@ -1214,6 +1217,7 @@ export default function PriorAuthorizationsPage() {
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => {
                                   setFormData({ ...formData, insuranceName: displayName, insuranceId: ins.payerId || ins.externalId || ins.fhirId || String(ins.id) });
+                                  skipInsuranceSearchRef.current = true;
                                   setInsuranceQuery(displayName);
                                   setShowInsuranceDropdown(false);
                                 }}
