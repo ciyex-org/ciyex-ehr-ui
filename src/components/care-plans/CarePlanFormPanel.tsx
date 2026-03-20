@@ -78,7 +78,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
   const [authorResults, setAuthorResults] = useState<{ id: number; name: string }[]>([]);
   const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
   const [authorSearching, setAuthorSearching] = useState(false);
-  const authorSearchRef = useRef<ReturnType<typeof setTimeout>>();
+  const authorSearchRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   // Debounced author/provider search
   useEffect(() => {
