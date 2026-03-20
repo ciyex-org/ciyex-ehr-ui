@@ -97,6 +97,13 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const [patientDropdownStyle, setPatientDropdownStyle] = useState<React.CSSProperties>({});
   const patientInputRef = useRef<HTMLDivElement>(null);
 
+  /* Prescriber search state */
+  const [prescriberQuery, setPrescriberQuery] = useState("");
+  const [prescriberResults, setPrescriberResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string; npi?: string }[]>([]);
+  const [showPrescriberDropdown, setShowPrescriberDropdown] = useState(false);
+  const [prescriberDropdownStyle, setPrescriberDropdownStyle] = useState<React.CSSProperties>({});
+  const prescriberInputRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (open) {
       const p = prescription ? { ...prescription } : blankPrescription();
@@ -105,6 +112,9 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       setPatientQuery(p.patientName || "");
       setPatientResults([]);
       setShowPatientDropdown(false);
+      setPrescriberQuery(p.prescriberName || "");
+      setPrescriberResults([]);
+      setShowPrescriberDropdown(false);
       setRefillsInput(p.refills != null ? String(p.refills) : "0");
     }
   }, [open, prescription]);
@@ -141,6 +151,56 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     }, 300);
     return () => clearTimeout(t);
   }, [patientQuery]);
+
+  /* Update prescriber dropdown position when shown */
+  useEffect(() => {
+    if (showPrescriberDropdown && prescriberInputRef.current) {
+      const rect = prescriberInputRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const dropHeight = Math.min(192, prescriberResults.length * 44);
+      if (spaceBelow < dropHeight && rect.top > dropHeight) {
+        setPrescriberDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      } else {
+        setPrescriberDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
+      }
+    }
+  }, [showPrescriberDropdown, prescriberResults.length]);
+
+  /* Debounced prescriber search */
+  useEffect(() => {
+    if (!prescriberQuery.trim() || prescriberQuery.length < 2) { setPrescriberResults([]); return; }
+    // Skip search if prescriber already selected and query matches
+    if (form.prescriberName && prescriberQuery === form.prescriberName) return;
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(`${apiBase()}/api/providers?status=ACTIVE`);
+        const json = await res.json();
+        let list: typeof prescriberResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json)) list = json;
+        // Filter by typed text (case-insensitive)
+        const q = prescriberQuery.toLowerCase();
+        list = list.filter((p) => {
+          const name = p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
+          return name.toLowerCase().includes(q);
+        });
+        setPrescriberResults(list);
+        setShowPrescriberDropdown(list.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [prescriberQuery]);
+
+  const prescriberName = (p: typeof prescriberResults[0]) =>
+    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+
+  const selectPrescriber = (p: typeof prescriberResults[0]) => {
+    const name = prescriberName(p);
+    setForm((prev) => ({ ...prev, prescriberName: name, prescriberNpi: p.npi || prev.prescriberNpi || "" }));
+    setPrescriberQuery(name);
+    setShowPrescriberDropdown(false);
+  };
 
   const pName = (p: typeof patientResults[0]) =>
     p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
@@ -293,10 +353,38 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
           {/* Prescriber Info */}
           <Section title="Prescriber Information" icon={<Stethoscope className="w-4 h-4" />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
+              <div className="relative" ref={prescriberInputRef}>
                 <label className={labelCls}>Prescriber Name</label>
-                <input className={inputCls("prescriberName")} value={form.prescriberName || ""} onChange={(e) => set("prescriberName", e.target.value)} placeholder="Dr. Smith" pattern="[A-Za-z\s\-'.]+" title="Name must contain only letters" />
+                <input
+                  className={inputCls("prescriberName")}
+                  value={prescriberQuery}
+                  onChange={(e) => {
+                    setPrescriberQuery(e.target.value);
+                    set("prescriberName", e.target.value);
+                    setShowPrescriberDropdown(true);
+                  }}
+                  onFocus={() => prescriberResults.length > 0 && setShowPrescriberDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowPrescriberDropdown(false), 150)}
+                  placeholder="Search provider by name..."
+                  autoComplete="off"
+                />
                 {errors.prescriberName && <p className="text-xs text-red-500 mt-1">{errors.prescriberName}</p>}
+                {showPrescriberDropdown && prescriberResults.length > 0 && (
+                  <div style={prescriberDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                    {prescriberResults.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectPrescriber(p)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0"
+                      >
+                        <span className="font-medium">{prescriberName(p)}</span>
+                        {p.npi && <span className="text-xs text-gray-400 ml-2">NPI: {p.npi}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div>
                 <label className={labelCls}>Prescriber NPI</label>
