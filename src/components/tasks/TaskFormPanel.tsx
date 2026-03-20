@@ -65,20 +65,26 @@ export default function TaskFormPanel({
   const patientInputRef = useRef<HTMLDivElement>(null);
 
   // Provider search for "Assigned To"
+  const [providerQuery, setProviderQuery] = useState("");
   const [providerResults, setProviderResults] = useState<{ id: number; name: string }[]>([]);
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
   const providerInputRef = useRef<HTMLDivElement>(null);
   const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
-
   const skipProviderSearchRef = useRef(false);
 
+  // Sync provider query with form data when panel opens or form changes externally
+  useEffect(() => {
+    setProviderQuery(form.assignedTo || "");
+  }, [form.assignedTo, open]);
+
+  // Debounced provider search
   useEffect(() => {
     if (skipProviderSearchRef.current) { skipProviderSearchRef.current = false; return; }
-    const q = form.assignedTo;
-    if (!q || q.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
+    if (!providerQuery.trim() || providerQuery.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
+    if (form.assignedTo && providerQuery === form.assignedTo) return;
     const t = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(q)}`);
+        const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(providerQuery)}`);
         if (!res.ok) return;
         const json = await res.json();
         const raw = Array.isArray(json) ? json : (json?.data?.content || json?.content || json?.data || []);
@@ -93,7 +99,7 @@ export default function TaskFormPanel({
       } catch { /* silent */ }
     }, 300);
     return () => clearTimeout(t);
-  }, [form.assignedTo]);
+  }, [providerQuery]);
 
   useEffect(() => {
     if (showProviderDropdown && providerInputRef.current) {
@@ -328,9 +334,11 @@ export default function TaskFormPanel({
               </label>
               <input
                 type="text"
-                value={form.assignedTo}
+                value={providerQuery}
                 onChange={(e) => {
-                  set("assignedTo", e.target.value);
+                  const val = e.target.value;
+                  setProviderQuery(val);
+                  onChange({ ...form, assignedTo: val });
                   setShowProviderDropdown(true);
                 }}
                 onFocus={() => providerResults.length > 0 && setShowProviderDropdown(true)}
@@ -347,6 +355,8 @@ export default function TaskFormPanel({
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
+                        skipProviderSearchRef.current = true;
+                        setProviderQuery(p.name);
                         set("assignedTo", p.name);
                         setShowProviderDropdown(false);
                         setProviderResults([]);
