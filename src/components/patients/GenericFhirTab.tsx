@@ -2292,13 +2292,23 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 } else {
                     // Keep non-patient participants; replace all patient entries with the correct one
                     const nonPatient = (payload.participant as any[]).filter((p: any) => {
-                        const ref: string = p?.actor?.reference || "";
+                        const ref: string = (typeof p?.actor === "object" ? p.actor?.reference : p?.actor) || "";
                         return !ref.startsWith("Patient/");
                     });
                     payload.participant = [
                         ...nonPatient,
                         { actor: { reference: patRef, display: patDisplay }, required: "required", status: "accepted" },
                     ];
+                }
+                // Remove display-name-only patient fields so the backend cannot use them
+                // to construct an incorrect Patient/<name> FHIR reference.
+                delete payload.patientName;
+                delete payload.patientRef;
+                // Normalise patientId to the numeric prop value (prevent string name leaking in)
+                payload.patientId = patientId;
+                // Ensure subject is a proper FHIR reference object, not a plain string
+                if (payload.subject != null && typeof payload.subject !== "object") {
+                    payload.subject = { reference: patRef };
                 }
             }
 
