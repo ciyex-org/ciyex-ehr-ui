@@ -42,7 +42,7 @@ export default function SettingsPage() {
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const { getSlotContributions, loaded: pluginsLoaded } = usePluginRegistry();
-    const { hasCategory, canReadResource } = usePermissions();
+    const { hasCategory } = usePermissions();
     const isAdmin = hasCategory("admin");
 
     const pluginNavItems = pluginsLoaded ? getSlotContributions("settings:nav-item") : [];
@@ -100,10 +100,15 @@ export default function SettingsPage() {
         (c) => `__plugin_${c.pluginSlug}__` === activeKey
     );
 
-    // Filter settings tabs by FHIR read scope — admins see all, others only see tabs they can read
+    // Settings tabs visible to all staff (not just admin)
+    // - practice, providers: read-only for staff (view org/provider info)
+    // - insurance, referral-practices, referral-providers: writable by staff
+    const STAFF_VISIBLE_TABS = ["practice", "providers", "facilities", "insurance", "referral-practices", "referral-providers"];
+
+    // Admins see all settings tabs; staff only see the tabs they need
     const visibleItems = isAdmin
         ? items
-        : items.filter((item) => !item.fhirResourceType || canReadResource(item.fhirResourceType));
+        : items.filter((item) => STAFF_VISIBLE_TABS.includes(item.tabKey));
 
     return (
         <div className="flex h-[calc(100vh-64px)]">
