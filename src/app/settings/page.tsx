@@ -23,6 +23,7 @@ interface SettingsItem {
     tabKey: string;
     label: string;
     icon: string;
+    fhirResourceType?: string;
 }
 
 const ADMIN_PAGES = [
@@ -41,7 +42,7 @@ export default function SettingsPage() {
     const [activeKey, setActiveKey] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const { getSlotContributions, loaded: pluginsLoaded } = usePluginRegistry();
-    const { hasCategory } = usePermissions();
+    const { hasCategory, canReadResource } = usePermissions();
     const isAdmin = hasCategory("admin");
 
     const pluginNavItems = pluginsLoaded ? getSlotContributions("settings:nav-item") : [];
@@ -63,6 +64,7 @@ export default function SettingsPage() {
                             tabKey: d.tabKey,
                             label: d.label || d.tabKey.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
                             icon: d.icon || "FileText",
+                            fhirResourceType: Array.isArray(d.fhirResources) ? d.fhirResources[0]?.type : undefined,
                         }));
                     setItems(settingsItems);
                     if (settingsItems.length > 0) {
@@ -98,6 +100,11 @@ export default function SettingsPage() {
         (c) => `__plugin_${c.pluginSlug}__` === activeKey
     );
 
+    // Filter settings tabs by FHIR read scope — admins see all, others only see tabs they can read
+    const visibleItems = isAdmin
+        ? items
+        : items.filter((item) => !item.fhirResourceType || canReadResource(item.fhirResourceType));
+
     return (
         <div className="flex h-[calc(100vh-64px)]">
             {/* Side menu */}
@@ -108,7 +115,7 @@ export default function SettingsPage() {
                     </h2>
                 </div>
                 <nav className="p-2 space-y-0.5">
-                    {items.map((item) => {
+                    {visibleItems.map((item) => {
                         const Icon = getIcon(item.icon);
                         const isActive = activeKey === item.tabKey;
                         return (
@@ -130,7 +137,7 @@ export default function SettingsPage() {
                     {/* Admin-only pages (Users, Roles, Form Options, Display, Calendar Colors) */}
                     {isAdmin && (
                         <>
-                            {items.length > 0 && (
+                            {visibleItems.length > 0 && (
                                 <div className="border-t border-gray-200 my-2" />
                             )}
 
@@ -200,7 +207,7 @@ export default function SettingsPage() {
                         );
                     })}
 
-                    {items.length === 0 && BUILTIN_PAGES.length === 0 && pluginNavItems.length === 0 && (
+                    {visibleItems.length === 0 && !isAdmin && pluginNavItems.length === 0 && (
                         <p className="text-sm text-gray-400 px-3 py-4 text-center">
                             No settings pages configured
                         </p>
