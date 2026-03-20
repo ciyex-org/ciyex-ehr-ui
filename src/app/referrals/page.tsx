@@ -315,6 +315,8 @@ function ReferralFormPanel({
   // Patient search (debounced)
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    // Skip search if editing and patient already selected
+    if (form.patientId && form.patientName && patientQuery === form.patientName) return;
     const t = setTimeout(async () => {
       try {
         const res = await fetchWithAuth(`${apiBase()}/api/patients?search=${encodeURIComponent(patientQuery)}`);

@@ -7,6 +7,7 @@ import Label from "@/components/form/Label";
 import { Input } from "@/components/ui/input";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Alert from "@/components/ui/alert/Alert";
+import { Pencil, Trash2 } from "lucide-react";
 
 type Supplier = {
   id: number; name: string; contactName: string; phone: string;
@@ -36,6 +37,7 @@ export default function Suppliers() {
   const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState<AlertData | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => { if (alert) { const t = setTimeout(() => setAlert(null), 4000); return () => clearTimeout(t); } }, [alert]);
 
@@ -65,26 +67,17 @@ export default function Suppliers() {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) {
-      setAlert({ variant: "error", title: "Validation Error", message: "Supplier name is required." });
-      return;
+    const errs: Record<string, string> = {};
+    if (!form.name.trim()) errs.name = "Supplier name is required";
+    else if (form.name.trim().length < 2) errs.name = "Name must be at least 2 characters";
+    if (form.contactName && form.contactName.trim().length > 0) {
+      if (form.contactName.trim().length < 2) errs.contactName = "Contact name must be at least 2 characters";
+      else if (!/^[A-Za-z\s\-'.]+$/.test(form.contactName.trim())) errs.contactName = "Contact name must contain only letters, spaces, hyphens, or apostrophes";
     }
-    if (form.name.trim().length < 2) {
-      setAlert({ variant: "error", title: "Validation Error", message: "Supplier name must be at least 2 characters." });
-      return;
-    }
-    if (form.contactName && form.contactName.trim().length < 2) {
-      setAlert({ variant: "error", title: "Validation Error", message: "Contact name must be at least 2 characters." });
-      return;
-    }
-    if (form.phone && !/^\+?[\d\s\-().]{7,20}$/.test(form.phone)) {
-      setAlert({ variant: "error", title: "Validation Error", message: "Please enter a valid phone number." });
-      return;
-    }
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      setAlert({ variant: "error", title: "Validation Error", message: "Please enter a valid email address." });
-      return;
-    }
+    if (form.phone && !/^\+?[\d\s\-().]{7,20}$/.test(form.phone)) errs.phone = "Please enter a valid phone number (7-20 digits)";
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Please enter a valid email address";
+    setFormErrors(errs);
+    if (Object.keys(errs).length > 0) return;
     try {
       const isEdit = modal === "edit" && editId;
       const res = await fetchWithAuth(isEdit ? `${API()}/${editId}` : API(), {
@@ -145,9 +138,11 @@ export default function Suppliers() {
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{s.phone}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{s.email}</td>
                   <td className="px-4 py-3"><Badge active={s.active} /></td>
-                  <td className="px-4 py-3 text-right space-x-2">
-                    <button onClick={() => openEdit(s)} className="rounded px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">Edit</button>
-                    <button onClick={() => openDelete(s)} className="rounded px-2 py-1 text-xs bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400">Delete</button>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => openEdit(s)} title="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => openDelete(s)} title="Delete" className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 transition"><Trash2 className="w-4 h-4" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -179,10 +174,10 @@ export default function Suppliers() {
               <button onClick={close} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">X</button>
             </div>
             <form onSubmit={save} className="p-6 grid grid-cols-2 gap-4 text-sm">
-              <div className="col-span-2"><Label>Name <span className="text-red-500">*</span></Label><Input value={form.name} onChange={e => F("name", e.target.value)} placeholder="e.g. Medline Industries" /></div>
-              <div><Label>Contact Name</Label><Input value={form.contactName} onChange={e => F("contactName", e.target.value)} placeholder="e.g. John Smith" /></div>
-              <div><Label>Phone</Label><Input type="tel" value={form.phone} onChange={e => F("phone", e.target.value)} placeholder="e.g. (555) 123-4567" /></div>
-              <div className="col-span-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => F("email", e.target.value)} placeholder="e.g. contact@supplier.com" /></div>
+              <div className="col-span-2"><Label>Name <span className="text-red-500">*</span></Label><Input value={form.name} onChange={e => { F("name", e.target.value); if (formErrors.name) setFormErrors(p => { const n = {...p}; delete n.name; return n; }); }} className={formErrors.name ? "border-red-400" : ""} placeholder="e.g. Medline Industries" />{formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}</div>
+              <div><Label>Contact Name</Label><Input value={form.contactName} onChange={e => { F("contactName", e.target.value); if (formErrors.contactName) setFormErrors(p => { const n = {...p}; delete n.contactName; return n; }); }} className={formErrors.contactName ? "border-red-400" : ""} placeholder="e.g. John Smith" />{formErrors.contactName && <p className="text-xs text-red-500 mt-1">{formErrors.contactName}</p>}</div>
+              <div><Label>Phone</Label><Input type="tel" value={form.phone} onChange={e => { F("phone", e.target.value); if (formErrors.phone) setFormErrors(p => { const n = {...p}; delete n.phone; return n; }); }} className={formErrors.phone ? "border-red-400" : ""} placeholder="e.g. (555) 123-4567" />{formErrors.phone && <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>}</div>
+              <div className="col-span-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => { F("email", e.target.value); if (formErrors.email) setFormErrors(p => { const n = {...p}; delete n.email; return n; }); }} className={formErrors.email ? "border-red-400" : ""} placeholder="e.g. contact@supplier.com" />{formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}</div>
               <div className="col-span-2"><Label>Address</Label><Input value={form.address} onChange={e => F("address", e.target.value)} placeholder="e.g. 123 Main St, City, State" /></div>
               <div className="col-span-2"><Label>Notes</Label><textarea value={form.notes} onChange={e => F("notes", e.target.value)} rows={2} className={`${dateInput} py-2`} /></div>
               <div className="col-span-2 flex items-center gap-2">

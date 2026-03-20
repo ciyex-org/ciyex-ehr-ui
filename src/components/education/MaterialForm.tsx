@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { X, Loader2, BookMarked } from "lucide-react";
@@ -47,6 +47,10 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [tagsInput, setTagsInput] = useState("");
+  const [authorQuery, setAuthorQuery] = useState("");
+  const [authorResults, setAuthorResults] = useState<{ id: string; name: string }[]>([]);
+  const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
+  const [providerList, setProviderList] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -64,8 +68,33 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
         setTagsInput("");
       }
       setErrors({});
+      setAuthorQuery(material?.author || "");
     }
   }, [open, material]);
+
+  // Load providers for author search
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl("/api/providers?status=ACTIVE"));
+        const json = await res.json();
+        const list = (json?.data?.content || json?.data || []).map((p: any) => {
+          const first = p.identification?.firstName || p.firstName || "";
+          const last = p.identification?.lastName || p.lastName || "";
+          return { id: String(p.id), name: `${first} ${last}`.trim() || p.name || "" };
+        }).filter((p: { name: string }) => p.name);
+        setProviderList(list);
+      } catch { /* silent */ }
+    })();
+  }, [open]);
+
+  // Filter author results
+  useEffect(() => {
+    if (!authorQuery.trim()) { setAuthorResults([]); return; }
+    const q = authorQuery.toLowerCase();
+    setAuthorResults(providerList.filter(p => p.name.toLowerCase().includes(q)).slice(0, 8));
+  }, [authorQuery, providerList]);
 
   useEffect(() => {
     if (!open) return;
@@ -300,14 +329,40 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
 
           {/* Author + Source */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="relative">
               <label className={labelCls}>Author</label>
               <input
                 className={inputCls()}
-                value={form.author}
-                onChange={(e) => set("author", e.target.value)}
-                placeholder="Dr. Smith"
+                value={authorQuery}
+                onChange={(e) => {
+                  setAuthorQuery(e.target.value);
+                  set("author", e.target.value);
+                  setShowAuthorDropdown(true);
+                }}
+                onFocus={() => authorResults.length > 0 && setShowAuthorDropdown(true)}
+                onBlur={() => setTimeout(() => setShowAuthorDropdown(false), 150)}
+                placeholder="Search provider or type name..."
+                autoComplete="off"
               />
+              {showAuthorDropdown && authorResults.length > 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                  {authorResults.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        set("author", p.name);
+                        setAuthorQuery(p.name);
+                        setShowAuthorDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200"
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className={labelCls}>Source</label>

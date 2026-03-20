@@ -77,6 +77,8 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
 
   useEffect(() => {
     if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    // Skip search if editing and patient already selected
+    if (form.patientId && form.patientName && patientQuery === form.patientName) return;
     if (patientSearchRef.current) clearTimeout(patientSearchRef.current);
     patientSearchRef.current = setTimeout(async () => {
       try {
