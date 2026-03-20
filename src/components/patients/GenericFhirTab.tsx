@@ -2976,7 +2976,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             ) : (
                 <>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm min-w-[600px]">
+                        <table className="w-full text-sm table-auto">
                             <thead>
                                 <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                                     {cols.map((col) => (
@@ -2987,7 +2987,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                             {col.label}
                                         </th>
                                     ))}
-                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap w-20">
+                                    <th className="px-4 py-2.5 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-20">
                                         Actions
                                     </th>
                                 </tr>
@@ -2999,32 +2999,25 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                         className="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
                                         onClick={() => handleRowClick(record)}
                                     >
-                                        {cols.map((col) => {
-                                            const fv = (() => { const v = formatValue(record[col.key], col.key, record); return (v !== null && typeof v === "object" && !("$$typeof" in (v as object))) ? JSON.stringify(v) : v; })();
-                                            const strVal = typeof fv === "string" ? fv : undefined;
-                                            // For multi-value strings (comma-separated conditions), show as wrapped bullet list
-                                            const isMultiValue = strVal && strVal.includes(", ") && strVal.split(", ").length > 1;
-                                            return (
-                                                <td
-                                                    key={col.key}
-                                                    className="px-4 py-2.5 text-gray-700 dark:text-gray-300 max-w-[240px]"
-                                                    title={strVal && strVal.length > 80 && !isMultiValue ? strVal : undefined}
-                                                >
-                                                    {isMultiValue ? (
-                                                        <ul className="space-y-0.5">
-                                                            {strVal!.split(", ").map((item, i) => (
-                                                                <li key={i} className="flex items-start gap-1 text-xs">
-                                                                    <span className="mt-1 w-1 h-1 rounded-full bg-gray-400 shrink-0" />
-                                                                    <span>{item}</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    ) : (
-                                                        <div className="truncate">{fv}</div>
-                                                    )}
-                                                </td>
-                                            );
-                                        })}
+                                        {cols.map((col) => (
+                                            <td
+                                                key={col.key}
+                                                className="px-4 py-2.5 text-gray-700 dark:text-gray-300 break-words max-w-[300px]"
+                                            >
+                                                {(() => {
+                                                    const raw = record[col.key];
+                                                    const fv = formatValue(raw, col.key, record);
+                                                    // Format comma-separated values as bullet list for readability
+                                                    if (typeof fv === "string" && fv.includes(",") && fv.length > 30) {
+                                                        const items = fv.split(",").map((s: string) => s.trim()).filter(Boolean);
+                                                        if (items.length > 1) {
+                                                            return <ul className="list-disc list-inside space-y-0.5">{items.map((item: string, i: number) => <li key={i} className="text-sm">{item}</li>)}</ul>;
+                                                        }
+                                                    }
+                                                    return (fv !== null && typeof fv === "object" && !("$$typeof" in (fv as object))) ? JSON.stringify(fv) : fv;
+                                                })()}
+                                            </td>
+                                        ))}
                                         <td className="px-4 py-2.5 text-right">
                                             {canWrite && (
                                                 <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>

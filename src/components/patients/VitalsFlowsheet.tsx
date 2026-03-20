@@ -424,7 +424,16 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                                     </td>
                                     {/* Value cells */}
                                     {columns.map((col, ci) => {
-                                        const raw = col[row.key];
+                                        let raw = col[row.key];
+                                        // Auto-calculate BMI client-side if not stored but weight and height are available
+                                        if (row.key === "bmi" && (raw == null || raw === "") && col.weightKg && col.heightCm) {
+                                            const w = Number(col.weightKg);
+                                            const h = Number(col.heightCm);
+                                            if (w > 0 && h > 0) {
+                                                const heightM = h / 100;
+                                                raw = (w / (heightM * heightM)).toFixed(1);
+                                            }
+                                        }
                                         const val = raw != null && raw !== "" ? Number(raw) : undefined;
                                         const prevCol = columns[ci + 1];
                                         const prevRaw = prevCol?.[row.key];

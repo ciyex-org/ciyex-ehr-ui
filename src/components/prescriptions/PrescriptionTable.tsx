@@ -194,18 +194,18 @@ export default function PrescriptionTable({
               prescriptions.map((rx) => (
                 <tr key={rx.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{rx.patientName || "--"}</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">{rx.patientId || ""}</div>
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                      {rx.patientName || "--"}
+                      {rx.patientId && <span className="text-xs text-gray-400 dark:text-gray-500 font-normal ml-2">ID: {rx.patientId}</span>}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-900 dark:text-gray-100 capitalize">
                       {rx.medicationName || "--"}
+                      {rx.dosageForm && <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">- {rx.dosageForm}</span>}
                       {rx.strength && <span className="text-gray-500 dark:text-gray-400 font-normal ml-1">{rx.strength}</span>}
                     </div>
                     <div className="flex items-center gap-1.5 mt-1">
-                      {rx.dosageForm && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 capitalize">{rx.dosageForm}</span>
-                      )}
                       <PriorityBadge priority={rx.priority} />
                       <DEABadge schedule={rx.deaSchedule} />
                     </div>
@@ -217,18 +217,21 @@ export default function PrescriptionTable({
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <div className="text-gray-700 dark:text-gray-300">
-                      {rx.quantity != null ? `${rx.quantity} ${rx.quantityUnit || "units"}` : "--"}
-                    </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
-                      {rx.daysSupply != null ? `${rx.daysSupply} day${rx.daysSupply !== 1 ? "s" : ""}` : "--"}
+                      {rx.quantity != null && rx.daysSupply != null
+                        ? `${rx.quantity} ${rx.quantityUnit || "units"} / ${rx.daysSupply} day${rx.daysSupply !== 1 ? "s" : ""}`
+                        : rx.quantity != null
+                          ? `${rx.quantity} ${rx.quantityUnit || "units"}`
+                          : rx.daysSupply != null
+                            ? `${rx.daysSupply} day${rx.daysSupply !== 1 ? "s" : ""}`
+                            : "--"}
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <div className="text-gray-700 dark:text-gray-300" title={rx.refillsRemaining != null && rx.refills != null ? `${rx.refillsRemaining} remaining of ${rx.refills} authorized` : undefined}>
                       {rx.refillsRemaining != null && rx.refills != null
-                        ? <><span className="font-medium">{rx.refillsRemaining}</span><span className="text-gray-400 text-xs"> / {rx.refills}</span></>
+                        ? <><span className="text-xs text-gray-400">Remaining:</span> {rx.refillsRemaining} <span className="text-xs text-gray-400">/ Total:</span> {rx.refills}</>
                         : rx.refills != null
-                          ? String(rx.refills)
+                          ? <><span className="text-xs text-gray-400">Total:</span> {rx.refills}</>
                           : "--"}
                     </div>
                     {rx.refillsRemaining != null && rx.refills != null && (
@@ -240,14 +243,15 @@ export default function PrescriptionTable({
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     <div className="text-gray-700 dark:text-gray-300 truncate max-w-[150px]">
-                      {rx.prescriberName && !/^\d{10}$/.test(rx.prescriberName.trim())
-                        ? rx.prescriberName
-                        : rx.prescriberNpi
-                          ? `NPI: ${rx.prescriberNpi}`
-                          : "--"}
+                      {/* Show prescriber name; if name looks like an NPI (all digits), show it under NPI instead */}
+                      {rx.prescriberName && /^\d{10}$/.test(rx.prescriberName.trim())
+                        ? "--"
+                        : (rx.prescriberName || "--")}
                     </div>
-                    {rx.prescriberName && !/^\d{10}$/.test(rx.prescriberName.trim()) && rx.prescriberNpi && (
-                      <div className="text-xs text-gray-400 dark:text-gray-500">NPI: {rx.prescriberNpi}</div>
+                    {(rx.prescriberNpi || (rx.prescriberName && /^\d{10}$/.test(rx.prescriberName.trim()))) && (
+                      <div className="text-xs text-gray-400 dark:text-gray-500">
+                        NPI: {rx.prescriberNpi || rx.prescriberName}
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3">

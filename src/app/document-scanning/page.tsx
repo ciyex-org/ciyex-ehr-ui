@@ -76,7 +76,7 @@ function formatFileSize(bytes: number): string {
 }
 
 /* ── Upload Panel ── */
-function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
+function UploadPanel({ onUploaded, onError }: { onUploaded: () => void; onError?: (msg: string) => void }) {
   const [uploading, setUploading] = useState(false);
   const [category, setCategory] = useState<DocumentCategory>("medical_record");
   const [patientSearch, setPatientSearch] = useState("");
@@ -135,11 +135,20 @@ function UploadPanel({ onUploaded }: { onUploaded: () => void }) {
           method: "POST",
           body: formData,
         });
-        if (res.ok) success++;
-      } catch { /* continue */ }
+        if (res.ok) {
+          success++;
+        } else {
+          const errText = await res.text().catch(() => "");
+          const errMsg = errText || `Upload failed (HTTP ${res.status})`;
+          onError?.(`Failed to upload "${files[i].name}": ${errMsg}`);
+        }
+      } catch (err) {
+        onError?.(`Failed to upload "${files[i].name}": ${err instanceof Error ? err.message : "Network error"}`);
+      }
     }
     setUploading(false);
     if (success > 0) onUploaded();
+    else if (files.length > 0 && success === 0) onError?.("All uploads failed. Check that the file type is supported by the server.");
   };
 
   return (
@@ -371,7 +380,7 @@ export default function DocumentScanningPage() {
         {/* Upload area */}
         {canWriteDocs && (
         <div className="shrink-0 mb-4">
-          <UploadPanel onUploaded={() => { setToast({ type: "success", text: "Upload complete" }); fetchDocuments(); }} />
+          <UploadPanel onUploaded={() => { setToast({ type: "success", text: "Upload complete" }); fetchDocuments(); }} onError={(msg) => setToast({ type: "error", text: msg })} />
         </div>
         )}
 

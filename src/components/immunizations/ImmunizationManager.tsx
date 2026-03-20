@@ -233,13 +233,26 @@ finally {
                                     <td className="px-4 py-3">{it.route || "-"}</td>
                                     <td className="px-4 py-3">{it.site || "-"}</td>
                                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs">
-                        {it.status === "completed" ? "Completed"
-                          : it.status === "in-progress" ? "In Progress"
-                          : it.status === "not-done" ? "Not Done"
-                          : it.status === "entered-in-error" ? "Entered in Error"
-                          : it.status || "-"}
-                      </span>
+                      <select
+                        value={it.status || ""}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value as ImmunizationDto["status"];
+                          if (it.id && newStatus !== it.status) {
+                            await save({ ...it, status: newStatus });
+                          }
+                        }}
+                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs cursor-pointer bg-transparent outline-none ${
+                          it.status === "completed" ? "border-green-300 text-green-700" :
+                          it.status === "entered-in-error" ? "border-red-300 text-red-700" :
+                          it.status === "not-done" ? "border-amber-300 text-amber-700" :
+                          "border-neutral-300 text-neutral-700"
+                        }`}
+                      >
+                        <option value="completed">Completed</option>
+                        <option value="entered-in-error">Entered in Error</option>
+                        <option value="not-done">Not Done</option>
+                        <option value="in-progress">In Progress</option>
+                      </select>
                                     </td>
                                     <td className="px-4 py-3 max-w-[280px]">
                                         <span className="line-clamp-2 text-neutral-700">{it.notes || "-"}</span>
