@@ -62,7 +62,7 @@ const ClaimManagementDashboard: React.FC = () => {
   const [filter, setFilter] = useState("ALL");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  // Modal state
+  // Status modal state
   const [showModal, setShowModal] = useState(false);
   const [modalClaim, setModalClaim] = useState<Claim | null>(null);
   const [newStatus, setNewStatus] = useState("");
@@ -70,6 +70,22 @@ const ClaimManagementDashboard: React.FC = () => {
   const [paymentAmount, setPaymentAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [modalError, setModalError] = useState("");
+
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editClaim, setEditClaim] = useState<Claim | null>(null);
+  const [editForm, setEditForm] = useState({
+    patientName: "",
+    provider: "",
+    payerName: "",
+    diagnosisCode: "",
+    policyNumber: "",
+    planName: "",
+    notes: "",
+    type: "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const loadClaims = useCallback(async () => {
     setLoading(true);
@@ -113,6 +129,61 @@ const ClaimManagementDashboard: React.FC = () => {
   const closeModal = () => {
     setShowModal(false);
     setModalClaim(null);
+  };
+
+  const openEditModal = (claim: Claim) => {
+    setEditClaim(claim);
+    setEditForm({
+      patientName: claim.patientName || "",
+      provider: claim.provider || "",
+      payerName: claim.payerName || "",
+      diagnosisCode: claim.diagnosisCode || "",
+      policyNumber: claim.policyNumber || "",
+      planName: claim.planName || "",
+      notes: claim.notes || "",
+      type: claim.type || "",
+    });
+    setEditError("");
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditClaim(null);
+  };
+
+  const handleEditChange = (field: string, value: string) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const saveEdit = async () => {
+    if (!editClaim) return;
+    setEditSaving(true);
+    setEditError("");
+    try {
+      const res = await fetchWithAuth(`/api/all-claims/${editClaim.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) {
+        let errMsg = "Failed to update claim";
+        try {
+          const errJson = await res.json();
+          errMsg = errJson.message || errMsg;
+        } catch {
+          try { errMsg = await res.text() || errMsg; } catch { /* use default */ }
+        }
+        throw new Error(errMsg);
+      }
+      closeEditModal();
+      setSelectedId(null);
+      await loadClaims();
+    } catch (e: unknown) {
+      setEditError(e instanceof Error ? e.message : "Failed to update claim");
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const saveStatus = async () => {
@@ -226,7 +297,13 @@ const ClaimManagementDashboard: React.FC = () => {
                       {STATUS_LABELS[c.status] || c.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 flex gap-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); openEditModal(c); }}
+                      className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); openStatusModal(c); }}
                       className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -309,6 +386,123 @@ const ClaimManagementDashboard: React.FC = () => {
                 className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
                 {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Claim Modal */}
+      {showEditModal && editClaim && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Claim</h3>
+              <p className="text-sm text-gray-500 mt-1">Claim #{editClaim.id}</p>
+            </div>
+
+            <div className="px-6 py-4 space-y-4 overflow-y-auto">
+              {editError && (
+                <div className="bg-red-50 text-red-700 px-3 py-2 rounded text-sm">{editError}</div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
+                <input
+                  type="text"
+                  value={editForm.patientName}
+                  onChange={(e) => handleEditChange("patientName", e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+                <input
+                  type="text"
+                  value={editForm.provider}
+                  onChange={(e) => handleEditChange("provider", e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payer Name</label>
+                <input
+                  type="text"
+                  value={editForm.payerName}
+                  onChange={(e) => handleEditChange("payerName", e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Diagnosis Code</label>
+                  <input
+                    type="text"
+                    value={editForm.diagnosisCode}
+                    onChange={(e) => handleEditChange("diagnosisCode", e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Policy Number</label>
+                  <input
+                    type="text"
+                    value={editForm.policyNumber}
+                    onChange={(e) => handleEditChange("policyNumber", e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Plan Name</label>
+                  <input
+                    type="text"
+                    value={editForm.planName}
+                    onChange={(e) => handleEditChange("planName", e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <input
+                    type="text"
+                    value={editForm.type}
+                    onChange={(e) => handleEditChange("type", e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => handleEditChange("notes", e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={closeEditModal}
+                disabled={editSaving}
+                className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={editSaving}
+                className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {editSaving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
