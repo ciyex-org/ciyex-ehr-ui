@@ -74,7 +74,12 @@ export default function Suppliers() {
       if (form.contactName.trim().length < 2) errs.contactName = "Contact name must be at least 2 characters";
       else if (!/^[A-Za-z\s\-'.]+$/.test(form.contactName.trim())) errs.contactName = "Contact name must contain only letters, spaces, hyphens, or apostrophes";
     }
-    if (form.phone && !/^\+?[\d\s\-().]{7,20}$/.test(form.phone)) errs.phone = "Please enter a valid phone number (7-20 digits)";
+    if (form.phone) {
+      const phoneDigits = form.phone.replace(/\D/g, "").length;
+      if (phoneDigits < 7) errs.phone = "Phone number must have at least 7 digits";
+      else if (phoneDigits > 15) errs.phone = "Phone number must have at most 15 digits";
+      else if (!/^\+?[\d\s\-().]{7,20}$/.test(form.phone)) errs.phone = "Please enter a valid phone number";
+    }
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Please enter a valid email address";
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) return;

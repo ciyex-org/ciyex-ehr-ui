@@ -95,6 +95,14 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
       setFaxError("Recipient name is required");
       return;
     }
+    if (!/[A-Za-z]/.test(form.recipientName)) {
+      setFaxError("Recipient name must contain at least one letter");
+      return;
+    }
+    if (!/^[A-Za-z0-9\s\-_/()&.,:'!?@#]+$/.test(form.recipientName.trim())) {
+      setFaxError("Recipient name contains invalid characters");
+      return;
+    }
     if (!form.faxNumber.trim()) {
       setFaxError("Fax number is required");
       return;
@@ -106,6 +114,10 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
     }
     if (!form.subject.trim()) {
       setFaxError("Subject is required");
+      return;
+    }
+    if (!/[A-Za-z]/.test(form.subject)) {
+      setFaxError("Subject must contain at least one letter");
       return;
     }
     setFaxError("");

@@ -71,6 +71,12 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
   const [patientQuery, setPatientQuery] = useState(initial.patientName || "");
   const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+
+  // Reset dropdown state when form opens
+  useEffect(() => {
+    setPatientResults([]);
+    setShowPatientDropdown(false);
+  }, [editing]);
   const patientSearchRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Author/provider search state
@@ -193,8 +199,10 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
       errs.title = "Title must be at least 2 characters";
     } else if (form.title.trim().length > 200) {
       errs.title = "Title must be 200 characters or less";
-    } else if (/[<>{}[\]\\^~`|]/.test(form.title)) {
-      errs.title = "Title contains invalid characters";
+    } else if (!/^[A-Za-z0-9\s\-_/()&.,:'!?]+$/.test(form.title.trim())) {
+      errs.title = "Title contains invalid characters (only letters, numbers, spaces, and common punctuation allowed)";
+    } else if (!/[A-Za-z]/.test(form.title)) {
+      errs.title = "Title must contain at least one letter";
     }
     // Author name validation
     if (form.authorName && form.authorName.trim().length > 0) {
@@ -289,6 +297,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                     setShowPatientDropdown(true);
                   }}
                   onFocus={() => { if (patientResults.length > 0) setShowPatientDropdown(true); }}
+                  onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
                   className={inputClass}
                   placeholder="Search patient..."
                 />
@@ -661,7 +670,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={saving || !form.title.trim()}
+            disabled={saving || !form.title.trim() || !/[A-Za-z]/.test(form.title) || !/^[A-Za-z0-9\s\-_/()&.,:'!?]+$/.test(form.title.trim())}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}

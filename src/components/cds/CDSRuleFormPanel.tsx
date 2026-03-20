@@ -62,7 +62,8 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
     if (form.referenceUrl && !isValidUrl(form.referenceUrl)) errs.referenceUrl = "Must be a valid URL (https://...)";
     if (!form.name?.trim()) errs.name = "Name is required";
     else if (form.name.length > 100) errs.name = "Name must be 100 characters or less";
-    else if (!/^[a-zA-Z0-9\s\-/()&.,:']+$/.test(form.name.trim())) errs.name = "Name contains invalid characters";
+    else if (!/^[a-zA-Z0-9\s\-/()&.,:']+$/.test(form.name.trim())) errs.name = "Name contains invalid characters (only letters, numbers, spaces, and common punctuation allowed)";
+    else if (!/[A-Za-z]/.test(form.name)) errs.name = "Name must contain at least one letter";
     if (!form.message?.trim()) errs.message = "Alert message is required";
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;

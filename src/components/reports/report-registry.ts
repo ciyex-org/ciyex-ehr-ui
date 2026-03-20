@@ -264,7 +264,7 @@ const patientDemographics: ReportDefinition = {
         return {
           id: p.id,
           name: [p.firstName, p.lastName].filter(Boolean).join(" ") || p.name || p.fullName || p.display || "",
-          gender: p.gender || p.sex || "",
+          gender: normalizeGender((p.gender || p.sex || "Unknown").toString()),
           dob,
           ageGroup: ageGroup(dob),
           status: p.status || "Active",

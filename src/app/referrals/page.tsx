@@ -292,6 +292,8 @@ function ReferralFormPanel({
       setForm(r);
       setErrors({});
       setPatientQuery(r.patientName || "");
+      setPatientResults([]);
+      setShowPatientDropdown(false);
       setRefProvQuery(r.referringProvider || "");
     }
   }, [open, referral]);
@@ -448,7 +450,7 @@ function ReferralFormPanel({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="relative">
                 <label className={labelCls}>Patient Name *</label>
-                <input className={inputCls("patientName")} value={patientQuery} onChange={(e) => { setPatientQuery(e.target.value); set("patientName", e.target.value); set("patientId", ""); setShowPatientDropdown(true); }} onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)} placeholder="Search patient by name..." autoComplete="off" />
+                <input className={inputCls("patientName")} value={patientQuery} onChange={(e) => { setPatientQuery(e.target.value); set("patientName", e.target.value); set("patientId", ""); setShowPatientDropdown(true); }} onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)} onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)} placeholder="Search patient by name..." autoComplete="off" />
                 {errors.patientName && <p className="text-xs text-red-500 mt-1">{errors.patientName}</p>}
                 {showPatientDropdown && patientResults.length > 0 && (
                   <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">

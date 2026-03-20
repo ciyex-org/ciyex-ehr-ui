@@ -316,23 +316,23 @@ export default function PaymentPlansTab({ showToast }: Props) {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
+                          {p.status !== "cancelled" && (
+                            <button
+                              onClick={() => openEdit(p)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 transition"
+                            >
+                              Edit
+                            </button>
+                          )}
                           {p.status === "active" && (
-                            <>
-                              <button
-                                onClick={() => openEdit(p)}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 transition"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleCancel(p)}
-                                disabled={cancelling === p.id}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 transition disabled:opacity-50"
-                              >
-                                {cancelling === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                                Cancel
-                              </button>
-                            </>
+                            <button
+                              onClick={() => handleCancel(p)}
+                              disabled={cancelling === p.id}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 transition disabled:opacity-50"
+                            >
+                              {cancelling === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                              Cancel
+                            </button>
                           )}
                         </div>
                       </div>
