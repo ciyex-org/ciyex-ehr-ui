@@ -260,9 +260,12 @@ export default function PrescriptionsPage() {
   /* Filters */
   const [searchDraft, setSearchDraft] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [prescriberDraft, setPrescriberDraft] = useState("");
+  const [prescriberFilter, setPrescriberFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<PrescriptionStatus | "all">("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prescriberDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* Panel */
   const [panelOpen, setPanelOpen] = useState(false);
@@ -290,6 +293,7 @@ export default function PrescriptionsPage() {
       const base = apiBase();
       let url = `${base}/api/prescriptions?page=${page}&size=${pageSize}`;
       if (searchQuery) url += `&q=${encodeURIComponent(searchQuery)}`;
+      if (prescriberFilter) url += `&prescriberName=${encodeURIComponent(prescriberFilter)}`;
       if (statusFilter !== "all") url += `&status=${statusFilter}`;
       if (priorityFilter !== "all") url += `&priority=${priorityFilter}`;
       const res = await fetchWithAuth(url);
@@ -308,7 +312,7 @@ export default function PrescriptionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, searchQuery, statusFilter, priorityFilter]);
+  }, [page, pageSize, searchQuery, prescriberFilter, statusFilter, priorityFilter]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -337,14 +341,28 @@ export default function PrescriptionsPage() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [searchDraft]);
 
-  /* ---- Filtered data (client-side priority filter) ---- */
+  /* Debounced prescriber filter */
+  useEffect(() => {
+    if (prescriberDebounceRef.current) clearTimeout(prescriberDebounceRef.current);
+    prescriberDebounceRef.current = setTimeout(() => {
+      setPrescriberFilter(prescriberDraft.trim());
+      setPage(0);
+    }, 350);
+    return () => { if (prescriberDebounceRef.current) clearTimeout(prescriberDebounceRef.current); };
+  }, [prescriberDraft]);
+
+  /* ---- Filtered data (client-side fallback for prescriber + priority) ---- */
 
   const filtered = useMemo(() => {
     return prescriptions.filter((rx) => {
       if (priorityFilter !== "all" && rx.priority !== priorityFilter) return false;
+      if (prescriberFilter) {
+        const name = (rx.prescriberName || "").toLowerCase();
+        if (!name.includes(prescriberFilter.toLowerCase())) return false;
+      }
       return true;
     });
-  }, [prescriptions, priorityFilter]);
+  }, [prescriptions, priorityFilter, prescriberFilter]);
 
   /* ---- Actions ---- */
 
@@ -434,7 +452,7 @@ export default function PrescriptionsPage() {
     discontinued: stats.discontinued,
   };
 
-  const hasFilters = searchQuery !== "" || statusFilter !== "all" || priorityFilter !== "all";
+  const hasFilters = searchQuery !== "" || prescriberFilter !== "" || statusFilter !== "all" || priorityFilter !== "all";
 
   /* ------------------------------------------------------------------ */
   /*  Render                                                             */
@@ -496,6 +514,22 @@ export default function PrescriptionsPage() {
               />
               {searchDraft && (
                 <button onClick={() => setSearchDraft("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="relative min-w-[180px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                placeholder="Search by prescriber..."
+                value={prescriberDraft}
+                onChange={(e) => setPrescriberDraft(e.target.value)}
+              />
+              {prescriberDraft && (
+                <button onClick={() => setPrescriberDraft("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   <X className="w-4 h-4" />
                 </button>
               )}
