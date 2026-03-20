@@ -72,16 +72,17 @@ export default function TaskFormPanel({
   const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
   const skipProviderSearchRef = useRef(false);
 
-  // Sync provider query with form data when panel opens or form changes externally
+  // Sync provider query only when panel opens (populate edit-mode value) or resets
   useEffect(() => {
     setProviderQuery(form.assignedTo || "");
-  }, [form.assignedTo, open]);
+    setProviderResults([]);
+    setShowProviderDropdown(false);
+  }, [open]);
 
   // Debounced provider search
   useEffect(() => {
     if (skipProviderSearchRef.current) { skipProviderSearchRef.current = false; return; }
     if (!providerQuery.trim() || providerQuery.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
-    if (form.assignedTo && providerQuery === form.assignedTo) return;
     const t = setTimeout(async () => {
       try {
         const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(providerQuery)}`);
