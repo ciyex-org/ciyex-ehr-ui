@@ -664,8 +664,9 @@ export default function AddPatient() {
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             const today = new Date().toISOString().split("T")[0];
-                                            if (val > today) {
+                                            if (val && val > today) {
                                                 setFormErrors(prev => ({ ...prev, dob: "Date of birth cannot be a future date" }));
+                                                handleChange("personalInfo", "dob", "");
                                                 return;
                                             }
                                             setFormErrors(prev => { const n = { ...prev }; delete n.dob; return n; });

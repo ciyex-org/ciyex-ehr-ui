@@ -129,8 +129,15 @@ function UploadPanel({ onUploaded, onError }: { onUploaded: () => void; onError?
     setUploading(true);
     let success = 0;
     for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const formData = new FormData();
-      formData.append("file", files[i]);
+      // For CSV files, ensure correct MIME type is sent
+      if (file.name.toLowerCase().endsWith(".csv") && (!file.type || file.type === "application/octet-stream")) {
+        const csvBlob = new Blob([file], { type: "text/csv" });
+        formData.append("file", csvBlob, file.name);
+      } else {
+        formData.append("file", file);
+      }
       formData.append("category", category);
       if (selectedPatientId) formData.append("patientId", String(selectedPatientId));
 
@@ -161,7 +168,7 @@ function UploadPanel({ onUploaded, onError }: { onUploaded: () => void; onError?
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.csv,.doc,.docx,.xls,.xlsx"
+        accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.csv,.doc,.docx,.xls,.xlsx,text/csv,application/csv,application/vnd.ms-excel"
         className="hidden"
         onChange={(e) => handleUpload(e.target.files)}
       />

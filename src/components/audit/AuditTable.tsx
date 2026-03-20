@@ -181,7 +181,7 @@ export default function AuditTable({
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
-                            {log.userName || (log.userId ? log.userId : "\u2014")}
+                            {log.userName || (log.userId ? log.userId : "System")}
                           </div>
                           {log.userRole && (
                             <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 mt-0.5">
@@ -206,11 +206,11 @@ export default function AuditTable({
                     {/* Resource */}
                     <td className="px-4 py-3">
                       <div className="text-sm text-slate-700 dark:text-slate-200 font-medium">
-                        {log.resourceType || "\u2014"}
+                        {log.resourceType || (log.resourceId ? log.resourceId.split("/")[0] : log.action || "General")}
                       </div>
-                      {log.resourceName && (
+                      {(log.resourceName || (log.resourceId && log.resourceId.includes("/"))) && (
                         <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
-                          {log.resourceName}
+                          {log.resourceName || log.resourceId}
                         </div>
                       )}
                     </td>

@@ -1848,12 +1848,25 @@ export default function DynamicFormRenderer({
       let computedValue = value;
       // Auto-calculate BMI from weight and height fields in formData
       if (/bmi/i.test(field.key) || /body.?mass/i.test(field.label || "")) {
-        const w = parseFloat(formData.weightKg ?? formData.weight ?? formData.Weight ?? formData.weightLbs ?? "");
-        const h = parseFloat(formData.heightCm ?? formData.height ?? formData.Height ?? formData.heightIn ?? "");
+        // Search all formData keys for weight and height values (flexible matching)
+        const findValue = (patterns: RegExp[]): string => {
+          for (const pattern of patterns) {
+            for (const [k, v] of Object.entries(formData)) {
+              if (pattern.test(k) && v != null && String(v).trim() !== "") return String(v);
+            }
+          }
+          return "";
+        };
+        const weightPatterns = [/^weightKg$/i, /^weight$/i, /^weightLbs$/i, /weight/i];
+        const heightPatterns = [/^heightCm$/i, /^height$/i, /^heightIn$/i, /height/i];
+        const w = parseFloat(findValue(weightPatterns));
+        const h = parseFloat(findValue(heightPatterns));
         if (w > 0 && h > 0) {
-          // Assume cm and kg by default; convert if field key hints at lbs/inches
-          const isLbs = /lbs|pounds/i.test(String(formData.weightUnit ?? ""));
-          const isInches = /in|inches/i.test(String(formData.heightUnit ?? ""));
+          // Detect unit system from field keys or unit fields
+          const weightKey = Object.keys(formData).find(k => /weight/i.test(k) && !/unit|bmi/i.test(k)) || "";
+          const heightKey = Object.keys(formData).find(k => /height/i.test(k) && !/unit|bmi/i.test(k)) || "";
+          const isLbs = /lbs|pounds|lb/i.test(weightKey) || /lbs|pounds/i.test(String(formData.weightUnit ?? formData.unit ?? ""));
+          const isInches = /in\b|inches/i.test(heightKey) || /in\b|inches/i.test(String(formData.heightUnit ?? formData.unit ?? ""));
           const weightKg = isLbs ? w * 0.453592 : w;
           const heightM = isInches ? h * 0.0254 : h / 100;
           if (heightM > 0) {

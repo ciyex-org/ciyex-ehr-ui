@@ -425,10 +425,8 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
               </div>
               <div>
                 <label className={labelCls}>Lot Number</label>
-                <input className={`${inputCls} ${form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim()) ? "border-red-400" : ""}`} value={form.lotNumber} onChange={(e) => set("lotNumber", e.target.value)} placeholder="ABC123" maxLength={30} />
-                {form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim()) && (
-                  <p className="text-xs text-red-500 mt-1">Lot number must be alphanumeric (letters, digits, hyphens only)</p>
-                )}
+                <input className={inputCls} value={form.lotNumber} onChange={(e) => { const v = e.target.value.replace(/[^A-Za-z0-9\-]/g, ""); set("lotNumber", v); }} placeholder="ABC123" maxLength={30} pattern="[A-Za-z0-9\-]+" title="Letters, digits, and hyphens only" />
+                <p className="text-xs text-gray-400 mt-0.5">Letters, digits, and hyphens only</p>
               </div>
               <div>
                 <label className={labelCls}>Expiration Date</label>
