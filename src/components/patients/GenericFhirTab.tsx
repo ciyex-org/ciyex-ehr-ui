@@ -568,6 +568,17 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         }
         if (r.onsetDateTime != null && r.onsetDate == null) r.onsetDate = r.onsetDateTime;
         if (r.onset != null && r.onsetDate == null) r.onsetDate = r.onset;
+        // Flatten clinicalStatus / verificationStatus CodeableConcept → plain string
+        if (r.clinicalStatus != null && typeof r.clinicalStatus === "object") {
+            r.clinicalStatus = (r.clinicalStatus as any).text ||
+                (r.clinicalStatus as any).coding?.[0]?.display ||
+                (r.clinicalStatus as any).coding?.[0]?.code || null;
+        }
+        if (r.verificationStatus != null && typeof r.verificationStatus === "object") {
+            r.verificationStatus = (r.verificationStatus as any).text ||
+                (r.verificationStatus as any).coding?.[0]?.display ||
+                (r.verificationStatus as any).coding?.[0]?.code || null;
+        }
 
         // --- Encounter: reasonForVisit from reasonCode/reason ---
         if (r.reasonForVisit == null) {
@@ -2745,21 +2756,27 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
     };
 
     // Extract unique statuses for filter dropdown
+    const isAllergyTab = tabKey === "allergies" || tabKey === "allergy-intolerances";
+
     const uniqueStatuses = React.useMemo(() => {
         const statuses = new Set<string>();
         for (const r of records) {
-            const s = r.status || r.clinicalStatus || r.verificationStatus;
+            const s = isAllergyTab
+                ? (r.clinicalStatus || r.status || r.verificationStatus)
+                : (r.status || r.clinicalStatus || r.verificationStatus);
             if (s && typeof s === "string") statuses.add(s);
         }
         return Array.from(statuses).sort();
-    }, [records]);
+    }, [records, isAllergyTab]);
 
     // Filter records by search term and status
     const filteredRecords = React.useMemo(() => {
         let result = records;
         if (statusFilter) {
             result = result.filter((r) => {
-                const s = r.status || r.clinicalStatus || r.verificationStatus || "";
+                const s = isAllergyTab
+                    ? (r.clinicalStatus || r.status || r.verificationStatus || "")
+                    : (r.status || r.clinicalStatus || r.verificationStatus || "");
                 return String(s).toLowerCase() === statusFilter.toLowerCase();
             });
         }
@@ -3012,7 +3029,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             onChange={(e) => setStatusFilter(e.target.value)}
                             className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white px-2 py-1.5 focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="">All Statuses</option>
+                            <option value="">{isAllergyTab ? "All Clinical Statuses" : "All Statuses"}</option>
                             {uniqueStatuses.map((s) => (
                                 <option key={s} value={s}>{s}</option>
                             ))}
