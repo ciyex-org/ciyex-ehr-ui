@@ -39,6 +39,8 @@ export default function CarePlansPage() {
   // UI
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [authorDraft, setAuthorDraft] = useState("");
+  const [authorFilter, setAuthorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
@@ -51,6 +53,7 @@ export default function CarePlansPage() {
   } | null>(null);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const authorTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function showToast(msg: string, type: "success" | "error") {
     setToast({ msg, type });
@@ -64,6 +67,7 @@ export default function CarePlansPage() {
     try {
       let url = `${getEnv("NEXT_PUBLIC_API_URL")}/api/care-plans?page=${page}&size=${pageSize}`;
       if (searchTerm) url += `&q=${encodeURIComponent(searchTerm)}`;
+      if (authorFilter) url += `&author=${encodeURIComponent(authorFilter)}`;
       if (statusFilter !== "all") url += `&status=${statusFilter}`;
       if (categoryFilter !== "all") url += `&category=${categoryFilter}`;
       const res = await fetchWithAuth(url);
@@ -81,7 +85,7 @@ export default function CarePlansPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, searchTerm, statusFilter, categoryFilter]);
+  }, [page, searchTerm, authorFilter, statusFilter, categoryFilter]);
 
   // ------- Fetch stats -------
   const fetchStats = useCallback(async () => {
@@ -114,6 +118,23 @@ export default function CarePlansPage() {
       setPage(0);
     }, 400);
   }
+
+  // Debounced author filter
+  function handleAuthorChange(val: string) {
+    setAuthorDraft(val);
+    if (authorTimeout.current) clearTimeout(authorTimeout.current);
+    authorTimeout.current = setTimeout(() => {
+      setAuthorFilter(val.trim());
+      setPage(0);
+    }, 400);
+  }
+
+  // Client-side fallback filter for author (in case backend ignores &author=)
+  const filteredPlans = authorFilter
+    ? plans.filter((p) =>
+        (p.authorName || "").toLowerCase().includes(authorFilter.toLowerCase())
+      )
+    : plans;
 
   // ------- CRUD -------
   function openNewForm() {
@@ -280,6 +301,18 @@ export default function CarePlansPage() {
               />
             </div>
 
+            {/* Author search */}
+            <div className="relative sm:w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search by author..."
+                value={authorDraft}
+                onChange={(e) => handleAuthorChange(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             {/* Category filter */}
             <select
               value={categoryFilter}
@@ -308,7 +341,7 @@ export default function CarePlansPage() {
                 Loading care plans...
               </span>
             </div>
-          ) : plans.length === 0 ? (
+          ) : filteredPlans.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-gray-600">
               <ClipboardList className="w-12 h-12 mb-3" />
               <p className="text-sm font-medium">No care plans found</p>
@@ -317,7 +350,7 @@ export default function CarePlansPage() {
               </p>
             </div>
           ) : (
-            plans.map((plan) => (
+            filteredPlans.map((plan) => (
               <CarePlanCard
                 key={plan.id}
                 plan={plan}
