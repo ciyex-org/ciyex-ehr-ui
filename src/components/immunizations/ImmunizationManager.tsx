@@ -37,6 +37,7 @@ export default function ImmunizationManager({
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"" | "completed" | "entered-in-error" | "not-done">("");
     const [editing, setEditing] = useState<ImmunizationDto | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
@@ -137,9 +138,10 @@ finally {
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
-        if (!q) return items;
-        return items.filter((i) =>
-            [
+        return items.filter((i) => {
+            if (statusFilter && i.status !== statusFilter) return false;
+            if (!q) return true;
+            return [
                 i.vaccineName,
                 i.manufacturer,
                 i.lotNumber,
@@ -149,9 +151,9 @@ finally {
                 i.notes,
             ]
                 .filter(Boolean)
-                .some((v) => String(v).toLowerCase().includes(q))
-        );
-    }, [items, query]);
+                .some((v) => String(v).toLowerCase().includes(q));
+        });
+    }, [items, query, statusFilter]);
 
     return (
         <section className={`w-full ${className}`}>
@@ -170,6 +172,16 @@ finally {
               🔍
             </span>
                     </div>
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                        className="rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="completed">Completed</option>
+                        <option value="entered-in-error">Entered in Error</option>
+                        <option value="not-done">Not Done</option>
+                    </select>
                     <button
                         onClick={startCreate}
                         className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-blue-700 active:scale-[0.99]"
