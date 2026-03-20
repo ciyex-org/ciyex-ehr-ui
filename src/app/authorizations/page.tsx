@@ -297,25 +297,33 @@ export default function PriorAuthorizationsPage() {
     });
   }, [providerQuery]);
 
+  // Extracted insurance search — callable from both useEffect and onFocus
+  const runInsuranceSearch = useCallback(async (query: string) => {
+    try {
+      const res = await fetchWithAuth(`${base()}/api/insurance-companies?page=0&size=200`);
+      if (!res.ok) { console.warn("Insurance search failed:", res.status); return; }
+      const json = await res.json();
+      const all = extractList(json);
+      if (!query.trim()) {
+        setInsuranceResults(all);
+        if (all.length > 0) setShowInsuranceDropdown(true);
+        return;
+      }
+      const q = query.toLowerCase();
+      const list = all.filter((i: any) => {
+        const searchStr = [i.name, i.insuranceName, i.payerName, i.companyName, i.payerId, i.displayName].filter(Boolean).join(" ").toLowerCase();
+        return searchStr.includes(q);
+      });
+      setInsuranceResults(list);
+      setShowInsuranceDropdown(list.length > 0);
+    } catch (err) { console.warn("Insurance search error:", err); }
+  }, []);
+
   // Insurance search — trigger from 1 char so partial names work
   useEffect(() => {
     if (!insuranceQuery.trim()) { setInsuranceResults([]); setShowInsuranceDropdown(false); return; }
-    debounceSearch("insurance", async () => {
-      try {
-        const res = await fetchWithAuth(`${base()}/api/insurance-companies?page=0&size=200`);
-        if (!res.ok) { console.warn("Insurance search failed:", res.status); return; }
-        const json = await res.json();
-        const all = extractList(json);
-        const q = insuranceQuery.toLowerCase();
-        const list = all.filter((i: any) => {
-          const searchStr = [i.name, i.insuranceName, i.payerName, i.companyName, i.payerId, i.displayName].filter(Boolean).join(" ").toLowerCase();
-          return searchStr.includes(q);
-        });
-        setInsuranceResults(list);
-        setShowInsuranceDropdown(list.length > 0);
-      } catch (err) { console.warn("Insurance search error:", err); }
-    });
-  }, [insuranceQuery]);
+    debounceSearch("insurance", () => runInsuranceSearch(insuranceQuery));
+  }, [insuranceQuery, runInsuranceSearch]);
 
   // Fixed dropdown positions to escape overflow-y-auto clipping
   useEffect(() => {
@@ -1082,11 +1090,42 @@ export default function PriorAuthorizationsPage() {
                               key={p.id}
                               type="button"
                               onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
+                              onClick={async () => {
                                 const name = getPatientDisplayName(p);
-                                setFormData(prev => ({ ...prev, patientId: String(p.id), patientName: name }));
+                                const updates: Partial<typeof formData> = { patientId: String(p.id), patientName: name };
+                                // Auto-populate insurance fields from patient's inline insurance data
+                                const ins = p.insurances?.[0];
+                                if (ins) {
+                                  if (ins.insuranceName) { updates.insuranceName = ins.insuranceName; setInsuranceQuery(ins.insuranceName); }
+                                  if (ins.insuranceId) updates.insuranceId = ins.insuranceId;
+                                  if (ins.memberId) updates.memberId = ins.memberId;
+                                }
+                                setFormData(prev => ({ ...prev, ...updates }));
                                 setPatientQuery(name);
                                 setShowPatientDropdown(false);
+                                // Also try fetching patient coverages for insurance auto-fill
+                                if (!ins) {
+                                  try {
+                                    const covRes = await fetchWithAuth(`${base()}/api/coverages?patientId=${p.id}&page=0&size=5`);
+                                    if (covRes.ok) {
+                                      const covJson = await covRes.json();
+                                      const covList = extractList(covJson);
+                                      if (covList.length > 0) {
+                                        const cov = covList[0];
+                                        const covInsName = cov.insuranceName || cov.payerName || cov.insuranceCompanyName || "";
+                                        const covInsId = cov.insuranceId || cov.payerId || cov.insuranceCompanyId || "";
+                                        const covMemberId = cov.memberId || cov.subscriberId || "";
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          ...(covInsName ? { insuranceName: covInsName } : {}),
+                                          ...(covInsId ? { insuranceId: covInsId } : {}),
+                                          ...(covMemberId ? { memberId: covMemberId } : {}),
+                                        }));
+                                        if (covInsName) setInsuranceQuery(covInsName);
+                                      }
+                                    }
+                                  } catch (err) { console.warn("Coverage fetch for patient failed:", err); }
+                                }
                               }}
                               className={dropdownItemClass}
                             >
@@ -1156,7 +1195,11 @@ export default function PriorAuthorizationsPage() {
                           setFormData({ ...formData, insuranceName: "", insuranceId: "" });
                           setShowInsuranceDropdown(true);
                         }}
-                        onFocus={() => { if (insuranceResults.length > 0) setShowInsuranceDropdown(true); }}
+                        onFocus={() => {
+                          if (insuranceResults.length > 0) { setShowInsuranceDropdown(true); }
+                          else { runInsuranceSearch(insuranceQuery); }
+                        }}
+                        onBlur={() => setTimeout(() => setShowInsuranceDropdown(false), 150)}
                         placeholder="Search insurance..."
                         className={autocompleteInputClass}
                       />
@@ -1183,13 +1226,22 @@ export default function PriorAuthorizationsPage() {
                         </div>
                       )}
                     </div>
-                    <FormField
-                      label="Insurance ID"
-                      value={formData.insuranceId}
-                      onChange={(v) =>
-                        setFormData({ ...formData, insuranceId: v })
-                      }
-                    />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Insurance ID</label>
+                      <input
+                        type="text"
+                        value={formData.insuranceId}
+                        readOnly
+                        tabIndex={-1}
+                        placeholder="Auto-filled from insurance selection"
+                        className={`${autocompleteInputClass} bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed text-gray-500 dark:text-gray-400`}
+                      />
+                      {formData.insuranceId && (
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Auto-filled from selected insurance
+                        </p>
+                      )}
+                    </div>
                   </FormRow>
                   <div>
                     <FormField
