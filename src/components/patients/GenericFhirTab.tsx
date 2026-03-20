@@ -1371,9 +1371,13 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         // Immunizations: lot number → alphanumeric+hyphen, dose → numeric (real-time block)
         if (tabKey === "immunizations" || tabKey === "immunization") {
             if ((key === "lotNumber" || key === "lot_number") && typeof value === "string") {
-                if (/[^A-Za-z0-9\-]/.test(value)) {
-                    setValidationErrors((prev) => ({ ...prev, [key]: "Lot number must be alphanumeric" }));
-                    value = value.replace(/[^A-Za-z0-9\-]/g, "");
+                // Strip characters that are never allowed (anything other than alphanumeric or hyphen)
+                const stripped = value.replace(/[^A-Za-z0-9\-]/g, "");
+                // Lot number must start and end with an alphanumeric character (no leading/trailing hyphens)
+                const isInvalid = stripped !== value || (stripped.length > 0 && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(stripped));
+                if (isInvalid) {
+                    setValidationErrors((prev) => ({ ...prev, [key]: "Lot number must be alphanumeric (hyphens allowed only between characters)" }));
+                    value = stripped;
                 } else {
                     setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
                 }
@@ -1642,9 +1646,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     errors[doseFieldKey] = "Dose must be a number";
                 }
                 const lotNum = formData.lotNumber ?? formData.lot_number;
-                if (typeof lotNum === "string" && lotNum.trim() && !/^[A-Za-z0-9\-]+$/.test(lotNum.trim())) {
-                    errors.lotNumber = "Lot number must be alphanumeric";
-                    errors.lot_number = "Lot number must be alphanumeric";
+                if (typeof lotNum === "string" && lotNum.trim() && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(lotNum.trim())) {
+                    errors.lotNumber = "Lot number must be alphanumeric (hyphens allowed only between characters)";
+                    errors.lot_number = "Lot number must be alphanumeric (hyphens allowed only between characters)";
                 }
             }
             // Procedures: description/name must not be purely numeric
