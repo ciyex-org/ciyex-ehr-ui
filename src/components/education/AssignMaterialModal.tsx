@@ -37,7 +37,7 @@ export default function AssignMaterialModal({
   const providerSearchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const skipProviderSearchOnOpenRef = useRef(false);
+
 
   const getPatientDisplayName = (p: typeof patientResults[0]) =>
     p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
@@ -69,7 +69,6 @@ export default function AssignMaterialModal({
 
   // Provider search for "Assigned By"
   useEffect(() => {
-    if (skipProviderSearchOnOpenRef.current) { skipProviderSearchOnOpenRef.current = false; return; }
     if (!assignedBy.trim() || assignedBy.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
     if (providerSearchTimer.current) clearTimeout(providerSearchTimer.current);
     providerSearchTimer.current = setTimeout(async () => {
@@ -116,10 +115,7 @@ export default function AssignMaterialModal({
         setSelectedMaterial(null);
       }
 
-      // auto-fill assignedBy from localStorage (suppress dropdown on auto-fill)
-      const fullName = typeof window !== "undefined" ? localStorage.getItem("userFullName") : null;
-      skipProviderSearchOnOpenRef.current = true;
-      setAssignedBy(fullName || "");
+      setAssignedBy("");
     }
   }, [open, preselectedMaterial]);
 
