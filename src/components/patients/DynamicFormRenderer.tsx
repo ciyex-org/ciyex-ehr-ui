@@ -2087,8 +2087,8 @@ export default function DynamicFormRenderer({
           // Dynamically find onset date from formData (any key containing "onset" or "start")
           const findDateInFormData = (patterns: RegExp[]): string | undefined => {
             // Check exact known keys first
-            const knownOnset = ["onsetDate", "onset", "onsetDateTime", "onsetTime", "startDate", "recordedDate", "identifiedDate"];
-            const knownEnd = ["endDate", "end", "endDateTime", "resolvedDate", "abatementDate", "conclusionDate"];
+            const knownOnset = ["onsetDate", "onset", "onsetDateTime", "onsetTime", "startDate", "recordedDate", "identifiedDate", "appointmentStartDate", "appointmentStart", "scheduledStart"];
+            const knownEnd = ["endDate", "end", "endDateTime", "resolvedDate", "abatementDate", "conclusionDate", "appointmentEndDate", "appointmentEnd", "scheduledEnd"];
             const keys = patterns.some(p => p.source.includes("onset") || p.source.includes("start") || p.source.includes("record"))
               ? knownOnset : knownEnd;
             for (const k of keys) {
@@ -2108,12 +2108,12 @@ export default function DynamicFormRenderer({
           const isDobField = /^(dateOfBirth|dob|birthDate|birthdate|birth_date|date_of_birth|ptDob|patientDob)$/i.test(field.key);
           const todayStr = new Date().toISOString().slice(0, 10);
           const minDate = isEndDateKey
-            ? findDateInFormData([/onset/i, /^start/i, /recorded/i, /identified/i])
+            ? findDateInFormData([/onset/i, /start/i, /recorded/i, /identified/i])
             : undefined;
           const maxDate = isDobField
             ? todayStr
             : isOnsetKey
-              ? findDateInFormData([/^end/i, /resolv/i, /abate/i, /conclus/i])
+              ? findDateInFormData([/end/i, /resolv/i, /abate/i, /conclus/i])
               : undefined;
           return (
             <Input
