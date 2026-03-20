@@ -72,6 +72,13 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const patientSearchRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Author/provider search state
+  const [authorQuery, setAuthorQuery] = useState(initial.authorName || "");
+  const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
+  const filteredProviders = providers.filter((p) =>
+    p.name.toLowerCase().includes(authorQuery.toLowerCase())
+  );
+
   const getPatientName = (p: typeof patientResults[0]) =>
     p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
 
@@ -340,15 +347,43 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
               </div>
             </div>
 
-            <div>
+            <div className="relative">
               <label className={labelClass}>Author Name</label>
               <input
                 type="text"
-                value={form.authorName}
-                onChange={(e) => { setField("authorName", e.target.value); if (fieldErrors.authorName) setFieldErrors(prev => { const n = {...prev}; delete n.authorName; return n; }); }}
+                value={authorQuery}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAuthorQuery(val);
+                  setField("authorName", val);
+                  setShowAuthorDropdown(true);
+                  if (fieldErrors.authorName) setFieldErrors(prev => { const n = {...prev}; delete n.authorName; return n; });
+                }}
+                onFocus={() => { if (authorQuery && filteredProviders.length > 0) setShowAuthorDropdown(true); }}
+                onBlur={() => { setTimeout(() => setShowAuthorDropdown(false), 150); }}
                 className={`${inputClass} ${fieldErrors.authorName ? "border-red-400 dark:border-red-500 ring-1 ring-red-300" : ""}`}
-                placeholder="Author / provider name"
+                placeholder="Search provider..."
               />
+              {showAuthorDropdown && authorQuery && filteredProviders.length > 0 && (
+                <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                  {filteredProviders.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setField("authorName", p.name);
+                        setAuthorQuery(p.name);
+                        setShowAuthorDropdown(false);
+                        if (fieldErrors.authorName) setFieldErrors(prev => { const n = {...prev}; delete n.authorName; return n; });
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 cursor-pointer"
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
               {fieldErrors.authorName && <p className="text-xs text-red-500 mt-1">{fieldErrors.authorName}</p>}
             </div>
 
@@ -447,11 +482,15 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                       <label className={labelClass}>Target Value</label>
                       <input
                         type="text"
+                        inputMode="decimal"
                         placeholder="e.g. 7.0"
                         value={goal.targetValue}
-                        onChange={(e) =>
-                          updateGoal(idx, { targetValue: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                            updateGoal(idx, { targetValue: val });
+                          }
+                        }}
                         className={inputClass}
                       />
                     </div>
