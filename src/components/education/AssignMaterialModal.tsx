@@ -2,13 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { getEnv } from "@/utils/env";
 import { X, Loader2, Search, Send, BookOpen } from "lucide-react";
 import { EducationMaterial, CATEGORY_COLORS, categoryLabel } from "./types";
-
-function apiUrl(path: string) {
-  return `${getEnv("NEXT_PUBLIC_API_URL")}${path}`;
-}
 
 interface Props {
   open: boolean;
@@ -52,11 +47,13 @@ export default function AssignMaterialModal({
     if (patientSearchTimer.current) clearTimeout(patientSearchTimer.current);
     patientSearchTimer.current = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(apiUrl(`/api/patients?search=${encodeURIComponent(patientQuery)}`));
+        const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        if (!res.ok) return;
         const json = await res.json();
         let list: typeof patientResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json)) list = json;
         setPatientResults(list);
         setShowPatientDropdown(true);
       } catch { /* silent */ }
@@ -75,7 +72,8 @@ export default function AssignMaterialModal({
     if (providerSearchTimer.current) clearTimeout(providerSearchTimer.current);
     providerSearchTimer.current = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(apiUrl("/api/providers?status=ACTIVE"));
+        const res = await fetchWithAuth(`/api/providers?status=ACTIVE`);
+        if (!res.ok) return;
         const json = await res.json();
         let list: typeof providerResults = [];
         if (Array.isArray(json?.data?.content)) list = json.data.content;
@@ -142,7 +140,7 @@ export default function AssignMaterialModal({
     }
     setSearchingMaterials(true);
     try {
-      const res = await fetchWithAuth(apiUrl(`/api/education/materials?q=${encodeURIComponent(q)}&size=10`));
+      const res = await fetchWithAuth(`/api/education/materials?q=${encodeURIComponent(q)}&size=10`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -171,7 +169,7 @@ export default function AssignMaterialModal({
 
     setSaving(true);
     try {
-      const res = await fetchWithAuth(apiUrl("/api/education/assignments"), {
+      const res = await fetchWithAuth("/api/education/assignments", {
         method: "POST",
         body: JSON.stringify({
           patientId: patientId.trim(),

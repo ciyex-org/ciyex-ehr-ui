@@ -1426,8 +1426,13 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         if (tabKey === "appointments" || tabKey === "appointment") {
             const name = patientName || "";
             if (name) {
-                for (const key of ["patient", "patientName", "patientId", "subject", "patientRef"]) {
+                // Only set display-name fields to the patient name
+                for (const key of ["patientName"]) {
                     if (defaults[key] == null) defaults[key] = name;
+                }
+                // Set reference/id fields to the numeric patient ID
+                for (const key of ["patient", "patientId", "subject", "patientRef"]) {
+                    if (defaults[key] == null) defaults[key] = String(patientId);
                 }
             }
         }

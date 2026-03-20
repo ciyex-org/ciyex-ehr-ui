@@ -11,7 +11,6 @@ import {
   Search,
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { getEnv } from "@/utils/env";
 import {
   CarePlan,
   Goal,
@@ -54,10 +53,17 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
 
   // Load active providers for intervention assignment
   useEffect(() => {
-    fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?status=ACTIVE`)
-      .then((r) => r.json())
+    fetchWithAuth(`/api/providers?status=ACTIVE`)
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json();
+      })
       .then((json) => {
-        const raw = Array.isArray(json?.data?.content) ? json.data.content : (json?.data ?? []);
+        if (!json) return;
+        let raw: any[] = [];
+        if (Array.isArray(json?.data?.content)) raw = json.data.content;
+        else if (Array.isArray(json?.data)) raw = json.data;
+        else if (Array.isArray(json)) raw = json;
         const list = raw.map((p: any) => ({
           id: p.id,
           name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
@@ -95,11 +101,13 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
     authorSearchRef.current = setTimeout(async () => {
       setAuthorSearching(true);
       try {
-        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?status=ACTIVE&search=${encodeURIComponent(authorQuery)}`);
+        const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(authorQuery)}`);
+        if (!res.ok) return;
         const json = await res.json();
         let list: any[] = [];
         if (Array.isArray(json?.data?.content)) list = json.data.content;
         else if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json)) list = json;
         const mapped = list.map((p: any) => ({
           id: p.id,
           name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
@@ -122,11 +130,13 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
     if (patientSearchRef.current) clearTimeout(patientSearchRef.current);
     patientSearchRef.current = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        if (!res.ok) return;
         const json = await res.json();
         let list: typeof patientResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json)) list = json;
         setPatientResults(list);
         setShowPatientDropdown(true);
       } catch { /* silent */ }

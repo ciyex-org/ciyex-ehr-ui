@@ -3,13 +3,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { X, Pill, User, Building2, FileText, Loader2, Stethoscope } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import { getEnv } from "@/utils/env";
 import { Prescription, ToastState } from "./types";
 import DrugInteractionCheck from "./DrugInteractionCheck";
 import DatePicker from "@/components/form/date-picker";
 import { usePermissions } from "@/context/PermissionContext";
-
-const apiBase = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
 function blankPrescription(): Prescription {
   return {
@@ -140,11 +137,13 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     if (form.patientId && form.patientName && patientQuery === form.patientName) return;
     const t = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`${apiBase()}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        if (!res.ok) return;
         const json = await res.json();
         let list: typeof patientResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json)) list = json;
         setPatientResults(list);
         setShowPatientDropdown(list.length > 0);
       } catch { /* silent */ }
@@ -173,11 +172,12 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     if (form.prescriberName && prescriberQuery === form.prescriberName) return;
     const t = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`${apiBase()}/api/providers?status=ACTIVE`);
+        const res = await fetchWithAuth(`/api/providers?status=ACTIVE`);
+        if (!res.ok) return;
         const json = await res.json();
         let list: typeof prescriberResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json?.data)) list = json.data;
         else if (Array.isArray(json)) list = json;
         // Filter by typed text (case-insensitive)
         const q = prescriberQuery.toLowerCase();
@@ -254,8 +254,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     try {
       const isEdit = !!form.id;
       const url = isEdit
-        ? `${apiBase()}/api/prescriptions/${form.id}`
-        : `${apiBase()}/api/prescriptions`;
+        ? `/api/prescriptions/${form.id}`
+        : `/api/prescriptions`;
       // Add MedicationRequest.intent (required by FHIR R4)
       const payload = { ...form, intent: (form as any).intent || "order", status: form.status || "active" };
       const res = await fetchWithAuth(url, {

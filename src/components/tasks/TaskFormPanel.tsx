@@ -72,13 +72,14 @@ export default function TaskFormPanel({
 
   useEffect(() => {
     const q = form.assignedTo;
-    if (!q || q.length < 2) { setProviderResults([]); return; }
+    if (!q || q.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
     const t = setTimeout(async () => {
       try {
-        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
-        const res = await fetchWithAuth(`${base}/api/providers?status=ACTIVE`);
+        const res = await fetchWithAuth(`/api/providers?status=ACTIVE`);
+        if (!res.ok) return;
         const json = await res.json();
-        const list = (json?.data?.content || json?.data || [])
+        const raw = Array.isArray(json) ? json : (json?.data?.content || json?.data || []);
+        const list = (Array.isArray(raw) ? raw : [])
           .map((p: any) => ({
             id: p.id,
             name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.displayName || `Provider #${p.id}`,
@@ -125,16 +126,17 @@ export default function TaskFormPanel({
 
   // Debounced patient search
   useEffect(() => {
-    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); return; }
+    if (!patientQuery.trim() || patientQuery.length < 2) { setPatientResults([]); setShowPatientDropdown(false); return; }
     if (form.patientName && patientQuery === form.patientName && form.patientId) return;
     const t = setTimeout(async () => {
       try {
-        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
-        const res = await fetchWithAuth(`${base}/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        if (!res.ok) return;
         const json = await res.json();
         let list: typeof patientResults = [];
-        if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json)) list = json;
         setPatientResults(list);
         setShowPatientDropdown(list.length > 0);
       } catch { /* silent */ }
