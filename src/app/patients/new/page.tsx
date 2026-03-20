@@ -489,9 +489,12 @@ export default function AddPatient() {
         if (formData.contactInfo.homePhone && !isValidUSPhone(formData.contactInfo.homePhone)) errs.homePhone = "Enter a valid 10-digit US phone number";
         if (formData.contactInfo.email && !isValidEmail(formData.contactInfo.email)) errs.email = "Enter a valid email address";
         if (formData.personalInfo.ptssn && formData.personalInfo.ptssn.trim() && !isValidSSN(formData.personalInfo.ptssn)) errs.ptssn = "SSN must be exactly 9 digits";
-        // Validate DOB is not in the future
-        if (formData.personalInfo.dob) {
-            const dobDate = new Date(formData.personalInfo.dob);
+        // Validate DOB is present and not in the future
+        if (!formData.personalInfo.dob) {
+            errs.dob = "Date of birth is required";
+        } else {
+            // Parse as local midnight to avoid UTC offset shifting the date
+            const dobDate = new Date(formData.personalInfo.dob + "T00:00:00");
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             if (dobDate > today) errs.dob = "Date of birth cannot be a future date";
@@ -664,13 +667,12 @@ export default function AddPatient() {
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             const today = new Date().toISOString().split("T")[0];
+                                            handleChange("personalInfo", "dob", val);
                                             if (val && val > today) {
                                                 setFormErrors(prev => ({ ...prev, dob: "Date of birth cannot be a future date" }));
-                                                handleChange("personalInfo", "dob", "");
-                                                return;
+                                            } else {
+                                                setFormErrors(prev => { const n = { ...prev }; delete n.dob; return n; });
                                             }
-                                            setFormErrors(prev => { const n = { ...prev }; delete n.dob; return n; });
-                                            handleChange("personalInfo", "dob", val);
                                         }}
                                         max={new Date().toISOString().split("T")[0]}
                                         className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.dob ? "border-red-500" : "border-gray-300"}`}

@@ -100,7 +100,8 @@ export default function EditPatientPage() {
         else if (!isValidEmail(formData.email)) errs.email = "Enter a valid email address";
         if (formData.ssn && formData.ssn.trim() && !isValidSSN(formData.ssn)) errs.ssn = "SSN must be exactly 9 digits";
         if (formData.dateOfBirth) {
-            const dob = new Date(formData.dateOfBirth);
+            // Parse as local midnight to avoid UTC offset shifting the date
+            const dob = new Date(formData.dateOfBirth + "T00:00:00");
             const today = new Date(); today.setHours(0, 0, 0, 0);
             if (dob > today) errs.dateOfBirth = "Date of birth cannot be a future date";
         }
@@ -245,12 +246,12 @@ export default function EditPatientPage() {
                             onChange={(e) => {
                                 const val = e.target.value;
                                 const today = new Date().toISOString().split("T")[0];
-                                if (val > today) {
-                                    setFormErrors(prev => ({ ...prev, dateOfBirth: "Date of birth cannot be a future date" }));
-                                    return;
-                                }
-                                setFormErrors(prev => { const n = { ...prev }; delete n.dateOfBirth; return n; });
                                 setFormData(prev => prev ? { ...prev, dateOfBirth: val } : prev);
+                                if (val && val > today) {
+                                    setFormErrors(prev => ({ ...prev, dateOfBirth: "Date of birth cannot be a future date" }));
+                                } else {
+                                    setFormErrors(prev => { const n = { ...prev }; delete n.dateOfBirth; return n; });
+                                }
                             }}
                             max={new Date().toISOString().split("T")[0]}
                             className={inputCls(formErrors.dateOfBirth)}
