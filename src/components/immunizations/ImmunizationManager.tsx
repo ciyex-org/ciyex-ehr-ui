@@ -344,9 +344,9 @@ function FormDrawer({
         const e: Record<string, string> = {};
         if (!form.vaccineName?.trim()) e.vaccineName = "Vaccine name is required";
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
-        // Lot number: digits only if provided
-        if (form.lotNumber && form.lotNumber.trim() && !/^\d+$/.test(form.lotNumber.trim())) {
-            e.lotNumber = "Lot number must contain numbers only";
+        // Lot number: alphanumeric + hyphens only if provided
+        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim())) {
+            e.lotNumber = "Lot number must contain only letters, numbers, or hyphens";
         }
         // Dose: must be a positive number if provided
         if (form.dose !== undefined && form.dose !== null) {
@@ -422,16 +422,14 @@ function FormDrawer({
                             label="Lot Number"
                             value={form.lotNumber ?? ""}
                             onChange={(v) => {
-                                // Strip any non-digit characters on input
-                                const digits = v.replace(/\D/g, "");
-                                set("lotNumber", digits);
-                                if (v !== digits && v.length > 0) {
-                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must contain numbers only" }));
+                                set("lotNumber", v);
+                                if (v && !/^[A-Za-z0-9\-]+$/.test(v)) {
+                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must contain only letters, numbers, or hyphens" }));
                                 } else {
                                     setErrors(prev => { const n = { ...prev }; delete n.lotNumber; return n; });
                                 }
                             }}
-                            placeholder="e.g., 123456"
+                            placeholder="e.g., LOT-123456"
                             error={errors.lotNumber}
                         />
                     </div>

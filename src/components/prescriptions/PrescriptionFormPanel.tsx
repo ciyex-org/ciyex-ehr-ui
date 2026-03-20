@@ -101,6 +101,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const [showPrescriberDropdown, setShowPrescriberDropdown] = useState(false);
   const [prescriberDropdownStyle, setPrescriberDropdownStyle] = useState<React.CSSProperties>({});
   const prescriberInputRef = useRef<HTMLDivElement>(null);
+  const skipPrescriberSearchRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -111,6 +112,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       setPatientQuery(p.patientName || "");
       setPatientResults([]);
       setShowPatientDropdown(false);
+      skipPrescriberSearchRef.current = true;
       setPrescriberQuery(p.prescriberName || "");
       setPrescriberResults([]);
       setShowPrescriberDropdown(false);
@@ -173,24 +175,18 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
 
   /* Debounced prescriber search */
   useEffect(() => {
+    if (skipPrescriberSearchRef.current) { skipPrescriberSearchRef.current = false; return; }
     if (!prescriberQuery.trim() || prescriberQuery.length < 2) { setPrescriberResults([]); return; }
-    // Skip search if prescriber already selected and query matches
-    if (form.prescriberName && prescriberQuery === form.prescriberName) return;
     const t = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`/api/providers?status=ACTIVE`);
+        const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(prescriberQuery)}`);
         if (!res.ok) return;
         const json = await res.json();
         let list: typeof prescriberResults = [];
         if (Array.isArray(json?.data?.content)) list = json.data.content;
         else if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.content)) list = json.content;
         else if (Array.isArray(json)) list = json;
-        // Filter by typed text (case-insensitive)
-        const q = prescriberQuery.toLowerCase();
-        list = list.filter((p) => {
-          const name = p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim();
-          return name.toLowerCase().includes(q);
-        });
         setPrescriberResults(list);
         setShowPrescriberDropdown(list.length > 0);
       } catch { /* silent */ }
@@ -204,6 +200,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const selectPrescriber = (p: typeof prescriberResults[0]) => {
     const name = prescriberName(p);
     setForm((prev) => ({ ...prev, prescriberName: name, prescriberNpi: p.npi || prev.prescriberNpi || "" }));
+    skipPrescriberSearchRef.current = true;
     setPrescriberQuery(name);
     setShowPrescriberDropdown(false);
   };

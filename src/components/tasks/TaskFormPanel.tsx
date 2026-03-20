@@ -70,12 +70,15 @@ export default function TaskFormPanel({
   const providerInputRef = useRef<HTMLDivElement>(null);
   const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
 
+  const skipProviderSearchRef = useRef(false);
+
   useEffect(() => {
+    if (skipProviderSearchRef.current) { skipProviderSearchRef.current = false; return; }
     const q = form.assignedTo;
     if (!q || q.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
     const t = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`/api/providers?status=ACTIVE`);
+        const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(q)}`);
         if (!res.ok) return;
         const json = await res.json();
         const raw = Array.isArray(json) ? json : (json?.data?.content || json?.data || []);
@@ -84,7 +87,7 @@ export default function TaskFormPanel({
             id: p.id,
             name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.displayName || `Provider #${p.id}`,
           }))
-          .filter((p: { name: string }) => p.name.toLowerCase().includes(q.toLowerCase()));
+          .filter((p: { name: string }) => p.name);
         setProviderResults(list);
         setShowProviderDropdown(list.length > 0);
       } catch { /* silent */ }

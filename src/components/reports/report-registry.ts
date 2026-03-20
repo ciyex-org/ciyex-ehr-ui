@@ -1188,18 +1188,29 @@ const noShowAnalysis: ReportDefinition = {
     // Normalize fields from FHIR format — handle all possible field naming conventions
     for (const a of records) {
       if (!a.appointmentStartDate && a.start) {
-        const iso = String(a.start);
-        a.appointmentStartDate = iso.includes("T") ? iso.split("T")[0] : iso;
+        a.appointmentStartDate = normDate(a.start);
       }
       if (!a.providerName && a.providerDisplay) a.providerName = a.providerDisplay;
       if (!a.providerName && a.practitioner) a.providerName = a.practitioner;
       if (!a.providerName && a.practitionerDisplay) a.providerName = a.practitionerDisplay;
       if (!a.patientName && a.patientDisplay) a.patientName = a.patientDisplay;
-      if (!a.patientName && a.participant) a.patientName = a.participant;
-      if (!a.visitType && a.appointmentType) a.visitType = a.appointmentType;
-      if (!a.visitType && a.serviceType) a.visitType = a.serviceType;
-      if (!a.visitType && a.serviceCategory) a.visitType = a.serviceCategory;
-      if (!a.visitType && a.type) a.visitType = a.type;
+      // Extract patient/provider names from FHIR participant array
+      if (Array.isArray(a.participant)) {
+        for (const p of a.participant) {
+          const ref = p?.actor?.reference || "";
+          const disp = p?.actor?.display || "";
+          if (!a.patientName && ref.startsWith("Patient/")) a.patientName = disp || ref.split("/")[1] || "";
+          if (!a.providerName && (ref.startsWith("Practitioner/") || ref.startsWith("PractitionerRole/"))) a.providerName = disp || ref.split("/")[1] || "";
+        }
+      }
+      // Extract visitType from appointmentType CodeableConcept object or string
+      if (!a.visitType && a.appointmentType) {
+        if (typeof a.appointmentType === "string") a.visitType = a.appointmentType;
+        else a.visitType = a.appointmentType?.text || a.appointmentType?.coding?.[0]?.display || "";
+      }
+      if (!a.visitType && a.serviceType) a.visitType = typeof a.serviceType === "string" ? a.serviceType : "";
+      if (!a.visitType && a.serviceCategory) a.visitType = typeof a.serviceCategory === "string" ? a.serviceCategory : "";
+      if (!a.visitType && a.type) a.visitType = typeof a.type === "string" ? a.type : "";
       // Extract visitType from FHIR CodeableConcept arrays
       if (!a.visitType && Array.isArray(a.serviceType)) {
         const st = a.serviceType[0];
@@ -1211,8 +1222,12 @@ const noShowAnalysis: ReportDefinition = {
         a.cancelReason = rc?.text || rc?.coding?.[0]?.display || (typeof rc === "string" ? rc : "");
       }
     }
+    records = filterByDateRange(records, "appointmentStartDate", from, to);
     records = filterByProvider(records, filters.provider as string | undefined);
-    const noShows = records.filter(a => (a.status || "").toLowerCase().includes("no") || (a.status || "").toLowerCase() === "noshow");
+    const noShows = records.filter(a => {
+      const s = (a.status || "").toLowerCase();
+      return s === "no show" || s === "no-show" || s === "noshow" || s === "no_show";
+    });
     const cancelled = records.filter(a => (a.status || "").toLowerCase().includes("cancel"));
     const combined = [...noShows, ...cancelled];
     const total = records.length || 1;

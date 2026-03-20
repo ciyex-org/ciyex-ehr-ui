@@ -91,12 +91,12 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
   const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
   const [authorSearching, setAuthorSearching] = useState(false);
   const authorSearchRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const skipAuthorSearchRef = useRef(!!editing?.authorName);
 
   // Debounced author/provider search
   useEffect(() => {
+    if (skipAuthorSearchRef.current) { skipAuthorSearchRef.current = false; return; }
     if (!authorQuery.trim() || authorQuery.length < 2) { setAuthorResults([]); return; }
-    // Skip search if author already selected and query matches
-    if (form.authorName && authorQuery === form.authorName) return;
     if (authorSearchRef.current) clearTimeout(authorSearchRef.current);
     authorSearchRef.current = setTimeout(async () => {
       setAuthorSearching(true);
@@ -107,6 +107,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
         let list: any[] = [];
         if (Array.isArray(json?.data?.content)) list = json.data.content;
         else if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.content)) list = json.content;
         else if (Array.isArray(json)) list = json;
         const mapped = list.map((p: any) => ({
           id: p.id,
@@ -432,6 +433,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                       type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
+                        skipAuthorSearchRef.current = true;
                         setField("authorName", p.name);
                         setAuthorQuery(p.name);
                         setShowAuthorDropdown(false);

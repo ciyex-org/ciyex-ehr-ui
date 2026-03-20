@@ -755,11 +755,14 @@ const AppointmentModal: React.FC = () => {
                             <input
                                 type="date"
                                 value={startDate}
+                                min={new Date().toISOString().split("T")[0]}
                                 onChange={(e) => {
                                     const d = e.target.value;
                                     setStartDate(d);
                                     setStartDateInput(d);
                                     if (!endDate && d) { setEndDate(d); setEndDateInput(d); }
+                                    // If end date is before new start date, reset end date
+                                    if (endDate && d > endDate) { setEndDate(d); setEndDateInput(d); }
                                 }}
                                 className="h-9 w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                             />
@@ -771,6 +774,7 @@ const AppointmentModal: React.FC = () => {
                             <input
                                 type="date"
                                 value={endDate}
+                                min={startDate || new Date().toISOString().split("T")[0]}
                                 onChange={(e) => {
                                     const d = e.target.value;
                                     setEndDate(d);
