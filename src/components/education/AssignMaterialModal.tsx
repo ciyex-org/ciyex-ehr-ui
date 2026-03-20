@@ -37,6 +37,9 @@ export default function AssignMaterialModal({
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
   const [assignedBy, setAssignedBy] = useState("");
+  const [providerResults, setProviderResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
+  const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+  const providerSearchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,6 +63,29 @@ export default function AssignMaterialModal({
     }, 300);
   }, [patientQuery]);
 
+  // Provider search for "Assigned By"
+  useEffect(() => {
+    if (!assignedBy.trim() || assignedBy.length < 2) { setProviderResults([]); return; }
+    if (providerSearchTimer.current) clearTimeout(providerSearchTimer.current);
+    providerSearchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl("/api/providers?status=ACTIVE"));
+        const json = await res.json();
+        let list: typeof providerResults = [];
+        if (Array.isArray(json?.data)) list = json.data;
+        else if (Array.isArray(json?.data?.content)) list = json.data.content;
+        else if (Array.isArray(json)) list = json;
+        const query = assignedBy.toLowerCase();
+        const filtered = list.filter((p) => {
+          const name = (p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim()).toLowerCase();
+          return name.includes(query);
+        });
+        setProviderResults(filtered);
+        setShowProviderDropdown(filtered.length > 0);
+      } catch { /* silent */ }
+    }, 300);
+  }, [assignedBy]);
+
   useEffect(() => {
     if (open) {
       setPatientId("");
@@ -73,6 +99,8 @@ export default function AssignMaterialModal({
       setMaterialSearch("");
       setMaterialResults([]);
       setShowMaterialDropdown(false);
+      setProviderResults([]);
+      setShowProviderDropdown(false);
 
       if (preselectedMaterial) {
         setSelectedMaterial(preselectedMaterial);
@@ -335,14 +363,41 @@ export default function AssignMaterialModal({
             </div>
 
             {/* Assigned By */}
-            <div>
+            <div className="relative">
               <label className={labelCls}>Assigned By</label>
               <input
                 className={inputCls}
                 value={assignedBy}
-                onChange={(e) => setAssignedBy(e.target.value)}
-                placeholder="Provider name"
+                onChange={(e) => {
+                  setAssignedBy(e.target.value);
+                  setShowProviderDropdown(true);
+                }}
+                onFocus={() => { if (providerResults.length > 0) setShowProviderDropdown(true); }}
+                onBlur={() => { setTimeout(() => setShowProviderDropdown(false), 200); }}
+                placeholder="Search provider..."
               />
+              {showProviderDropdown && providerResults.length > 0 && (
+                <div className="absolute z-10 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                  {providerResults.map((p) => {
+                    const name = p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setAssignedBy(name);
+                          setShowProviderDropdown(false);
+                          setProviderResults([]);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 cursor-pointer"
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
