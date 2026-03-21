@@ -667,12 +667,12 @@ export default function AddPatient() {
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             const today = new Date().toISOString().split("T")[0];
-                                            handleChange("personalInfo", "dob", val);
                                             if (val && val > today) {
                                                 setFormErrors(prev => ({ ...prev, dob: "Date of birth cannot be a future date" }));
-                                            } else {
-                                                setFormErrors(prev => { const n = { ...prev }; delete n.dob; return n; });
+                                                return; // Block future date from being set
                                             }
+                                            handleChange("personalInfo", "dob", val);
+                                            setFormErrors(prev => { const n = { ...prev }; delete n.dob; return n; });
                                         }}
                                         max={new Date().toISOString().split("T")[0]}
                                         className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.dob ? "border-red-500" : "border-gray-300"}`}

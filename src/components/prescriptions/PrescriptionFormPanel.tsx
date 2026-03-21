@@ -141,14 +141,17 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(q)}&size=20`);
       if (!res.ok) return;
       const json = await res.json();
-      let list: typeof patientResults = [];
+      let list: any[] = [];
       if (Array.isArray(json?.data?.content)) list = json.data.content;
       else if (Array.isArray(json?.data)) list = json.data;
       else if (Array.isArray(json?.content)) list = json.content;
       else if (Array.isArray(json)) list = json;
+      // Ensure each item has an id
+      list = list.filter(p => p && (p.id || p.fhirId));
+      list.forEach(p => { if (!p.id && p.fhirId) p.id = p.fhirId; });
       setPatientResults(list);
       setShowPatientDropdown(list.length > 0);
-    } catch { /* silent */ }
+    } catch (err) { console.error("Patient search failed:", err); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Debounced patient search */
@@ -205,8 +208,26 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     setShowPrescriberDropdown(false);
   };
 
-  const pName = (p: typeof patientResults[0]) =>
-    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+  const pName = (p: any) => {
+    // Try all possible patient name field structures
+    if (p.fullName) return p.fullName;
+    if (p.name && typeof p.name === "string") return p.name;
+    // Try top-level firstName/lastName
+    const first = p.firstName || p.first_name || "";
+    const last = p.lastName || p.last_name || "";
+    if (first || last) return `${first} ${last}`.trim();
+    // Try nested identification object (FHIR-style)
+    const ident = p.identification || p.name_obj || {};
+    if (ident.firstName || ident.lastName) return `${ident.firstName || ""} ${ident.lastName || ""}`.trim();
+    // Try FHIR HumanName array
+    if (Array.isArray(p.name)) {
+      const hn = p.name[0];
+      if (hn?.text) return hn.text;
+      if (hn?.given || hn?.family) return `${(hn.given || []).join(" ")} ${hn.family || ""}`.trim();
+    }
+    // Fallback to display or patientDisplay
+    return p.display || p.patientDisplay || String(p.id || "Unknown");
+  };
 
   const selectPatient = (p: typeof patientResults[0]) => {
     const name = pName(p);
@@ -341,7 +362,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                 />
                 {errors.patientName && <p className="text-xs text-red-500 mt-1">{errors.patientName}</p>}
                 {showPatientDropdown && patientResults.length > 0 && (
-                  <div style={patientDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                  <div className="absolute left-0 right-0 top-full mt-1 z-[9999] max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
                     {patientResults.map((p) => (
                       <button
                         key={p.id}
