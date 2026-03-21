@@ -859,31 +859,54 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
 
 /* ===== Responsive fixes for mobile & tablet ===== */
 @media (max-width: 768px) {
+  /* Prevent horizontal overflow */
+  body { overflow-x: hidden; }
+  main, [role="main"], .flex-1 { min-width: 0; overflow-x: hidden; }
+
   /* Tables: horizontal scroll wrapper */
   table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  thead, tbody, tr { min-width: max-content; }
 
   /* Grid layouts: stack on mobile */
-  .grid-cols-2, .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+  [class*="grid-cols-2"], [class*="grid-cols-3"], [class*="grid-cols-4"],
+  [class*="grid-cols-5"], [class*="grid-cols-6"] {
     grid-template-columns: 1fr !important;
   }
 
   /* Form grids: single column */
-  .col-span-2, .col-span-3 { grid-column: span 1 !important; }
+  [class*="col-span-2"], [class*="col-span-3"] { grid-column: span 1 !important; }
 
-  /* Prevent horizontal overflow */
-  body { overflow-x: hidden; }
-  main, [role="main"] { min-width: 0; overflow-x: hidden; }
+  /* Cards, modals, panels: full width */
+  .max-w-lg, .max-w-xl, .max-w-2xl, .max-w-3xl, .max-w-4xl,
+  .max-w-5xl, .max-w-6xl, .max-w-7xl { max-width: 100% !important; }
 
-  /* Cards and panels: full width */
-  .max-w-lg, .max-w-xl, .max-w-2xl, .max-w-3xl, .max-w-4xl {
-    max-width: 100% !important;
-  }
+  /* Sidebar: hidden by default on mobile (controlled by JS toggle) */
+  aside { position: fixed; z-index: 50; }
+
+  /* Header: compact on mobile */
+  header .hidden.md\:flex, header .hidden.lg\:flex { display: none !important; }
+
+  /* Flex row → column on mobile */
+  .flex.gap-4, .flex.gap-6 { flex-wrap: wrap; }
+
+  /* Stats/KPI cards: stack */
+  .grid.gap-4, .grid.gap-6 { gap: 0.75rem !important; }
+
+  /* Text truncation for narrow screens */
+  .truncate { max-width: 150px; }
+
+  /* Padding reduction on mobile */
+  .p-6 { padding: 1rem !important; }
+  .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
 }
 
 @media (max-width: 1024px) {
   /* Mid-size responsive: 2 columns max for larger grids */
-  .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+  [class*="grid-cols-4"], [class*="grid-cols-5"], [class*="grid-cols-6"] {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+
+  /* Reduce gap on tablet */
+  .gap-6 { gap: 1rem !important; }
 }
 

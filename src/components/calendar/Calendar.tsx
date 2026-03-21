@@ -590,6 +590,9 @@ const Calendar: React.FC = () => {
     const [calendarTitle, setCalendarTitle] = useState<string>('');
     const [activeView, setActiveView] = useState<ViewType>('timeGridDay');
     const [weekViewDates, setWeekViewDates] = useState<Date[]>([]);
+    // Track visible date range for API fetching
+    const [viewDateFrom, setViewDateFrom] = useState<string>('');
+    const [viewDateTo, setViewDateTo] = useState<string>('');
     const calendarRefs = useRef<Record<string, FullCalendar | null>>({});
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -925,9 +928,14 @@ const Calendar: React.FC = () => {
             let allEvents: CalendarEvent[] = [];
             let hasMore = true;
 
+            // Build date range query params for visible calendar range
+            const dateParams = viewDateFrom && viewDateTo
+                ? `&dateFrom=${encodeURIComponent(viewDateFrom)}&dateTo=${encodeURIComponent(viewDateTo)}`
+                : '';
+
             while (hasMore && page < maxPages) {
                 const res = await fetchWithAuth(
-                    `${apiUrl}/api/fhir-resource/appointments?page=${page}&size=${size}`
+                    `${apiUrl}/api/fhir-resource/appointments?page=${page}&size=${size}${dateParams}`
                 );
                 const json = await res.json();
 
@@ -1046,7 +1054,7 @@ const Calendar: React.FC = () => {
         } catch (err) {
             console.error("Failed to load appointments", err);
         }
-    }, [apiUrl, getColor, providers]);
+    }, [apiUrl, getColor, providers, viewDateFrom, viewDateTo]);
 
     // Trigger loadAppointments when component is mounted or colors change
     useEffect(() => {
@@ -1853,6 +1861,10 @@ const Calendar: React.FC = () => {
                                         datesSet={(arg) => {
                                             setCalendarTitle(arg.view.title);
                                             setActiveView(arg.view.type as ViewType);
+                                            const from = arg.start.toISOString().split('T')[0];
+                                            const to = arg.end.toISOString().split('T')[0];
+                                            setViewDateFrom(from);
+                                            setViewDateTo(to);
                                         }}
                                         events={events.filter((e) => {
                                             const eProv = String(e.extendedProps.providerId || "");
@@ -1904,6 +1916,10 @@ const Calendar: React.FC = () => {
                                         datesSet={(arg) => {
                                             setCalendarTitle(arg.view.title);
                                             setActiveView(arg.view.type as ViewType);
+                                            const from = arg.start.toISOString().split('T')[0];
+                                            const to = arg.end.toISOString().split('T')[0];
+                                            setViewDateFrom(from);
+                                            setViewDateTo(to);
                                             if (arg.view.type === 'timeGridWeek') {
                                                 const start = new Date(arg.view.currentStart);
                                                 setWeekViewDates(Array.from({ length: 7 }, (_, i) => {
@@ -1967,6 +1983,10 @@ const Calendar: React.FC = () => {
                                     datesSet={(arg) => {
                                         setCalendarTitle(arg.view.title);
                                         setActiveView(arg.view.type as ViewType);
+                                        const from = arg.start.toISOString().split('T')[0];
+                                        const to = arg.end.toISOString().split('T')[0];
+                                        setViewDateFrom(from);
+                                        setViewDateTo(to);
                                         if (arg.view.type === 'timeGridWeek') {
                                             const start = new Date(arg.view.currentStart);
                                             setWeekViewDates(Array.from({ length: 7 }, (_, i) => {

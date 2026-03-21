@@ -246,12 +246,12 @@ export default function EditPatientPage() {
                             onChange={(e) => {
                                 const val = e.target.value;
                                 const today = new Date().toISOString().split("T")[0];
-                                setFormData(prev => prev ? { ...prev, dateOfBirth: val } : prev);
                                 if (val && val > today) {
                                     setFormErrors(prev => ({ ...prev, dateOfBirth: "Date of birth cannot be a future date" }));
-                                } else {
-                                    setFormErrors(prev => { const n = { ...prev }; delete n.dateOfBirth; return n; });
+                                    return; // Block future date from being set
                                 }
+                                setFormData(prev => prev ? { ...prev, dateOfBirth: val } : prev);
+                                setFormErrors(prev => { const n = { ...prev }; delete n.dateOfBirth; return n; });
                             }}
                             max={new Date().toISOString().split("T")[0]}
                             className={inputCls(formErrors.dateOfBirth)}

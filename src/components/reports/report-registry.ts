@@ -670,7 +670,7 @@ const revenueOverview: ReportDefinition = {
       monthly[m].charges += (p.amount || 0) * 1.4;
     }
     // Build table data with payer and provider columns
-    const tableRows = payments.slice(0, 200).map(p => {
+    const tableRows = payments.map(p => {
       const payerName = p.payerName || p.insurerName || p.insuranceCompany || "Self-Pay";
       const provName = p.providerName || p.provider || p.encounterProvider || encounterProviderMap[String(p.patientId || "")] || "";
       return {
@@ -1255,7 +1255,7 @@ const noShowAnalysis: ReportDefinition = {
         byProvider: Object.entries(providerCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, ct]) => ({ name, rate: ct })),
         reasons: toChartData(reasonCounts, "name", "count").slice(0, 8),
       },
-      tableData: combined.slice(0, 100).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || ""), patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || a.serviceType || a.description || a.note || "—", status: a.status || "", reason: a.cancelReason || a.reason || a.cancellationNote || a.comment || "—" })),
+      tableData: combined.map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || ""), patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || a.serviceType || a.description || a.note || "—", status: a.status || "", reason: a.cancelReason || a.reason || a.cancellationNote || a.comment || "—" })),
       totalRecords: combined.length,
     };
   },

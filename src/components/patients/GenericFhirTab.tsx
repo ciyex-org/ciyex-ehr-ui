@@ -345,8 +345,13 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "code" || f.key === "codeText")) {
                     section.fields[i] = { ...f, label: "Allergy Code" };
                 }
-                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && f.key === "name" && !section.fields.some(sf => sf && (sf.key === "allergyName" || sf.key === "allergy_name"))) {
-                    section.fields[i] = { ...f, label: "Allergy" };
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && f.key === "name") {
+                    // If allergyName already exists, hide duplicate 'name' field; otherwise label it "Allergy"
+                    if (section.fields.some(sf => sf && (sf.key === "allergyName" || sf.key === "allergy_name"))) {
+                        section.fields[i] = { ...f, type: "hidden" } as any;
+                    } else {
+                        section.fields[i] = { ...f, label: "Allergy" };
+                    }
                 }
                 if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergen" || f.key === "substance")) {
                     section.fields[i] = { ...f, label: "Allergen" };
@@ -3063,12 +3068,16 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                         });
                                         if (res.ok) {
                                             const json = await res.json();
-                                            const url = json.data?.url || json.url || json.data?.fileUrl || "";
+                                            const url = json.data?.url || json.url || json.data?.fileUrl || json.data?.fileId || "";
                                             handleFieldChange("documentUrl", url);
+                                            handleFieldChange("fileUrl", url);
+                                            handleFieldChange("attachment", url);
+                                            handleFieldChange("content", url);
                                             handleFieldChange("fileName", file.name);
                                             setSuccessMsg(`File "${file.name}" uploaded successfully.`);
                                         } else {
-                                            setError("Failed to upload file. Please try again.");
+                                            const errJson = await res.json().catch(() => ({}));
+                                            setError(errJson?.message || `Upload failed (${res.status}). Please try again.`);
                                         }
                                     } catch {
                                         setError("Failed to upload file. Please try again.");

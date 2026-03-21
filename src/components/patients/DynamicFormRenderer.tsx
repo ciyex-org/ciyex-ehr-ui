@@ -395,6 +395,11 @@ function LookupField({
     [field.lookupConfig, fetchAll, results.length]
   );
 
+  // Check if field depends on another field that isn't filled yet
+  const depKey = (field.lookupConfig as any)?.dependsOn;
+  const depVal = depKey && parentFormData ? (parentFormData[depKey] || "") : "";
+  const isDisabledByDep = !!depKey && !depVal;
+
   if (readOnly) {
     return <span className="text-sm text-gray-700 dark:text-gray-300">{displayValue || "-"}</span>;
   }
@@ -404,8 +409,9 @@ function LookupField({
       <input
         ref={inputRef}
         type="text"
-        className="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        placeholder={field.placeholder || `Search ${field.label}...`}
+        className={`w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${isDisabledByDep ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-700" : ""}`}
+        placeholder={isDisabledByDep ? `Select ${depKey?.replace(/([A-Z])/g, ' $1').replace(/^./, (s: string) => s.toUpperCase())} first` : (field.placeholder || `Search ${field.label}...`)}
+        disabled={isDisabledByDep}
         value={query || displayValue}
         onChange={(e) => {
           const val = e.target.value;
