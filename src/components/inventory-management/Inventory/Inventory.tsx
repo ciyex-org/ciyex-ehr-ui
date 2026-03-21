@@ -271,8 +271,14 @@ export default function Inventory() {
     if (!deleteTarget) return;
     try {
       const res = await fetchWithAuth(`${API_URL}/api/inventory/${deleteTarget.id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message || "Failed");
+      // Handle empty response body (204 No Content) and JSON responses
+      let json: { success?: boolean; message?: string } | null = null;
+      const text = await res.text();
+      if (text) {
+        try { json = JSON.parse(text); } catch { /* non-JSON response */ }
+      }
+      if (!res.ok && json && !json.success) throw new Error(json.message || "Failed");
+      if (!res.ok && !json) throw new Error(`Delete failed (HTTP ${res.status})`);
       setDeleteTarget(null);
       setAlertData({ variant: "success", title: "Item Deleted", message: `${deleteTarget.name} was deleted.` });
       fetchItems();

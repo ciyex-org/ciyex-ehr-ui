@@ -224,7 +224,39 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
                   File
                 </button>
                 <button
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={async () => {
+                    setShowAttachMenu(false);
+                    // On mobile, the capture attribute on the hidden input triggers camera directly.
+                    // On desktop, try getUserMedia to open camera; fall back to file picker.
+                    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+                    if (isMobile) {
+                      cameraInputRef.current?.click();
+                    } else {
+                      try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                        const video = document.createElement("video");
+                        video.srcObject = stream;
+                        video.setAttribute("playsinline", "true");
+                        await video.play();
+                        // Wait a moment for camera to warm up
+                        await new Promise((r) => setTimeout(r, 500));
+                        const canvas = document.createElement("canvas");
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        canvas.getContext("2d")?.drawImage(video, 0, 0);
+                        stream.getTracks().forEach((t) => t.stop());
+                        canvas.toBlob((blob) => {
+                          if (blob) {
+                            const file = new File([blob], `camera-${Date.now()}.jpg`, { type: "image/jpeg" });
+                            setPendingFiles((prev) => [...prev, file]);
+                          }
+                        }, "image/jpeg", 0.92);
+                      } catch {
+                        // getUserMedia denied or unavailable — fall back to file input
+                        cameraInputRef.current?.click();
+                      }
+                    }
+                  }}
                   className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
                   <Camera className="h-4 w-4 text-purple-500" />
@@ -253,7 +285,7 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
             ref={cameraInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
+            capture="user"
             className="hidden"
             onChange={handleFileSelect}
           />

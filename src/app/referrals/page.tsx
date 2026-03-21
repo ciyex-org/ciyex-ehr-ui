@@ -288,7 +288,7 @@ function ReferralFormPanel({
 
   useEffect(() => {
     if (open) {
-      const r = referral ? { ...referral } : blankReferral();
+      const r = referral ? { ...referral, patientId: String(referral.patientId ?? "") } : blankReferral();
       setForm(r);
       setErrors({});
       setPatientQuery(r.patientName || "");
@@ -372,20 +372,22 @@ function ReferralFormPanel({
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!form.patientId.trim()) e.patientId = "Patient ID is required";
-    if (!form.patientName.trim()) e.patientName = "Patient name is required";
-    if (!form.reason.trim()) e.reason = "Reason is required";
-    if (!form.specialistName.trim()) e.specialistName = "Specialist name is required";
-    else if (!/^[A-Za-z\s\-'.]+$/.test(form.specialistName.trim())) e.specialistName = "Specialist name must contain only letters";
-    if (!form.facilityName.trim()) e.facilityName = "Facility name is required";
-    else if (!/^[A-Za-z0-9\s\-'.,&#()\/]+$/.test(form.facilityName.trim())) e.facilityName = "Facility name contains invalid characters";
-    else if (!/[A-Za-z]/.test(form.facilityName.trim())) e.facilityName = "Facility name must contain at least one letter";
-    else if (form.facilityName.trim().length < 2) e.facilityName = "Facility name must be at least 2 characters";
-    else if (form.facilityName.trim().length > 200) e.facilityName = "Facility name must be less than 200 characters";
-    if (!form.referralDate.trim()) e.referralDate = "Referral date is required";
-    if (form.facilityPhone.trim() && !isValidUSPhone(form.facilityPhone)) e.facilityPhone = "Phone number must be exactly 10 digits";
-    if (form.facilityFax.trim() && !isValidFax(form.facilityFax)) e.facilityFax = "Invalid fax number";
-    if (form.specialistNpi.trim() && !isValidNpi(form.specialistNpi)) e.specialistNpi = "NPI must be exactly 10 digits";
+    // Use String() to safely handle values that may come as numbers from the API
+    const s = (v: unknown) => String(v ?? "").trim();
+    if (!s(form.patientId)) e.patientId = "Patient ID is required";
+    if (!s(form.patientName)) e.patientName = "Patient name is required";
+    if (!s(form.reason)) e.reason = "Reason is required";
+    if (!s(form.specialistName)) e.specialistName = "Specialist name is required";
+    else if (!/^[A-Za-z\s\-'.]+$/.test(s(form.specialistName))) e.specialistName = "Specialist name must contain only letters";
+    if (!s(form.facilityName)) e.facilityName = "Facility name is required";
+    else if (!/^[A-Za-z0-9\s\-'.,&#()\/]+$/.test(s(form.facilityName))) e.facilityName = "Facility name contains invalid characters";
+    else if (!/[A-Za-z]/.test(s(form.facilityName))) e.facilityName = "Facility name must contain at least one letter";
+    else if (s(form.facilityName).length < 2) e.facilityName = "Facility name must be at least 2 characters";
+    else if (s(form.facilityName).length > 200) e.facilityName = "Facility name must be less than 200 characters";
+    if (!s(form.referralDate)) e.referralDate = "Referral date is required";
+    if (s(form.facilityPhone) && !isValidUSPhone(String(form.facilityPhone))) e.facilityPhone = "Phone number must be exactly 10 digits";
+    if (s(form.facilityFax) && !isValidFax(String(form.facilityFax))) e.facilityFax = "Invalid fax number";
+    if (s(form.specialistNpi) && !isValidNpi(String(form.specialistNpi))) e.specialistNpi = "NPI must be exactly 10 digits";
     if (form.expiryDate && form.referralDate && form.expiryDate < form.referralDate) e.expiryDate = "Expiry date must be after referral date";
     if (form.appointmentDate && form.referralDate && form.appointmentDate < form.referralDate) e.appointmentDate = "Appointment date must be after referral date";
     setErrors(e);

@@ -633,12 +633,14 @@ export default function PriorAuthorizationsPage() {
     }
   }
 
-  // Client-side search filter (fallback when API doesn't support q param)
+  // Client-side search filter — searches across patient name, patient ID, provider, and all key fields
   const displayedAuths = searchDraft
     ? auths.filter((a) => {
         const q = searchDraft.toLowerCase();
         return (
           (a.patientName || "").toLowerCase().includes(q) ||
+          (a.patientId || "").toLowerCase().includes(q) ||
+          String(a.id || "").toLowerCase().includes(q) ||
           (a.providerName || "").toLowerCase().includes(q) ||
           (a.authNumber || "").toLowerCase().includes(q) ||
           (a.procedureCode || "").toLowerCase().includes(q) ||
@@ -646,6 +648,7 @@ export default function PriorAuthorizationsPage() {
           (a.diagnosisCode || "").toLowerCase().includes(q) ||
           (a.diagnosisDescription || "").toLowerCase().includes(q) ||
           (a.insuranceName || "").toLowerCase().includes(q) ||
+          (a.insuranceId || "").toLowerCase().includes(q) ||
           (a.memberId || "").toLowerCase().includes(q)
         );
       })
@@ -708,7 +711,7 @@ export default function PriorAuthorizationsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
-              placeholder="Search authorizations..."
+              placeholder="Search by patient name, ID, provider..."
               value={searchDraft}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"

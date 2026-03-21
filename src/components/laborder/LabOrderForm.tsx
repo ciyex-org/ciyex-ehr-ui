@@ -1205,12 +1205,15 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                     </button>
                     <input
                       value={r.test || ''}
-                      onChange={(e) => setProcModalRows(rows => { 
-                        const copy = [...rows]; 
-                        copy[i] = { ...copy[i], test: e.target.value, testCode: '' }; 
-                        return copy; 
-                      })}
-                      placeholder="Procedure code"
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^A-Za-z0-9.\-\s]/g, '');
+                        setProcModalRows(rows => {
+                          const copy = [...rows];
+                          copy[i] = { ...copy[i], test: val, testCode: '' };
+                          return copy;
+                        });
+                      }}
+                      placeholder="Procedure code (e.g. 99213)"
                       className="flex-1 px-3 text-sm bg-white focus:outline-none min-w-0 w-32"
                     />
                   </div>
@@ -1228,13 +1231,15 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                     </button>
                     <input
                       value={(Array.isArray(r.diagnosisCodes) ? r.diagnosisCodes.join('; ') : (r.diagnosisCodes || ''))}
-                      onChange={(e) => setProcModalRows(rows => { 
-                        const copy = [...rows]; 
-                        const val = e.target.value; 
-                        copy[i] = { ...copy[i], diagnosisCodes: val.split(/[;,]/).map(s => s.trim()).filter(Boolean) }; 
-                        return copy; 
-                      })}
-                      placeholder="Diagnosis code"
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^A-Za-z0-9.\-;,:\s]/g, '');
+                        setProcModalRows(rows => {
+                          const copy = [...rows];
+                          copy[i] = { ...copy[i], diagnosisCodes: val.split(/[;,]/).map(s => s.trim()).filter(Boolean) };
+                          return copy;
+                        });
+                      }}
+                      placeholder="Diagnosis code (e.g. ICD10:E11.9)"
                       className="flex-1 px-3 text-sm bg-white focus:outline-none min-w-0 w-32"
                     />
                   </div>
