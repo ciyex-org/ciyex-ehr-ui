@@ -501,6 +501,18 @@ const AppointmentModal: React.FC = () => {
             return;
         }
 
+        // Ensure patient ID is numeric (not a name accidentally stored as ID)
+        if (!/^\d+$/.test(selectedPatientId)) {
+            setAlertData({
+                variant: "error",
+                title: "Invalid Patient",
+                message: "Please search and select a patient from the dropdown list.",
+            });
+            setSelectedPatientId("");
+            setSelectedPatientName("");
+            return;
+        }
+
         if (!startDate || !endDate || !startTime || !endTime) {
             setAlertData({
                 variant: "warning",

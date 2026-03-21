@@ -88,6 +88,16 @@ const ClaimManagementDashboard: React.FC = () => {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
 
+  // Patient search autocomplete state
+  const [patientQuery, setPatientQuery] = useState("");
+  const [patientResults, setPatientResults] = useState<any[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+
+  // Provider search autocomplete state
+  const [providerQuery, setProviderQuery] = useState("");
+  const [providerResults, setProviderResults] = useState<any[]>([]);
+  const [showProviderDropdown, setShowProviderDropdown] = useState(false);
+
   const loadClaims = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -115,6 +125,52 @@ const ClaimManagementDashboard: React.FC = () => {
   }, []);
 
   useEffect(() => { loadClaims(); }, [loadClaims]);
+
+  // Debounced patient search
+  useEffect(() => {
+    if (!patientQuery || patientQuery.length < 2) {
+      setPatientResults([]);
+      setShowPatientDropdown(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(patientQuery)}`);
+        if (res.ok) {
+          const json = await res.json();
+          const list = json.data?.content || json.data || json.content || [];
+          setPatientResults(Array.isArray(list) ? list : []);
+          setShowPatientDropdown(true);
+        }
+      } catch {
+        setPatientResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [patientQuery]);
+
+  // Debounced provider search
+  useEffect(() => {
+    if (!providerQuery || providerQuery.length < 2) {
+      setProviderResults([]);
+      setShowProviderDropdown(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetchWithAuth(`/api/providers?search=${encodeURIComponent(providerQuery)}`);
+        if (res.ok) {
+          const json = await res.json();
+          const list = json.data || [];
+          setProviderResults(Array.isArray(list) ? list : []);
+          setShowProviderDropdown(true);
+        }
+      } catch {
+        setProviderResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [providerQuery]);
 
   const filtered = claims.filter((c) => {
     if (filter !== "ALL" && c.status !== filter) return false;
@@ -160,12 +216,24 @@ const ClaimManagementDashboard: React.FC = () => {
       type: claim.type || "",
     });
     setEditError("");
+    setPatientQuery("");
+    setPatientResults([]);
+    setShowPatientDropdown(false);
+    setProviderQuery("");
+    setProviderResults([]);
+    setShowProviderDropdown(false);
     setShowEditModal(true);
   };
 
   const closeEditModal = () => {
     setShowEditModal(false);
     setEditClaim(null);
+    setPatientQuery("");
+    setPatientResults([]);
+    setShowPatientDropdown(false);
+    setProviderQuery("");
+    setProviderResults([]);
+    setShowProviderDropdown(false);
   };
 
   const handleEditChange = (field: string, value: string) => {
@@ -442,24 +510,84 @@ const ClaimManagementDashboard: React.FC = () => {
                 <div className="bg-red-50 text-red-700 px-3 py-2 rounded text-sm">{editError}</div>
               )}
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
                 <input
                   type="text"
-                  value={editForm.patientName}
-                  onChange={(e) => handleEditChange("patientName", e.target.value)}
+                  value={patientQuery || editForm.patientName}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setPatientQuery(val);
+                    handleEditChange("patientName", val);
+                  }}
+                  onFocus={() => { if (patientResults.length > 0) setShowPatientDropdown(true); }}
+                  onBlur={() => { setTimeout(() => setShowPatientDropdown(false), 200); }}
+                  placeholder="Search patients..."
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                {showPatientDropdown && patientResults.length > 0 && (
+                  <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
+                    {patientResults.map((p: any, idx: number) => {
+                      const name = p.name
+                        || [p.firstName, p.lastName].filter(Boolean).join(" ")
+                        || [p.identification?.firstName, p.identification?.lastName].filter(Boolean).join(" ")
+                        || `Patient #${p.id || idx}`;
+                      return (
+                        <li
+                          key={p.id || idx}
+                          onMouseDown={() => {
+                            handleEditChange("patientName", name);
+                            setPatientQuery("");
+                            setShowPatientDropdown(false);
+                          }}
+                          className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer"
+                        >
+                          {name}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Provider</label>
                 <input
                   type="text"
-                  value={editForm.provider}
-                  onChange={(e) => handleEditChange("provider", e.target.value)}
+                  value={providerQuery || editForm.provider}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProviderQuery(val);
+                    handleEditChange("provider", val);
+                  }}
+                  onFocus={() => { if (providerResults.length > 0) setShowProviderDropdown(true); }}
+                  onBlur={() => { setTimeout(() => setShowProviderDropdown(false), 200); }}
+                  placeholder="Search providers..."
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                {showProviderDropdown && providerResults.length > 0 && (
+                  <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
+                    {providerResults.map((p: any, idx: number) => {
+                      const name = p.name
+                        || [p.identification?.firstName, p.identification?.lastName].filter(Boolean).join(" ")
+                        || [p.firstName, p.lastName].filter(Boolean).join(" ")
+                        || `Provider #${p.id || idx}`;
+                      return (
+                        <li
+                          key={p.id || idx}
+                          onMouseDown={() => {
+                            handleEditChange("provider", name);
+                            setProviderQuery("");
+                            setShowProviderDropdown(false);
+                          }}
+                          className="px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 cursor-pointer"
+                        >
+                          {name}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
 
               <div>

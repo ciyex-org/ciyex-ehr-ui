@@ -1152,13 +1152,13 @@ export default function AppointmentPage() {
                       </td>
 
                       {/* Room */}
-                      <td className="py-1.5 px-3 text-sm">
+                      <td className="py-1.5 px-3 text-sm relative">
                         {editingRoomId === r.id ? (
                           <select
                             data-room-edit
                             autoFocus
                             defaultValue={r.room || ""}
-                            className="rounded border px-2 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 min-w-20"
+                            className="rounded border px-2 py-1 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 min-w-20 z-20 relative"
                             onChange={(e) => {
                               updateRoom(r, e.target.value);
                             }}

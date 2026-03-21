@@ -117,6 +117,8 @@ interface Insurance {
     doNotBalanceBill?: boolean;
     notes?: string;
     effectiveDate: string;
+    endDate: string;
+    groupNumber: string;
     policyNo: string;
     subscriber: string;
     guarantor: Guarantor;
@@ -249,6 +251,8 @@ export default function AddPatient() {
                 doNotBalanceBill: false,
                 notes: "",
                 effectiveDate: "",
+                endDate: "",
+                groupNumber: "",
                 policyNo: "",
                 subscriber: "",
                 guarantor: {
@@ -283,6 +287,8 @@ export default function AddPatient() {
                 idNo: "",
                 copay: "",
                 effectiveDate: "",
+                endDate: "",
+                groupNumber: "",
                 policyNo: "",
                 subscriber: "",
                 guarantor: {
@@ -312,6 +318,8 @@ export default function AddPatient() {
                 idNo: "",
                 copay: "",
                 effectiveDate: "",
+                endDate: "",
+                groupNumber: "",
                 policyNo: "",
                 subscriber: "",
                 guarantor: {
@@ -1590,7 +1598,37 @@ export default function AddPatient() {
                                         />
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                                        <input
+                                            type="date"
+                                            value={formData.insurance.primary.endDate}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val && formData.insurance.primary.effectiveDate && val < formData.insurance.primary.effectiveDate) {
+                                                    setFormErrors(prev => ({ ...prev, insuranceEndDate: "End date cannot be before effective date" }));
+                                                } else {
+                                                    setFormErrors(prev => { const n = { ...prev }; delete n.insuranceEndDate; return n; });
+                                                }
+                                                handleNestedChange("insurance", "primary", "endDate", val);
+                                            }}
+                                            min={formData.insurance.primary.effectiveDate || undefined}
+                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.insuranceEndDate ? "border-red-500" : "border-gray-300"}`}
+                                        />
+                                        {formErrors.insuranceEndDate && <p className="text-xs text-red-500 mt-1">{formErrors.insuranceEndDate}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Group Number</label>
+                                        <input
+                                            type="text"
+                                            value={formData.insurance.primary.groupNumber}
+                                            onChange={(e) => handleNestedChange("insurance", "primary", "groupNumber", e.target.value.replace(/[^a-zA-Z0-9-]/g, ""))}
+                                            placeholder="Alphanumeric only"
+                                            maxLength={30}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                        />
+                                    </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Policy No</label>
                                         <input

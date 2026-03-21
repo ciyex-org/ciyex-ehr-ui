@@ -85,19 +85,38 @@ export default function TaskFormPanel({
     if (!providerQuery.trim() || providerQuery.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
     const t = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(providerQuery)}`);
-        if (!res.ok) return;
-        const json = await res.json();
-        const raw = Array.isArray(json) ? json : (json?.data?.content || json?.content || json?.data || []);
-        const list = (Array.isArray(raw) ? raw : [])
-          .map((p: any) => ({
-            id: p.id,
-            name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.displayName || `Provider #${p.id}`,
-          }))
-          .filter((p: { name: string }) => p.name);
+        const parseProviders = (json: any) => {
+          const raw = Array.isArray(json) ? json : (json?.data?.content || json?.content || json?.data || []);
+          return (Array.isArray(raw) ? raw : [])
+            .map((p: any) => ({
+              id: p.id || p.fhirId,
+              name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.displayName || p.fullName || `Provider #${p.id || p.fhirId || ""}`,
+            }))
+            .filter((p: { id: any; name: string }) => p.name && p.id);
+        };
+
+        // Try search endpoint first
+        let list: { id: number; name: string }[] = [];
+        const res = await fetchWithAuth(`/api/providers?search=${encodeURIComponent(providerQuery)}`);
+        if (res.ok) {
+          const json = await res.json();
+          list = parseProviders(json);
+        }
+
+        // If search returned empty, try fetching all and filtering client-side
+        if (list.length === 0) {
+          const allRes = await fetchWithAuth(`/api/providers`);
+          if (allRes.ok) {
+            const allJson = await allRes.json();
+            const all = parseProviders(allJson);
+            const q = providerQuery.toLowerCase();
+            list = all.filter((p) => p.name.toLowerCase().includes(q));
+          }
+        }
+
         setProviderResults(list);
         setShowProviderDropdown(list.length > 0);
-      } catch { /* silent */ }
+      } catch (e) { console.error("Provider search failed:", e); }
     }, 300);
     return () => clearTimeout(t);
   }, [providerQuery]);
@@ -148,9 +167,28 @@ export default function TaskFormPanel({
         else if (Array.isArray(json?.content)) list = json.content;
         else if (Array.isArray(json?.data)) list = json.data;
         else if (Array.isArray(json)) list = json;
+
+        // If search returned empty, try fetching all patients and filtering client-side
+        if (list.length === 0) {
+          const allRes = await fetchWithAuth(`/api/patients?page=0&size=200`);
+          if (allRes.ok) {
+            const allJson = await allRes.json();
+            let allList: typeof patientResults = [];
+            if (Array.isArray(allJson?.data?.content)) allList = allJson.data.content;
+            else if (Array.isArray(allJson?.content)) allList = allJson.content;
+            else if (Array.isArray(allJson?.data)) allList = allJson.data;
+            else if (Array.isArray(allJson)) allList = allJson;
+            const q = patientQuery.toLowerCase();
+            list = allList.filter((p) => {
+              const name = (p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim()).toLowerCase();
+              return name.includes(q);
+            });
+          }
+        }
+
         setPatientResults(list);
         setShowPatientDropdown(list.length > 0);
-      } catch { /* silent */ }
+      } catch (e) { console.error("Patient search failed:", e); }
     }, 300);
     return () => clearTimeout(t);
   }, [patientQuery, form.patientName, form.patientId]);

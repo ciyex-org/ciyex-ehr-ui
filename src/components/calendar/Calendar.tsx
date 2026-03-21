@@ -557,7 +557,7 @@ const Calendar: React.FC = () => {
     const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
 
     // Header filters — empty array = "all" (show everything)
-    const [providers, setProviders] = useState<{ value: string; label: string }[]>([]);
+    const [providers, setProviders] = useState<{ value: string; label: string }[]>([{ value: 'all', label: 'All Providers' }]);
     const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
     const [locations, setLocations] = useState<{ value: string; label: string }[]>([]);
     const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -731,6 +731,8 @@ const Calendar: React.FC = () => {
                 }
             } catch (e) {
                 console.error('Failed to fetch providers', e);
+                // Ensure at least "All Providers" is available even on error
+                setProviders((prev) => prev.length === 0 ? [{ value: 'all', label: 'All Providers' }] : prev);
             }
         })();
     }, [apiUrl]);
