@@ -47,6 +47,9 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
   const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  /* Claims for selected patient */
+  const [claimsList, setClaimsList] = useState<{ id: string; claimNumber?: string; status?: string; totalAmount?: number }[]>([]);
+
   useEffect(() => {
     if (!open) return;
     setForm({
@@ -82,6 +85,19 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     }, 250);
     return () => clearTimeout(t);
   }, [patientQuery]);
+
+  /* Fetch claims when patient selected and referenceType is claim */
+  useEffect(() => {
+    if (!form.patientId || form.referenceType !== "claim") { setClaimsList([]); return; }
+    (async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl(`/api/claims?patientId=${encodeURIComponent(form.patientId)}&size=200`));
+        const json = await res.json();
+        const items = Array.isArray(json?.data) ? json.data : Array.isArray(json?.data?.content) ? json.data.content : [];
+        setClaimsList(items);
+      } catch { setClaimsList([]); }
+    })();
+  }, [form.patientId, form.referenceType]);
 
   useEffect(() => {
     if (!open) return;
@@ -260,15 +276,38 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
                 </select>
               </div>
 
-              {/* Invoice Number */}
+              {/* Claim / Reference ID */}
               <div>
-                <label className={labelCls}>Invoice Number</label>
-                <input
-                  className={inputCls()}
-                  value={form.invoiceNumber}
-                  onChange={(e) => setForm((prev) => ({ ...prev, invoiceNumber: e.target.value }))}
-                  placeholder="INV-001"
-                />
+                {form.referenceType === "claim" ? (
+                  <>
+                    <label className={labelCls}>Claim</label>
+                    <select
+                      className={inputCls()}
+                      value={form.referenceId}
+                      onChange={(e) => setForm((prev) => ({ ...prev, referenceId: e.target.value }))}
+                    >
+                      <option value="">Select claim...</option>
+                      {claimsList.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.claimNumber || c.id} {c.status ? `(${c.status})` : ""} {c.totalAmount != null ? `- $${c.totalAmount}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    {claimsList.length === 0 && form.patientId && (
+                      <p className="text-xs text-gray-400 mt-1">No claims found for this patient</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <label className={labelCls}>Invoice Number</label>
+                    <input
+                      className={inputCls()}
+                      value={form.invoiceNumber}
+                      onChange={(e) => setForm((prev) => ({ ...prev, invoiceNumber: e.target.value }))}
+                      placeholder="INV-001"
+                    />
+                  </>
+                )}
               </div>
             </div>
 

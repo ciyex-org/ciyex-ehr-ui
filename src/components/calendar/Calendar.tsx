@@ -1356,6 +1356,16 @@ const Calendar: React.FC = () => {
             return;
         }
 
+        if (endDate < startDate) {
+            setAlertData({
+                variant: "error",
+                title: "Invalid Date Range",
+                message: "End date cannot be before start date.",
+            });
+            setIsSaving(false);
+            return;
+        }
+
         if (new Date(combinedEnd).getTime() <= new Date(combinedStart).getTime()) {
             setAlertData({
                 variant: "error",
@@ -1572,7 +1582,7 @@ const Calendar: React.FC = () => {
                 </div>
             );
         },
-        []
+        [activeView]
     );
 
     const dayCellContent = useCallback(
@@ -1654,7 +1664,7 @@ const Calendar: React.FC = () => {
                 </div>
             );
         },
-        []
+        [activeView, events, allProvidersSelected, selectedProviders, allLocationsSelected, selectedLocations]
     );
 
 
@@ -2148,7 +2158,7 @@ const Calendar: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Date of Birth*</label>
-                                                <input type="date" value={newPt.dateOfBirth} onChange={(e) => setNewPt(p => ({ ...p, dateOfBirth: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                                <input type="date" value={newPt.dateOfBirth} max={new Date().toISOString().split('T')[0]} onChange={(e) => { const v = e.target.value; if (v > new Date().toISOString().split('T')[0]) return; setNewPt(p => ({ ...p, dateOfBirth: v })); }} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
                                             </div>
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Gender*</label>
@@ -2161,7 +2171,7 @@ const Calendar: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Phone Number*</label>
-                                                <input type="tel" value={newPt.phoneNumber} onChange={(e) => setNewPt(p => ({ ...p, phoneNumber: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                                <input type="tel" value={newPt.phoneNumber} maxLength={10} onChange={(e) => { const digits = e.target.value.replace(/\D/g, '').slice(0, 10); setNewPt(p => ({ ...p, phoneNumber: digits })); }} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
                                             </div>
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Status</label>
@@ -2234,9 +2244,8 @@ const Calendar: React.FC = () => {
                                                         setEndTime(`${String(endDt.getHours()).padStart(2, '0')}:${String(endDt.getMinutes()).padStart(2, '0')}`);
                                                     }
                                                 }}
-                                                className="h-9 w-full rounded-lg border border-gray-300 pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                                className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                             />
-                                            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" strokeWidth="2" d="M12 6v6l4 2"/></svg>
                                         </div>
                                     </div>
                                     <div>
@@ -2251,9 +2260,8 @@ const Calendar: React.FC = () => {
                                                     setEndTime(e.target.value);
                                                     setEndDateInput(endDate ? endDate.split('-').reverse().join('/') : '');
                                                 }}
-                                                className="h-9 w-full rounded-lg border border-gray-300 pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                                className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                             />
-                                            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" strokeWidth="2" d="M12 6v6l4 2"/></svg>
                                         </div>
                                     </div>
                                 </div>

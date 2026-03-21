@@ -128,6 +128,10 @@ function patchSettingsFieldConfig(pageKey: string, fc: FieldConfig): FieldConfig
             if (/^practice$/i.test(pageKey) && (keySeg === "phone" || keySeg === "phonenumber" || keySeg === "phone_number" || keySeg === "contactphone" || (f.label || "").toLowerCase().includes("phone"))) {
                 section.fields[i] = { ...f, required: true };
             }
+            // Practice name / Insurance company name: must contain at least one letter (no purely numeric names)
+            if ((/^practice$/i.test(pageKey) || /insurance/i.test(pageKey)) && (keySeg === "name" || keySeg === "practicename" || keySeg === "practice_name" || keySeg === "companyname" || keySeg === "company_name" || keySeg === "insurancename")) {
+                section.fields[i] = { ...section.fields[i] || f, validation: { ...(f as any).validation, pattern: "^(?=.*[A-Za-z]).+$", patternMessage: "Name must contain at least one letter" } };
+            }
             // Provider photo/image field: restrict to image types only
             if (/provider/i.test(pageKey) && (keySeg === "photo" || keySeg === "image" || keySeg === "profilephoto" || keySeg === "avatar")) {
                 section.fields[i] = {
@@ -537,6 +541,11 @@ export default function GenericSettingsPage({ pageKey, embedded = false, forceWr
                         if ((keySeg === "state" || labelLower === "state") && !/^[A-Za-z\s\-'.]{2,50}$/.test(val.trim())) errors[field.key] = "Invalid state value";
                         // First/Last name (no numbers)
                         if ((keySeg === "firstname" || keySeg === "lastname" || keySeg === "first_name" || keySeg === "last_name") && !/^[A-Za-z\s\-'.]+$/.test(val.trim())) errors[field.key] = `${field.label} must contain only letters, spaces, hyphens, or apostrophes`;
+                        // Custom pattern validation
+                        const fieldValidation = (field as any).validation;
+                        if (fieldValidation?.pattern && !new RegExp(fieldValidation.pattern).test(val.trim())) {
+                            errors[field.key] = fieldValidation.patternMessage || `${field.label} has an invalid format`;
+                        }
                     }
                 }
             }

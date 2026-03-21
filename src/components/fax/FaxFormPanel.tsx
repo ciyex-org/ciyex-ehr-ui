@@ -91,6 +91,10 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.patientName?.trim()) {
+      setFaxError("Patient name is required");
+      return;
+    }
     if (!form.recipientName.trim()) {
       setFaxError("Recipient name is required");
       return;
@@ -225,8 +229,7 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
           {/* Patient Name - with search */}
           <div className="relative">
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-              Patient Name
-              <span className="text-gray-400 ml-1">(optional)</span>
+              Patient Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"

@@ -1145,7 +1145,7 @@ const appointmentVolume: ReportDefinition = {
         byWeekday: Object.entries(weekday).map(([d, c]) => ({ name: d, count: c })),
         byType: toChartData(typeCounts, "name", "count"),
       },
-      tableData: records.slice(0, 200).map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || "", status: a.status || "" })),
+      tableData: records.map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || a.date || ""), time: a.appointmentStartTime || a.startTime || "", patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || "", status: a.status || "" })),
       totalRecords: records.length,
     };
   },

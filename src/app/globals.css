@@ -857,3 +857,33 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
   @page { margin: 0.5in; }
 }
 
+/* ===== Responsive fixes for mobile & tablet ===== */
+@media (max-width: 768px) {
+  /* Tables: horizontal scroll wrapper */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Grid layouts: stack on mobile */
+  .grid-cols-2, .grid-cols-3, .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Form grids: single column */
+  .col-span-2, .col-span-3 { grid-column: span 1 !important; }
+
+  /* Prevent horizontal overflow */
+  body { overflow-x: hidden; }
+  main, [role="main"] { min-width: 0; overflow-x: hidden; }
+
+  /* Cards and panels: full width */
+  .max-w-lg, .max-w-xl, .max-w-2xl, .max-w-3xl, .max-w-4xl {
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Mid-size responsive: 2 columns max for larger grids */
+  .grid-cols-4, .grid-cols-5, .grid-cols-6 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+

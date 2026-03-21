@@ -412,7 +412,7 @@ export default function ConsentsPage() {
             const filtered = activeTab === "all" ? items : items.filter((c: Consent) => c.status === activeTab);
             setConsents(filtered);
             setTotalPages(json.data.totalPages || 1);
-            setTotalElements(json.data.totalElements || 0);
+            setTotalElements(filtered.length);
           }
         } else { setConsents([]); }
       } else { setConsents([]); }

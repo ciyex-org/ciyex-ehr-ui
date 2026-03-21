@@ -308,6 +308,7 @@ function LookupField({
   onItemSelect,
   readOnly,
   displayLabel,
+  formData: parentFormData,
 }: {
   field: FieldDef;
   value: any;
@@ -316,6 +317,7 @@ function LookupField({
   onItemSelect?: (item: Record<string, any>) => void;
   readOnly?: boolean;
   displayLabel?: string;
+  formData?: Record<string, any>;
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -340,10 +342,15 @@ function LookupField({
   const fetchAll = useCallback(
     async () => {
       if (!field.lookupConfig?.endpoint) return;
+      // If field depends on another field, check that the parent has a value
+      const depKey = (field.lookupConfig as any).dependsOn;
+      const depVal = depKey && parentFormData ? (parentFormData[depKey] || "") : "";
+      if (depKey && !depVal) return; // Don't fetch if parent not selected
       const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
       const ep = field.lookupConfig.endpoint.startsWith("/") ? field.lookupConfig.endpoint : `/${field.lookupConfig.endpoint}`;
+      const depParam = depKey && depVal ? `&${depKey}=${encodeURIComponent(depVal)}` : "";
       try {
-        const res = await fetchWithAuth(`${base}${ep}?page=0&size=200`);
+        const res = await fetchWithAuth(`${base}${ep}?page=0&size=200${depParam}`);
         if (!res.ok) return;
         const data = await res.json();
         const items = Array.isArray(data) ? data
@@ -354,7 +361,7 @@ function LookupField({
         if (items.length > 0) setResults(items);
       } catch { /* ignore */ }
     },
-    [field.lookupConfig]
+    [field.lookupConfig, parentFormData]
   );
 
   const search = useCallback(
@@ -382,9 +389,10 @@ function LookupField({
           if (items.length > 0) { setResults(items); return; }
         } catch { /* try next */ }
       }
-      // If API search returned nothing, keep existing results (client-side filter will narrow them)
+      // If API search returned nothing, fetch all and let client-side filter narrow them
+      if (results.length === 0) await fetchAll();
     },
-    [field.lookupConfig]
+    [field.lookupConfig, fetchAll, results.length]
   );
 
   if (readOnly) {
@@ -2003,7 +2011,7 @@ export default function DynamicFormRenderer({
                 onChange(targetKey, sourceValue);
               }
             }
-          } : undefined} readOnly={readOnly || !!(field as any).readOnly} displayLabel={formData[field.key + "Display"] || (readOnly || (field as any).readOnly ? value : undefined)} />
+          } : undefined} readOnly={readOnly || !!(field as any).readOnly} displayLabel={formData[field.key + "Display"] || (readOnly || (field as any).readOnly ? value : undefined)} formData={formData} />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       );
@@ -2023,7 +2031,7 @@ export default function DynamicFormRenderer({
                 onChange(targetKey, sourceValue);
               }
             }
-          } : undefined} readOnly={readOnly || !!(field as any).readOnly} displayLabel={formData[field.key + "Display"] || (readOnly || (field as any).readOnly ? value : undefined)} />
+          } : undefined} readOnly={readOnly || !!(field as any).readOnly} displayLabel={formData[field.key + "Display"] || (readOnly || (field as any).readOnly ? value : undefined)} formData={formData} />
           {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       );

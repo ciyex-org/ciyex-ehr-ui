@@ -592,7 +592,7 @@ export default function ImmunizationsPage() {
             const filtered = statusFilter === "all" ? items : items.filter(matchesFilter);
             setRecords(filtered);
             setTotalPages(json.data.totalPages || 1);
-            setTotalElements(json.data.totalElements || 0);
+            setTotalElements(filtered.length);
           }
         } else { setRecords([]); }
       } else { setRecords([]); }

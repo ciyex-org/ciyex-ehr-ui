@@ -338,17 +338,20 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, required: true };
                     }
                 }
-                // Issue 12: Allergies — ensure allergy/allergyName field is labeled "Allergy" (not "Allergen")
-                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergyName" || f.key === "allergy_name" || f.key === "substance" || f.key === "name" || f.key === "allergen" || f.key === "code" || f.key === "codeText")) {
+                // Allergies — label allergy fields correctly: "Allergy" for type/category, "Allergen" for substance
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergyName" || f.key === "allergy_name" || f.key === "code" || f.key === "codeText" || f.key === "name")) {
                     section.fields[i] = { ...f, label: "Allergy" };
+                }
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergen" || f.key === "substance")) {
+                    section.fields[i] = { ...f, label: "Allergen" };
                 }
                 // Issue 13: Insurance — insurance company dropdown from dedicated API
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "payerName" || f.key === "insurerName" || f.key === "companyName" || f.key === "insurer" || f.key === "payor")) {
                     section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-companies", displayField: "name", valueField: "name", searchable: true }, required: true };
                 }
-                // Issue 13: Insurance — planName must be a lookup filtered by selected company
+                // Insurance — planName must be a lookup filtered by selected company
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "planName" || f.key === "plan" || f.key === "coveragePlan")) {
-                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-plans", displayField: "name", valueField: "name", searchable: true }, placeholder: "Select company first, then plan" };
+                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-plans", displayField: "name", valueField: "name", searchable: true, dependsOn: "payerName" }, placeholder: "Select company first, then plan" };
                 }
                 // Issue 15: Documents — attachment/file field must be required + allow common doc types including CSV
                 if ((tabKey === "documents" || tabKey === "document-references") && (f.key === "attachment" || f.key === "file" || f.key === "fileUrl" || f.key === "documentUrl" || f.key === "content")) {
@@ -371,10 +374,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (ssnKeys.includes(f.key) || f.key.toLowerCase().includes("ssn")) {
                     section.fields[i] = { ...section.fields[i] || f, maxLength: 11, placeholder: "XXX-XX-XXXX" };
                 }
-                // Phone/mobile fields — enforce maxLength of 15 to prevent excess input
+                // Phone/mobile fields — enforce maxLength of 14 (formatted: (xxx) xxx-xxxx) to prevent excess input
                 const flk = f.key.toLowerCase();
                 if (flk.includes("phone") || flk.includes("mobile") || flk.includes("cell") || flk.includes("fax")) {
-                    section.fields[i] = { ...section.fields[i] || f, maxLength: 15 };
+                    section.fields[i] = { ...section.fields[i] || f, maxLength: 14, type: "phone" };
                 }
                 // Issue 19: Clinical Alerts — author/provider search
                 if ((tabKey === "clinical-alerts" || tabKey === "clinicalAlerts" || tabKey === "cds" || tabKey === "alerts") && (f.key === "author" || f.key === "authorName" || f.key === "provider" || f.key === "practitioner")) {
@@ -3002,11 +3005,11 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             </div>
                         </div>
                     )}
-                    {/* File upload for reports and documents tabs */}
-                    {(tabKey === "report" || tabKey === "reports" || tabKey === "documents" || tabKey === "document-references") && mode !== "view" && (
+                    {/* File upload for reports tab only (documents tab uses the form file field) */}
+                    {(tabKey === "report" || tabKey === "reports") && mode !== "view" && (
                         <div className="mt-4 p-4 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {(tabKey === "documents" || tabKey === "document-references") ? "Upload Document" : "Upload Report Document"}
+                                Upload Report Document
                             </label>
                             <input
                                 type="file"
@@ -3017,11 +3020,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                     const fd = new FormData();
                                     fd.append("file", file);
                                     fd.append("patientId", String(patientId));
-                                    fd.append("category", (tabKey === "documents" || tabKey === "document-references") ? "document" : "report");
+                                    fd.append("category", "report");
                                     try {
-                                        const { fetchWithAuth: fw } = await import("@/utils/fetchWithAuth");
-                                        const { getEnv: ge } = await import("@/utils/env");
-                                        const res = await fw(`${(ge("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/documents/upload`, {
+                                        const res = await fetchWithAuth(`${(getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/documents/upload`, {
                                             method: "POST",
                                             body: fd,
                                         });

@@ -522,6 +522,15 @@ const AppointmentModal: React.FC = () => {
             return;
         }
 
+        if (endDate < startDate) {
+            setAlertData({
+                variant: "error",
+                title: "Invalid Date Range",
+                message: "End date cannot be before start date.",
+            });
+            return;
+        }
+
         if (new Date(combinedEnd).getTime() <= new Date(combinedStart).getTime()) {
             setAlertData({
                 variant: "error",
@@ -800,9 +809,8 @@ const AppointmentModal: React.FC = () => {
                                         setStartTime(t);
                                         if (t) setEndTime(addMinutes(t, 15));
                                     }}
-                                    className="h-9 w-full rounded-lg border border-gray-300 pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                    className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                 />
-                                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" strokeWidth="2" d="M12 6v6l4 2"/></svg>
                             </div>
                         </div>
                         <div>
@@ -814,9 +822,8 @@ const AppointmentModal: React.FC = () => {
                                     type="time"
                                     value={endTime}
                                     onChange={(e) => setEndTime(e.target.value)}
-                                    className="h-9 w-full rounded-lg border border-gray-300 pl-9 pr-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
+                                    className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                 />
-                                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth="2"/><path strokeLinecap="round" strokeWidth="2" d="M12 6v6l4 2"/></svg>
                             </div>
                         </div>
                         <div>
