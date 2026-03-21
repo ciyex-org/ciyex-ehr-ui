@@ -677,12 +677,14 @@ export default function AddPatient() {
                                             const today = new Date().toISOString().split("T")[0];
                                             if (val && val > today) {
                                                 setFormErrors(prev => ({ ...prev, dob: "Date of birth cannot be a future date" }));
-                                                return; // Block future date from being set
+                                                handleChange("personalInfo", "dob", "");
+                                                return;
                                             }
                                             handleChange("personalInfo", "dob", val);
                                             setFormErrors(prev => { const n = { ...prev }; delete n.dob; return n; });
                                         }}
                                         max={new Date().toISOString().split("T")[0]}
+                                        onKeyDown={(e) => e.preventDefault()}
                                         className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.dob ? "border-red-500" : "border-gray-300"}`}
                                         required
                                     />
@@ -946,7 +948,17 @@ export default function AddPatient() {
                                                 type="tel"
                                                 placeholder="(xxx) xxx-xxxx"
                                                 value={formData.contactInfo.cellPhone}
-                                                onChange={(e) => handleChange("contactInfo", "cellPhone", formatUSPhone(e.target.value))}
+                                                onChange={(e) => {
+                                                    const digits = e.target.value.replace(/\D/g, "");
+                                                    if (digits.length > 10) {
+                                                        setFormErrors(prev => ({ ...prev, cellPhone: "Phone number cannot exceed 10 digits" }));
+                                                        return;
+                                                    }
+                                                    handleChange("contactInfo", "cellPhone", formatUSPhone(e.target.value));
+                                                    if (digits.length === 10) {
+                                                        setFormErrors(prev => { const n = { ...prev }; delete n.cellPhone; return n; });
+                                                    }
+                                                }}
                                                 maxLength={14}
                                                 title="Enter a valid 10-digit US phone number"
                                                 className={`flex-1 px-3 py-2 border-t border-r border-b border-gray-300 rounded-r-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.cellPhone ? "border-red-400" : ""}`}

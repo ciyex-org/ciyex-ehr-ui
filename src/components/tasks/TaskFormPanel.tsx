@@ -83,6 +83,7 @@ export default function TaskFormPanel({
   useEffect(() => {
     if (skipProviderSearchRef.current) { skipProviderSearchRef.current = false; return; }
     if (!providerQuery.trim() || providerQuery.length < 2) { setProviderResults([]); setShowProviderDropdown(false); return; }
+    const currentQuery = providerQuery;
     const t = setTimeout(async () => {
       try {
         const parseProviders = (json: any) => {
@@ -95,29 +96,31 @@ export default function TaskFormPanel({
             .filter((p: { id: any; name: string }) => p.name && p.id);
         };
 
-        // Try search endpoint first
+        // Fetch all providers and filter client-side (more reliable than search param)
         let list: { id: number; name: string }[] = [];
-        const res = await fetchWithAuth(`/api/providers?search=${encodeURIComponent(providerQuery)}`);
-        if (res.ok) {
-          const json = await res.json();
-          list = parseProviders(json);
+        const allRes = await fetchWithAuth(`/api/providers`);
+        if (allRes.ok) {
+          const allJson = await allRes.json();
+          const all = parseProviders(allJson);
+          const q = currentQuery.toLowerCase();
+          list = all.filter((p) => p.name.toLowerCase().includes(q));
         }
 
-        // If search returned empty, try fetching all and filtering client-side
+        // Fallback: try search endpoint if all-providers returned nothing
         if (list.length === 0) {
-          const allRes = await fetchWithAuth(`/api/providers`);
-          if (allRes.ok) {
-            const allJson = await allRes.json();
-            const all = parseProviders(allJson);
-            const q = providerQuery.toLowerCase();
-            list = all.filter((p) => p.name.toLowerCase().includes(q));
+          const res = await fetchWithAuth(`/api/providers?search=${encodeURIComponent(currentQuery)}`);
+          if (res.ok) {
+            const json = await res.json();
+            list = parseProviders(json);
           }
         }
 
-        setProviderResults(list);
-        setShowProviderDropdown(list.length > 0);
+        if (currentQuery === providerQuery) {
+          setProviderResults(list);
+          setShowProviderDropdown(list.length > 0);
+        }
       } catch (e) { console.error("Provider search failed:", e); }
-    }, 300);
+    }, 250);
     return () => clearTimeout(t);
   }, [providerQuery]);
 

@@ -245,10 +245,12 @@ const ClaimManagementDashboard: React.FC = () => {
     setEditSaving(true);
     setEditError("");
     try {
+      // Merge edit form with original claim data to preserve IDs and required fields
+      const payload = { ...editClaim, ...editForm };
       const res = await fetchWithAuth(`/api/all-claims/${editClaim.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         let errMsg = "Failed to update claim";

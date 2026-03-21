@@ -2333,10 +2333,13 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (!Array.isArray(payload.participant)) {
                     payload.participant = [{ actor: { reference: patRef, display: patDisplay }, required: "required", status: "accepted" }];
                 } else {
-                    // Keep non-patient participants; replace all patient entries with the correct one
+                    // Keep only practitioner/location participants; remove ALL patient entries (by ref or by non-numeric ID)
                     const nonPatient = (payload.participant as any[]).filter((p: any) => {
                         const ref: string = (typeof p?.actor === "object" ? p.actor?.reference : p?.actor) || "";
-                        return !ref.startsWith("Patient/");
+                        // Filter out Patient/* references and any plain name strings (non-FHIR references)
+                        if (ref.startsWith("Patient/")) return false;
+                        if (ref && !ref.includes("/")) return false; // plain name like "Surya B"
+                        return true;
                     });
                     payload.participant = [
                         ...nonPatient,

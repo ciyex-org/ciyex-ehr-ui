@@ -1176,11 +1176,13 @@ const noShowAnalysis: ReportDefinition = {
   ],
   columns: [
     { key: "date", label: "Date", format: "date", sortable: true },
+    { key: "time", label: "Time", sortable: true },
     { key: "patient", label: "Patient", sortable: true },
     { key: "provider", label: "Provider", sortable: true },
     { key: "type", label: "Visit Type" },
     { key: "status", label: "Status", format: "status" },
     { key: "reason", label: "Reason" },
+    { key: "financialImpact", label: "Est. Impact", format: "currency" },
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
@@ -1271,7 +1273,11 @@ const noShowAnalysis: ReportDefinition = {
         byProvider: Object.entries(providerCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, ct]) => ({ name, rate: ct })),
         reasons: toChartData(reasonCounts, "name", "count").slice(0, 8),
       },
-      tableData: combined.map(a => ({ id: a.id, date: normDate(a.appointmentStartDate || a.start || ""), patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || a.serviceType || a.description || a.note || "—", status: a.status || "", reason: a.cancelReason || a.reason || a.cancellationNote || a.comment || "—" })),
+      tableData: combined.map(a => {
+        const startStr = a.appointmentStartDate || a.start || "";
+        const startDt = startStr ? new Date(startStr) : null;
+        return { id: a.id, date: normDate(startStr), time: startDt && !isNaN(startDt.getTime()) ? startDt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "—", patient: a.patientName || a.patientDisplay || a.patientId || "", provider: a.providerName || a.providerDisplay || a.provider || "", type: a.visitType || a.appointmentType || a.type || a.serviceType || a.description || a.note || "—", status: a.status || "", reason: a.cancelReason || a.reason || a.cancellationNote || a.comment || "—", financialImpact: 150 };
+      }),
       totalRecords: combined.length,
     };
   },
@@ -1779,20 +1785,50 @@ const auditLog: ReportDefinition = {
   fetchData: async (filters, apiUrl, fetchFn) => {
     const records = await safeFetch(`${apiUrl}/api/audit-log?page=0&size=500`, fetchFn);
     const actionCounts = countBy(records, a => (a.action || a.actionType || "Unknown").toString());
+    // Build activity by hour from actual records
+    const hourCounts: Record<string, number> = {};
+    for (const r of records) {
+      const ts = r.timestamp || r.createdAt;
+      if (ts) {
+        const h = new Date(ts).getHours();
+        const key = `${h}:00`;
+        hourCounts[key] = (hourCounts[key] || 0) + 1;
+      }
+    }
+    const activityByHour = Array.from({ length: 24 }, (_, h) => ({ hour: `${h}:00`, count: hourCounts[`${h}:00`] || 0 }));
+    // Build daily trend from actual records
+    const dayCounts: Record<string, number> = {};
+    for (const r of records) {
+      const ts = r.timestamp || r.createdAt;
+      if (ts) {
+        const d = new Date(ts).toISOString().split("T")[0];
+        dayCounts[d] = (dayCounts[d] || 0) + 1;
+      }
+    }
+    const dailyTrend = Object.entries(dayCounts).sort().slice(-14).map(([date, count]) => ({ date, count }));
+    // Count after-hours access (before 8am or after 6pm)
+    let afterHoursCount = 0;
+    for (const r of records) {
+      const ts = r.timestamp || r.createdAt;
+      if (ts) {
+        const h = new Date(ts).getHours();
+        if (h < 8 || h >= 18) afterHoursCount++;
+      }
+    }
     return {
       kpis: [
-        { key: "totalActions", label: "Total Actions", value: records.length || 1250, format: "number", color: "text-blue-600" },
-        { key: "uniqueUsers", label: "Unique Users", value: new Set(records.map(a => a.user || a.userId)).size || 12, format: "number", color: "text-purple-600" },
-        { key: "chartAccess", label: "Chart Accesses", value: actionCounts["chart_view"] || actionCounts["view"] || 450, format: "number", color: "text-emerald-600" },
-        { key: "afterHours", label: "After-Hours Access", value: 28, format: "number", color: "text-red-600" },
+        { key: "totalActions", label: "Total Actions", value: records.length, format: "number", color: "text-blue-600" },
+        { key: "uniqueUsers", label: "Unique Users", value: new Set(records.map((a: any) => a.user || a.userId)).size, format: "number", color: "text-purple-600" },
+        { key: "chartAccess", label: "Chart Accesses", value: actionCounts["chart_view"] || actionCounts["view"] || 0, format: "number", color: "text-emerald-600" },
+        { key: "afterHours", label: "After-Hours Access", value: afterHoursCount, format: "number", color: "text-red-600" },
       ],
       charts: {
-        activityByHour: Array.from({ length: 24 }, (_, h) => ({ hour: `${h}:00`, count: h >= 8 && h <= 17 ? 50 + Math.floor(Math.random() * 30) : 5 + Math.floor(Math.random() * 10) })),
-        byAction: records.length > 0 ? toChartData(actionCounts, "name", "count") : [{ name: "Chart View", count: 450 }, { name: "Login", count: 280 }, { name: "Order", count: 180 }, { name: "Note Edit", count: 160 }, { name: "Rx Write", count: 95 }, { name: "Config Change", count: 45 }],
-        dailyTrend: Array.from({ length: 14 }, (_, i) => ({ date: daysAgo(13 - i), count: 80 + Math.floor(Math.random() * 40) })),
+        activityByHour,
+        byAction: toChartData(actionCounts, "name", "count"),
+        dailyTrend,
       },
-      tableData: records.length > 0 ? records.slice(0, 100).map(a => ({ timestamp: a.timestamp || a.createdAt || "", user: a.user || a.username || "", action: a.action || a.actionType || "", resource: a.resource || a.entityType || "", details: a.details || a.description || "", ipAddress: a.ipAddress || a.ip || "" })) : Array.from({ length: 20 }, (_, i) => ({ timestamp: new Date(Date.now() - i * 3600000).toISOString(), user: ["michael.chen", "dr.sarah.williams", "jennifer.martinez"][i % 3], action: ["Login", "Chart View", "Note Edit", "Order", "Rx Write"][i % 5], resource: `Patient #${1000 + i}`, details: "Routine access", ipAddress: "192.168.1." + (10 + i) })),
-      totalRecords: records.length || 1250,
+      tableData: records.slice(0, 100).map((a: any) => ({ timestamp: a.timestamp || a.createdAt || "", user: a.user || a.username || "", action: a.action || a.actionType || "", resource: a.resource || a.entityType || "", details: a.details || a.description || "", ipAddress: a.ipAddress || a.ip || "" })),
+      totalRecords: records.length,
     };
   },
 };

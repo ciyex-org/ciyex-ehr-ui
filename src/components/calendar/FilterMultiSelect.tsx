@@ -133,7 +133,7 @@ export default function FilterMultiSelect({
             {open && (
                 <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-dark-900">
                     {/* Search input */}
-                    {options.length > 5 && (
+                    {options.length > 1 && (
                         <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
                             <input
                                 ref={searchRef}

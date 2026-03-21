@@ -117,6 +117,7 @@ export default function PatientFilesTab({ patientId }: { patientId: string }) {
               ref={fileInputRef}
               type="file"
               multiple
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.csv,.xls,.xlsx,.txt,.zip,.dicom"
               className="hidden"
               onChange={(e) => handleUpload(e.target.files)}
             />
