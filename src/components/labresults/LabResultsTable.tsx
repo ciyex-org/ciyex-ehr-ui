@@ -157,6 +157,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
   const [trendLabel, setTrendLabel] = useState("");
   const [expandedPanels, setExpandedPanels] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<Toast>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
   const show = useCallback((type: Toast extends null ? never : NonNullable<Toast>["type"], text: string) => setToast({ type, text }), []);
@@ -220,22 +221,34 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
 
   /* ── CRUD ── */
   function openNew() {
+    setFormErrors({});
     setEditDraft({ patientId: patientId || 0, encounterId, status: "Pending", collectedDate: new Date().toISOString().slice(0, 10) });
     setModalOpen(true);
   }
-  function openEdit(r: LabResultDto) { setEditDraft({ ...r }); setModalOpen(true); }
-  function closeModal() { setModalOpen(false); setEditDraft(null); }
+  function openEdit(r: LabResultDto) { setFormErrors({}); setEditDraft({ ...r }); setModalOpen(true); }
+  function closeModal() { setModalOpen(false); setEditDraft(null); setFormErrors({}); }
   function upd<K extends keyof LabResultDto>(k: K, v: LabResultDto[K]) { if (editDraft) setEditDraft({ ...editDraft, [k]: v }); }
 
   async function save() {
     if (!editDraft) return;
+    const errors: Record<string, string> = {};
     const req: (keyof LabResultDto)[] = ["testName", "value", "collectedDate", "status"];
-    const missing = req.filter(f => !editDraft[f] || String(editDraft[f]).trim() === "");
-    if (missing.length) { show("error", `Please fill in the required fields: ${missing.map(f => f === "testName" ? "Test Name" : f === "collectedDate" ? "Collected Date" : f.charAt(0).toUpperCase() + f.slice(1)).join(", ")}`); return; }
+    const fieldLabels: Record<string, string> = { testName: "Test Name", value: "Value", collectedDate: "Collected Date", status: "Status" };
+    req.forEach(f => {
+      if (!editDraft[f] || String(editDraft[f]).trim() === "") {
+        errors[f] = `${fieldLabels[f] || f} is required`;
+      }
+    });
     // Test name must contain at least one letter
-    if (editDraft.testName && /^[^a-zA-Z]+$/.test(editDraft.testName.trim())) { show("error", "Test Name must contain at least one letter"); return; }
+    if (editDraft.testName && editDraft.testName.trim() && /^[^a-zA-Z]+$/.test(editDraft.testName.trim())) {
+      errors.testName = "Test Name must contain at least one letter";
+    }
     // Reported date must not be before collected date
-    if (editDraft.reportedDate && editDraft.collectedDate && editDraft.reportedDate < editDraft.collectedDate) { show("error", "Reported Date cannot be earlier than Collected Date"); return; }
+    if (editDraft.reportedDate && editDraft.collectedDate && editDraft.reportedDate < editDraft.collectedDate) {
+      errors.reportedDate = "Reported Date cannot be earlier than Collected Date";
+    }
+    if (Object.keys(errors).length) { setFormErrors(errors); return; }
+    setFormErrors({});
     setSaving(true);
     try {
       const isNew = editDraft.id == null;
@@ -512,7 +525,20 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
           <div className="space-y-5 text-sm">
             <div className="grid md:grid-cols-2 gap-5">
               <div className="space-y-3">
-                <Inp label="Test Name" required><input value={editDraft.testName || ""} onChange={e => upd("testName", e.target.value)} className={inputCls} /></Inp>
+                <Inp label="Test Name" required>
+                  <input value={editDraft.testName || ""} onChange={e => {
+                    const v = e.target.value;
+                    upd("testName", v);
+                    setFormErrors(prev => {
+                      const next = { ...prev };
+                      if (v.trim() === "") { next.testName = "Test Name is required"; }
+                      else if (/^[^a-zA-Z]+$/.test(v.trim())) { next.testName = "Test Name must contain at least one letter"; }
+                      else { delete next.testName; }
+                      return next;
+                    });
+                  }} className={`${inputCls}${formErrors.testName ? " border-red-400 dark:border-red-500" : ""}`} />
+                  {formErrors.testName && <p className="text-red-500 text-xs mt-1">{formErrors.testName}</p>}
+                </Inp>
                 <Inp label="Procedure Name"><input value={editDraft.procedureName || ""} onChange={e => upd("procedureName", e.target.value)} className={inputCls} /></Inp>
                 <div className="grid grid-cols-2 gap-3">
                   <Inp label="Test Code"><input value={editDraft.testCode || ""} onChange={e => upd("testCode", e.target.value.replace(/[^0-9\-.]/g, ''))} className={`${inputCls} font-mono`} placeholder="12345" /></Inp>
@@ -520,16 +546,53 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                 </div>
                 <Inp label="Specimen"><input value={editDraft.specimen || ""} onChange={e => upd("specimen", e.target.value)} className={inputCls} /></Inp>
                 <div className="grid grid-cols-2 gap-3">
-                  <Inp label="Collected Date" required><input type="date" value={editDraft.collectedDate || ""} onChange={e => upd("collectedDate", e.target.value)} className={inputCls} /></Inp>
-                  <Inp label="Reported Date"><input type="date" value={editDraft.reportedDate || ""} onChange={e => upd("reportedDate", e.target.value)} className={inputCls} /></Inp>
+                  <Inp label="Collected Date" required>
+                    <input type="date" value={editDraft.collectedDate || ""} onChange={e => {
+                      const v = e.target.value;
+                      upd("collectedDate", v);
+                      setFormErrors(prev => {
+                        const next = { ...prev };
+                        if (!v) { next.collectedDate = "Collected Date is required"; }
+                        else { delete next.collectedDate; }
+                        // Re-validate reported date against new collected date
+                        if (editDraft.reportedDate && v && editDraft.reportedDate < v) {
+                          next.reportedDate = "Reported Date cannot be earlier than Collected Date";
+                        } else if (next.reportedDate === "Reported Date cannot be earlier than Collected Date") {
+                          delete next.reportedDate;
+                        }
+                        return next;
+                      });
+                    }} className={`${inputCls}${formErrors.collectedDate ? " border-red-400 dark:border-red-500" : ""}`} />
+                    {formErrors.collectedDate && <p className="text-red-500 text-xs mt-1">{formErrors.collectedDate}</p>}
+                  </Inp>
+                  <Inp label="Reported Date">
+                    <input type="date" value={editDraft.reportedDate || ""} onChange={e => {
+                      const v = e.target.value;
+                      upd("reportedDate", v);
+                      setFormErrors(prev => {
+                        const next = { ...prev };
+                        if (v && editDraft.collectedDate && v < editDraft.collectedDate) {
+                          next.reportedDate = "Reported Date cannot be earlier than Collected Date";
+                        } else {
+                          delete next.reportedDate;
+                        }
+                        return next;
+                      });
+                    }} className={`${inputCls}${formErrors.reportedDate ? " border-red-400 dark:border-red-500" : ""}`} />
+                    {formErrors.reportedDate && <p className="text-red-500 text-xs mt-1">{formErrors.reportedDate}</p>}
+                  </Inp>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <Inp label="Status" required>
-                    <select value={editDraft.status || "Pending"} onChange={e => upd("status", e.target.value)} className={inputCls}>
+                    <select value={editDraft.status || "Pending"} onChange={e => {
+                      upd("status", e.target.value);
+                      setFormErrors(prev => { const next = { ...prev }; delete next.status; return next; });
+                    }} className={`${inputCls}${formErrors.status ? " border-red-400 dark:border-red-500" : ""}`}>
                       {["Pending", "Preliminary", "Final", "Corrected", "Amended"].map(s => <option key={s}>{s}</option>)}
                     </select>
+                    {formErrors.status && <p className="text-red-500 text-xs mt-1">{formErrors.status}</p>}
                   </Inp>
                   <Inp label="Abnormal Flag">
                     <select value={editDraft.abnormalFlag || ""} onChange={e => upd("abnormalFlag", e.target.value || null)} className={inputCls}>
@@ -539,7 +602,18 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                   </Inp>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <Inp label="Value" required><input value={editDraft.value || ""} onChange={e => upd("value", e.target.value)} className={inputCls} /></Inp>
+                  <Inp label="Value" required>
+                    <input value={editDraft.value || ""} onChange={e => {
+                      upd("value", e.target.value);
+                      setFormErrors(prev => {
+                        const next = { ...prev };
+                        if (!e.target.value.trim()) { next.value = "Value is required"; }
+                        else { delete next.value; }
+                        return next;
+                      });
+                    }} className={`${inputCls}${formErrors.value ? " border-red-400 dark:border-red-500" : ""}`} />
+                    {formErrors.value && <p className="text-red-500 text-xs mt-1">{formErrors.value}</p>}
+                  </Inp>
                   <Inp label="Units"><input value={editDraft.units || ""} onChange={e => upd("units", e.target.value)} className={inputCls} /></Inp>
                   <Inp label="Ref Range"><input value={editDraft.referenceRange || ""} onChange={e => upd("referenceRange", e.target.value)} className={inputCls} placeholder="e.g. 12-16" /></Inp>
                 </div>
