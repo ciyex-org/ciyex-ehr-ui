@@ -422,6 +422,20 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if ((tabKey === "submissions" || tabKey === "claim-submissions" || tabKey === "claim-responses" || tabKey === "denials" || tabKey === "remittance") && (f.key === "insurer" || f.key === "insurerName" || f.key === "payerName" || f.key === "payor" || f.key === "payer")) {
                     section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-companies", displayField: "name", valueField: "name", searchable: true } };
                 }
+                // ERA/Remittance — paymentType must be a dropdown, not free text
+                if ((tabKey === "remittance" || tabKey === "era" || tabKey === "era-remittance" || tabKey === "eob" || tabKey === "payment-posting" || tabKey === "payments") && (f.key === "paymentType" || f.key === "payment_type" || f.key === "paymentMethod" || f.key === "payment_method")) {
+                    section.fields[i] = { ...f, type: "select", options: [
+                        { value: "insurance", label: "Insurance Payment" },
+                        { value: "patient_copay", label: "Patient Copay" },
+                        { value: "patient_coinsurance", label: "Patient Coinsurance" },
+                        { value: "patient_deductible", label: "Patient Deductible" },
+                        { value: "patient_self_pay", label: "Patient Self-Pay" },
+                        { value: "cash", label: "Cash" },
+                        { value: "check", label: "Check" },
+                        { value: "credit_card", label: "Credit Card" },
+                        { value: "eft", label: "EFT/ACH" },
+                    ] };
+                }
                 // Issue 29: Transactions — amount must be required
                 if ((tabKey === "transactions" || tabKey === "transaction") && (f.key === "amount" || f.key === "totalAmount" || f.key === "paymentAmount")) {
                     section.fields[i] = { ...f, required: true };
@@ -2316,46 +2330,38 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (payload.appointmentType && typeof payload.appointmentType === "string") {
                     payload.appointmentType = wrapCoding(payload.appointmentType, "http://terminology.hl7.org/CodeSystem/v2-0276");
                 }
-                // Ensure patient field is a proper FHIR reference object (handle string, numeric ID, or display name)
+                // Use simple string references — backend converts to FHIR Reference objects.
+                // Sending nested {reference:...} objects causes Java Map.toString() serialisation
+                // which produces "{reference=Patient/123}" and HAPI rejects it (HAPI-0931).
                 const patRef = `Patient/${patientId}`;
                 const patDisplay = patientName || String(patientId);
-                if (payload.patient != null) {
-                    const pv = payload.patient;
-                    if (typeof pv === "number" || (typeof pv === "string" && !(pv as string).startsWith("{"))) {
-                        payload.patient = { reference: patRef, display: typeof pv === "string" && !/^\d+$/.test(pv) ? pv : patDisplay };
-                    }
-                } else if (payload.patientName) {
-                    payload.patient = { reference: patRef, display: String(payload.patientName) };
-                } else {
-                    payload.patient = { reference: patRef, display: patDisplay };
-                }
-                // Ensure participant always includes a correct Patient reference — replace any incorrect patient entries
-                if (!Array.isArray(payload.participant)) {
-                    payload.participant = [{ actor: { reference: patRef, display: patDisplay }, required: "required", status: "accepted" }];
-                } else {
-                    // Keep only practitioner/location participants; remove ALL patient entries (by ref or by non-numeric ID)
-                    const nonPatient = (payload.participant as any[]).filter((p: any) => {
-                        const ref: string = (typeof p?.actor === "object" ? p.actor?.reference : p?.actor) || "";
-                        // Filter out Patient/* references and any plain name strings (non-FHIR references)
-                        if (ref.startsWith("Patient/")) return false;
-                        if (ref && !ref.includes("/")) return false; // plain name like "Surya B"
-                        return true;
-                    });
-                    payload.participant = [
-                        ...nonPatient,
-                        { actor: { reference: patRef, display: patDisplay }, required: "required", status: "accepted" },
-                    ];
-                }
+                // Set patient as simple string reference
+                payload.patient = patRef;
+                // Build participant array with simple string actor references
+                const existingParticipants = Array.isArray(payload.participant) ? payload.participant : [];
+                // Keep only practitioner/location participants
+                const nonPatient = existingParticipants.filter((p: any) => {
+                    const ref: string = (typeof p?.actor === "object" ? p.actor?.reference : String(p?.actor || ""));
+                    if (!ref || ref.startsWith("Patient/")) return false;
+                    if (!ref.includes("/")) return false; // plain name string
+                    return true;
+                });
+                // Flatten any nested actor objects to simple string references
+                const cleaned = nonPatient.map((p: any) => ({
+                    ...p,
+                    actor: typeof p?.actor === "object" ? (p.actor.reference || String(p.actor)) : String(p?.actor || ""),
+                }));
+                payload.participant = [
+                    ...cleaned,
+                    { actor: patRef, required: "required", status: "accepted" },
+                ];
                 // Remove display-name-only patient fields so the backend cannot use them
-                // to construct an incorrect Patient/<name> FHIR reference.
                 delete payload.patientName;
                 delete payload.patientRef;
-                // Normalise patientId to the numeric prop value (prevent string name leaking in)
+                // Normalise patientId to the numeric prop value
                 payload.patientId = patientId;
-                // Ensure subject is a proper FHIR reference object, not a plain string
-                if (payload.subject != null && typeof payload.subject !== "object") {
-                    payload.subject = { reference: patRef };
-                }
+                // Set subject as simple string reference
+                payload.subject = patRef;
             }
 
             // Issue 4: Insurance Coverage — ensure period/coding structures

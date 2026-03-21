@@ -59,8 +59,19 @@ export default function PatientFilesTab({ patientId }: { patientId: string }) {
     if (patientId) fetchFiles();
   }, [patientId, fetchFiles]);
 
+  const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".csv", ".xls", ".xlsx", ".txt", ".zip", ".dicom"];
+
   const handleUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
+    // Validate file types
+    const invalidFiles = Array.from(fileList).filter((f) => {
+      const ext = "." + f.name.split(".").pop()?.toLowerCase();
+      return !ALLOWED_EXTENSIONS.includes(ext);
+    });
+    if (invalidFiles.length > 0) {
+      setError(`Unsupported file type(s): ${invalidFiles.map((f) => f.name).join(", ")}. Allowed: ${ALLOWED_EXTENSIONS.join(", ")}`);
+      return;
+    }
     setUploading(true);
     setError(null);
     try {

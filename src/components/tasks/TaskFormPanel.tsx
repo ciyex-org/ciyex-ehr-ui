@@ -61,7 +61,6 @@ export default function TaskFormPanel({
   const [patientQuery, setPatientQuery] = useState("");
   const [patientResults, setPatientResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string }[]>([]);
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
-  const [patientDropdownStyle, setPatientDropdownStyle] = useState<React.CSSProperties>({});
   const patientInputRef = useRef<HTMLDivElement>(null);
 
   // Provider search for "Assigned To"
@@ -69,7 +68,6 @@ export default function TaskFormPanel({
   const [providerResults, setProviderResults] = useState<{ id: number; name: string }[]>([]);
   const [showProviderDropdown, setShowProviderDropdown] = useState(false);
   const providerInputRef = useRef<HTMLDivElement>(null);
-  const [providerDropdownStyle, setProviderDropdownStyle] = useState<React.CSSProperties>({});
   const skipProviderSearchRef = useRef(false);
 
   // Sync provider query only when panel opens (populate edit-mode value) or resets
@@ -124,37 +122,14 @@ export default function TaskFormPanel({
     return () => clearTimeout(t);
   }, [providerQuery]);
 
-  useEffect(() => {
-    if (showProviderDropdown && providerInputRef.current) {
-      const rect = providerInputRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const dropHeight = Math.min(192, providerResults.length * 44);
-      if (spaceBelow < dropHeight && rect.top > dropHeight) {
-        setProviderDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
-      } else {
-        setProviderDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
-      }
-    }
-  }, [showProviderDropdown, providerResults.length]);
+  // Provider dropdown positioning removed — uses absolute positioning relative to parent
 
   // Sync patient query with form data
   useEffect(() => {
     setPatientQuery(form.patientName || "");
   }, [form.patientName, open]);
 
-  // Update dropdown position when shown
-  useEffect(() => {
-    if (showPatientDropdown && patientInputRef.current) {
-      const rect = patientInputRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const dropHeight = Math.min(192, patientResults.length * 44);
-      if (spaceBelow < dropHeight && rect.top > dropHeight) {
-        setPatientDropdownStyle({ position: "fixed", bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width, zIndex: 9999 });
-      } else {
-        setPatientDropdownStyle({ position: "fixed", top: rect.bottom + 4, left: rect.left, width: rect.width, zIndex: 9999 });
-      }
-    }
-  }, [showPatientDropdown, patientResults.length]);
+  // Patient dropdown positioning removed — uses absolute positioning relative to parent
 
   // Debounced patient search
   useEffect(() => {
@@ -384,13 +359,13 @@ export default function TaskFormPanel({
                   setShowProviderDropdown(true);
                 }}
                 onFocus={() => providerResults.length > 0 && setShowProviderDropdown(true)}
-                onBlur={() => setTimeout(() => setShowProviderDropdown(false), 150)}
+                onBlur={() => setTimeout(() => setShowProviderDropdown(false), 300)}
                 placeholder="Search provider..."
                 autoComplete="off"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
               />
               {showProviderDropdown && providerResults.length > 0 && (
-                <div style={providerDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg z-[9999]">
                   {providerResults.map((p) => (
                     <button
                       key={p.id}
@@ -441,13 +416,13 @@ export default function TaskFormPanel({
                   setShowPatientDropdown(true);
                 }}
                 onFocus={() => patientResults.length > 0 && setShowPatientDropdown(true)}
-                onBlur={() => setTimeout(() => setShowPatientDropdown(false), 150)}
+                onBlur={() => setTimeout(() => setShowPatientDropdown(false), 300)}
                 placeholder="Search patient by name..."
                 autoComplete="off"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition"
               />
               {showPatientDropdown && patientResults.length > 0 && (
-                <div style={patientDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg z-[9999]">
                   {patientResults.map((p) => (
                     <button
                       key={p.id}

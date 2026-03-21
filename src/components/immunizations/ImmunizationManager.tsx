@@ -344,13 +344,15 @@ function FormDrawer({
         const e: Record<string, string> = {};
         if (!form.vaccineName?.trim()) e.vaccineName = "Vaccine name is required";
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
-        // Lot number: alphanumeric + hyphens only, no leading hyphen
+        // Lot number: alphanumeric + hyphens only, no leading hyphen, minimum 8 chars
         if (form.lotNumber && form.lotNumber.trim()) {
             const lot = form.lotNumber.trim();
             if (/^-/.test(lot)) {
                 e.lotNumber = "Lot number cannot start with a hyphen";
             } else if (!/^[A-Za-z0-9][A-Za-z0-9\-]*$/.test(lot)) {
                 e.lotNumber = "Lot number must contain only letters, numbers, or hyphens";
+            } else if (lot.length < 8) {
+                e.lotNumber = "Lot number must be at least 8 characters";
             }
         }
         // Dose: must be a positive number if provided
@@ -424,7 +426,7 @@ function FormDrawer({
                             placeholder="Pfizer, Moderna…"
                         />
                         <Field
-                            label="Lot Number"
+                            label="Lot Number (min 8 chars)"
                             value={form.lotNumber ?? ""}
                             onChange={(v) => {
                                 const filtered = v.replace(/[^A-Za-z0-9\-]/g, "");
@@ -433,6 +435,8 @@ function FormDrawer({
                                     setErrors(prev => ({ ...prev, lotNumber: "Lot number cannot start with a hyphen" }));
                                 } else if (filtered && !/^[A-Za-z0-9][A-Za-z0-9\-]*$/.test(filtered)) {
                                     setErrors(prev => ({ ...prev, lotNumber: "Lot number must contain only letters, numbers, or hyphens" }));
+                                } else if (filtered && filtered.length < 8) {
+                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must be at least 8 characters" }));
                                 } else {
                                     setErrors(prev => { const n = { ...prev }; delete n.lotNumber; return n; });
                                 }
