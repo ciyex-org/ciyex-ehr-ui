@@ -2830,6 +2830,8 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
 
     // Gather predefined options from the fieldConfig's clinicalStatus / status select field
     const configStatusOptions = React.useMemo(() => {
+        // For allergies, always use the standard FHIR clinical status values (title-cased)
+        if (isAllergyTab) return ["Active", "Inactive", "Resolved"];
         if (!isMedicalProblemsTab || !fieldConfig) return [] as string[];
         for (const section of fieldConfig.sections || []) {
             for (const field of section.fields || []) {
@@ -2843,7 +2845,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             }
         }
         return [] as string[];
-    }, [isMedicalProblemsTab, fieldConfig]);
+    }, [isAllergyTab, isMedicalProblemsTab, fieldConfig]);
 
     const uniqueStatuses = React.useMemo(() => {
         const seen = new Map<string, string>(); // lowercase -> display value

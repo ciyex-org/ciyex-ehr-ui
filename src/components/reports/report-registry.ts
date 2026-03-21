@@ -80,6 +80,10 @@ async function safeFetch(url: string, fetchFn: typeof fetch): Promise<any[]> {
     const res = await fetchFn(url);
     if (!res.ok) return [];
     const json = await res.json();
+    // Handle backend error responses wrapped in 200 OK (e.g. { success: false, message: "Missing required fields: dto" })
+    if (json && typeof json === "object" && !Array.isArray(json) && json.success === false) return [];
+    // Handle error/message-only responses without data
+    if (json && typeof json === "object" && !Array.isArray(json) && json.error && !json.data && !json.content) return [];
     const raw = json?.data ?? json;
     if (Array.isArray(raw)) return raw;
     return raw?.content ?? raw?.data?.content ?? raw?.data ?? [];

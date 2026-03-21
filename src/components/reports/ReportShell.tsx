@@ -559,7 +559,10 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
       setResult(data);
     } catch (err: any) {
       console.error("Report generation failed:", err);
-      setError(err?.message || "Failed to generate report");
+      const rawMsg = err?.message || "Failed to generate report";
+      // Suppress backend DTO/validation errors and show user-friendly message
+      const isBackendValidation = /missing required fields|dto|validation/i.test(rawMsg);
+      setError(isBackendValidation ? "Unable to load report data. Some API endpoints may not be available for this practice." : rawMsg);
     } finally {
       setLoading(false);
     }
