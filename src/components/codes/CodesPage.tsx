@@ -423,27 +423,27 @@ export default function CodesPage() {
       )}
 
       {/* Table */}
-      <div className="border rounded-lg bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="border rounded-lg bg-white dark:bg-gray-800 shadow-sm overflow-x-auto">
+        <table className="w-full text-sm table-fixed min-w-[1000px]">
           <thead className="bg-gray-100 dark:bg-gray-700">
             <tr>
               {[
-                "Code",
-                "Type",
-                "Modifier",
-                "Category",
-                "Description",
-                "Short Desc",
-                "Relate To",
-                "Active",
-                "Dx Rep",
-                "Serv Rep",
-                "Fee",
-                "Actions",
-              ].map((h) => (
+                { h: "Code", w: "w-[90px]" },
+                { h: "Type", w: "w-[70px]" },
+                { h: "Modifier", w: "w-[70px]" },
+                { h: "Category", w: "w-[90px]" },
+                { h: "Description", w: "w-[200px]" },
+                { h: "Short Desc", w: "w-[120px]" },
+                { h: "Relate To", w: "w-[80px]" },
+                { h: "Active", w: "w-[60px]" },
+                { h: "Dx Rep", w: "w-[55px]" },
+                { h: "Serv Rep", w: "w-[60px]" },
+                { h: "Fee", w: "w-[60px]" },
+                { h: "Actions", w: "w-[70px]" },
+              ].map(({ h, w }) => (
                 <th
                   key={h}
-                  className={`px-3 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide
+                  className={`px-3 py-3 text-xs font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wide ${w}
                     ${
                       h === "Fee"
                         ? "text-right"

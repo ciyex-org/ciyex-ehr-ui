@@ -656,11 +656,19 @@ const AppointmentModal: React.FC = () => {
                 window.dispatchEvent(new Event("appointments-changed"));
             }
             else {
+                const msg = json.message || "Failed to save appointment.";
+                const isPatientNotFound = msg.toLowerCase().includes("patient not found") || msg.toLowerCase().includes("patient") && res.status === 400;
                 setAlertData({
                     variant: "error",
-                    title: "Error",
-                    message: json.message || "Failed to save appointment.",
+                    title: isPatientNotFound ? "Patient Not Found" : "Error",
+                    message: isPatientNotFound
+                        ? "The selected patient could not be found. Please search and select the patient again."
+                        : msg,
                 });
+                if (isPatientNotFound) {
+                    setSelectedPatientId("");
+                    setSelectedPatientName("");
+                }
             }
         } catch (err) {
             console.error("Save failed", err);

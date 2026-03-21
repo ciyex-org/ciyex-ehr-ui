@@ -867,6 +867,15 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
 
   return (
   <div className="p-8 max-w-[1180px] mx-auto bg-[#f7f8fa] h-full overflow-y-auto">
+      {/* Back button */}
+      <button
+        onClick={() => router.back()}
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-blue-600 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        Back
+      </button>
+
       {message && message.type === 'success' && (
         <div className="mb-6 px-4 py-3 rounded-lg shadow-sm border text-sm font-medium bg-green-50 text-green-800 border-green-200">
           {message.text}

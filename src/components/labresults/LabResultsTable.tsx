@@ -231,7 +231,11 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
     if (!editDraft) return;
     const req: (keyof LabResultDto)[] = ["testName", "value", "collectedDate", "status"];
     const missing = req.filter(f => !editDraft[f] || String(editDraft[f]).trim() === "");
-    if (missing.length) { show("error", `Missing required: ${missing.join(", ")}`); return; }
+    if (missing.length) { show("error", `Please fill in the required fields: ${missing.map(f => f === "testName" ? "Test Name" : f === "collectedDate" ? "Collected Date" : f.charAt(0).toUpperCase() + f.slice(1)).join(", ")}`); return; }
+    // Test name must contain at least one letter
+    if (editDraft.testName && /^[^a-zA-Z]+$/.test(editDraft.testName.trim())) { show("error", "Test Name must contain at least one letter"); return; }
+    // Reported date must not be before collected date
+    if (editDraft.reportedDate && editDraft.collectedDate && editDraft.reportedDate < editDraft.collectedDate) { show("error", "Reported Date cannot be earlier than Collected Date"); return; }
     setSaving(true);
     try {
       const isNew = editDraft.id == null;

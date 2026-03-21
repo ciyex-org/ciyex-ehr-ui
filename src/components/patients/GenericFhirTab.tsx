@@ -338,8 +338,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, required: true };
                     }
                 }
-                // Allergies — label allergy fields correctly: "Allergy" for type/category, "Allergen" for substance
-                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergyName" || f.key === "allergy_name" || f.key === "code" || f.key === "codeText" || f.key === "name")) {
+                // Allergies — label allergy fields correctly: only primary name field gets "Allergy" label
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergyName" || f.key === "allergy_name")) {
+                    section.fields[i] = { ...f, label: "Allergy" };
+                }
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "code" || f.key === "codeText")) {
+                    section.fields[i] = { ...f, label: "Allergy Code" };
+                }
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && f.key === "name" && !section.fields.some(sf => sf && (sf.key === "allergyName" || sf.key === "allergy_name"))) {
                     section.fields[i] = { ...f, label: "Allergy" };
                 }
                 if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergen" || f.key === "substance")) {
@@ -1934,6 +1940,15 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     }
                 }
             }
+            // Insurance: group number must be alphanumeric only
+            if (tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") {
+                for (const key of ["groupNumber", "group_number", "groupNo", "group"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9\-]+$/.test(val.trim())) {
+                        errors[key] = "Group Number must contain only letters, numbers, or hyphens";
+                    }
+                }
+            }
             // Appointments: reason/cancellationReason alphanumeric; duration numeric
             if (tabKey === "appointments" || tabKey === "appointment") {
                 for (const key of ["reason", "appointmentReason", "appointment_reason"]) {
@@ -2135,12 +2150,16 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (payload.reaction && typeof payload.reaction === "string") {
                     payload.reaction = [{ manifestation: [wrapCoding(payload.reaction, allergySystem)] }];
                 }
-                // Ensure verificationStatus and clinicalStatus have systems
+                // Ensure verificationStatus and clinicalStatus have proper FHIR coding systems
                 if (!payload.verificationStatus) {
                     payload.verificationStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification", code: "confirmed" }] };
+                } else if (typeof payload.verificationStatus === "string") {
+                    payload.verificationStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification", code: payload.verificationStatus.toLowerCase() }] };
                 }
                 if (!payload.clinicalStatus) {
                     payload.clinicalStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", code: "active" }] };
+                } else if (typeof payload.clinicalStatus === "string") {
+                    payload.clinicalStatus = { coding: [{ system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", code: payload.clinicalStatus.toLowerCase() }] };
                 }
                 if (!payload.category) payload.category = ["medication"];
                 if (!payload.type) payload.type = "allergy";
@@ -2810,15 +2829,18 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
     }, [isMedicalProblemsTab, fieldConfig]);
 
     const uniqueStatuses = React.useMemo(() => {
-        const statuses = new Set<string>();
+        const seen = new Map<string, string>(); // lowercase -> display value
         // Always include options defined in the field config (so user can filter even if all records share one status)
-        for (const opt of configStatusOptions) statuses.add(opt);
-        // Add any values actually present in the current records
+        for (const opt of configStatusOptions) {
+            const key = opt.toLowerCase();
+            if (!seen.has(key)) seen.set(key, opt);
+        }
+        // Add any values actually present in the current records (skip if same value already from config)
         for (const r of records) {
             const s = getRecordStatus(r);
-            if (s) statuses.add(s);
+            if (s && !seen.has(s.toLowerCase())) seen.set(s.toLowerCase(), s);
         }
-        return Array.from(statuses).sort();
+        return Array.from(seen.values()).sort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [records, isStatusTab, configStatusOptions]);
 
@@ -3160,11 +3182,11 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                                 {(() => {
                                                     const raw = record[col.key];
                                                     const fv = formatValue(raw, col.key, record);
-                                                    // Format comma-separated values as bullet list for readability
+                                                    // Format comma-separated values as a clean list for readability (no bullet symbols)
                                                     if (typeof fv === "string" && fv.includes(",") && fv.length > 30) {
                                                         const items = fv.split(",").map((s: string) => s.trim()).filter(Boolean);
                                                         if (items.length > 1) {
-                                                            return <ul className="list-disc list-inside space-y-0.5">{items.map((item: string, i: number) => <li key={i} className="text-sm">{item}</li>)}</ul>;
+                                                            return <div className="space-y-0.5">{items.map((item: string, i: number) => <div key={i} className="text-sm">{item}</div>)}</div>;
                                                         }
                                                     }
                                                     return (fv !== null && typeof fv === "object" && !("$$typeof" in (fv as object))) ? JSON.stringify(fv) : fv;
