@@ -240,6 +240,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     else if (!String(form.patientId || "").trim()) e.patientName = "Please select a patient from the search results";
     else if (!/^[A-Za-z\s\-'.]+$/.test(form.patientName.trim())) e.patientName = "Patient name must contain only letters, spaces, hyphens, apostrophes, or periods";
     if (!form.medicationName.trim()) e.medicationName = "Medication name is required";
+    else if (!/[a-zA-Z]/.test(form.medicationName.trim())) e.medicationName = "Medication name must contain at least one letter";
     else if (!/^[A-Za-z0-9\s\-.'()\/&+%,]+$/.test(form.medicationName.trim())) e.medicationName = "Medication name must contain only alphanumeric characters and standard punctuation";
     if (!form.sig.trim()) e.sig = "SIG directions are required";
     if (form.prescriberName && !/^[A-Za-z\s\-'.]+$/.test(form.prescriberName.trim())) e.prescriberName = "Prescriber name must contain only letters";

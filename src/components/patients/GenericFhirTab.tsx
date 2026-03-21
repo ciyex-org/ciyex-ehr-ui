@@ -1940,6 +1940,19 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     }
                 }
             }
+            // Insurance: end date must not be before effective date
+            if (tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") {
+                const effKeys = ["effectiveDate", "policyEffectiveDate", "effective_date", "policy_effective_date", "startDate", "start_date", "periodStart", "period_start"];
+                const endKeys = ["endDate", "policyEndDate", "end_date", "policy_end_date", "expirationDate", "expiration_date", "periodEnd", "period_end"];
+                let effVal: string | undefined;
+                let endVal: string | undefined;
+                let endKey: string | undefined;
+                for (const k of effKeys) { if (formData[k] && String(formData[k]).trim()) { effVal = String(formData[k]).trim(); break; } }
+                for (const k of endKeys) { if (formData[k] && String(formData[k]).trim()) { endVal = String(formData[k]).trim(); endKey = k; break; } }
+                if (effVal && endVal && endKey && endVal < effVal) {
+                    errors[endKey] = "End Date cannot be before Effective Date";
+                }
+            }
             // Insurance: group number must be alphanumeric only
             if (tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") {
                 for (const key of ["groupNumber", "group_number", "groupNo", "group"]) {
