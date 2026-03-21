@@ -338,23 +338,22 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                         section.fields[i] = { ...f, required: true };
                     }
                 }
-                // Allergies — label allergy fields correctly: only primary name field gets "Allergy" label
-                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergyName" || f.key === "allergy_name")) {
-                    section.fields[i] = { ...f, label: "Allergy" };
-                }
-                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "code" || f.key === "codeText")) {
-                    section.fields[i] = { ...f, label: "Allergy Code" };
-                }
-                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && f.key === "name") {
-                    // If allergyName already exists, hide duplicate 'name' field; otherwise label it "Allergy"
-                    if (section.fields.some(sf => sf && (sf.key === "allergyName" || sf.key === "allergy_name"))) {
-                        section.fields[i] = { ...f, type: "hidden" } as any;
-                    } else {
-                        section.fields[i] = { ...f, label: "Allergy" };
+                // Allergies — label and deduplicate allergy fields
+                if (tabKey === "allergies" || tabKey === "allergy-intolerances") {
+                    if (f.key === "allergyName" || f.key === "allergy_name") {
+                        section.fields[i] = { ...f, label: "Allergy", placeholder: "e.g., Drug Allergy, Food Allergy" };
+                    } else if (f.key === "code" || f.key === "codeText") {
+                        section.fields[i] = { ...f, label: "Allergy Code" };
+                    } else if (f.key === "name") {
+                        // Hide 'name' field when 'allergyName' exists to avoid duplicate Allergy fields
+                        if (section.fields.some(sf => sf && (sf.key === "allergyName" || sf.key === "allergy_name"))) {
+                            section.fields[i] = { ...f, type: "hidden" } as any;
+                        } else {
+                            section.fields[i] = { ...f, label: "Allergy", placeholder: "e.g., Drug Allergy, Food Allergy" };
+                        }
+                    } else if (f.key === "allergen" || f.key === "substance") {
+                        section.fields[i] = { ...f, label: "Allergen", placeholder: "e.g., Penicillin, Peanuts, Dust" };
                     }
-                }
-                if ((tabKey === "allergies" || tabKey === "allergy-intolerances") && (f.key === "allergen" || f.key === "substance")) {
-                    section.fields[i] = { ...f, label: "Allergen" };
                 }
                 // Issue 13: Insurance — insurance company dropdown from dedicated API
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "payerName" || f.key === "insurerName" || f.key === "companyName" || f.key === "insurer" || f.key === "payor")) {
@@ -3062,13 +3061,26 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                     fd.append("patientId", String(patientId));
                                     fd.append("category", "report");
                                     try {
-                                        const res = await fetchWithAuth(`${(getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/documents/upload`, {
+                                        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+                                        // Try files-proxy first, then documents/upload fallback
+                                        let res = await fetchWithAuth(`${base}/api/files-proxy/upload`, {
                                             method: "POST",
                                             body: fd,
                                         });
+                                        if (!res.ok) {
+                                            const fd2 = new FormData();
+                                            fd2.append("file", file);
+                                            fd2.append("patientId", String(patientId));
+                                            fd2.append("category", "report");
+                                            res = await fetchWithAuth(`${base}/api/documents/upload`, {
+                                                method: "POST",
+                                                body: fd2,
+                                            });
+                                        }
                                         if (res.ok) {
                                             const json = await res.json();
-                                            const url = json.data?.url || json.url || json.data?.fileUrl || json.data?.fileId || "";
+                                            const data = json.data || json;
+                                            const url = data.url || data.fileUrl || data.fileId || data.id || "";
                                             handleFieldChange("documentUrl", url);
                                             handleFieldChange("fileUrl", url);
                                             handleFieldChange("attachment", url);

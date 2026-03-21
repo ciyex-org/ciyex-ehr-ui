@@ -1847,6 +1847,8 @@ export default function DynamicFormRenderer({
 
   const renderField = (field: FieldDef) => {
     if (!evaluateShowWhen(field.showWhen)) return null;
+    // Hidden fields are not rendered at all
+    if (field.type === "hidden") return null;
     const value = formData[field.key];
     const error = errors[field.key];
 

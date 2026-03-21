@@ -1180,10 +1180,22 @@ const noShowAnalysis: ReportDefinition = {
   ],
   fetchData: async (filters, apiUrl, fetchFn) => {
     const { from, to } = getDateRange(filters);
-    const params = new URLSearchParams({ dateFrom: from, dateTo: to, page: "0", size: "1000" });
-    let records = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
+    // Fetch ALL appointments with pagination to avoid missing records
+    let records: any[] = [];
+    for (let page = 0; page < 20; page++) {
+      const params = new URLSearchParams({ dateFrom: from, dateTo: to, page: String(page), size: "500" });
+      const batch = await safeFetch(`${apiUrl}/api/appointments?${params}`, fetchFn);
+      if (batch.length === 0) break;
+      records = [...records, ...batch];
+      if (batch.length < 500) break;
+    }
     if (records.length === 0) {
-      records = await safeFetch(`${apiUrl}/api/fhir-resource/appointments?page=0&size=1000`, fetchFn);
+      for (let page = 0; page < 20; page++) {
+        const batch = await safeFetch(`${apiUrl}/api/fhir-resource/appointments?page=${page}&size=500`, fetchFn);
+        if (batch.length === 0) break;
+        records = [...records, ...batch];
+        if (batch.length < 500) break;
+      }
     }
     // Normalize fields from FHIR format — handle all possible field naming conventions
     for (const a of records) {

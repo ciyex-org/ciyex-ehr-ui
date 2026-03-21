@@ -590,9 +590,6 @@ const Calendar: React.FC = () => {
     const [calendarTitle, setCalendarTitle] = useState<string>('');
     const [activeView, setActiveView] = useState<ViewType>('timeGridDay');
     const [weekViewDates, setWeekViewDates] = useState<Date[]>([]);
-    // Track visible date range for API fetching
-    const [viewDateFrom, setViewDateFrom] = useState<string>('');
-    const [viewDateTo, setViewDateTo] = useState<string>('');
     const calendarRefs = useRef<Record<string, FullCalendar | null>>({});
     const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -668,36 +665,28 @@ const Calendar: React.FC = () => {
     // Are we showing multi-column day view? (more than 1 provider visible)
     const multiColumnDay = activeView === "timeGridDay" && (allProvidersSelected ? providers.length > 1 : selectedProviders.length !== 1);
 
-    // FullCalendar controls
+    // FullCalendar controls — navigate ALL visible calendar instances
     const goPrev = () => {
-        if (multiColumnDay) {
-            Object.values(calendarRefs.current).forEach(cal => cal?.getApi().prev());
-        } else {
-            calendarRef.current?.getApi().prev();
-        }
+        // Always navigate both refs and stacked refs so every visible calendar moves
+        Object.values(calendarRefs.current).forEach(cal => cal?.getApi().prev());
+        calendarRef.current?.getApi().prev();
     };
 
     const goNext = () => {
-        if (multiColumnDay) {
-            Object.values(calendarRefs.current).forEach(cal => cal?.getApi().next());
-        } else {
-            calendarRef.current?.getApi().next();
-        }
+        Object.values(calendarRefs.current).forEach(cal => cal?.getApi().next());
+        calendarRef.current?.getApi().next();
     };
 
     const changeView = useCallback((v: ViewType) => {
         setActiveView(v);
-
-        if (multiColumnDay) {
-            Object.values(calendarRefs.current).forEach(cal => {
-                if (cal) cal.getApi().changeView(v);
-            });
-        } else {
-            if (calendarRef.current) {
-                calendarRef.current.getApi().changeView(v);
-            }
+        // Change view on ALL calendar instances
+        Object.values(calendarRefs.current).forEach(cal => {
+            if (cal) cal.getApi().changeView(v);
+        });
+        if (calendarRef.current) {
+            calendarRef.current.getApi().changeView(v);
         }
-    }, [multiColumnDay]);
+    }, []);
 
 
     // Fetch ACTIVE providers via facade endpoint (includes enrichment with name & status)
@@ -928,14 +917,9 @@ const Calendar: React.FC = () => {
             let allEvents: CalendarEvent[] = [];
             let hasMore = true;
 
-            // Build date range query params for visible calendar range
-            const dateParams = viewDateFrom && viewDateTo
-                ? `&dateFrom=${encodeURIComponent(viewDateFrom)}&dateTo=${encodeURIComponent(viewDateTo)}`
-                : '';
-
             while (hasMore && page < maxPages) {
                 const res = await fetchWithAuth(
-                    `${apiUrl}/api/fhir-resource/appointments?page=${page}&size=${size}${dateParams}`
+                    `${apiUrl}/api/fhir-resource/appointments?page=${page}&size=${size}`
                 );
                 const json = await res.json();
 
@@ -1054,7 +1038,7 @@ const Calendar: React.FC = () => {
         } catch (err) {
             console.error("Failed to load appointments", err);
         }
-    }, [apiUrl, getColor, providers, viewDateFrom, viewDateTo]);
+    }, [apiUrl, getColor, providers]);
 
     // Trigger loadAppointments when component is mounted or colors change
     useEffect(() => {
@@ -1861,10 +1845,6 @@ const Calendar: React.FC = () => {
                                         datesSet={(arg) => {
                                             setCalendarTitle(arg.view.title);
                                             setActiveView(arg.view.type as ViewType);
-                                            const from = arg.start.toISOString().split('T')[0];
-                                            const to = arg.end.toISOString().split('T')[0];
-                                            setViewDateFrom(from);
-                                            setViewDateTo(to);
                                         }}
                                         events={events.filter((e) => {
                                             const eProv = String(e.extendedProps.providerId || "");
@@ -1896,7 +1876,7 @@ const Calendar: React.FC = () => {
                                     </h3>
                                     <FullCalendar
                                         key={`stacked-${p.value}-${activeView}`}
-                                        ref={calendarRef}
+                                        ref={(el) => { calendarRefs.current[`stacked-${p.value}`] = el; }}
                                         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                                         initialView={activeView}
                                         headerToolbar={false}
@@ -1916,10 +1896,6 @@ const Calendar: React.FC = () => {
                                         datesSet={(arg) => {
                                             setCalendarTitle(arg.view.title);
                                             setActiveView(arg.view.type as ViewType);
-                                            const from = arg.start.toISOString().split('T')[0];
-                                            const to = arg.end.toISOString().split('T')[0];
-                                            setViewDateFrom(from);
-                                            setViewDateTo(to);
                                             if (arg.view.type === 'timeGridWeek') {
                                                 const start = new Date(arg.view.currentStart);
                                                 setWeekViewDates(Array.from({ length: 7 }, (_, i) => {
@@ -1983,10 +1959,6 @@ const Calendar: React.FC = () => {
                                     datesSet={(arg) => {
                                         setCalendarTitle(arg.view.title);
                                         setActiveView(arg.view.type as ViewType);
-                                        const from = arg.start.toISOString().split('T')[0];
-                                        const to = arg.end.toISOString().split('T')[0];
-                                        setViewDateFrom(from);
-                                        setViewDateTo(to);
                                         if (arg.view.type === 'timeGridWeek') {
                                             const start = new Date(arg.view.currentStart);
                                             setWeekViewDates(Array.from({ length: 7 }, (_, i) => {
