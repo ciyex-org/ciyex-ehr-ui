@@ -5,9 +5,10 @@ interface DatePickerProps {
   value?: string;
   onChange: (date: string) => void;
   placeholder?: string;
+  maxDate?: string; // YYYY-MM-DD format — disables days after this date
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = "dd-mm-yyyy" }) => {
+const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = "dd-mm-yyyy", maxDate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showYearPicker, setShowYearPicker] = useState(false);
@@ -58,7 +59,16 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 
     return days;
   };
 
+  const isDayDisabled = (day: number): boolean => {
+    if (!maxDate) return false;
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return dateString > maxDate;
+  };
+
   const handleDateClick = (day: number) => {
+    if (isDayDisabled(day)) return;
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -181,14 +191,16 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 
                     key={index}
                     type="button"
                     onClick={() => day && handleDateClick(day)}
-                    disabled={!day}
+                    disabled={!day || (!!day && isDayDisabled(day))}
                     className={`py-1 px-1 text-xs rounded transition-colors ${
-                      day ? 'text-gray-900 hover:bg-blue-100 cursor-pointer' : 'text-transparent cursor-default'
+                      !day ? 'text-transparent cursor-default'
+                      : (isDayDisabled(day)) ? 'text-gray-300 cursor-not-allowed'
+                      : 'text-gray-900 hover:bg-blue-100 cursor-pointer'
                     } ${
-                      day === new Date().getDate() && 
-                      currentDate.getMonth() === new Date().getMonth() && 
+                      day === new Date().getDate() &&
+                      currentDate.getMonth() === new Date().getMonth() &&
                       currentDate.getFullYear() === new Date().getFullYear()
-                        ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                        ? 'bg-blue-500 text-white hover:bg-blue-600'
                         : ''
                     }`}
                   >

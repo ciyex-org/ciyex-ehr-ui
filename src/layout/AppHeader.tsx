@@ -101,6 +101,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
         else if (!isValidEmail(formData.email)) errs.email = "Enter a valid email address";
         if (!formData.gender) errs.gender = "Gender is required";
         if (!formData.dateOfBirth) errs.dateOfBirth = "Date of birth is required";
+        else if (formData.dateOfBirth > new Date().toISOString().split("T")[0]) errs.dateOfBirth = "Date of birth cannot be a future date";
         setFieldErrors(errs);
         if (Object.keys(errs).length > 0) return;
 
@@ -510,6 +511,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                         if (fieldErrors.dateOfBirth) setFieldErrors(prev => { const n = { ...prev }; delete n.dateOfBirth; return n; });
                                     }}
                                     placeholder="dd-mm-yyyy"
+                                    maxDate={new Date().toISOString().split("T")[0]}
                                 />
                                 {fieldErrors.dateOfBirth && <p className="text-xs text-red-500 mt-1">{fieldErrors.dateOfBirth}</p>}
                             </div>

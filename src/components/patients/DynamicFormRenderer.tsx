@@ -2412,6 +2412,25 @@ export default function DynamicFormRenderer({
         );
 
       default: {
+        // Photo/image fields: show image preview + URL input
+        const isPhotoField = /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture)$/i.test(field.key);
+        if (isPhotoField) {
+          const hasUrl = typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image"));
+          return (
+            <div className="space-y-2">
+              {hasUrl && (
+                <img src={value} alt="Profile" className="w-16 h-16 rounded-full object-cover border border-gray-200" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              )}
+              <Input
+                type="text"
+                value={value ?? ""}
+                placeholder={field.placeholder || "Enter image URL"}
+                onChange={(e) => onChange(field.key, e.target.value)}
+                error={!!error}
+              />
+            </div>
+          );
+        }
         // Detect monetary/numeric fields by key name to block e/E/+ even when type is "text"
         const isMonetaryField = /^(totalCharge|totalAmount|chargeAmount|amount|copay|coinsurance|deductible|allowedAmount|paidAmount|billedAmount|balance|payment|price|cost|fee|rate|total)$/i.test(field.key);
         return (

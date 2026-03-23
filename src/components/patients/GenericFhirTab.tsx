@@ -3018,7 +3018,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
     const isAllergyTab = tabKey === "allergies" || tabKey === "allergy-intolerances";
     const isMedicalProblemsTab = tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "conditions" || tabKey === "issues" || tabKey === "problems";
     const isStatusTab = isAllergyTab || isMedicalProblemsTab;
-    const isDemographicsTab = tabKey === "demographics" || tabKey === "patient-demographics";
+    const isDemographicsTab = tabKey === "demographics" || tabKey === "patient-demographics" || tabKey === "portal-demographics";
 
     // Helper: extract plain string status from a record (CodeableConcepts already flattened by normalizeRecord)
     const getRecordStatus = (r: Record<string, any>): string => {
@@ -3337,7 +3337,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                             className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
                         />
                     </div>
-                    {uniqueStatuses.length > 0 && !isDemographicsTab && tabKey !== "medications" && tabKey !== "medication-requests" && (
+                    {uniqueStatuses.length > 0 && !isDemographicsTab && !["medications", "medication-requests", "history", "social-history", "socialhistory", "medical-history"].includes(tabKey) && (
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
