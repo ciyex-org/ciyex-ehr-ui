@@ -301,7 +301,7 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
     if (!form.patientName.trim()) { showToast({ type: "error", text: "Patient name is required" }); return; }
     if (!form.vaccineName.trim()) { showToast({ type: "error", text: "Vaccine name is required" }); return; }
     if (!/[A-Za-z]/.test(form.vaccineName.trim())) { showToast({ type: "error", text: "Vaccine name must contain at least one letter" }); return; }
-    if (!/^[A-Za-z0-9\s\-.,/()']+$/.test(form.vaccineName.trim())) { showToast({ type: "error", text: "Vaccine name contains invalid characters" }); return; }
+    if (!/^[A-Za-z0-9\s\-.,/()':#&+]+$/.test(form.vaccineName.trim())) { showToast({ type: "error", text: "Vaccine name contains invalid characters" }); return; }
     // Negative validation: lot number must be alphanumeric (letters, digits, hyphens only)
     if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim())) {
       showToast({ type: "error", text: "Lot number must be alphanumeric (letters, digits, hyphens only)" }); return;

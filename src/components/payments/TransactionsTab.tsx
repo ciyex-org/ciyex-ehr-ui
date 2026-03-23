@@ -362,36 +362,32 @@ export default function TransactionsTab({ showToast }: Props) {
                         <button onClick={() => setViewTarget(t)} title="View" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                           <Eye className="w-4 h-4" />
                         </button>
-                        {(t.status === "pending" || t.status === "completed") && (
-                          <button onClick={() => openEdit(t)} title="Edit" className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition">
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button onClick={() => openEdit(t)} title="Edit" className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition">
+                          <Pencil className="w-4 h-4" />
+                        </button>
                         {(t.status === "completed" || t.status === "partial_refund") && (
                           <button onClick={() => openRefund(t)} title="Refund" className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition">
                             <RefreshCw className="w-4 h-4" />
                           </button>
                         )}
-                        {t.status === "pending" && (
-                          <>
-                            <button
-                              onClick={() => handleVoid(t)}
-                              disabled={voiding === t.id}
-                              title="Void"
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                            >
-                              {voiding === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                            </button>
-                            <button
-                              onClick={() => handleDelete(t)}
-                              disabled={deleting === t.id}
-                              title="Delete"
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                            >
-                              {deleting === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                            </button>
-                          </>
+                        {(t.status === "pending" || t.status === "completed") && (
+                          <button
+                            onClick={() => handleVoid(t)}
+                            disabled={voiding === t.id}
+                            title="Void"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                          >
+                            {voiding === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                          </button>
                         )}
+                        <button
+                          onClick={() => handleDelete(t)}
+                          disabled={deleting === t.id}
+                          title="Delete"
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                        >
+                          {deleting === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
                       </div>
                     </td>
                   </tr>

@@ -247,20 +247,33 @@ const ClaimManagementDashboard: React.FC = () => {
     try {
       // Merge edit form with original claim data to preserve IDs and required fields
       const payload = { ...editClaim, ...editForm };
-      const res = await fetchWithAuth(`/api/all-claims/${editClaim.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        let errMsg = "Failed to update claim";
+      const claimId = editClaim.id;
+      // Try multiple endpoint patterns — backend may support PUT or PATCH at different paths
+      const endpoints = [
+        { url: `/api/all-claims/${claimId}`, method: "PUT" },
+        { url: `/api/all-claims/${claimId}`, method: "PATCH" },
+        { url: `/api/claims/${claimId}`, method: "PUT" },
+        { url: `/api/claims/${claimId}`, method: "PATCH" },
+        { url: `/api/fhir-resource/claims/patient/${payload.patientId || "0"}/${claimId}`, method: "PUT" },
+      ];
+      let res: Response | null = null;
+      let lastErr = "Failed to update claim";
+      for (const ep of endpoints) {
         try {
-          const errJson = await res.json();
-          errMsg = errJson.message || errMsg;
-        } catch {
-          try { errMsg = await res.text() || errMsg; } catch { /* use default */ }
-        }
-        throw new Error(errMsg);
+          const r = await fetchWithAuth(ep.url, {
+            method: ep.method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (r.ok) { res = r; break; }
+          if (r.status === 404 || r.status === 405) continue; // try next endpoint
+          // Non-404/405 error — read message and stop
+          try { const j = await r.json(); lastErr = j.message || lastErr; } catch { try { lastErr = await r.text() || lastErr; } catch {} }
+          res = r; break;
+        } catch { continue; }
+      }
+      if (!res || !res.ok) {
+        throw new Error(lastErr);
       }
       closeEditModal();
       setSelectedId(null);

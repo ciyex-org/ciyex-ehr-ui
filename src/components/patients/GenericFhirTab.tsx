@@ -1432,6 +1432,17 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
             }
         }
+        // Problems/Conditions: block special characters in condition name (real-time)
+        if ((tabKey === "medicalproblems" || tabKey === "problems" || tabKey === "conditions" || tabKey === "issues") &&
+            (key === "condition" || key === "conditionName" || key === "name" || key === "displayText") &&
+            typeof value === "string") {
+            if (/[^A-Za-z0-9\s\-.,/()':#&+]/.test(value)) {
+                setValidationErrors((prev) => ({ ...prev, [key]: "Condition contains invalid special characters" }));
+                value = value.replace(/[^A-Za-z0-9\s\-.,/()':#&+]/g, "");
+            } else {
+                setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+            }
+        }
         // Education topic/title: letters only (no purely numeric input)
         if ((tabKey === "education" || tabKey === "patient-education") &&
             (key === "topic" || key === "title" || key === "subject") &&
@@ -1843,12 +1854,16 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     errors[errKey] = "Reason for Visit must contain at least one letter";
                 }
             }
-            // Problems/Conditions: condition must not be purely numeric + onset/resolved date validation
+            // Problems/Conditions: condition must contain letters, no special chars
             if (tabKey === "medicalproblems" || tabKey === "problems" || tabKey === "conditions" || tabKey === "issues") {
                 for (const key of ["condition", "conditionName", "name", "code", "displayText"]) {
                     const val = formData[key];
-                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
-                        errors[key] = "Condition must contain letters, not just numbers";
+                    if (typeof val === "string" && val.trim()) {
+                        if (!/[A-Za-z]/.test(val.trim())) {
+                            errors[key] = "Condition must contain at least one letter";
+                        } else if (!/^[A-Za-z0-9\s\-.,/()':#&+]+$/.test(val.trim())) {
+                            errors[key] = "Condition contains invalid special characters";
+                        }
                     }
                 }
                 // Resolved/end date must not be before onset date
@@ -2687,8 +2702,10 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     setFormData({});
                     setSelectedRecord(null);
                 }
-                setSuccessMsg(isMessaging ? "Message sent successfully" : `Record ${label} successfully`);
-                setTimeout(() => setSuccessMsg(null), 3000);
+                const successText = isMessaging ? "Message sent successfully" : `Record ${label} successfully`;
+                setSuccessMsg(successText);
+                toast.success(successText);
+                setTimeout(() => setSuccessMsg(null), 5000);
                 // Notify appointments page and calendar to refresh
                 if (tabKey === "appointments" || tabKey === "appointment") {
                     window.dispatchEvent(new Event("appointments-changed"));
@@ -3102,7 +3119,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                                         className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50 ${tabKey === "messaging" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
                                     >
                                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : tabKey === "messaging" ? <Send className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                                        {tabKey === "messaging" ? "Send" : "Save"}
+                                        {saving ? (tabKey === "messaging" ? "Sending..." : "Saving...") : (tabKey === "messaging" ? "Send" : "Save")}
                                     </button>
                                 )}
                                 <button
@@ -3176,7 +3193,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                                 className={`flex items-center gap-1.5 px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50 ${tabKey === "messaging" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}`}
                             >
                                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : tabKey === "messaging" ? <Send className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                                {tabKey === "messaging" ? "Send" : "Save"}
+                                {saving ? (tabKey === "messaging" ? "Sending..." : "Saving...") : (tabKey === "messaging" ? "Send" : "Save")}
                             </button>
                         )}
                         <button

@@ -180,7 +180,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   /* Debounced prescriber search */
   useEffect(() => {
     if (skipPrescriberSearchRef.current) { skipPrescriberSearchRef.current = false; return; }
-    if (!prescriberQuery.trim() || prescriberQuery.length < 2) { setPrescriberResults([]); return; }
+    if (!prescriberQuery.trim() || prescriberQuery.length < 1) { setPrescriberResults([]); return; }
     const t = setTimeout(async () => {
       try {
         const res = await fetchWithAuth(`${(getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/providers?search=${encodeURIComponent(prescriberQuery)}`);
@@ -399,7 +399,22 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                     set("prescriberName", e.target.value);
                     setShowPrescriberDropdown(true);
                   }}
-                  onFocus={() => prescriberResults.length > 0 && setShowPrescriberDropdown(true)}
+                  onFocus={async () => {
+                    if (prescriberResults.length > 0) { setShowPrescriberDropdown(true); return; }
+                    // Fetch all providers on focus to populate dropdown immediately
+                    try {
+                      const res = await fetchWithAuth(`${(getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/providers?page=0&size=50`);
+                      if (res.ok) {
+                        const json = await res.json();
+                        let list: typeof prescriberResults = [];
+                        if (Array.isArray(json?.data?.content)) list = json.data.content;
+                        else if (Array.isArray(json?.data)) list = json.data;
+                        else if (Array.isArray(json?.content)) list = json.content;
+                        else if (Array.isArray(json)) list = json;
+                        if (list.length > 0) { setPrescriberResults(list); setShowPrescriberDropdown(true); }
+                      }
+                    } catch { /* silent */ }
+                  }}
                   onBlur={() => setTimeout(() => setShowPrescriberDropdown(false), 150)}
                   placeholder="Search provider by name..."
                   autoComplete="off"

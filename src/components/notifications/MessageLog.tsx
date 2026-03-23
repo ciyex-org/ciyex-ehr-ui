@@ -319,39 +319,37 @@ export default function MessageLog() {
                     <div className="inline-flex items-center gap-1">
                       <button
                         onClick={() => setDetail(log)}
-                        title="View"
+                        title="View Details"
                         className="rounded-md p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      {log.status === "failed" && (
-                        <button
-                          onClick={async () => {
-                            setRetryingId(log.id);
-                            try {
-                              const res = await fetchWithAuth(`/api/notifications/log/${log.id}/retry`, { method: "POST" });
-                              if (res.ok) {
-                                setActionFeedback({ type: "success", text: "Notification queued for retry" });
-                                loadLogs();
-                                loadStats();
-                              } else {
-                                const json = await res.json().catch(() => ({}));
-                                setActionFeedback({ type: "error", text: json.message || "Retry failed" });
-                              }
-                            } catch {
-                              setActionFeedback({ type: "error", text: "Network error. Please try again." });
-                            } finally {
-                              setRetryingId(null);
-                              setTimeout(() => setActionFeedback(null), 4000);
+                      <button
+                        onClick={async () => {
+                          setRetryingId(log.id);
+                          try {
+                            const res = await fetchWithAuth(`/api/notifications/log/${log.id}/retry`, { method: "POST" });
+                            if (res.ok) {
+                              setActionFeedback({ type: "success", text: "Notification queued for resend" });
+                              loadLogs();
+                              loadStats();
+                            } else {
+                              const json = await res.json().catch(() => ({}));
+                              setActionFeedback({ type: "error", text: json.message || "Resend failed" });
                             }
-                          }}
-                          disabled={retryingId === log.id}
-                          title="Retry"
-                          className="rounded-md p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors disabled:opacity-50"
-                        >
-                          {retryingId === log.id ? <Clock className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </button>
-                      )}
+                          } catch {
+                            setActionFeedback({ type: "error", text: "Network error. Please try again." });
+                          } finally {
+                            setRetryingId(null);
+                            setTimeout(() => setActionFeedback(null), 4000);
+                          }
+                        }}
+                        disabled={retryingId === log.id}
+                        title={log.status === "failed" ? "Retry" : "Resend"}
+                        className="rounded-md p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors disabled:opacity-50"
+                      >
+                        {retryingId === log.id ? <Clock className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </button>
                     </div>
                   </td>
                 </tr>

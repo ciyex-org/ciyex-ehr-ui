@@ -258,7 +258,6 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
             ref={cameraInputRef}
             type="file"
             accept="image/*,video/*"
-            capture="environment"
             className="hidden"
             onChange={handleFileSelect}
           />
