@@ -27,6 +27,9 @@ export const SMART_SCOPE_RESOURCES: { group: string; resources: { type: string; 
       { type: "DiagnosticReport", label: "Diagnostic Report" },
       { type: "CarePlan", label: "Care Plan" },
       { type: "Immunization", label: "Immunization" },
+      { type: "AllergyIntolerance", label: "Allergy" },
+      { type: "Condition", label: "Condition" },
+      { type: "Composition", label: "Composition" },
     ],
   },
   {
@@ -37,81 +40,41 @@ export const SMART_SCOPE_RESOURCES: { group: string; resources: { type: string; 
       { type: "DocumentReference", label: "Document" },
       { type: "Consent", label: "Consent" },
       { type: "Task", label: "Task" },
-      { type: "Communication", label: "Communication" },
+      { type: "Communication", label: "Messaging" },
+      { type: "RelatedPerson", label: "Related Person" },
+      { type: "Flag", label: "Clinical Alert" },
+      { type: "QuestionnaireResponse", label: "Questionnaire" },
     ],
   },
   {
-    group: "Billing & Organization",
+    group: "Billing & Financial",
     resources: [
       { type: "Claim", label: "Claim" },
+      { type: "ClaimResponse", label: "Claim Response" },
       { type: "Coverage", label: "Coverage" },
+      { type: "Invoice", label: "Invoice" },
+      { type: "ExplanationOfBenefit", label: "EOB" },
+      { type: "MeasureReport", label: "Measure Report" },
+    ],
+  },
+  {
+    group: "Organization & Settings",
+    resources: [
       { type: "Practitioner", label: "Practitioner" },
       { type: "Organization", label: "Organization" },
+      { type: "Location", label: "Location" },
+      { type: "HealthcareService", label: "Service" },
     ],
   },
 ];
 
+/**
+ * Page-level permissions — only for non-FHIR pages.
+ * FHIR resource access is controlled entirely by SMART scopes above.
+ * These categories control sidebar visibility and page access for
+ * pages that don't go through the FHIR server.
+ */
 export const PERMISSION_CATEGORIES: { category: string; permissions: { key: string; label: string }[] }[] = [
-  {
-    category: "Scheduling",
-    permissions: [
-      { key: "scheduling.read", label: "View Schedule" },
-      { key: "scheduling.write", label: "Edit Schedule" },
-    ],
-  },
-  {
-    category: "Demographics",
-    permissions: [
-      { key: "demographics.read", label: "View Demographics" },
-      { key: "demographics.write", label: "Edit Demographics" },
-    ],
-  },
-  {
-    category: "Clinical Chart",
-    permissions: [
-      { key: "chart.read", label: "View Chart" },
-      { key: "chart.write", label: "Edit Chart" },
-      { key: "chart.sign", label: "Sign Notes" },
-    ],
-  },
-  {
-    category: "Orders",
-    permissions: [
-      { key: "orders.read", label: "View Orders" },
-      { key: "orders.create", label: "Create Orders" },
-      { key: "orders.sign", label: "Sign Orders" },
-    ],
-  },
-  {
-    category: "Prescriptions",
-    permissions: [
-      { key: "rx.read", label: "View Prescriptions" },
-      { key: "rx.prescribe", label: "Prescribe" },
-    ],
-  },
-  {
-    category: "Billing",
-    permissions: [
-      { key: "billing.read", label: "View Billing" },
-      { key: "billing.write", label: "Edit Billing" },
-      { key: "billing.submit", label: "Submit Claims" },
-    ],
-  },
-  {
-    category: "Administration",
-    permissions: [
-      { key: "admin.users", label: "Manage Users" },
-      { key: "admin.settings", label: "Manage Settings" },
-      { key: "admin.roles", label: "Manage Roles" },
-    ],
-  },
-  {
-    category: "Documents",
-    permissions: [
-      { key: "documents.read", label: "View Documents" },
-      { key: "documents.write", label: "Upload/Edit Documents" },
-    ],
-  },
   {
     category: "Messaging",
     permissions: [
@@ -124,6 +87,14 @@ export const PERMISSION_CATEGORIES: { category: string; permissions: { key: stri
     permissions: [
       { key: "reports.read", label: "View Reports" },
       { key: "reports.write", label: "Manage Reports" },
+    ],
+  },
+  {
+    category: "Administration",
+    permissions: [
+      { key: "admin.users", label: "Manage Users" },
+      { key: "admin.settings", label: "Manage Settings" },
+      { key: "admin.roles", label: "Manage Roles" },
     ],
   },
 ];

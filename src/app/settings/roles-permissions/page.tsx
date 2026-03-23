@@ -222,17 +222,19 @@ export default function RolesPermissionsPage() {
                   {isExpanded && (
                     <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-3 space-y-4">
                       <div>
-                        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Page Permissions</h4>
-                        <PermissionMatrix
-                          selected={role.permissions}
-                          onChange={(newPerms) => handleQuickPermissionUpdate(role, newPerms)}
-                        />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">FHIR API Scopes</h4>
+                        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">FHIR Resource Access</h4>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">Controls read/write access to clinical data, scheduling, billing, and settings</p>
                         <SmartScopeMatrix
                           selected={role.smartScopes || []}
                           onChange={(newScopes) => handleQuickScopeUpdate(role, newScopes)}
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Feature Access</h4>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">Controls access to messaging, reports, and administration features</p>
+                        <PermissionMatrix
+                          selected={role.permissions}
+                          onChange={(newPerms) => handleQuickPermissionUpdate(role, newPerms)}
                         />
                       </div>
                     </div>
