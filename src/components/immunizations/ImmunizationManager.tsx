@@ -350,9 +350,9 @@ function FormDrawer({
             e.vaccineName = "Vaccine name contains invalid characters";
         }
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
-        // Lot number: must start and end with alphanumeric, internal hyphens allowed
-        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(form.lotNumber.trim())) {
-            e.lotNumber = "Lot number must start and end with a letter or number (hyphens allowed in between)";
+        // Lot number: alphanumeric only
+        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]+$/.test(form.lotNumber.trim())) {
+            e.lotNumber = "Lot number must contain only letters and numbers";
         }
         // Dose: must be a positive number if provided
         if (form.dose !== undefined && form.dose !== null) {
@@ -428,17 +428,17 @@ function FormDrawer({
                             label="Lot Number (min 8 chars)"
                             value={form.lotNumber ?? ""}
                             onChange={(v) => {
-                                const filtered = v.replace(/[^A-Za-z0-9\-]/g, "");
+                                const filtered = v.replace(/[^A-Za-z0-9]/g, "");
                                 set("lotNumber", filtered);
-                                if (filtered && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(filtered)) {
-                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must start and end with a letter or number (hyphens allowed in between)" }));
+                                if (filtered && !/^[A-Za-z0-9]+$/.test(filtered)) {
+                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must contain only letters and numbers" }));
                                 } else if (filtered && filtered.length < 8) {
                                     setErrors(prev => ({ ...prev, lotNumber: "Lot number must be at least 8 characters" }));
                                 } else {
                                     setErrors(prev => { const n = { ...prev }; delete n.lotNumber; return n; });
                                 }
                             }}
-                            placeholder="e.g., LOT-123456"
+                            placeholder="e.g., LOT123456"
                             error={errors.lotNumber}
                         />
                     </div>
