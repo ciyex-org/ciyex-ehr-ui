@@ -697,8 +697,9 @@ const Calendar: React.FC = () => {
                 const json = await res.json();
                 const raw = json?.data?.content || json?.data || json?.content || [];
                 const providerList = Array.isArray(raw) ? raw : [];
+                let active: { value: string; label: string }[] = [];
                 if (providerList.length > 0) {
-                    let active = providerList
+                    active = providerList
                         .filter((p: any) => {
                             // Facade endpoint returns nested structure with systemAccess.status
                             const status = String(p?.systemAccess?.status || p['systemAccess.status'] || 'ACTIVE').toUpperCase();
@@ -726,9 +727,8 @@ const Calendar: React.FC = () => {
                             };
                         }).filter((p: any) => p.value);
                     }
-
-                    setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
                 }
+                setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
             } catch (e) {
                 console.error('Failed to fetch providers', e);
                 // Ensure at least "All Providers" is available even on error

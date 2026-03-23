@@ -120,7 +120,19 @@ export default function NewEncounterPage() {
   return (
     <AdminLayout>
       <div className="max-w-lg mx-auto mt-10 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h1 className="text-lg font-semibold text-gray-800 mb-5">New Encounter</h1>
+        <div className="flex items-center gap-3 mb-5">
+            <button
+                type="button"
+                onClick={() => router.back()}
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                title="Go back"
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </button>
+            <h1 className="text-lg font-semibold text-gray-800">New Encounter</h1>
+        </div>
 
         {error && (
           <div className="mb-4 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">

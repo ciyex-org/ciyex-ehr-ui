@@ -125,7 +125,20 @@ export default function PatientChartPanel({ patientId }: PatientChartPanelProps)
                 })),
             }))
             .filter((cat: any) => cat.tabs.length > 0);
-          if (mapped.length > 0) setTabCategories(mapped);
+          if (mapped.length > 0) {
+            // Deduplicate categories by label, merging tabs from duplicates
+            const deduped = mapped.reduce((acc: any[], cat: any) => {
+                const existing = acc.find((c: any) => c.label === cat.label);
+                if (existing) {
+                    const existingKeys = new Set(existing.tabs.map((t: any) => t.key));
+                    existing.tabs.push(...cat.tabs.filter((t: any) => !existingKeys.has(t.key)));
+                } else {
+                    acc.push({ ...cat });
+                }
+                return acc;
+            }, []);
+            setTabCategories(deduped);
+          }
         }
       })
       .catch(() => {});

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { X, Pill, User, Building2, FileText, Loader2, Stethoscope } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 import { Prescription, ToastState } from "./types";
 import DrugInteractionCheck from "./DrugInteractionCheck";
 import DatePicker from "@/components/form/date-picker";
@@ -138,7 +139,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const runPatientSearch = useCallback(async (q: string) => {
     if (!q.trim() || q.length < 2) { setPatientResults([]); return; }
     try {
-      const res = await fetchWithAuth(`/api/patients?search=${encodeURIComponent(q)}&size=20`);
+      const res = await fetchWithAuth(`${(getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/patients?search=${encodeURIComponent(q)}&size=20`);
       if (!res.ok) return;
       const json = await res.json();
       let list: any[] = [];
@@ -182,7 +183,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     if (!prescriberQuery.trim() || prescriberQuery.length < 2) { setPrescriberResults([]); return; }
     const t = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(prescriberQuery)}`);
+        const res = await fetchWithAuth(`${(getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/providers?search=${encodeURIComponent(prescriberQuery)}`);
         if (!res.ok) return;
         const json = await res.json();
         let list: typeof prescriberResults = [];

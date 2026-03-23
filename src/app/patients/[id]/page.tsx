@@ -339,7 +339,18 @@ export default function PatientDashboardPage() {
                                     icon: ICON_MAP[tab.icon] || FileText,
                                 })),
                         })).filter((cat: any) => cat.tabs.length > 0);
-                        setDynamicTabCategories(mapped);
+                        // Deduplicate categories by label, merging tabs
+                        const deduped = mapped.reduce((acc: any[], cat: any) => {
+                            const existing = acc.find((c: any) => c.label === cat.label);
+                            if (existing) {
+                                const existingKeys = new Set(existing.tabs.map((t: any) => t.key));
+                                existing.tabs.push(...cat.tabs.filter((t: any) => !existingKeys.has(t.key)));
+                            } else {
+                                acc.push({ ...cat });
+                            }
+                            return acc;
+                        }, []);
+                        setDynamicTabCategories(deduped);
                     }
                 }
             } catch (err) {

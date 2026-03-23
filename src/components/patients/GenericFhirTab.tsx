@@ -321,6 +321,10 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     // These fields are optional in FHIR Immunization — don't block save
                     if (f.required) section.fields[i] = { ...f, required: false };
                 }
+                // Ensure lotNumber allows alphanumeric input (not just letters)
+                if ((tabKey === "immunizations" || tabKey === "immunization") && (f.key === "lotNumber" || f.key === "lot_number" || f.key === "lot")) {
+                    section.fields[i] = { ...section.fields[i] || f, type: "text", pattern: undefined, validation: undefined, placeholder: "e.g., AB1234, 12345" };
+                }
                 // Encounters: keep reasonForVisit as-is (honor backend required flag)
                 // Encounters: ensure patient field is a searchable patient lookup
                 if ((tabKey === "encounters" || tabKey === "encounter")) {
@@ -358,10 +362,10 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/providers", displayField: "name", valueField: "fhirId", searchable: true } };
                     }
                 }
-                // Appointments: ensure location field is a location lookup
-                if (tabKey === "appointments" && (f.key === "location" || f.key === "locationId" || f.key === "locationName")) {
+                // Appointments: ensure location/room field is a location lookup
+                if (tabKey === "appointments" && (f.key === "location" || f.key === "locationId" || f.key === "locationName" || f.key === "room" || f.key === "roomId" || f.key === "roomName")) {
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
-                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/facilities", displayField: "name", valueField: "id", searchable: true } };
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/facilities", displayField: "name", valueField: "id", searchable: true, dropdownPosition: "auto" } };
                     }
                 }
                 // Issues/Conditions: ensure onsetDate is a date field
@@ -383,6 +387,14 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     if (isDocFileField && !f.required) {
                         section.fields[i] = { ...f, required: true };
                     }
+                }
+                // Insurance: memberId must be alphanumeric (not letters-only)
+                if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "memberId" || f.key === "memberNumber" || f.key === "subscriberId" || f.key === "idNo" || f.key === "policyNumber" || f.key === "policyNo")) {
+                    section.fields[i] = { ...f, type: "text", placeholder: "Enter alphanumeric ID" };
+                }
+                // Insurance: groupNumber must be alphanumeric
+                if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "groupNumber" || f.key === "group" || f.key === "groupNo" || f.key === "groupId")) {
+                    section.fields[i] = { ...f, type: "text", placeholder: "Enter group number" };
                 }
                 // Allergies — label and deduplicate allergy fields
                 if (tabKey === "allergies" || tabKey === "allergy-intolerances") {
@@ -505,6 +517,10 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/patients", displayField: "fullName", valueField: "id", searchable: true } };
                     }
+                }
+                // Prior Auth: memberId should allow alphanumeric
+                if ((tabKey === "prior-auth" || tabKey === "prior-authorizations" || tabKey === "priorauth" || tabKey === "prior_authorizations" || tabKey === "prior-authorization" || tabKey === "authorizations") && (f.key === "memberId" || f.key === "memberNumber" || f.key === "subscriberId" || f.key === "policyNumber")) {
+                    section.fields[i] = { ...f, type: "text", pattern: undefined, validation: undefined, placeholder: "Enter alphanumeric member ID" };
                 }
             }
             // Education: inject URL field if not present in config
@@ -2941,6 +2957,12 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
             return JSON.stringify(value);
         }
         const str = String(value);
+        // Render image URLs as actual images for photo/avatar fields
+        if (typeof key === "string" && /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture)$/i.test(key)) {
+            if (str.startsWith("http") || str.startsWith("/") || str.startsWith("data:image")) {
+                return <img src={str} alt="Profile" className="w-8 h-8 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />;
+            }
+        }
         return str.length > 120 ? str.substring(0, 120) + "..." : str;
         } catch { return "-"; }
     };
@@ -2963,6 +2985,8 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
     const configStatusOptions = React.useMemo(() => {
         // For allergies, always use the standard FHIR clinical status values (title-cased)
         if (isAllergyTab) return ["Active", "Inactive", "Resolved"];
+        const isEducationTab = tabKey === "education" || tabKey === "patient-education" || tabKey === "patient_education";
+        if (isEducationTab) return ["Completed", "In Progress", "Preparation", "Not Done", "On Hold", "Assigned", "Viewed", "Dismissed"];
         if (!isMedicalProblemsTab || !fieldConfig) return [] as string[];
         for (const section of fieldConfig.sections || []) {
             for (const field of section.fields || []) {
