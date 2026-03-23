@@ -417,9 +417,9 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "payerName" || f.key === "insurerName" || f.key === "companyName" || f.key === "insurer" || f.key === "payor")) {
                     section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-companies", displayField: "name", valueField: "name", searchable: true }, required: true };
                 }
-                // Insurance — planName must be a lookup filtered by selected company
+                // Insurance — planName as free-text (lookup not required)
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "planName" || f.key === "plan" || f.key === "coveragePlan")) {
-                    section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/insurance-plans", displayField: "name", valueField: "name", searchable: true, dependsOn: "payerName" }, placeholder: "Select company first, then plan" };
+                    section.fields[i] = { ...f, type: "text", placeholder: "Enter plan name" };
                 }
                 // Issue 15: Documents — attachment/file field must be required + allow common doc types including CSV
                 if ((tabKey === "documents" || tabKey === "document-references") && (f.key === "attachment" || f.key === "file" || f.key === "fileUrl" || f.key === "documentUrl" || f.key === "content")) {
@@ -1318,10 +1318,14 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     setSelectedRecord(content[0]);
                     setMode("view");
                 } else if (isSingle && content.length === 0) {
-                    // No record yet — auto-open create form
-                    setFormData({});
-                    setSelectedRecord(null);
-                    setMode("create");
+                    // No record yet — but don't reset if a record is already being shown (indexing lag after save)
+                    setSelectedRecord(prev => {
+                        if (!prev) {
+                            setFormData({});
+                            setMode("create");
+                        }
+                        return prev;
+                    });
                 }
             } else if (res.status === 403) {
                 setError("Access Denied: You don't have permission to view this data.");
@@ -1521,17 +1525,6 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         }
         setFormData((prev) => {
             const next = { ...prev, [key]: value };
-            // Insurance: plan selection requires company to be selected first
-            const isInsuranceTab = tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage";
-            const isPlanKey = key === "planName" || key === "plan" || key === "coveragePlan";
-            if (isInsuranceTab && isPlanKey) {
-                const companyKeys = ["payerName", "insurerName", "companyName", "insurer", "payor"];
-                const hasCompany = companyKeys.some(k => next[k] && String(next[k]).trim());
-                if (!hasCompany) {
-                    setValidationErrors(prev => ({ ...prev, payerName: "Please select an Insurance Company first", insurerName: "Please select an Insurance Company first" }));
-                    return prev; // Prevent plan selection without company
-                }
-            }
             // ERA/Remittance: auto-update serviceTo when serviceFrom changes
             const isEraTab = tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance";
             const isServiceFromKey = key === "serviceFrom" || key === "serviceFromDate" || key === "serviceDateFrom" || key === "billablePeriodStart";
@@ -1901,8 +1894,24 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     }
                 }
             }
-            // Submissions / ERA / Remittance: Service To date must not be before Service From date
-            if (tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance" || tabKey === "submissions" || tabKey === "claim-submissions" || tabKey === "claims") {
+            // Labs: Result Date must not be before Collected Date
+            if (tabKey === "labs" || tabKey === "lab" || tabKey === "laboratory") {
+                const collected = formData.collectionDate || formData.collectedDate || formData.specimenCollectedDate || formData.effectiveDate || formData.orderDate;
+                const result = formData.resultDate || formData.reportDate || formData.issuedDate || formData.issued;
+                if (collected && result) {
+                    const collectedDt = new Date(String(collected));
+                    const resultDt = new Date(String(result));
+                    if (!isNaN(collectedDt.getTime()) && !isNaN(resultDt.getTime()) && resultDt < collectedDt) {
+                        const msg = "Result Date must be on or after Collected Date";
+                        errors.resultDate = msg;
+                        errors.reportDate = msg;
+                        errors.issuedDate = msg;
+                        errors.issued = msg;
+                    }
+                }
+            }
+            // Submissions / ERA / Remittance / Claims: Service To date must not be before Service From date
+            if (tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance" || tabKey === "submissions" || tabKey === "claim-submissions" || tabKey === "claims" || tabKey === "claim") {
                 const svcFrom = formData.serviceFrom || formData.serviceDateFrom || formData.serviceFromDate || formData.billablePeriodStart;
                 const svcTo = formData.serviceTo || formData.serviceDateTo || formData.serviceToDate || formData.billablePeriodEnd;
                 if (svcFrom && svcTo) {

@@ -1625,7 +1625,7 @@ const Calendar: React.FC = () => {
 
             // No count → default number
             if (count === 0) {
-                return <span className="fc-daygrid-day-number">{arg.dayNumberText}</span>;
+                return <span className="fc-daygrid-day-number">{arg.date.getDate()}</span>;
             }
 
             // Check if date is in the past (before today)
@@ -1655,7 +1655,7 @@ const Calendar: React.FC = () => {
                 >
                     <div className="fc-month-card-inner">
                         <span className="fc-month-day">
-                            {arg.dayNumberText}
+                            {arg.date.getDate()}
                         </span>
                         <span
                             className="fc-month-count cursor-pointer hover:bg-green-600 transition-colors"
