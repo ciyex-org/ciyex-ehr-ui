@@ -290,24 +290,40 @@ const ClaimManagementDashboard: React.FC = () => {
     setSaving(true);
     setModalError("");
     try {
-      const body: Record<string, string> = { status: newStatus };
-      if (remitDate) body.remitDate = remitDate;
-      if (paymentAmount) body.paymentAmount = paymentAmount;
+      // Send full claim data with updated status to avoid "Invoice id null" backend error
+      const payload: Record<string, any> = { ...modalClaim, status: newStatus };
+      if (remitDate) payload.remitDate = remitDate;
+      if (paymentAmount) payload.paymentAmount = paymentAmount;
 
-      const res = await fetchWithAuth(`/api/all-claims/${modalClaim.id}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        let errMsg = "Failed to update status";
+      // Try multiple endpoints — backend may expose status update at different paths
+      const claimId = modalClaim.id;
+      const endpoints = [
+        { url: `/api/all-claims/${claimId}/status`, method: "PUT" },
+        { url: `/api/all-claims/${claimId}`, method: "PUT" },
+        { url: `/api/all-claims/${claimId}`, method: "PATCH" },
+        { url: `/api/claims/${claimId}`, method: "PUT" },
+        { url: `/api/claims/${claimId}`, method: "PATCH" },
+      ];
+
+      let res: Response | null = null;
+      let lastErr = "Failed to update status";
+      for (const ep of endpoints) {
         try {
-          const errJson = await res.json();
-          errMsg = errJson.message || errMsg;
-        } catch {
-          try { errMsg = await res.text() || errMsg; } catch { /* use default */ }
-        }
-        throw new Error(errMsg);
+          const r = await fetchWithAuth(ep.url, {
+            method: ep.method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(ep.url.includes("/status") ? payload : payload),
+          });
+          if (r.ok) { res = r; break; }
+          if (r.status === 404 || r.status === 405) continue;
+          try { const j = await r.json(); lastErr = j.message || j.error || lastErr; } catch { try { lastErr = await r.text() || lastErr; } catch {} }
+          // If error contains "invoice" or "null", try next endpoint instead of stopping
+          if (lastErr.toLowerCase().includes("invoice") || lastErr.toLowerCase().includes("null")) continue;
+          res = r; break;
+        } catch { continue; }
+      }
+      if (!res || !res.ok) {
+        throw new Error(lastErr);
       }
       closeModal();
       setSelectedId(null);

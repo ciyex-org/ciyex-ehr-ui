@@ -1410,6 +1410,17 @@ const Calendar: React.FC = () => {
             return;
         }
 
+        // Validate reason/condition field for special characters
+        if (appointmentNotes && /[^A-Za-z0-9\s\-.,/()':#&+;@]/.test(appointmentNotes)) {
+            setAlertData({
+                variant: "error",
+                title: "Invalid Characters",
+                message: "Reason/condition contains invalid special characters. Only letters, numbers, and common punctuation are allowed.",
+            });
+            setIsSaving(false);
+            return;
+        }
+
         const participant: Record<string, unknown>[] = [
             { actor: { reference: `Patient/${selectedPatientId}` }, required: "required", status: "accepted" },
             { actor: { reference: `Practitioner/${appointmentProviderId}` }, required: "required", status: "accepted" },
@@ -2370,7 +2381,16 @@ const Calendar: React.FC = () => {
                                     <textarea
                                         rows={4}
                                         value={appointmentNotes}
-                                        onChange={(e) => setAppointmentNotes(e.target.value)}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            // Block invalid special characters — allow letters, digits, spaces, common medical punctuation
+                                            if (v && /[^A-Za-z0-9\s\-.,/()':#&+;@]/.test(v)) {
+                                                setAlertData({ variant: "warning", title: "Invalid Characters", message: "Reason/condition contains invalid special characters." });
+                                                setAppointmentNotes(v.replace(/[^A-Za-z0-9\s\-.,/()':#&+;@]/g, ""));
+                                            } else {
+                                                setAppointmentNotes(v);
+                                            }
+                                        }}
                                         placeholder="e.g., chest discomfort for 2 days"
                                         className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                     />
