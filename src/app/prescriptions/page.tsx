@@ -245,8 +245,8 @@ function DeleteModal({
 /* ------------------------------------------------------------------ */
 
 export default function PrescriptionsPage() {
-  const { hasCategoryWrite } = usePermissions();
-  const canWriteRx = hasCategoryWrite("rx");
+  const { canWriteResource } = usePermissions();
+  const canWriteRx = canWriteResource("MedicationRequest");
 
   /* State */
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);

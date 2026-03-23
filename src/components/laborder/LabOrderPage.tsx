@@ -167,8 +167,8 @@ function PriorityBadge({ priority }: { priority: string }) {
 /* Main Page */
 export default function LabOrdersPage() {
   const router = useRouter();
-  const { hasCategoryWrite } = usePermissions();
-  const canWriteOrders = hasCategoryWrite("orders");
+  const { canWriteResource } = usePermissions();
+  const canWriteOrders = canWriteResource("ServiceRequest");
 
   // Core state
   const [orders, setOrders] = useState<LabOrder[]>([]);

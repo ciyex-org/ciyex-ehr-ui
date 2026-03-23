@@ -274,8 +274,8 @@ function OcrTextViewer({ document: doc, onClose }: { document: ScannedDocument; 
 
 /* ── Main Page ── */
 export default function DocumentScanningPage() {
-  const { hasCategoryWrite } = usePermissions();
-  const canWriteDocs = hasCategoryWrite("documents");
+  const { canWriteResource } = usePermissions();
+  const canWriteDocs = canWriteResource("DocumentReference");
 
   const [documents, setDocuments] = useState<ScannedDocument[]>([]);
   const [loading, setLoading] = useState(true);

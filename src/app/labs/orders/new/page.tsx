@@ -14,8 +14,8 @@ function NewLabOrderContent() {
   const search = useSearchParams();
   const editId = search?.get("editId");
   const patientId = search?.get("patientId");
-  const { hasCategoryWrite, loading: permLoading } = usePermissions();
-  const canWriteOrders = hasCategoryWrite("orders");
+  const { canWriteResource, loading: permLoading } = usePermissions();
+  const canWriteOrders = canWriteResource("ServiceRequest");
 
   const [initial, setInitial] = useState<Record<string, unknown> | undefined>(undefined);
   const [loading, setLoading] = useState(false);

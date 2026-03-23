@@ -146,8 +146,8 @@ export default function PrescriptionTable({
   onNew,
   hasFilters,
 }: Props) {
-  const { hasCategoryWrite } = usePermissions();
-  const canWriteRx = hasCategoryWrite("rx");
+  const { canWriteResource } = usePermissions();
+  const canWriteRx = canWriteResource("MedicationRequest");
 
   return (
     <div className="flex-1 min-h-0 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden">

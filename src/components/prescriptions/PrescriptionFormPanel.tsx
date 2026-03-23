@@ -81,8 +81,8 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 }
 
 export default function PrescriptionFormPanel({ open, onClose, prescription, onSaved, showToast }: Props) {
-  const { hasCategoryWrite } = usePermissions();
-  const canWriteRx = hasCategoryWrite("rx");
+  const { canWriteResource } = usePermissions();
+  const canWriteRx = canWriteResource("MedicationRequest");
   const [form, setForm] = useState<Prescription>(blankPrescription());
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
