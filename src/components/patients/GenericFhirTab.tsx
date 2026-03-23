@@ -1792,12 +1792,16 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     }
                 }
             }
-            // Education: topic/title must contain only letters (no purely numeric)
+            // Education: topic/title must contain at least one letter and only valid characters
             if (tabKey === "education" || tabKey === "patient-education") {
                 for (const key of ["topic", "title", "subject"]) {
                     const val = formData[key];
-                    if (typeof val === "string" && val.trim() && /^\d+$/.test(val.trim())) {
-                        errors[key] = "Topic/Title must contain only letters";
+                    if (typeof val === "string" && val.trim()) {
+                        if (!/[A-Za-z]/.test(val.trim())) {
+                            errors[key] = "Topic/Title must contain at least one letter";
+                        } else if (!/^[A-Za-z0-9\s\-_/()&.,:'!?@#"+]+$/.test(val.trim())) {
+                            errors[key] = "Topic/Title contains invalid characters";
+                        }
                     }
                 }
             }
@@ -2556,7 +2560,8 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             });
 
             if (res.ok) {
-                const label = isEdit ? "updated" : "saved";
+                const isMessaging = tabKey === "messaging";
+                const label = isMessaging ? "sent" : (isEdit ? "updated" : "saved");
                 const json = await res.json();
                 const savedData = normalizeRecord(json.data || formData);
                 if (singleRecord) {
@@ -2576,7 +2581,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     setFormData({});
                     setSelectedRecord(null);
                 }
-                setSuccessMsg(`Record ${label} successfully`);
+                setSuccessMsg(isMessaging ? "Message sent successfully" : `Record ${label} successfully`);
                 setTimeout(() => setSuccessMsg(null), 3000);
                 // Notify appointments page and calendar to refresh
                 if (tabKey === "appointments" || tabKey === "appointment") {

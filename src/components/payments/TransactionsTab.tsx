@@ -19,6 +19,8 @@ import {
   CheckCircle,
   Banknote,
   Wallet,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
@@ -83,6 +85,14 @@ export default function TransactionsTab({ showToast }: Props) {
 
   /* Detail view */
   const [viewTarget, setViewTarget] = useState<PaymentTransaction | null>(null);
+
+  /* Edit */
+  const [editTarget, setEditTarget] = useState<PaymentTransaction | null>(null);
+  const [editForm, setEditForm] = useState({ amount: "", description: "", paymentMethodType: "" });
+  const [editSaving, setEditSaving] = useState(false);
+
+  /* Delete */
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -185,6 +195,57 @@ export default function TransactionsTab({ showToast }: Props) {
     } catch {
       showToast({ type: "error", text: "Network error" });
     } finally { setVoiding(null); }
+  };
+
+  /* Edit */
+  const openEdit = (t: PaymentTransaction) => {
+    setEditTarget(t);
+    setEditForm({
+      amount: String(t.amount || ""),
+      description: t.description || "",
+      paymentMethodType: t.paymentMethodType || "",
+    });
+  };
+
+  const handleEdit = async () => {
+    if (!editTarget?.id) return;
+    const amt = parseFloat(editForm.amount);
+    if (!amt || amt <= 0) { showToast({ type: "error", text: "Valid amount required" }); return; }
+    setEditSaving(true);
+    try {
+      const res = await fetchWithAuth(apiUrl(`/api/payments/transactions/${editTarget.id}`), {
+        method: "PUT",
+        body: JSON.stringify({ amount: amt, description: editForm.description, paymentMethodType: editForm.paymentMethodType }),
+      });
+      const json = await res.json();
+      if (res.ok && (json.success !== false)) {
+        showToast({ type: "success", text: "Payment updated" });
+        setEditTarget(null);
+        refreshAll();
+      } else {
+        showToast({ type: "error", text: json.message || "Update failed" });
+      }
+    } catch {
+      showToast({ type: "error", text: "Network error" });
+    } finally { setEditSaving(false); }
+  };
+
+  /* Delete */
+  const handleDelete = async (t: PaymentTransaction) => {
+    if (!t.id) return;
+    setDeleting(t.id);
+    try {
+      const res = await fetchWithAuth(apiUrl(`/api/payments/transactions/${t.id}`), { method: "DELETE" });
+      if (res.ok) {
+        showToast({ type: "success", text: "Payment deleted" });
+        refreshAll();
+      } else {
+        const json = await res.json().catch(() => ({}));
+        showToast({ type: "error", text: json.message || "Delete failed" });
+      }
+    } catch {
+      showToast({ type: "error", text: "Network error" });
+    } finally { setDeleting(null); }
   };
 
   const statCards = [
@@ -301,20 +362,35 @@ export default function TransactionsTab({ showToast }: Props) {
                         <button onClick={() => setViewTarget(t)} title="View" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
                           <Eye className="w-4 h-4" />
                         </button>
+                        {(t.status === "pending" || t.status === "completed") && (
+                          <button onClick={() => openEdit(t)} title="Edit" className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition">
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
                         {(t.status === "completed" || t.status === "partial_refund") && (
                           <button onClick={() => openRefund(t)} title="Refund" className="p-1.5 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition">
                             <RefreshCw className="w-4 h-4" />
                           </button>
                         )}
                         {t.status === "pending" && (
-                          <button
-                            onClick={() => handleVoid(t)}
-                            disabled={voiding === t.id}
-                            title="Void"
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                          >
-                            {voiding === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleVoid(t)}
+                              disabled={voiding === t.id}
+                              title="Void"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                            >
+                              {voiding === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleDelete(t)}
+                              disabled={deleting === t.id}
+                              title="Delete"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                            >
+                              {deleting === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -465,6 +541,75 @@ export default function TransactionsTab({ showToast }: Props) {
               <div className="flex justify-end mt-5">
                 <button onClick={() => setViewTarget(null)} className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition">
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Payment Modal */}
+      {editTarget && (
+        <div className="fixed inset-0 z-[9998]">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setEditTarget(null)} />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 shadow-xl border border-gray-200 dark:border-slate-700 p-6" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Edit Payment</h3>
+                <button onClick={() => setEditTarget(null)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-slate-800">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Patient: {editTarget.patientName || "N/A"}
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Amount ($) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    value={editForm.amount}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, amount: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Description</label>
+                  <input
+                    className="w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Payment description..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Payment Method</label>
+                  <select
+                    className="w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                    value={editForm.paymentMethodType}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, paymentMethodType: e.target.value }))}
+                  >
+                    <option value="">Select...</option>
+                    <option value="credit_card">Credit Card</option>
+                    <option value="debit_card">Debit Card</option>
+                    <option value="bank_account">Bank Account</option>
+                    <option value="fsa">FSA</option>
+                    <option value="hsa">HSA</option>
+                    <option value="check">Check</option>
+                    <option value="cash">Cash</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 mt-5">
+                <button onClick={() => setEditTarget(null)} className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition">
+                  Cancel
+                </button>
+                <button onClick={handleEdit} disabled={editSaving} className="px-5 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition flex items-center gap-2">
+                  {editSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Update Payment
                 </button>
               </div>
             </div>

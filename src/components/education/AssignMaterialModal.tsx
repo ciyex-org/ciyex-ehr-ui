@@ -37,6 +37,7 @@ export default function AssignMaterialModal({
   const providerSearchTimer = useRef<ReturnType<typeof setTimeout>>();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
 
   const getPatientDisplayName = (p: typeof patientResults[0]) =>
@@ -162,9 +163,15 @@ export default function AssignMaterialModal({
 
   const handleSubmit = async () => {
     setError("");
-    if (!patientId.trim()) { setError("Patient ID is required"); return; }
-    if (!patientName.trim()) { setError("Patient Name is required"); return; }
-    if (!selectedMaterial?.id) { setError("Please select a material"); return; }
+    const fe: Record<string, string> = {};
+    if (!patientName.trim()) fe.patientName = "Patient Name is required";
+    if (!patientId.trim()) fe.patientId = "Please select a patient from the search dropdown";
+    if (!selectedMaterial?.id) fe.material = "Please select a material";
+    setFieldErrors(fe);
+    if (Object.keys(fe).length > 0) {
+      setError(Object.values(fe)[0]);
+      return;
+    }
 
     setSaving(true);
     try {
@@ -202,8 +209,8 @@ export default function AssignMaterialModal({
 
   if (!open) return null;
 
-  const inputCls =
-    "w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+  const inputCls = (field?: string) =>
+    `w-full rounded-lg border px-3 py-2 text-sm bg-white dark:bg-slate-800 ${field && fieldErrors[field] ? "border-red-400 ring-1 ring-red-300" : "border-gray-300 dark:border-slate-600"} text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition`;
 
   const labelCls = "block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1";
 
@@ -242,13 +249,14 @@ export default function AssignMaterialModal({
               <div className="relative">
                 <label className={labelCls}>Patient Name *</label>
                 <input
-                  className={inputCls}
+                  className={inputCls("patientName")}
                   value={patientQuery}
                   onChange={(e) => {
                     setPatientQuery(e.target.value);
                     setPatientName("");
                     setPatientId("");
                     setShowPatientDropdown(true);
+                    setFieldErrors((prev) => { const n = { ...prev }; delete n.patientName; delete n.patientId; return n; });
                   }}
                   onFocus={() => { if (patientResults.length > 0) setShowPatientDropdown(true); }}
                   placeholder="Search patient..."
@@ -278,11 +286,12 @@ export default function AssignMaterialModal({
               <div>
                 <label className={labelCls}>Patient ID *</label>
                 <input
-                  className={inputCls}
+                  className={inputCls("patientId")}
                   value={patientId}
                   readOnly
                   placeholder="Auto-filled"
                 />
+                {fieldErrors.patientId && <p className="text-xs text-red-500 mt-1">{fieldErrors.patientId}</p>}
               </div>
             </div>
 
@@ -342,6 +351,7 @@ export default function AssignMaterialModal({
                   ))}
                 </div>
               )}
+              {fieldErrors.material && <p className="text-xs text-red-500 mt-1">{fieldErrors.material}</p>}
             </div>
 
             {/* Due Date */}
@@ -349,7 +359,7 @@ export default function AssignMaterialModal({
               <label className={labelCls}>Due Date</label>
               <input
                 type="date"
-                className={inputCls}
+                className={inputCls()}
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
@@ -359,7 +369,7 @@ export default function AssignMaterialModal({
             <div>
               <label className={labelCls}>Notes for Patient</label>
               <textarea
-                className={inputCls}
+                className={inputCls()}
                 rows={3}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -371,7 +381,7 @@ export default function AssignMaterialModal({
             <div className="relative">
               <label className={labelCls}>Assigned By</label>
               <input
-                className={inputCls}
+                className={inputCls()}
                 value={assignedBy}
                 onChange={(e) => {
                   setAssignedBy(e.target.value);

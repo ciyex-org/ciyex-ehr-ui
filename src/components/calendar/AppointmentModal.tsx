@@ -570,6 +570,26 @@ const AppointmentModal: React.FC = () => {
             return;
         }
 
+        // Validate Reason / Chief Complaint field: restrict special characters
+        if (notes.trim()) {
+            if (!/^[A-Za-z0-9\s\-.,;:'/()]+$/.test(notes.trim())) {
+                setAlertData({
+                    variant: "error",
+                    title: "Invalid Characters",
+                    message: "Reason / Chief Complaint contains invalid special characters. Only letters, numbers, spaces, and basic punctuation (- . , ; : ' / ( )) are allowed.",
+                });
+                return;
+            }
+            if (!/[A-Za-z]/.test(notes.trim())) {
+                setAlertData({
+                    variant: "error",
+                    title: "Invalid Input",
+                    message: "Reason / Chief Complaint must contain at least one letter.",
+                });
+                return;
+            }
+        }
+
         // ✅ Validate provider schedule covers the slot (warning only — don't block creation)
         try {
             const res = await fetchWithAuth(

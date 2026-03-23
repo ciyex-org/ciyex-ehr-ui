@@ -66,6 +66,7 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
   });
   const [saving, setSaving] = useState(false);
   const [faxError, setFaxError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Reset form when panel opens with a new resendFax or fresh
   useEffect(() => {
@@ -91,37 +92,33 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const fe: Record<string, string> = {};
     if (!form.patientName?.trim()) {
-      setFaxError("Patient name is required");
-      return;
+      fe.patientName = "Patient name is required";
     }
     if (!form.recipientName.trim()) {
-      setFaxError("Recipient name is required");
-      return;
-    }
-    if (!/[A-Za-z]/.test(form.recipientName)) {
-      setFaxError("Recipient name must contain at least one letter");
-      return;
-    }
-    if (!/^[A-Za-z0-9\s\-_/()&.,:'!?@#]+$/.test(form.recipientName.trim())) {
-      setFaxError("Recipient name contains invalid characters");
-      return;
+      fe.recipientName = "Recipient name is required";
+    } else if (!/[A-Za-z]/.test(form.recipientName)) {
+      fe.recipientName = "Recipient name must contain at least one letter";
+    } else if (!/^[A-Za-z0-9\s\-_/()&.,:'!?@#]+$/.test(form.recipientName.trim())) {
+      fe.recipientName = "Recipient name contains invalid characters";
     }
     if (!form.faxNumber.trim()) {
-      setFaxError("Fax number is required");
-      return;
-    }
-    const digitCount = form.faxNumber.replace(/\D/g, "").length;
-    if (!isValidFax(form.faxNumber) || digitCount < 7) {
-      setFaxError("Please enter a valid fax number with at least 7 digits");
-      return;
+      fe.faxNumber = "Fax number is required";
+    } else {
+      const digitCount = form.faxNumber.replace(/\D/g, "").length;
+      if (!isValidFax(form.faxNumber) || digitCount < 7) {
+        fe.faxNumber = "Please enter a valid fax number with at least 7 digits";
+      }
     }
     if (!form.subject.trim()) {
-      setFaxError("Subject is required");
-      return;
+      fe.subject = "Subject is required";
+    } else if (!/[A-Za-z]/.test(form.subject)) {
+      fe.subject = "Subject must contain at least one letter";
     }
-    if (!/[A-Za-z]/.test(form.subject)) {
-      setFaxError("Subject must contain at least one letter");
+    setFieldErrors(fe);
+    if (Object.keys(fe).length > 0) {
+      setFaxError(Object.values(fe)[0]);
       return;
     }
     setFaxError("");
@@ -174,10 +171,11 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
               type="text"
               required
               value={form.recipientName}
-              onChange={(e) => update("recipientName", e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => { update("recipientName", e.target.value); setFieldErrors((prev) => { const n = { ...prev }; delete n.recipientName; return n; }); }}
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${fieldErrors.recipientName ? "border-red-400 ring-1 ring-red-300" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="Dr. Smith's Office"
             />
+            {fieldErrors.recipientName && <p className="text-xs text-red-500 mt-1">{fieldErrors.recipientName}</p>}
           </div>
 
           {/* Fax Number */}
@@ -189,11 +187,11 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
               type="tel"
               required
               value={form.faxNumber}
-              onChange={(e) => { update("faxNumber", e.target.value); if (faxError) setFaxError(""); }}
-              className={`w-full px-3 py-2 text-sm rounded-lg border ${faxError ? "border-red-400 ring-1 ring-red-300" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              onChange={(e) => { update("faxNumber", e.target.value); setFieldErrors((prev) => { const n = { ...prev }; delete n.faxNumber; return n; }); if (faxError) setFaxError(""); }}
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${fieldErrors.faxNumber ? "border-red-400 ring-1 ring-red-300" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="+1 (555) 123-4567"
             />
-            {faxError && <p className="text-xs text-red-500 mt-1">{faxError}</p>}
+            {fieldErrors.faxNumber && <p className="text-xs text-red-500 mt-1">{fieldErrors.faxNumber}</p>}
           </div>
 
           {/* Subject */}
@@ -205,10 +203,11 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
               type="text"
               required
               value={form.subject}
-              onChange={(e) => update("subject", e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => { update("subject", e.target.value); setFieldErrors((prev) => { const n = { ...prev }; delete n.subject; return n; }); }}
+              className={`w-full px-3 py-2 text-sm rounded-lg border ${fieldErrors.subject ? "border-red-400 ring-1 ring-red-300" : "border-gray-200 dark:border-gray-700"} bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="Patient Referral"
             />
+            {fieldErrors.subject && <p className="text-xs text-red-500 mt-1">{fieldErrors.subject}</p>}
           </div>
 
           {/* Page Count */}

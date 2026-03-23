@@ -342,17 +342,21 @@ function FormDrawer({
 
     function validate(): boolean {
         const e: Record<string, string> = {};
-        if (!form.vaccineName?.trim()) e.vaccineName = "Vaccine name is required";
+        if (!form.vaccineName?.trim()) {
+            e.vaccineName = "Vaccine name is required";
+        } else if (!/[A-Za-z]/.test(form.vaccineName.trim())) {
+            e.vaccineName = "Vaccine name must contain at least one letter";
+        } else if (!/^[A-Za-z0-9\s\-.,/()']+$/.test(form.vaccineName.trim())) {
+            e.vaccineName = "Vaccine name contains invalid characters";
+        }
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
-        // Lot number: alphanumeric + hyphens only, no leading hyphen, minimum 8 chars
+        // Lot number: alphanumeric + hyphens only, no leading hyphen
         if (form.lotNumber && form.lotNumber.trim()) {
             const lot = form.lotNumber.trim();
             if (/^-/.test(lot)) {
                 e.lotNumber = "Lot number cannot start with a hyphen";
             } else if (!/^[A-Za-z0-9][A-Za-z0-9\-]*$/.test(lot)) {
                 e.lotNumber = "Lot number must contain only letters, numbers, or hyphens";
-            } else if (lot.length < 8) {
-                e.lotNumber = "Lot number must be at least 8 characters";
             }
         }
         // Dose: must be a positive number if provided

@@ -194,6 +194,7 @@ export default function PriorAuthorizationsPage() {
   const [editingAuth, setEditingAuth] = useState<PriorAuth | null>(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [actionMenuId, setActionMenuId] = useState<string | null>(null);
 
   // Approve / Deny modal state
@@ -539,12 +540,29 @@ export default function PriorAuthorizationsPage() {
     setShowForm(false);
     setEditingAuth(null);
     setFormData(EMPTY_FORM);
+    setSaveError("");
     resetSearchFields();
   }
 
   async function handleSave() {
+    setSaveError("");
+    // Validate patient name
+    if (!formData.patientName?.trim()) {
+      setSaveError("Patient name is required. Please search and select a patient.");
+      return;
+    }
+    if (!formData.patientId?.trim()) {
+      setSaveError("Please select a patient from the search dropdown.");
+      return;
+    }
+    // Validate patient name format
+    if (!/[A-Za-z]/.test(formData.patientName.trim())) {
+      setSaveError("Patient name must contain at least one letter.");
+      return;
+    }
     // Validate member ID
     if (formData.memberId && formData.memberId.trim().length > 0 && formData.memberId.trim().length < 3) {
+      setSaveError("Member ID must be at least 3 characters.");
       return;
     }
     setSaving(true);
@@ -553,15 +571,21 @@ export default function PriorAuthorizationsPage() {
         ? `${base()}/api/prior-auth/${editingAuth.id}`
         : `${base()}/api/prior-auth`;
       const method = editingAuth ? "PUT" : "POST";
-      await fetchWithAuth(url, {
+      const res = await fetchWithAuth(url, {
         method,
         body: JSON.stringify(formData),
       });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        setSaveError(errJson.message || "Failed to save authorization");
+        return;
+      }
       closeForm();
       fetchAuths();
       fetchStats();
     } catch (err) {
       console.error("Save failed:", err);
+      setSaveError("Network error. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -1511,6 +1535,11 @@ export default function PriorAuthorizationsPage() {
               </div>
 
               {/* Footer */}
+              {saveError && (
+                <div className="mx-6 mb-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-300">
+                  {saveError}
+                </div>
+              )}
               <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <button
                   onClick={closeForm}
