@@ -1827,7 +1827,7 @@ const auditLog: ReportDefinition = {
         byAction: toChartData(actionCounts, "name", "count"),
         dailyTrend,
       },
-      tableData: records.slice(0, 100).map((a: any) => ({ timestamp: a.timestamp || a.createdAt || "", user: a.user || a.username || "", action: a.action || a.actionType || "", resource: a.resource || a.entityType || "", details: a.details || a.description || "", ipAddress: a.ipAddress || a.ip || "" })),
+      tableData: records.slice(0, 100).map((a: any) => ({ timestamp: a.timestamp || a.createdAt || "", user: a.user || a.username || a.userId || a.performedBy || a.actor || a.modifiedBy || a.createdBy || "", action: a.action || a.actionType || a.eventType || "", resource: a.resource || a.entityType || a.entityId || a.targetResource || a.targetType || a.resourceType || a.object || "", details: a.details || a.description || a.message || a.note || a.detail || a.info || "", ipAddress: a.ipAddress || a.ip || "" })),
       totalRecords: records.length,
     };
   },

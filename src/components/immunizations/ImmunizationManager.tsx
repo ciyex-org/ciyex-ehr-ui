@@ -350,14 +350,9 @@ function FormDrawer({
             e.vaccineName = "Vaccine name contains invalid characters";
         }
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
-        // Lot number: alphanumeric + hyphens only, no leading hyphen
-        if (form.lotNumber && form.lotNumber.trim()) {
-            const lot = form.lotNumber.trim();
-            if (/^-/.test(lot)) {
-                e.lotNumber = "Lot number cannot start with a hyphen";
-            } else if (!/^[A-Za-z0-9][A-Za-z0-9\-]*$/.test(lot)) {
-                e.lotNumber = "Lot number must contain only letters, numbers, or hyphens";
-            }
+        // Lot number: must start and end with alphanumeric, internal hyphens allowed
+        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(form.lotNumber.trim())) {
+            e.lotNumber = "Lot number must start and end with a letter or number (hyphens allowed in between)";
         }
         // Dose: must be a positive number if provided
         if (form.dose !== undefined && form.dose !== null) {
@@ -435,10 +430,8 @@ function FormDrawer({
                             onChange={(v) => {
                                 const filtered = v.replace(/[^A-Za-z0-9\-]/g, "");
                                 set("lotNumber", filtered);
-                                if (filtered && /^-/.test(filtered)) {
-                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number cannot start with a hyphen" }));
-                                } else if (filtered && !/^[A-Za-z0-9][A-Za-z0-9\-]*$/.test(filtered)) {
-                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must contain only letters, numbers, or hyphens" }));
+                                if (filtered && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(filtered)) {
+                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must start and end with a letter or number (hyphens allowed in between)" }));
                                 } else if (filtered && filtered.length < 8) {
                                     setErrors(prev => ({ ...prev, lotNumber: "Lot number must be at least 8 characters" }));
                                 } else {

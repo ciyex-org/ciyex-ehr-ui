@@ -328,7 +328,11 @@ export default function MessageLog() {
                         onClick={async () => {
                           setRetryingId(log.id);
                           try {
-                            const res = await fetchWithAuth(`/api/notifications/log/${log.id}/retry`, { method: "POST" });
+                            // Try without /log/ prefix first, fallback to /resend/
+                            let res = await fetchWithAuth(`/api/notifications/${log.id}/retry`, { method: "POST" });
+                            if (!res.ok) {
+                              res = await fetchWithAuth(`/api/notifications/resend/${log.id}`, { method: "POST" });
+                            }
                             if (res.ok) {
                               setActionFeedback({ type: "success", text: "Notification queued for resend" });
                               loadLogs();

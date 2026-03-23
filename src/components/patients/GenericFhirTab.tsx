@@ -2266,6 +2266,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
             if (tabKey === "documents") {
                 if (payload.documentDate && !payload.date) payload.date = payload.documentDate;
                 if (payload.date && !payload.documentDate) payload.documentDate = payload.date;
+                if (payload.content === "" || payload.content == null) delete payload.content;
             }
             if (tabKey === "messaging") {
                 if (payload.from && !payload.sender) payload.sender = payload.from;
@@ -2875,6 +2876,15 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         if (typeof value === "boolean") return value ? "Yes" : "No";
 
         const fieldDef = colKey ? findFieldDef(colKey) : undefined;
+
+        // History tab: show smokingStatus instead of generic status badge
+        if ((tabKey === "history" || tabKey === "medicalhistory" || tabKey === "medical-history") && colKey === "status" && record) {
+            const smokingStatus = record.smokingStatus || record.smoking_status || record.tobaccoStatus || record.socialHistory?.smokingStatus;
+            if (smokingStatus && typeof smokingStatus === "string") {
+                return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{smokingStatus}</span>;
+            }
+            return "-";
+        }
 
         // Status badge rendering
         if (fieldDef?.badgeColors && typeof value === "string") {
