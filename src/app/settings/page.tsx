@@ -111,7 +111,7 @@ export default function SettingsPage() {
         : items.filter((item) => STAFF_VISIBLE_TABS.includes(item.tabKey));
 
     return (
-        <div className="flex h-[calc(100vh-64px)]">
+        <div className="flex h-full min-h-0">
             {/* Side menu */}
             <div className="w-56 border-r border-gray-200 bg-gray-50 overflow-y-auto shrink-0">
                 <div className="px-4 py-3 border-b border-gray-200">

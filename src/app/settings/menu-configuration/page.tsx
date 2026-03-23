@@ -618,7 +618,7 @@ export default function MenuConfigurationPage() {
       <div className={showCode ? "flex gap-4" : ""}>
       {/* Code Panel */}
       {showCode && (
-        <div className="w-1/2 shrink-0 border border-gray-200 rounded-lg overflow-hidden h-[calc(100vh-240px)]">
+        <div className="w-1/2 shrink-0 border border-gray-200 rounded-lg overflow-hidden h-[calc(100vh-296px)] min-h-64">
           <JsonCodeView />
         </div>
       )}

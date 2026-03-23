@@ -1689,7 +1689,7 @@ const Calendar: React.FC = () => {
      * Render
      * ======================= */
     return (
-        <div className="relative flex flex-col h-[calc(100vh-100px)] rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="relative flex flex-col h-full min-h-0 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <style>{monthViewStyles}</style>
 
             {/* Alert banner */}

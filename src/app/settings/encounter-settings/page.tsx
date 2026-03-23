@@ -274,7 +274,7 @@ export default function EncounterSettingsPage() {
                 <div className={showCode ? "flex gap-4" : ""}>
                 {/* Code Panel */}
                 {showCode && (
-                    <div className="w-1/2 shrink-0 border border-gray-200 rounded-lg overflow-hidden h-[calc(100vh-280px)]">
+                    <div className="w-1/2 shrink-0 border border-gray-200 rounded-lg overflow-hidden h-[calc(100vh-336px)] min-h-64">
                         <JsonCodeView
                             value={fieldConfig}
                             onChange={(parsed) => {

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 export default function page() {
   return (
-    <div>
+    <div className="h-full min-h-0 flex flex-col">
       <Calendar />
     </div>
   );
