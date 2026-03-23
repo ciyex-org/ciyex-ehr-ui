@@ -577,7 +577,7 @@ function FileUploadField({
     }
     if (allowedTypes.length > 0) {
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
-      if (!allowedTypes.some((t) => ext === t || file.type.includes(t))) {
+      if (!allowedTypes.some((t) => ext === t || file.type.includes(t) || (t === "csv" && (file.type === "text/csv" || file.type === "application/vnd.ms-excel")))) {
         return `File type not allowed. Allowed: ${allowedTypes.join(", ")}`;
       }
     }
@@ -2068,6 +2068,8 @@ export default function DynamicFormRenderer({
                 ? value ? "Yes" : "No"
                 : field.fhirMapping?.type === "reference"
                 ? formData[field.key + "Display"] || value || "-"
+                : (/^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture)$/i.test(field.key) && typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image")))
+                ? <img src={value} alt="Profile" className="w-10 h-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 : value || "-"}
             </span>
           )

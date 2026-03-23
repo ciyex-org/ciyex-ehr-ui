@@ -323,7 +323,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 }
                 // Ensure lotNumber allows alphanumeric input (not just letters)
                 if ((tabKey === "immunizations" || tabKey === "immunization") && (f.key === "lotNumber" || f.key === "lot_number" || f.key === "lot")) {
-                    section.fields[i] = { ...section.fields[i] || f, type: "text", pattern: undefined, validation: undefined, placeholder: "e.g., AB1234, 12345" };
+                    section.fields[i] = { ...section.fields[i] || f, type: "text", placeholder: "e.g., AB1234, 12345" } as any;
                 }
                 // Encounters: keep reasonForVisit as-is (honor backend required flag)
                 // Encounters: ensure patient field is a searchable patient lookup
@@ -365,7 +365,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 // Appointments: ensure location/room field is a location lookup
                 if (tabKey === "appointments" && (f.key === "location" || f.key === "locationId" || f.key === "locationName" || f.key === "room" || f.key === "roomId" || f.key === "roomName")) {
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
-                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/facilities", displayField: "name", valueField: "id", searchable: true, dropdownPosition: "auto" } };
+                        section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/fhir-resource/facilities", displayField: "name", valueField: "id", searchable: true, dropdownPosition: "auto" } as any };
                     }
                 }
                 // Issues/Conditions: ensure onsetDate is a date field
@@ -520,7 +520,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 }
                 // Prior Auth: memberId should allow alphanumeric
                 if ((tabKey === "prior-auth" || tabKey === "prior-authorizations" || tabKey === "priorauth" || tabKey === "prior_authorizations" || tabKey === "prior-authorization" || tabKey === "authorizations") && (f.key === "memberId" || f.key === "memberNumber" || f.key === "subscriberId" || f.key === "policyNumber")) {
-                    section.fields[i] = { ...f, type: "text", pattern: undefined, validation: undefined, placeholder: "Enter alphanumeric member ID" };
+                    section.fields[i] = { ...f, type: "text", placeholder: "Enter alphanumeric member ID" } as any;
                 }
             }
             // Education: inject URL field if not present in config
@@ -2090,6 +2090,30 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     }
                 }
             }
+            // Insurance: memberId and groupNumber should allow alphanumeric characters
+            if (tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") {
+                for (const key of ["memberId", "memberNumber", "subscriberId", "idNo", "policyNumber", "policyNo"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9\-\s]+$/.test(val.trim())) {
+                        errors[key] = "ID must be alphanumeric (letters, numbers, hyphens)";
+                    }
+                }
+                for (const key of ["groupNumber", "group", "groupNo", "groupId"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9\-\s]+$/.test(val.trim())) {
+                        errors[key] = "Group number must be alphanumeric";
+                    }
+                }
+            }
+            // Authorizations: memberId must be alphanumeric
+            if (tabKey === "prior-auth" || tabKey === "prior-authorizations" || tabKey === "priorauth" || tabKey === "prior_authorizations" || tabKey === "authorizations") {
+                for (const key of ["memberId", "memberNumber", "subscriberId", "policyNumber"]) {
+                    const val = formData[key];
+                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9\-\s]+$/.test(val.trim())) {
+                        errors[key] = "Member ID must be alphanumeric";
+                    }
+                }
+            }
             // Appointments: reason/cancellationReason alphanumeric; duration numeric
             if (tabKey === "appointments" || tabKey === "appointment") {
                 for (const key of ["reason", "appointmentReason", "appointment_reason"]) {
@@ -2309,6 +2333,12 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 }
                 if (!payload.category) payload.category = ["medication"];
                 if (!payload.type) payload.type = "allergy";
+                // Ensure patient reference is always included (required for FHIR AllergyIntolerance)
+                if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
+                // Map common field names to FHIR-expected names for edits
+                if (payload.allergyName && !payload.code) payload.code = wrapCoding(payload.allergyName, "http://snomed.info/sct");
+                if (payload.severity && typeof payload.severity === "string" && !payload.criticality) payload.criticality = payload.severity;
+                if (payload.onsetDate && !payload.onsetDateTime) payload.onsetDateTime = payload.onsetDate;
             }
 
             // Issue 6: Facility / Location — wrap type in CodeableConcept with system
@@ -2958,7 +2988,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         }
         const str = String(value);
         // Render image URLs as actual images for photo/avatar fields
-        if (typeof key === "string" && /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture)$/i.test(key)) {
+        if (typeof colKey === "string" && /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture)$/i.test(colKey)) {
             if (str.startsWith("http") || str.startsWith("/") || str.startsWith("data:image")) {
                 return <img src={str} alt="Profile" className="w-8 h-8 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />;
             }
@@ -3219,22 +3249,29 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                                     fd.append("category", "report");
                                     try {
                                         const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
-                                        // Try files-proxy first, then documents/upload fallback
-                                        let res = await fetchWithAuth(`${base}/api/files-proxy/upload`, {
-                                            method: "POST",
-                                            body: fd,
-                                        });
-                                        if (!res.ok) {
-                                            const fd2 = new FormData();
-                                            fd2.append("file", file);
-                                            fd2.append("patientId", String(patientId));
-                                            fd2.append("category", "report");
-                                            res = await fetchWithAuth(`${base}/api/documents/upload`, {
-                                                method: "POST",
-                                                body: fd2,
-                                            });
+                                        // Try multiple upload endpoints with fallbacks
+                                        const endpoints = [
+                                            `${base}/api/files-proxy/upload`,
+                                            `${base}/api/documents/upload`,
+                                            `${base}/api/fhir-resource/documents/upload`,
+                                            `${base}/api/file/upload`,
+                                        ];
+                                        let res: Response | null = null;
+                                        for (const ep of endpoints) {
+                                            try {
+                                                const uploadFd = new FormData();
+                                                uploadFd.append("file", file);
+                                                uploadFd.append("patientId", String(patientId));
+                                                uploadFd.append("category", "report");
+                                                const attempt = await fetchWithAuth(ep, {
+                                                    method: "POST",
+                                                    body: uploadFd,
+                                                });
+                                                if (attempt.ok) { res = attempt; break; }
+                                                if (!res || res.status >= 500) res = attempt;
+                                            } catch { /* try next endpoint */ }
                                         }
-                                        if (res.ok) {
+                                        if (res && res.ok) {
                                             const json = await res.json();
                                             const data = json.data || json;
                                             const url = data.url || data.fileUrl || data.fileId || data.id || "";
@@ -3245,10 +3282,11 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                                             handleFieldChange("fileName", file.name);
                                             setSuccessMsg(`File "${file.name}" uploaded successfully.`);
                                         } else {
-                                            const errJson = await res.json().catch(() => ({}));
-                                            setError(errJson?.message || `Upload failed (${res.status}). Please try again.`);
+                                            const errJson = res ? await res.json().catch(() => ({})) : {};
+                                            setError(errJson?.message || `Upload failed${res ? ` (${res.status})` : ""}. Please try again.`);
                                         }
-                                    } catch {
+                                    } catch (err) {
+                                        console.error("Report file upload error:", err);
                                         setError("Failed to upload file. Please try again.");
                                     }
                                 }}
