@@ -323,7 +323,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 }
                 // Ensure lotNumber allows alphanumeric input (not just letters)
                 if ((tabKey === "immunizations" || tabKey === "immunization") && (f.key === "lotNumber" || f.key === "lot_number" || f.key === "lot")) {
-                    section.fields[i] = { ...section.fields[i] || f, type: "text", placeholder: "e.g., AB1234, 12345" } as any;
+                    section.fields[i] = { ...section.fields[i] || f, type: "text", validation: undefined, placeholder: "e.g., AB1234, 12345" } as any;
                 }
                 // Encounters: keep reasonForVisit as-is (honor backend required flag)
                 // Encounters: ensure patient field is a searchable patient lookup
@@ -390,11 +390,11 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 }
                 // Insurance: memberId must be alphanumeric (not letters-only)
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "memberId" || f.key === "memberNumber" || f.key === "subscriberId" || f.key === "idNo" || f.key === "policyNumber" || f.key === "policyNo")) {
-                    section.fields[i] = { ...f, type: "text", placeholder: "Enter alphanumeric ID" };
+                    section.fields[i] = { ...f, type: "text", validation: undefined, placeholder: "Enter alphanumeric ID (e.g., ABC123)" } as any;
                 }
                 // Insurance: groupNumber must be alphanumeric
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "groupNumber" || f.key === "group" || f.key === "groupNo" || f.key === "groupId")) {
-                    section.fields[i] = { ...f, type: "text", placeholder: "Enter group number" };
+                    section.fields[i] = { ...f, type: "text", validation: undefined, placeholder: "Enter group number (e.g., GRP001)" } as any;
                 }
                 // Allergies — label and deduplicate allergy fields
                 if (tabKey === "allergies" || tabKey === "allergy-intolerances") {
@@ -520,7 +520,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 }
                 // Prior Auth: memberId should allow alphanumeric
                 if ((tabKey === "prior-auth" || tabKey === "prior-authorizations" || tabKey === "priorauth" || tabKey === "prior_authorizations" || tabKey === "prior-authorization" || tabKey === "authorizations") && (f.key === "memberId" || f.key === "memberNumber" || f.key === "subscriberId" || f.key === "policyNumber")) {
-                    section.fields[i] = { ...f, type: "text", placeholder: "Enter alphanumeric member ID" } as any;
+                    section.fields[i] = { ...f, type: "text", validation: undefined, placeholder: "Enter alphanumeric member ID (e.g., MEM123)" } as any;
                 }
             }
             // Education: inject URL field if not present in config
@@ -3337,7 +3337,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                             className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
                         />
                     </div>
-                    {uniqueStatuses.length > 0 && !isDemographicsTab && (
+                    {uniqueStatuses.length > 0 && !isDemographicsTab && tabKey !== "medications" && tabKey !== "medication-requests" && (
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}

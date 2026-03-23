@@ -183,14 +183,36 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     if (!prescriberQuery.trim() || prescriberQuery.length < 1) { setPrescriberResults([]); return; }
     const t = setTimeout(async () => {
       try {
-        const res = await fetchWithAuth(`${(getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/providers?search=${encodeURIComponent(prescriberQuery)}`);
-        if (!res.ok) return;
-        const json = await res.json();
+        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+        const parseProviders = (json: any) => {
+          if (Array.isArray(json?.data?.content)) return json.data.content;
+          if (Array.isArray(json?.data)) return json.data;
+          if (Array.isArray(json?.content)) return json.content;
+          if (Array.isArray(json)) return json;
+          return [];
+        };
+
+        // Try search param first
         let list: typeof prescriberResults = [];
-        if (Array.isArray(json?.data?.content)) list = json.data.content;
-        else if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.content)) list = json.content;
-        else if (Array.isArray(json)) list = json;
+        const res = await fetchWithAuth(`${base}/api/providers?search=${encodeURIComponent(prescriberQuery)}`);
+        if (res.ok) {
+          list = parseProviders(await res.json());
+        }
+
+        // If search returned nothing, fetch all and filter client-side
+        if (list.length === 0) {
+          const allRes = await fetchWithAuth(`${base}/api/providers`);
+          if (allRes.ok) {
+            const allList = parseProviders(await allRes.json());
+            const q = prescriberQuery.toLowerCase();
+            list = allList.filter((p: any) => {
+              const name = (p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || "").toLowerCase();
+              const npi = String(p.npi || "").toLowerCase();
+              return name.includes(q) || npi.includes(q);
+            });
+          }
+        }
+
         setPrescriberResults(list);
         setShowPrescriberDropdown(list.length > 0);
       } catch { /* silent */ }

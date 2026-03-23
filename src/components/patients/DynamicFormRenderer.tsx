@@ -324,18 +324,26 @@ function LookupField({
   const [showDropdown, setShowDropdown] = useState(false);
   const [displayValue, setDisplayValue] = useState(displayLabel || value || "");
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 0 });
+  const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number }>({ left: 0, width: 0 });
 
   // Update display value when displayLabel prop changes (e.g., after data reload)
   React.useEffect(() => {
     if (displayLabel) setDisplayValue(displayLabel);
   }, [displayLabel]);
 
-  // Recalculate dropdown position when showing
+  // Recalculate dropdown position when showing — auto-position above or below
   React.useEffect(() => {
     if (showDropdown && inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+      const dropHeight = Math.min(192, Math.max(results.length, 3) * 40);
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < dropHeight && rect.top > dropHeight) {
+        // Position above the input
+        setDropdownPos({ bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width });
+      } else {
+        // Position below the input
+        setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+      }
     }
   }, [showDropdown, results]);
 
@@ -445,7 +453,7 @@ function LookupField({
         return filteredResults.length > 0 && ReactDOM.createPortal(
         <div
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
-          style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+          style={{ position: "fixed", top: dropdownPos.top, bottom: dropdownPos.bottom, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
         >
           {filteredResults.map((item, idx) => {
             const display = item[field.lookupConfig!.displayField] ||
