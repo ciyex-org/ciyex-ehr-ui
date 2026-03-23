@@ -2200,6 +2200,7 @@ export default function DynamicFormRenderer({
               value={value ?? ""}
               placeholder={field.placeholder}
               onChange={(e) => onChange(field.key, e.target.value ? Number(e.target.value) : null)}
+              onKeyDown={(e: React.KeyboardEvent) => { if (["e", "E", "+"].includes(e.key)) e.preventDefault(); }}
               error={!!error}
             />
             {field.fhirMapping?.unit && (
@@ -2359,12 +2360,14 @@ export default function DynamicFormRenderer({
       case "date": {
         // Strip time portion from FHIR datetime strings (e.g. "2025-04-10T16:11:23+00:00" → "2025-04-10")
         const dateValue = typeof value === "string" && value.includes("T") ? value.split("T")[0] : (value || "");
+        const isDob = /^(dateOfBirth|dob|birthDate|birthdate|birth_date|date_of_birth|ptDob|patientDob)$/i.test(field.key);
         return (
           <Input
             type="date"
             value={dateValue}
             onChange={(e) => onChange(field.key, e.target.value)}
             error={!!error}
+            max={isDob ? new Date().toISOString().slice(0, 10) : undefined}
           />
         );
       }

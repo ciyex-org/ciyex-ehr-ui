@@ -90,6 +90,7 @@ export const LabResultRow: React.FC<LabResultRowProps> = ({ result, onChange, on
           className="w-28 border rounded px-2 py-1 text-xs"
         />
         <input
+          type="date"
           value={result.collectedDate || ""}
           onChange={(e) => onChange({ collectedDate: e.target.value })}
           placeholder="Collected YYYY-MM-DD"
@@ -98,11 +99,20 @@ export const LabResultRow: React.FC<LabResultRowProps> = ({ result, onChange, on
       </Td>
       <Td>
         <input
+          type="date"
           value={result.reportedDate || ""}
-          onChange={(e) => onChange({ reportedDate: e.target.value })}
+          min={result.collectedDate || undefined}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (result.collectedDate && v && v < result.collectedDate) return;
+            onChange({ reportedDate: v });
+          }}
           placeholder="Reported YYYY-MM-DD"
-          className="w-36 border rounded px-2 py-1 text-xs"
+          className={`w-36 border rounded px-2 py-1 text-xs ${result.reportedDate && result.collectedDate && result.reportedDate < result.collectedDate ? "border-red-400" : ""}`}
         />
+        {result.reportedDate && result.collectedDate && result.reportedDate < result.collectedDate && (
+          <p className="text-[10px] text-red-500 mt-0.5">Must be after collected date</p>
+        )}
         <select
           value={result.abnormalFlag || ""}
           onChange={(e) => onChange({ abnormalFlag: e.target.value || null })}

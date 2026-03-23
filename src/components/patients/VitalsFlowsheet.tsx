@@ -384,21 +384,22 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                     <p className="text-xs mt-1">Vitals are recorded during encounters</p>
                 </div>
             ) : (<>
-                <div className="flex-1 overflow-auto border rounded-lg bg-white" style={{ minHeight: 0 }}>
-                    <table className="text-sm border-collapse w-full table-fixed" style={{ minWidth: "100%" }}>
+                <div className="flex-1 overflow-auto border rounded-lg bg-white" style={{ minHeight: 0, maxHeight: "calc(100vh - 300px)" }}>
+                    <table className="text-sm border-collapse w-full" style={{ minWidth: `${160 + columns.length * 130}px` }}>
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-gray-50 border-b">
                                 {/* Row label column (sticky left, fixed width) */}
-                                <th className="sticky left-0 z-20 bg-gray-50 text-left px-3 py-2 font-semibold text-gray-700 border-r w-40 min-w-40 max-w-40">
+                                <th className="sticky left-0 z-20 bg-gray-50 text-left px-4 py-2.5 font-semibold text-gray-700 border-r" style={{ width: 160, minWidth: 160 }}>
                                     Measurement
                                 </th>
                                 {/* Date columns — newest first, flexible */}
                                 {columns.map((col, i) => (
                                     <th
                                         key={String(col.id || i)}
-                                        className={`text-center px-3 py-2 font-medium border-r min-w-[110px] ${
+                                        className={`text-center px-4 py-2.5 font-medium border-r ${
                                             i === 0 ? "bg-indigo-50 text-indigo-800" : "bg-gray-50 text-gray-600"
                                         }`}
+                                        style={{ minWidth: 130 }}
                                     >
                                         <div className="text-xs">{formatDate(String(col.recordedAt || ""))}</div>
                                         <div className="text-[10px] text-gray-400">{formatTime(String(col.recordedAt || ""))}</div>
@@ -413,11 +414,11 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                                     className={`border-b ${ri % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-blue-50/30`}
                                 >
                                     {/* Row label */}
-                                    <td className="sticky left-0 z-10 bg-inherit px-3 py-2 border-r w-40 min-w-40 max-w-40">
+                                    <td className="sticky left-0 z-10 bg-inherit px-4 py-2.5 border-r" style={{ width: 160, minWidth: 160 }}>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs">{row.icon}</span>
+                                            <span className="text-sm">{row.icon}</span>
                                             <div>
-                                                <div className="font-medium text-gray-700 text-xs">{row.label}</div>
+                                                <div className="font-medium text-gray-700 text-xs leading-relaxed">{row.label}</div>
                                                 <div className="text-[10px] text-gray-400">{row.unit}</div>
                                             </div>
                                         </div>
@@ -443,9 +444,10 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                                         return (
                                             <td
                                                 key={String(col.id || ci)}
-                                                className={`text-center px-3 py-2 border-r ${
+                                                className={`text-center px-4 py-2.5 border-r ${
                                                     ci === 0 ? "bg-indigo-50/30" : ""
                                                 }`}
+                                                style={{ minWidth: 130 }}
                                             >
                                                 {displayVal != null ? (
                                                     <span className={getValueClass(row.key, displayVal)}>

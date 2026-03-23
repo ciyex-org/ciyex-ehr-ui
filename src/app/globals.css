@@ -811,14 +811,20 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
 
 /* Print styles — only show appointment table data */
 @media print {
-  /* Hide everything first */
-  body * { visibility: hidden !important; }
+  /* Hide non-essential UI elements */
+  aside, nav, header, footer,
+  .no-print, .no-print * { display: none !important; }
 
-  /* Show only the appointment table */
+  /* Reset page layout */
+  body { background: #fff !important; }
+  body > * { display: none !important; }
+
+  /* Show only the appointment table and its ancestors */
   .print-appointment-table,
-  .print-appointment-table * { visibility: visible !important; }
+  .print-appointment-table * { visibility: visible !important; display: revert !important; }
   .print-appointment-table {
-    position: absolute !important;
+    display: block !important;
+    position: fixed !important;
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
@@ -827,9 +833,20 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
     overflow: visible !important;
     border: none !important;
     box-shadow: none !important;
+    z-index: 99999 !important;
+    background: #fff !important;
+  }
+  /* Ensure all parent elements of .print-appointment-table are visible */
+  .print-appointment-table,
+  .print-appointment-table ~ *,
+  body > *:has(.print-appointment-table),
+  body > *:has(.print-appointment-table) *:has(.print-appointment-table) {
+    display: block !important;
+    visibility: visible !important;
   }
   .print-appointment-table table {
     width: 100% !important;
+    border-collapse: collapse !important;
   }
   .print-appointment-table table th,
   .print-appointment-table table td {
@@ -838,23 +855,25 @@ body { font-size: calc(1rem * var(--text-scale, 1)); }
     font-size: 11px !important;
     color: #000 !important;
     background: #fff !important;
+    visibility: visible !important;
   }
   .print-appointment-table thead {
     display: table-header-group !important;
   }
+  .print-appointment-table tbody tr {
+    page-break-inside: avoid !important;
+  }
 
-  /* Hide non-data elements: action buttons, icons, no-print sections */
-  .no-print,
-  .no-print * { display: none !important; visibility: hidden !important; }
-
-  /* Hide sidebar, header, nav */
-  aside, nav, header, footer { display: none !important; }
-
-  /* Hide all SVG icons inside table for clean print */
+  /* Hide interactive elements inside print table */
   .print-appointment-table svg { display: none !important; }
-  .print-appointment-table button { all: unset !important; display: inline !important; }
+  .print-appointment-table button { all: unset !important; display: inline !important; color: #000 !important; }
+  .print-appointment-table select { appearance: none !important; border: none !important; background: transparent !important; }
+  .print-appointment-table input[type="checkbox"] { display: none !important; }
 
-  @page { margin: 0.5in; }
+  /* Hide actions column */
+  .print-appointment-table .no-print { display: none !important; }
+
+  @page { margin: 0.5in; size: landscape; }
 }
 
 /* ===== Responsive fixes for mobile & tablet ===== */

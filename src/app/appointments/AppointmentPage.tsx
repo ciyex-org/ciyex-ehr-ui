@@ -92,10 +92,14 @@ function normalizeApptTimes(appt: AppointmentDTO): AppointmentDTO {
   const raw = appt as Record<string, unknown>;
   const rawStart = (raw.start as string) || '';
   const rawEnd   = (raw.end   as string) || '';
-  let startDate = appt.appointmentStartDate || rawStart || '';
-  let endDate   = appt.appointmentEndDate   || rawEnd   || '';
-  let startTime = appt.appointmentStartTime || '';
-  let endTime   = appt.appointmentEndTime   || '';
+  let startDate = String(appt.appointmentStartDate || rawStart || '');
+  let endDate   = String(appt.appointmentEndDate   || rawEnd   || '');
+  let startTime = String(appt.appointmentStartTime || '');
+  let endTime   = String(appt.appointmentEndTime   || '');
+
+  // Guard: if date is purely numeric (e.g. an ID), discard it
+  if (/^\d+$/.test(startDate)) startDate = '';
+  if (/^\d+$/.test(endDate)) endDate = '';
 
   // If we have a full ISO datetime (with T), extract local date and time from it
   if (startDate.includes('T')) {
@@ -150,7 +154,9 @@ function todayFormatted(): string {
 
 function formatToMMDDYYYY(iso: string): string {
   if (!iso) return "";
-  const d = new Date(iso + "T00:00:00");
+  // Guard: reject purely numeric strings (e.g. IDs like "131")
+  if (/^\d+$/.test(iso)) return "";
+  const d = new Date(iso.includes("T") ? iso : iso + "T00:00:00");
   if (isNaN(d.getTime())) return iso;
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()}`;
 }

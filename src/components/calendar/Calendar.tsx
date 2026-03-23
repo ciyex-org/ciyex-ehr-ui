@@ -948,9 +948,11 @@ const Calendar: React.FC = () => {
                             return '';
                         })();
 
-                        // Parse ISO start/end into local date strings
-                        const startDt = a.start ? new Date(a.start) : null;
-                        const endDt = a.end ? new Date(a.end) : null;
+                        // Parse ISO start/end into local date strings (skip purely numeric values like IDs)
+                        const rawStartStr = typeof a.start === 'string' && !/^\d+$/.test(a.start) ? a.start : '';
+                        const rawEndStr = typeof a.end === 'string' && !/^\d+$/.test(a.end) ? a.end : '';
+                        const startDt = rawStartStr ? new Date(rawStartStr) : null;
+                        const endDt = rawEndStr ? new Date(rawEndStr) : null;
 
                         let name = a.patientName || a.patientDisplay || '';
                         if (!name && patientId && patientNameCache.current[patientId]) {

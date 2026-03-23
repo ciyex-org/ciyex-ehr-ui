@@ -733,9 +733,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         if (r._lastUpdated != null && r.identifiedDate == null) r.identifiedDate = r._lastUpdated;
         // --- Clinical-alerts: author normalization (provider name fallbacks) ---
         if (tabKey === "clinical-alerts" || tabKey === "alerts" || tabKey === "clinicalalerts" || tabKey === "clinical_alerts") {
-            if (Array.isArray(r.author) && r.author.length > 0) {
-                r.author = (r.author as any[])[0]?.display || (r.author as any[])[0]?.reference || null;
-            }
+            try {
+                if (Array.isArray(r.author) && r.author.length > 0) {
+                    const first = r.author[0];
+                    r.author = (first && typeof first === "object" ? (first.display || first.reference) : String(first)) || null;
+                } else if (r.author && typeof r.author === "object" && !Array.isArray(r.author)) {
+                    r.author = (r.author as any).display || (r.author as any).reference || String(r.author);
+                }
+            } catch { r.author = null; }
             if (r.author == null && r.authorName != null) r.author = r.authorName;
             if (r.author == null && r.practitioner != null) r.author = r.practitioner;
             if (r.author == null && r.practitionerName != null) r.author = r.practitionerName;
@@ -1100,27 +1105,31 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
         if (r.policyEndDate == null && r.expirationDate != null) r.policyEndDate = r.expirationDate;
 
         // --- Relationship: relatedPatientName / relationshipType ---
-        if (r.relatedPatientName == null) {
-            const nameObj = Array.isArray(r.name) ? r.name[0] : r.name;
-            if (nameObj && typeof nameObj === "object") {
-                r.relatedPatientName = nameObj.text || [nameObj.given?.[0], nameObj.family].filter(Boolean).join(" ") || null;
-            } else if (typeof nameObj === "string") {
-                r.relatedPatientName = nameObj;
+        try {
+            if (r.relatedPatientName == null) {
+                const nameObj = Array.isArray(r.name) ? r.name[0] : r.name;
+                if (nameObj && typeof nameObj === "object") {
+                    const given = Array.isArray(nameObj.given) ? nameObj.given[0] : nameObj.given;
+                    r.relatedPatientName = nameObj.text || [given, nameObj.family].filter(Boolean).join(" ") || null;
+                } else if (typeof nameObj === "string") {
+                    r.relatedPatientName = nameObj;
+                }
             }
-        }
-        if (r.relatedPatientName == null && r.relatedPersonName != null) r.relatedPatientName = r.relatedPersonName;
-        if (r.relatedPatientName == null && r.fullName != null) r.relatedPatientName = r.fullName;
-        if (r.relatedPatientName == null && r.displayName != null) r.relatedPatientName = r.displayName;
-        if (r.relationshipType == null) {
-            const rel = Array.isArray(r.relationship) ? r.relationship[0] : r.relationship;
-            if (rel && typeof rel === "object") {
-                r.relationshipType = rel.coding?.[0]?.display || rel.coding?.[0]?.code || rel.text || null;
-            } else if (typeof rel === "string") {
-                r.relationshipType = rel;
+            if (r.relatedPatientName == null && r.relatedPersonName != null) r.relatedPatientName = r.relatedPersonName;
+            if (r.relatedPatientName == null && r.fullName != null) r.relatedPatientName = r.fullName;
+            if (r.relatedPatientName == null && r.displayName != null) r.relatedPatientName = r.displayName;
+            if (r.relationshipType == null) {
+                const rel = Array.isArray(r.relationship) ? r.relationship[0] : r.relationship;
+                if (rel && typeof rel === "object") {
+                    const coding = Array.isArray(rel.coding) ? rel.coding[0] : null;
+                    r.relationshipType = coding?.display || coding?.code || rel.text || null;
+                } else if (typeof rel === "string") {
+                    r.relationshipType = rel;
+                }
             }
-        }
-        if (r.relationshipType == null && r.relationType != null) r.relationshipType = r.relationType;
-        if (r.relationshipType == null && r.type != null && typeof r.type === "string") r.relationshipType = r.type;
+            if (r.relationshipType == null && r.relationType != null) r.relationshipType = r.relationType;
+            if (r.relationshipType == null && r.type != null && typeof r.type === "string") r.relationshipType = r.type;
+        } catch { /* prevent crash from malformed FHIR data */ }
 
         // --- Messaging: ensure from/to resolve provider and patient references ---
         if (r.from == null && r.providerName != null) r.from = r.providerName;
@@ -1536,6 +1545,11 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 }
             }
         }
+        // For facility/location tabs: auto-fill status
+        if (tabKey === "facility" || tabKey === "facilities" || tabKey === "location" || tabKey === "locations") {
+            defaults.status = defaults.status || "active";
+            defaults.mode = defaults.mode || "instance";
+        }
         // For messaging tab: auto-fill patient (locked to current patient context)
         if (tabKey === "messaging") {
             const displayName = patientName || String(patientId);
@@ -1566,27 +1580,47 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
 
     const handleEdit = (record?: Record<string, any>) => {
         const rec = record || selectedRecord;
-        if (!rec) return;
-        setFormData({ ...rec });
-        setSelectedRecord(rec);
-        setValidationErrors({});
-        setError(null);
-        setMode("edit");
+        if (!rec || typeof rec !== "object") return;
+        try {
+            setFormData({ ...rec });
+            setSelectedRecord(rec);
+            setValidationErrors({});
+            setError(null);
+            setMode("edit");
+        } catch (err) {
+            console.error("Error editing record:", err);
+            setError("Failed to edit record");
+        }
     };
 
     const handleRowClick = (record: Record<string, any>) => {
-        const rowLink = fieldConfig?.features?.rowLink;
-        if (rowLink?.urlTemplate) {
-            const resourceId = record.id || record.fhirId;
-            const url = rowLink.urlTemplate
-                .replace("{patientId}", String(patientId))
-                .replace("{id}", String(resourceId));
-            router.push(url);
-            return;
+        if (!record || typeof record !== "object") return;
+        try {
+            const rowLink = fieldConfig?.features?.rowLink;
+            if (rowLink?.urlTemplate) {
+                const resourceId = record.id || record.fhirId;
+                const url = rowLink.urlTemplate
+                    .replace("{patientId}", String(patientId))
+                    .replace("{id}", String(resourceId));
+                router.push(url);
+                return;
+            }
+            // Ensure all values are safe for form rendering (stringify objects)
+            const safeRecord: Record<string, any> = {};
+            for (const [k, v] of Object.entries(record)) {
+                if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+                    safeRecord[k] = (v as any).display || (v as any).text || (v as any).value || JSON.stringify(v);
+                } else {
+                    safeRecord[k] = v;
+                }
+            }
+            setFormData({ ...safeRecord });
+            setSelectedRecord(record);
+            setMode("view");
+        } catch (err) {
+            console.error("Error opening record:", err);
+            setError("Failed to open record");
         }
-        setFormData({ ...record });
-        setSelectedRecord(record);
-        setMode("view");
     };
 
     const handleDelete = (record: Record<string, any>) => {
@@ -1776,8 +1810,8 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     }
                 }
             }
-            // ERA/Remittance: Service To date must not be before Service From date
-            if (tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance") {
+            // Submissions / ERA / Remittance: Service To date must not be before Service From date
+            if (tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance" || tabKey === "submissions" || tabKey === "claim-submissions" || tabKey === "claims") {
                 const svcFrom = formData.serviceFrom || formData.serviceDateFrom || formData.serviceFromDate || formData.billablePeriodStart;
                 const svcTo = formData.serviceTo || formData.serviceDateTo || formData.serviceToDate || formData.billablePeriodEnd;
                 if (svcFrom && svcTo) {
@@ -2101,13 +2135,18 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (payload.note && !payload.noteText) payload.noteText = payload.note;
                 if (payload.content && !payload.noteText) payload.noteText = payload.content;
             }
-            if (tabKey === "insurance-coverage") {
+            if (tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") {
                 // Ensure backend gets period.start/end from policyEffectiveDate/policyEndDate
                 if (payload.policyEffectiveDate && !payload.coverageStartDate) payload.coverageStartDate = payload.policyEffectiveDate;
                 if (payload.policyEndDate && !payload.coverageEndDate) payload.coverageEndDate = payload.policyEndDate;
                 if (payload.effectiveDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.effectiveDate;
                 if (payload.endDate && !payload.policyEndDate) payload.policyEndDate = payload.endDate;
                 if (payload.startDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.startDate;
+                // Ensure planName is mapped to all possible backend field names
+                if (payload.planName && !payload.plan) payload.plan = payload.planName;
+                if (payload.planName && !payload.coveragePlan) payload.coveragePlan = payload.planName;
+                if (payload.plan && !payload.planName) payload.planName = payload.plan;
+                if (payload.coveragePlan && !payload.planName) payload.planName = payload.coveragePlan;
             }
             if (tabKey === "documents") {
                 if (payload.documentDate && !payload.date) payload.date = payload.documentDate;
@@ -2323,6 +2362,12 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
             if (tabKey === "education" || tabKey === "patient-education") {
                 if (!payload.status) payload.status = "completed";
                 if (!payload.subject) payload.subject = { reference: `Patient/${patientId}` };
+                // Map URL fields for video/article links
+                if (payload.url && !payload.externalUrl) payload.externalUrl = payload.url;
+                if (payload.externalUrl && !payload.url) payload.url = payload.externalUrl;
+                if (payload.videoUrl && !payload.externalUrl) payload.externalUrl = payload.videoUrl;
+                if (payload.articleUrl && !payload.externalUrl) payload.externalUrl = payload.articleUrl;
+                if (payload.link && !payload.externalUrl) payload.externalUrl = payload.link;
             }
 
             // Issue 9 via generic tab: Appointments — add participant + wrap appointmentType
@@ -2512,14 +2557,21 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
 
             if (res.ok) {
                 const label = isEdit ? "updated" : "saved";
+                const json = await res.json();
+                const savedData = normalizeRecord(json.data || formData);
                 if (singleRecord) {
                     // Stay in view mode for single-record tabs
-                    const json = await res.json();
-                    const savedData = normalizeRecord(json.data || formData);
                     setFormData({ ...savedData });
                     setSelectedRecord(savedData);
                     setMode("view");
                 } else {
+                    // Optimistic local update — immediately show saved record in list
+                    if (isEdit) {
+                        setRecords(prev => prev.map(r => (r.id || r.fhirId) === (savedData.id || savedData.fhirId) ? savedData : r));
+                    } else {
+                        setRecords(prev => [savedData, ...prev]);
+                        setTotalElements(prev => prev + 1);
+                    }
                     setMode("list");
                     setFormData({});
                     setSelectedRecord(null);
@@ -2530,10 +2582,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (tabKey === "appointments" || tabKey === "appointment") {
                     window.dispatchEvent(new Event("appointments-changed"));
                 }
-                // Brief delay for FHIR server search indexing after create/update
-                await new Promise(r => setTimeout(r, isEdit ? 1000 : 3000));
-                setPage(0);
-                await fetchRecords(0);
+                // Background re-fetch from server after FHIR indexing (non-blocking)
+                const refreshDelay = isEdit ? 1000 : 2000;
+                setTimeout(async () => {
+                    try {
+                        setPage(0);
+                        await fetchRecords(0);
+                    } catch { /* silent — optimistic data already shown */ }
+                }, refreshDelay);
             } else {
                 const err = await res.json().catch(() => null);
                 const errMsg = err?.message
