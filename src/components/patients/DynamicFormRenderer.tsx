@@ -2401,16 +2401,20 @@ export default function DynamicFormRenderer({
           />
         );
 
-      default:
+      default: {
+        // Detect monetary/numeric fields by key name to block e/E/+ even when type is "text"
+        const isMonetaryField = /^(totalCharge|totalAmount|chargeAmount|amount|copay|coinsurance|deductible|allowedAmount|paidAmount|billedAmount|balance|payment|price|cost|fee|rate|total)$/i.test(field.key);
         return (
           <Input
-            type="text"
-            value={value || ""}
+            type={isMonetaryField ? "number" : "text"}
+            value={value ?? ""}
             placeholder={field.placeholder}
-            onChange={(e) => onChange(field.key, e.target.value)}
+            onChange={(e) => onChange(field.key, isMonetaryField && e.target.value ? Number(e.target.value) : e.target.value)}
+            onKeyDown={isMonetaryField ? ((e: React.KeyboardEvent) => { if (["e", "E", "+"].includes(e.key)) e.preventDefault(); }) : undefined}
             error={!!error}
           />
         );
+      }
     }
   };
 

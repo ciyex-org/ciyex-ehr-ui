@@ -618,7 +618,29 @@ export default function AppointmentPage() {
     return () => clearInterval(t);
   }, [refreshInterval, loadAppointments]);
 
-  const onPrint = () => window.print();
+  const onPrint = () => {
+    const el = tableRef.current;
+    if (!el) { window.print(); return; }
+    const pw = window.open("", "_blank");
+    if (!pw) { window.print(); return; }
+    pw.document.write(`<!DOCTYPE html><html><head><title>Ciyex | FrontDesk</title><style>
+      body { font-family: system-ui, -apple-system, sans-serif; margin: 0.5in; }
+      table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
+      th { background: #f9fafb; font-weight: 600; text-transform: uppercase; font-size: 10px; color: #6b7280; }
+      .no-print { display: none !important; }
+      svg { display: none !important; }
+      select { appearance: none; border: none; background: transparent; }
+      input[type="checkbox"] { display: none; }
+      @page { size: landscape; margin: 0.5in; }
+      h2 { text-align: center; font-size: 14px; margin-bottom: 8px; }
+    </style></head><body>
+      <h2>${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} &mdash; Appointments</h2>
+      ${el.innerHTML}
+    </body></html>`);
+    pw.document.close();
+    setTimeout(() => { pw.print(); pw.close(); }, 300);
+  };
 
   // Handle date preset change (#5)
   const handleDatePreset = (preset: string) => {

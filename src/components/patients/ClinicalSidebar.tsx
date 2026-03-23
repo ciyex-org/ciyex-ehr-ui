@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import {
-    ShieldAlert, HeartPulse, Pill, Activity,
+    ShieldAlert, HeartPulse, Pill, Activity, Cigarette,
     ChevronDown, ChevronUp, PanelLeftClose, PanelLeft,
     type LucideIcon,
 } from "lucide-react";
@@ -44,6 +44,7 @@ export default function ClinicalSidebar({
     const [problems, setProblems] = useState<any[]>([]);
     const [medications, setMedications] = useState<any[]>([]);
     const [vitals, setVitals] = useState<Record<string, any> | null>(null);
+    const [smokingStatus, setSmokingStatus] = useState<string | null>(null);
     const [loaded, setLoaded] = useState(false);
 
     // Only the category containing the active tab starts expanded; all others collapsed
@@ -76,7 +77,8 @@ export default function ClinicalSidebar({
             fetchWithAuth(`${API_BASE()}/api/medical-problems/${patientId}`).then(r => r.ok ? r.json() : null),
             fetchWithAuth(`${API_BASE()}/api/fhir-resource/medications/patient/${patientId}?size=10`).then(r => r.ok ? r.json() : null),
             fetchWithAuth(`${API_BASE()}/api/fhir-resource/vitals/patient/${patientId}?size=1`).then(r => r.ok ? r.json() : null),
-        ]).then(([aRes, pRes, mRes, vRes]) => {
+            fetchWithAuth(`${API_BASE()}/api/fhir-resource/social-history/patient/${patientId}?size=5`).then(r => r.ok ? r.json() : null),
+        ]).then(([aRes, pRes, mRes, vRes, shRes]) => {
             if (aRes.status === "fulfilled" && aRes.value) {
                 const d = aRes.value;
                 setAllergies(d.data?.allergiesList || (Array.isArray(d) ? d : []));
@@ -92,6 +94,16 @@ export default function ClinicalSidebar({
                 const content = vRes.value.data?.content || [];
                 const first = content.length > 0 ? content[0] : null;
                 setVitals(first && typeof first === "object" ? first : null);
+            }
+            if (shRes.status === "fulfilled" && shRes.value) {
+                const content = shRes.value.data?.content || [];
+                const smokingRec = content.find((r: any) => {
+                    const name = (r.name || r.category || r.code || r.socialHistoryType || r.type || "").toString().toLowerCase();
+                    return name.includes("smoking") || name.includes("tobacco");
+                });
+                if (smokingRec) {
+                    setSmokingStatus(smokingRec.value || smokingRec.status || smokingRec.valueCodeableConcept?.text || smokingRec.valueCodeableConcept?.coding?.[0]?.display || smokingRec.answer || "Unknown");
+                }
             }
             setLoaded(true);
         });
@@ -198,19 +210,16 @@ export default function ClinicalSidebar({
                         )}
                     </button>
 
-                    {/* Medications row */}
+                    {/* Smoking Status row */}
                     <button
-                        onClick={() => onNavigate("medications")}
-                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] ${activeTab === "medications" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
+                        onClick={() => onNavigate("history")}
+                        className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] ${activeTab === "history" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
                     >
-                        <Pill className="w-3 h-3 shrink-0 text-blue-400" />
+                        <Cigarette className="w-3 h-3 shrink-0 text-amber-500" />
                         <span className="flex-1 text-left truncate">
-                            <span className="font-medium">Medications: </span>
-                            {!loaded ? "..." : medications.length === 0 ? "None" : medications.slice(0, 2).map(m => m.medication_name || m.medicationName || m.name || m.medicationDisplay || "Medication").join(", ")}
+                            <span className="font-medium">Smoking: </span>
+                            {!loaded ? "..." : smokingStatus || "Unknown"}
                         </span>
-                        {medications.length > 0 && (
-                            <span className="px-1 py-0.5 rounded bg-blue-50 text-blue-600 text-[10px] font-medium">{medications.length}</span>
-                        )}
                     </button>
 
                     {/* Vitals row */}
@@ -243,7 +252,8 @@ export default function ClinicalSidebar({
                 </div>
 
                 {/* ---- Tab Navigation by Category ---- */}
-                {tabCategories.map(cat => {
+                {/* Deduplicate categories by label */}
+                {tabCategories.filter((cat, idx, arr) => arr.findIndex(c => c.label === cat.label) === idx).map(cat => {
                     const isCollapsed = collapsedCats.has(cat.label);
                     const hasActiveTab = cat.tabs.some(t => t.key === activeTab);
                     return (

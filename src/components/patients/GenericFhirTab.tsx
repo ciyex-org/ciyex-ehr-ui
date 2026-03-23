@@ -18,7 +18,53 @@ interface GenericFhirTabProps {
     patientName?: string;
 }
 
-export default function GenericFhirTab({ tabKey, patientId, patientName }: GenericFhirTabProps) {
+/* ---------- Error Boundary ---------- */
+class GenericFhirTabErrorBoundary extends React.Component<
+    { tabKey: string; children: React.ReactNode },
+    { hasError: boolean; error?: Error }
+> {
+    constructor(props: any) {
+        super(props);
+        this.state = { hasError: false };
+    }
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error: Error, info: React.ErrorInfo) {
+        console.error(`[GenericFhirTab/${this.props.tabKey}] Render error:`, error, info);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="p-6 text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>Something went wrong loading this tab. Please try refreshing the page.</span>
+                    </div>
+                    <button
+                        onClick={() => this.setState({ hasError: false, error: undefined })}
+                        className="mt-3 px-4 py-1.5 text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                        Try again
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+function GenericFhirTabExport(props: GenericFhirTabProps) {
+    return (
+        <GenericFhirTabErrorBoundary tabKey={props.tabKey}>
+            <GenericFhirTabInner {...props} />
+        </GenericFhirTabErrorBoundary>
+    );
+}
+
+export default GenericFhirTabExport;
+
+function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabProps) {
     const router = useRouter();
     // Extract base resource type from tabKey (strip subtab suffix like ">Failed" from "claims>Failed")
     const resourceKey = tabKey.includes(">") ? tabKey.split(">")[0] : tabKey;
@@ -459,6 +505,14 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                     if (f.type !== "lookup" || !f.lookupConfig?.endpoint) {
                         section.fields[i] = { ...f, type: "lookup", lookupConfig: { endpoint: "/api/patients", displayField: "fullName", valueField: "id", searchable: true } };
                     }
+                }
+            }
+            // Education: inject URL field if not present in config
+            if ((tabKey === "education" || tabKey === "patient-education") && section.fields) {
+                const urlKeys = ["url", "externalUrl", "videoUrl", "articleUrl", "link", "resourceUrl"];
+                const hasUrl = section.fields.some((f: any) => f && urlKeys.includes(f.key));
+                if (!hasUrl) {
+                    section.fields.push({ key: "url", label: "URL / Link", type: "text", placeholder: "https://...", colSpan: 2 } as any);
                 }
             }
         }
@@ -1234,7 +1288,9 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 const json = await res.json();
                 const data = json.data || {};
                 const content = (data.content || []).filter((rec: any) => rec != null && typeof rec === "object").map((rec: Record<string, any>) => { try { return normalizeRecord(rec); } catch { return rec; } });
-                const isSingle = data.singleRecord === true;
+                // Facility/location tabs should always allow multiple records even if backend says singleRecord
+                const isFacilityTab = tabKey === "facility" || tabKey === "facilities" || tabKey === "location" || tabKey === "locations" || tabKey === "serviceLocation" || tabKey === "serviceLocations";
+                const isSingle = isFacilityTab ? false : data.singleRecord === true;
                 setSingleRecord(isSingle);
                 setRecords(content);
                 setTotalElements(data.totalElements || 0);
@@ -2420,6 +2476,10 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                 if (payload.effectiveDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.effectiveDate;
                 if (payload.endDate && !payload.policyEndDate) payload.policyEndDate = payload.endDate;
                 if (payload.startDate && !payload.policyEffectiveDate) payload.policyEffectiveDate = payload.startDate;
+                // Ensure planName is mapped to all possible backend field names
+                if (payload.planName) { if (!payload.plan) payload.plan = payload.planName; if (!payload.coveragePlan) payload.coveragePlan = payload.planName; }
+                if (payload.plan && !payload.planName) payload.planName = payload.plan;
+                if (payload.coveragePlan && !payload.planName) payload.planName = payload.coveragePlan;
                 if (!payload.status) payload.status = "active";
                 // Wrap type in CodeableConcept if it's a plain string
                 if (payload.type && typeof payload.type === "string") {
@@ -2889,6 +2949,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
     const isAllergyTab = tabKey === "allergies" || tabKey === "allergy-intolerances";
     const isMedicalProblemsTab = tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "conditions" || tabKey === "issues" || tabKey === "problems";
     const isStatusTab = isAllergyTab || isMedicalProblemsTab;
+    const isDemographicsTab = tabKey === "demographics" || tabKey === "patient-demographics";
 
     // Helper: extract plain string status from a record (CodeableConcepts already flattened by normalizeRecord)
     const getRecordStatus = (r: Record<string, any>): string => {
@@ -3197,7 +3258,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                             className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"
                         />
                     </div>
-                    {uniqueStatuses.length > 0 && (
+                    {uniqueStatuses.length > 0 && !isDemographicsTab && (
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
@@ -3286,6 +3347,7 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                                 className="px-4 py-2.5 text-gray-700 dark:text-gray-300 break-words max-w-[300px]"
                                             >
                                                 {(() => {
+                                                    try {
                                                     const raw = record[col.key];
                                                     const fv = formatValue(raw, col.key, record);
                                                     // Format comma-separated values as a clean list for readability (no bullet symbols)
@@ -3295,7 +3357,12 @@ export default function GenericFhirTab({ tabKey, patientId, patientName }: Gener
                                                             return <div className="space-y-0.5">{items.map((item: string, i: number) => <div key={i} className="text-sm">{item}</div>)}</div>;
                                                         }
                                                     }
-                                                    return (fv !== null && typeof fv === "object" && !("$$typeof" in (fv as object))) ? JSON.stringify(fv) : fv;
+                                                    // Safely stringify non-React objects to prevent render crashes
+                                                    if (fv !== null && fv !== undefined && typeof fv === "object") {
+                                                        try { if (!("$$typeof" in (fv as object))) return JSON.stringify(fv); } catch { return "-"; }
+                                                    }
+                                                    return fv ?? "-";
+                                                    } catch { return "-"; }
                                                 })()}
                                             </td>
                                         ))}

@@ -109,6 +109,7 @@ export default function PatientListPage() {
         else if (!isValidEmail(p.email)) errs.email = "Enter a valid email address";
         if (!p.gender) errs.gender = "Gender is required";
         if (!p.dateOfBirth) errs.dateOfBirth = "Date of birth is required";
+        else if (p.dateOfBirth > new Date().toISOString().split("T")[0]) errs.dateOfBirth = "Date of birth cannot be in the future";
         return errs;
     };
 
@@ -672,8 +673,14 @@ export default function PatientListPage() {
                                 <input
                                     type="date"
                                     required
+                                    max={new Date().toISOString().split("T")[0]}
                                     value={newPatient.dateOfBirth}
-                                    onChange={(e) => { setNewPatient({ ...newPatient, dateOfBirth: e.target.value }); if (addErrors.dateOfBirth) setAddErrors(p => { const n = {...p}; delete n.dateOfBirth; return n; }); }}
+                                    onChange={(e) => {
+                                        const v = e.target.value;
+                                        if (v && v > new Date().toISOString().split("T")[0]) return;
+                                        setNewPatient({ ...newPatient, dateOfBirth: v });
+                                        if (addErrors.dateOfBirth) setAddErrors(p => { const n = {...p}; delete n.dateOfBirth; return n; });
+                                    }}
                                     className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.dateOfBirth ? "border-red-400" : ""}`}
                                 />
                                 {addErrors.dateOfBirth && <p className="text-xs text-red-500 mt-1">{addErrors.dateOfBirth}</p>}
@@ -804,8 +811,13 @@ export default function PatientListPage() {
                                     <input
                                         type="date"
                                         required
+                                        max={new Date().toISOString().split("T")[0]}
                                         value={editPatient.dateOfBirth}
-                                        onChange={(e) => setEditPatient({ ...editPatient, dateOfBirth: e.target.value })}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            if (v && v > new Date().toISOString().split("T")[0]) return;
+                                            setEditPatient({ ...editPatient, dateOfBirth: v });
+                                        }}
                                         className="w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                     />
                                 </div>

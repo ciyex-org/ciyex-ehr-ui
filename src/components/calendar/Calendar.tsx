@@ -986,7 +986,15 @@ const Calendar: React.FC = () => {
                         };
                     });
 
-                    allEvents = [...allEvents, ...events];
+                    // Only include events that have a valid start date — skip entries
+                    // where the FHIR resource returned a numeric ID or empty string
+                    // instead of an ISO datetime (causes ghost cells like "131", "147").
+                    const validEvents = events.filter((e) => {
+                        if (!e.start) return false;
+                        const d = new Date(e.start as string);
+                        return !isNaN(d.getTime());
+                    });
+                    allEvents = [...allEvents, ...validEvents];
                     hasMore = json.data.hasNext === true;
                     page++;
                 } else {
