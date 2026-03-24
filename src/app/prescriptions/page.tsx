@@ -300,7 +300,12 @@ export default function PrescriptionsPage() {
       const json = await res.json();
       if (res.ok && json.success) {
         // Search returns a plain List; paginated listing returns a Page with .content
-        const items = Array.isArray(json.data) ? json.data : (json.data.content || []);
+        const raw: any[] = Array.isArray(json.data) ? json.data : (json.data.content || []);
+        // Normalize prescriber name — backend may use different field names
+        const items = raw.map((rx: any) => ({
+          ...rx,
+          prescriberName: rx.prescriberName || rx.prescribingDoctor || rx.prescriber || rx.providerName || rx.renderingProvider || "",
+        }));
         setPrescriptions(items);
         setTotalPages(Array.isArray(json.data) ? 1 : (json.data.totalPages || 1));
         setTotalElements(Array.isArray(json.data) ? items.length : (json.data.totalElements || 0));

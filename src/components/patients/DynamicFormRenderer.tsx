@@ -2076,8 +2076,8 @@ export default function DynamicFormRenderer({
                 ? value ? "Yes" : "No"
                 : field.fhirMapping?.type === "reference"
                 ? formData[field.key + "Display"] || value || "-"
-                : ((/photo|image|avatar|picture/i.test(field.key) || /^(photoUrl|imageUrl|avatarUrl|profilePhoto|profileImage|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo|patientPhoto|profilePicture)$/i.test(field.key)) && typeof value === "string" && (value.startsWith("http") || value.startsWith("https") || value.startsWith("/") || value.startsWith("data:image")))
-                ? <img src={value} alt="Profile" className="w-10 h-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                : ((/photo|image|avatar|picture|pic$|img$|imgurl/i.test(field.key)) && typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(value)))
+                ? <img src={value} alt="Profile" className="w-20 h-20 rounded-lg object-cover border border-gray-200 dark:border-gray-600" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 : value || "-"}
             </span>
           )
