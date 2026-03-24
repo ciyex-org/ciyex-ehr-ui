@@ -664,51 +664,50 @@ const Calendar: React.FC = () => {
     }, []);
 
 
-    // Fetch ACTIVE providers via facade endpoint (includes enrichment with name & status)
+    // Fetch ACTIVE providers — request full list to avoid default page-size truncation
     useEffect(() => {
         (async () => {
+            const toOption = (p: any) => {
+                const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
+                const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
+                const fullName = `${firstName} ${lastName}`.trim();
+                return {
+                    value: String(p.id || p.fhirId || ''),
+                    label: fullName || p.name || p.fullName || p.displayName || `Provider #${p.id || p.fhirId || ''}`,
+                };
+            };
+            const isActive = (p: any) => {
+                const rawStatus = p?.systemAccess?.status || p['systemAccess.status'];
+                if (rawStatus == null || rawStatus === '' || rawStatus === undefined) return true;
+                return !['INACTIVE', 'DISABLED', 'FALSE', 'SUSPENDED', '0', 'BLOCKED'].includes(String(rawStatus).toUpperCase());
+            };
             try {
-                const res = await fetchWithAuth(`${apiUrl}/api/providers`);
-                const json = await res.json();
-                const raw = json?.data?.content || json?.data || json?.content || [];
-                const providerList = Array.isArray(raw) ? raw : [];
-                let active: { value: string; label: string }[] = [];
-                if (providerList.length > 0) {
-                    active = providerList
-                        .filter((p: any) => {
-                            // Include providers unless explicitly disabled/inactive
-                            const rawStatus = p?.systemAccess?.status || p['systemAccess.status'];
-                            if (rawStatus == null || rawStatus === '' || rawStatus === undefined) return true;
-                            const status = String(rawStatus).toUpperCase();
-                            return !['INACTIVE', 'DISABLED', 'FALSE', 'SUSPENDED', '0', 'BLOCKED'].includes(status);
-                        })
-                        .map((p: any) => {
-                            const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
-                            const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
-                            const fullName = `${firstName} ${lastName}`.trim();
-                            return {
-                                value: String(p.id || p.fhirId || ''),
-                                label: fullName || p.name || p.fullName || p.displayName || `Provider #${p.id || p.fhirId || ''}`,
-                            };
-                        })
-                        .filter((p: any) => p.value);
-                    // If all providers were filtered out by status, use unfiltered list
-                    if (active.length === 0) {
-                        active = providerList.map((p: any) => {
-                            const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
-                            const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
-                            const fullName = `${firstName} ${lastName}`.trim();
-                            return {
-                                value: String(p.id || p.fhirId || ''),
-                                label: fullName || p.name || p.fullName || p.displayName || `Provider #${p.id || p.fhirId || ''}`,
-                            };
-                        }).filter((p: any) => p.value);
-                    }
+                // Use page=0&size=1000 to ensure ALL providers are returned regardless of backend default page size
+                let providerList: any[] = [];
+                const res = await fetchWithAuth(`${apiUrl}/api/providers?page=0&size=1000`);
+                if (res.ok) {
+                    const json = await res.json();
+                    const raw = json?.data?.content || json?.data || json?.content || json;
+                    providerList = Array.isArray(raw) ? raw : [];
                 }
+                // Fallback: FHIR resource endpoint (covers role-filtered cases where /api/providers returns only self)
+                if (providerList.length <= 1) {
+                    try {
+                        const fb = await fetchWithAuth(`${apiUrl}/api/fhir-resource/providers?size=100`);
+                        if (fb.ok) {
+                            const fj = await fb.json();
+                            const fr = fj?.data?.content || fj?.data || fj?.content || fj;
+                            const fbList = Array.isArray(fr) ? fr : [];
+                            if (fbList.length > providerList.length) providerList = fbList;
+                        }
+                    } catch { /* ignore fallback errors */ }
+                }
+                let active = providerList.filter(isActive).map(toOption).filter((p: any) => p.value);
+                // If status filtering removed everything, show all
+                if (active.length === 0) active = providerList.map(toOption).filter((p: any) => p.value);
                 setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
             } catch (e) {
                 console.error('Failed to fetch providers', e);
-                // Ensure at least "All Providers" is available even on error
                 setProviders((prev) => prev.length === 0 ? [{ value: 'all', label: 'All Providers' }] : prev);
             }
         })();
