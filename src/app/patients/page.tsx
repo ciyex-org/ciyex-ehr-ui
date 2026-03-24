@@ -844,7 +844,8 @@ export default function PatientListPage() {
                                         type="tel"
                                         required
                                         value={editPatient.phoneNumber}
-                                        onChange={(e) => { setEditPatient({ ...editPatient, phoneNumber: e.target.value }); if (editErrors.phoneNumber) setEditErrors(p => { const n = {...p}; delete n.phoneNumber; return n; }); }}
+                                        maxLength={10}
+                                        onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setEditPatient({ ...editPatient, phoneNumber: v }); if (editErrors.phoneNumber) setEditErrors(p => { const n = {...p}; delete n.phoneNumber; return n; }); }}
                                         className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${editErrors.phoneNumber ? "border-red-400" : ""}`}
                                     />
                                     {editErrors.phoneNumber && <p className="text-xs text-red-500 mt-1">{editErrors.phoneNumber}</p>}

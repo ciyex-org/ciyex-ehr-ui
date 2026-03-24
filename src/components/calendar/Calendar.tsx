@@ -714,6 +714,12 @@ const Calendar: React.FC = () => {
         })();
     }, [apiUrl]);
 
+    // When the providers list grows (e.g. a new provider was added), reset to "All Providers"
+    // so the new provider is visible without the user having to manually re-select.
+    useEffect(() => {
+        setSelectedProviders([]);
+    }, [providers.length]);
+
     // No auto-select: let users freely choose "All Providers" in any view
 
 

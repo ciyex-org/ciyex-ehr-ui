@@ -355,34 +355,25 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
     [patientId, encounterId, autoSave, pluginEvents]
   );
 
-  // PDF download
-  const downloadPdf = useCallback(async () => {
-    try {
-      const url = `${API_BASE()}/api/encounters/${patientId}/${encounterId}/summary/print`;
-      const headers = new Headers({ Accept: "application/pdf" });
-      const token = localStorage.getItem("token");
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-      const tenant = localStorage.getItem("selectedTenant");
-      if (tenant) headers.set("X-Tenant-Name", tenant);
-      const orgId = localStorage.getItem("orgId");
-      if (orgId) headers.set("orgId", orgId);
-
-      const res = await fetch(url, { headers, cache: "no-store" });
-      if (!res.ok) throw new Error(await res.text());
-
-      const blob = await res.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `encounter-${encounterId}-summary.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(blobUrl);
-      document.body.removeChild(a);
-    } catch (e) {
-      toast.error("Failed to generate PDF: " + (e instanceof Error ? e.message : "Unknown error"));
-    }
-  }, [patientId, encounterId]);
+  // Client-side print — captures all rendered sections via contentRef
+  const downloadPdf = useCallback(() => {
+    if (!contentRef.current) return;
+    const html = contentRef.current.innerHTML;
+    const win = window.open("", "_blank");
+    if (!win) { toast.error("Popup blocked — please allow popups and try again."); return; }
+    win.document.write(`<!DOCTYPE html><html><head><title>Encounter ${encounterId} Summary</title>
+<style>
+  body { font-family: sans-serif; font-size: 13px; color: #111; margin: 24px; }
+  h1,h2,h3 { margin: 0 0 6px; }
+  label { font-weight: 600; }
+  input, textarea, select { border: none; background: transparent; width: 100%; }
+  .dark\\:bg-gray-950, .bg-gray-50 { background: #fff !important; }
+  @media print { body { margin: 0; } button { display: none !important; } }
+</style></head><body>${html}</body></html>`);
+    win.document.close();
+    win.focus();
+    win.print();
+  }, [encounterId, contentRef]);
 
   const fmt = (d?: string) => (d ? new Date(d).toLocaleDateString() : "");
 
