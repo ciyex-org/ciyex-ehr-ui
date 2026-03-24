@@ -2068,6 +2068,23 @@ export default function DynamicFormRenderer({
             </div>
           ) : (field.type === "select" || field.type === "coded" || field.type === "combobox") && field.optionsSource ? (
             <DynamicOptionsSelect field={field} value={value} onChange={() => {}} readOnly />
+          ) : /photo|image|avatar|picture|pic$|img$|imgurl/i.test(field.key) && typeof value === "string" && value.trim() ? (
+            <div className="flex flex-col gap-1.5">
+              <img
+                src={value}
+                alt="Patient photo"
+                className="w-24 h-24 rounded-lg object-cover border border-gray-200 dark:border-gray-600"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <a
+                href={value}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-500 hover:underline truncate max-w-xs"
+              >
+                {value}
+              </a>
+            </div>
           ) : (
             <span className="text-sm text-gray-700 dark:text-gray-300">
               {field.type === "select" || field.type === "coded" || field.type === "combobox"
@@ -2076,8 +2093,6 @@ export default function DynamicFormRenderer({
                 ? value ? "Yes" : "No"
                 : field.fhirMapping?.type === "reference"
                 ? formData[field.key + "Display"] || value || "-"
-                : ((/photo|image|avatar|picture|pic$|img$|imgurl/i.test(field.key)) && typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?.*)?$/i.test(value)))
-                ? <img src={value} alt="Profile" className="w-20 h-20 rounded-lg object-cover border border-gray-200 dark:border-gray-600" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 : value || "-"}
             </span>
           )
@@ -2166,6 +2181,24 @@ export default function DynamicFormRenderer({
     switch (field.type) {
       case "text":
       case "email": {
+        const isPhotoTextKey = /photo|image|avatar|picture/i.test(field.key) || /^(photoUrl|imageUrl|avatarUrl|profilePhoto|profileImage|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo|patientPhoto|profilePicture)$/i.test(field.key);
+        if (isPhotoTextKey) {
+          const hasUrl = typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image"));
+          return (
+            <div className="space-y-2">
+              {hasUrl && (
+                <img src={value} alt="Patient photo" className="w-24 h-24 rounded-lg object-cover border border-gray-200 dark:border-gray-600" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+              )}
+              <Input
+                type="text"
+                value={value ?? ""}
+                placeholder={field.placeholder || "Enter image URL"}
+                onChange={(e) => onChange(field.key, e.target.value)}
+                error={!!error}
+              />
+            </div>
+          );
+        }
         const ssnKeys = ["ssn", "ptssn", "socialSecurityNumber", "guarantorSsn", "guarantor_ssn"];
         const isSsn = ssnKeys.includes(field.key);
         const groupNumberKeys = ["groupNumber", "group_number", "groupNo", "group"];
