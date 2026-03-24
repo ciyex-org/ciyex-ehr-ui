@@ -34,6 +34,9 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
   const [mentionQuery, setMentionQuery] = useState("");
   const [showMentionDropdown, setShowMentionDropdown] = useState(false);
   const [mentionStartPos, setMentionStartPos] = useState(-1);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -120,6 +123,54 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
 
   const removeFile = (idx: number) => {
     setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  const openCamera = async () => {
+    setShowAttachMenu(false);
+    if (isMobile) {
+      // Mobile: use native camera input
+      cameraInputRef.current?.click();
+      return;
+    }
+    // Desktop: use getUserMedia
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
+      setShowCameraModal(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      }, 100);
+    } catch {
+      // Fallback to file input if camera not available
+      cameraInputRef.current?.click();
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], `camera-${Date.now()}.jpg`, { type: "image/jpeg" });
+        setPendingFiles((prev) => [...prev, file]);
+      }
+      closeCameraModal();
+    }, "image/jpeg", 0.92);
+  };
+
+  const closeCameraModal = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setShowCameraModal(false);
   };
 
   return (
@@ -224,12 +275,7 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
                   File
                 </button>
                 <button
-                  onClick={() => {
-                    setShowAttachMenu(false);
-                    // Use the native camera file input which respects browser permissions
-                    // and lets the user preview/confirm before capturing
-                    cameraInputRef.current?.click();
-                  }}
+                  onClick={openCamera}
                   className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
                 >
                   <Camera className="h-4 w-4 text-purple-500" />
@@ -370,6 +416,29 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
         </kbd>{" "}
         for new line
       </p>
+
+      {/* Camera capture modal for desktop */}
+      {showCameraModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60">
+          <div className="relative w-full max-w-lg rounded-xl bg-white dark:bg-gray-900 shadow-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-100">Camera</span>
+              <button onClick={closeCameraModal} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <video ref={videoRef} autoPlay playsInline muted className="w-full aspect-video bg-black" />
+            <div className="flex justify-center py-3 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={capturePhoto}
+                className="px-5 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+              >
+                Capture Photo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

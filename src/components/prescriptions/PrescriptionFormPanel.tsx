@@ -206,8 +206,10 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
             const allList = parseProviders(await allRes.json());
             const q = prescriberQuery.toLowerCase();
             list = allList.filter((p: any) => {
-              const name = (p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || "").toLowerCase();
-              const npi = String(p.npi || "").toLowerCase();
+              const first = p.firstName || p.identification?.firstName || p['identification.firstName'] || '';
+              const last = p.lastName || p.identification?.lastName || p['identification.lastName'] || '';
+              const name = (p.fullName || p.name || `${first} ${last}`.trim() || "").toLowerCase();
+              const npi = String(p.npi || p.identification?.npi || p['identification.npi'] || "").toLowerCase();
               return name.includes(q) || npi.includes(q);
             });
           }
@@ -221,11 +223,12 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   }, [prescriberQuery]);
 
   const prescriberName = (p: typeof prescriberResults[0]) =>
-    p.fullName || p.name || `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.id;
+    p.fullName || p.name || `${p.firstName || (p as any).identification?.firstName || ''} ${p.lastName || (p as any).identification?.lastName || ''}`.trim() || p.id;
 
   const selectPrescriber = (p: typeof prescriberResults[0]) => {
     const name = prescriberName(p);
-    setForm((prev) => ({ ...prev, prescriberName: name, prescriberNpi: p.npi || prev.prescriberNpi || "" }));
+    const npi = p.npi || (p as any).identification?.npi || (p as any)['identification.npi'] || "";
+    setForm((prev) => ({ ...prev, prescriberName: name, prescriberNpi: npi || prev.prescriberNpi || "" }));
     skipPrescriberSearchRef.current = true;
     setPrescriberQuery(name);
     setShowPrescriberDropdown(false);

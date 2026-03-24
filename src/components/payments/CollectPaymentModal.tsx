@@ -50,6 +50,9 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
   /* Claims for selected patient */
   const [claimsList, setClaimsList] = useState<{ id: string; claimNumber?: string; status?: string; totalAmount?: number }[]>([]);
 
+  /* Saved payment methods for selected patient */
+  const [savedMethods, setSavedMethods] = useState<{ id: number; cardBrand?: string; lastFour?: string; label?: string }[]>([]);
+
   useEffect(() => {
     if (!open) return;
     setForm({
@@ -85,6 +88,19 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     }, 250);
     return () => clearTimeout(t);
   }, [patientQuery]);
+
+  /* Fetch saved payment methods when patient selected */
+  useEffect(() => {
+    if (!form.patientId) { setSavedMethods([]); return; }
+    (async () => {
+      try {
+        const res = await fetchWithAuth(apiUrl(`/api/payment-methods/patient/${encodeURIComponent(form.patientId)}`));
+        const json = await res.json();
+        const items = Array.isArray(json?.data) ? json.data : Array.isArray(json?.data?.content) ? json.data.content : [];
+        setSavedMethods(items);
+      } catch { setSavedMethods([]); }
+    })();
+  }, [form.patientId]);
 
   /* Fetch claims when patient selected and referenceType is claim */
   useEffect(() => {
@@ -249,6 +265,33 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
               </select>
               {errors.paymentMethodType && <p className="text-xs text-red-500 mt-1">{errors.paymentMethodType}</p>}
             </div>
+
+            {/* Saved Card Selection (for card methods) */}
+            {(form.paymentMethodType === "credit_card" || form.paymentMethodType === "debit_card") && (
+              <div>
+                <label className={labelCls}>Saved Card *</label>
+                {savedMethods.length > 0 ? (
+                  <select
+                    className={inputCls("paymentMethodType")}
+                    value={form.paymentMethodId ?? ""}
+                    onChange={(e) => setForm((prev) => ({ ...prev, paymentMethodId: e.target.value ? parseInt(e.target.value) : null }))}
+                  >
+                    <option value="">Select a saved card...</option>
+                    {savedMethods.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.cardBrand ? `${m.cardBrand} ` : ""}{m.lastFour ? `****${m.lastFour}` : m.label || `Card #${m.id}`}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                    {form.patientId
+                      ? "No saved cards found for this patient. Please add a card in Payment Methods first, or select a different payment method (Cash, Check, etc.)."
+                      : "Please select a patient first."}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Description */}
             <div>

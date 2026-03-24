@@ -55,6 +55,10 @@ export default function EditPatientPage() {
                         else if (g === "female") data.gender = "Female";
                         else if (g === "unknown" || g === "other") data.gender = "Unknown";
                     }
+                    // Strip phone number to raw digits (max 10) in case API returns formatted value
+                    if (data.phoneNumber) {
+                        data.phoneNumber = String(data.phoneNumber).replace(/\D/g, '').slice(0, 10);
+                    }
                     setFormData(data);
                 } else {
                     setError("Failed to fetch patient details.");
@@ -248,7 +252,7 @@ export default function EditPatientPage() {
                                 }
                             }}
                             placeholder="(xxx) xxx-xxxx"
-                            maxLength={14}
+                            maxLength={10}
                             className={inputCls(formErrors.phoneNumber)}
                             required
                         />

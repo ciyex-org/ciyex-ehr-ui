@@ -574,7 +574,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                     {formErrors.collectedDate && <p className="text-red-500 text-xs mt-1">{formErrors.collectedDate}</p>}
                   </Inp>
                   <Inp label="Reported Date">
-                    <input type="date" value={editDraft.reportedDate || ""} onChange={e => {
+                    <input type="date" value={editDraft.reportedDate || ""} min={editDraft.collectedDate || undefined} onChange={e => {
                       const v = e.target.value;
                       upd("reportedDate", v);
                       setFormErrors(prev => {
