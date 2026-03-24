@@ -94,7 +94,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     if (!form.patientId) { setSavedMethods([]); return; }
     (async () => {
       try {
-        const res = await fetchWithAuth(apiUrl(`/api/payment-methods/patient/${encodeURIComponent(form.patientId)}`));
+        const res = await fetchWithAuth(apiUrl(`/api/payments/methods/patient/${encodeURIComponent(form.patientId)}`));
         const json = await res.json();
         const items = Array.isArray(json?.data) ? json.data : Array.isArray(json?.data?.content) ? json.data.content : [];
         setSavedMethods(items);
@@ -136,9 +136,11 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     const e: Record<string, string> = {};
     if (!form.patientName.trim()) e.patientName = "Patient is required";
     if (!form.amount || parseFloat(form.amount) <= 0) e.amount = "Valid amount required";
+    if (!form.description.trim()) e.description = "Description is required";
+    if (!form.paymentMethodType) e.paymentMethodType = "Payment method type is required";
     const cardMethods: MethodType[] = ["credit_card", "debit_card"];
     if (cardMethods.includes(form.paymentMethodType) && !form.paymentMethodId) {
-      e.paymentMethodType = "A saved payment method is required for card payments. Please add a card first or select a different payment method.";
+      e.paymentMethodId = "A saved payment method is required for card payments. Please add a card first or select a different payment method.";
     }
     if (form.receiptEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.receiptEmail.trim())) {
       e.receiptEmail = "Please enter a valid email address";
@@ -253,7 +255,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
 
             {/* Payment Method Type */}
             <div>
-              <label className={labelCls}>Payment Method Type</label>
+              <label className={labelCls}>Payment Method Type *</label>
               <select
                 className={inputCls("paymentMethodType")}
                 value={form.paymentMethodType}
@@ -272,7 +274,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
                 <label className={labelCls}>Saved Card *</label>
                 {savedMethods.length > 0 ? (
                   <select
-                    className={inputCls("paymentMethodType")}
+                    className={inputCls("paymentMethodId")}
                     value={form.paymentMethodId ?? ""}
                     onChange={(e) => setForm((prev) => ({ ...prev, paymentMethodId: e.target.value ? parseInt(e.target.value) : null }))}
                   >
@@ -290,18 +292,20 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
                       : "Please select a patient first."}
                   </p>
                 )}
+                {errors.paymentMethodId && <p className="text-xs text-red-500 mt-1">{errors.paymentMethodId}</p>}
               </div>
             )}
 
             {/* Description */}
             <div>
-              <label className={labelCls}>Description</label>
+              <label className={labelCls}>Description *</label>
               <input
-                className={inputCls()}
+                className={inputCls("description")}
                 value={form.description}
                 onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="Payment for visit..."
               />
+              {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
