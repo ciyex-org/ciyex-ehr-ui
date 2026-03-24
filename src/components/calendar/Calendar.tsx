@@ -664,57 +664,63 @@ const Calendar: React.FC = () => {
     }, []);
 
 
-    // Fetch ACTIVE providers — request full list to avoid default page-size truncation
-    useEffect(() => {
-        (async () => {
-            const toOption = (p: any) => {
-                const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
-                const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
-                const fullName = `${firstName} ${lastName}`.trim();
-                return {
-                    value: String(p.id || p.fhirId || ''),
-                    label: fullName || p.name || p.fullName || p.displayName || `Provider #${p.id || p.fhirId || ''}`,
-                };
+    // Shared provider fetch logic — reused on mount and on tab visibility restore
+    const fetchProviders = useCallback(async () => {
+        const toOption = (p: any) => {
+            const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';
+            const lastName = p.identification?.lastName || p['identification.lastName'] || p.lastName || '';
+            const fullName = `${firstName} ${lastName}`.trim();
+            return {
+                value: String(p.id || p.fhirId || ''),
+                label: fullName || p.name || p.fullName || p.displayName || `Provider #${p.id || p.fhirId || ''}`,
             };
-            const isActive = (p: any) => {
-                const rawStatus = p?.systemAccess?.status || p['systemAccess.status'];
-                if (rawStatus == null || rawStatus === '' || rawStatus === undefined) return true;
-                return !['INACTIVE', 'DISABLED', 'FALSE', 'SUSPENDED', '0', 'BLOCKED'].includes(String(rawStatus).toUpperCase());
-            };
-            try {
-                // Use page=0&size=1000 to ensure ALL providers are returned regardless of backend default page size
-                let providerList: any[] = [];
-                const res = await fetchWithAuth(`${apiUrl}/api/providers?page=0&size=1000`);
-                if (res.ok) {
-                    const json = await res.json();
-                    const raw = json?.data?.content || json?.data || json?.content || json;
-                    providerList = Array.isArray(raw) ? raw : [];
-                }
-                // Fallback: FHIR resource endpoint (covers role-filtered cases where /api/providers returns only self)
-                if (providerList.length <= 1) {
-                    try {
-                        const fb = await fetchWithAuth(`${apiUrl}/api/fhir-resource/providers?size=100`);
-                        if (fb.ok) {
-                            const fj = await fb.json();
-                            const fr = fj?.data?.content || fj?.data || fj?.content || fj;
-                            const fbList = Array.isArray(fr) ? fr : [];
-                            if (fbList.length > providerList.length) providerList = fbList;
-                        }
-                    } catch { /* ignore fallback errors */ }
-                }
-                let active = providerList.filter(isActive).map(toOption).filter((p: any) => p.value);
-                // If status filtering removed everything, show all
-                if (active.length === 0) active = providerList.map(toOption).filter((p: any) => p.value);
-                setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
-            } catch (e) {
-                console.error('Failed to fetch providers', e);
-                setProviders((prev) => prev.length === 0 ? [{ value: 'all', label: 'All Providers' }] : prev);
+        };
+        const isActive = (p: any) => {
+            const rawStatus = p?.systemAccess?.status || p['systemAccess.status'];
+            if (rawStatus == null || rawStatus === '' || rawStatus === undefined) return true;
+            return !['INACTIVE', 'DISABLED', 'FALSE', 'SUSPENDED', '0', 'BLOCKED'].includes(String(rawStatus).toUpperCase());
+        };
+        try {
+            // page=0&size=1000 avoids backend default page-size truncation (was cutting list at 5)
+            let providerList: any[] = [];
+            const res = await fetchWithAuth(`${apiUrl}/api/providers?page=0&size=1000`);
+            if (res.ok) {
+                const json = await res.json();
+                const raw = json?.data?.content || json?.data || json?.content || json;
+                providerList = Array.isArray(raw) ? raw : [];
             }
-        })();
+            // Fallback: FHIR resource endpoint (role-filtered users may only see themselves above)
+            if (providerList.length <= 1) {
+                try {
+                    const fb = await fetchWithAuth(`${apiUrl}/api/fhir-resource/providers?size=100`);
+                    if (fb.ok) {
+                        const fj = await fb.json();
+                        const fr = fj?.data?.content || fj?.data || fj?.content || fj;
+                        const fbList = Array.isArray(fr) ? fr : [];
+                        if (fbList.length > providerList.length) providerList = fbList;
+                    }
+                } catch { /* ignore */ }
+            }
+            let active = providerList.filter(isActive).map(toOption).filter((p: any) => p.value);
+            if (active.length === 0) active = providerList.map(toOption).filter((p: any) => p.value);
+            setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
+        } catch (e) {
+            console.error('Failed to fetch providers', e);
+            setProviders((prev) => prev.length === 0 ? [{ value: 'all', label: 'All Providers' }] : prev);
+        }
     }, [apiUrl]);
 
-    // When the providers list grows (e.g. a new provider was added), reset to "All Providers"
-    // so the new provider is visible without the user having to manually re-select.
+    // Fetch on mount
+    useEffect(() => { fetchProviders(); }, [fetchProviders]);
+
+    // Re-fetch when user returns to this tab so newly added providers appear without full reload
+    useEffect(() => {
+        const handleVisibility = () => { if (!document.hidden) fetchProviders(); };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [fetchProviders]);
+
+    // When providers list grows, reset selection to "All" so the new provider is included
     useEffect(() => {
         setSelectedProviders([]);
     }, [providers.length]);
@@ -1696,7 +1702,10 @@ const Calendar: React.FC = () => {
                             label="Providers"
                             options={providers.filter((p) => p.value !== "all")}
                             selected={selectedProviders}
-                            onChange={setSelectedProviders}
+                            onChange={(vals) =>
+                                // Normalize "__none__" (uncheck-all) to [] (show all) — calendar should never show zero providers
+                                setSelectedProviders(vals.length === 1 && vals[0] === "__none__" ? [] : vals)
+                            }
                         />
                     </div>
                     <div className="w-52">
