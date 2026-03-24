@@ -392,7 +392,7 @@ function DmRow({ channel, isActive, onClick }: { channel: Channel; isActive: boo
           </span>
         )}
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 text-left">
         <div className="flex items-center justify-between">
           <span className={`truncate text-sm ${
             channel.unreadCount > 0 ? "font-semibold text-gray-900 dark:text-white" : "font-medium text-gray-700 dark:text-gray-300"
@@ -406,7 +406,7 @@ function DmRow({ channel, isActive, onClick }: { channel: Channel; isActive: boo
           )}
         </div>
         {(channel.lastMessagePreview || channel.lastMessage?.content) && (
-          <p className={`mt-0.5 truncate text-xs ${
+          <p className={`mt-0.5 truncate text-xs text-left ${
             channel.unreadCount > 0 ? "text-gray-600 dark:text-gray-400" : "text-gray-400 dark:text-gray-500"
           }`}>
             {channel.lastMessagePreview || channel.lastMessage?.content}
