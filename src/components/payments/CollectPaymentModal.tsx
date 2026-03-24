@@ -130,15 +130,30 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     setForm((prev) => ({ ...prev, patientId: p.id, patientName: name }));
     setPatientQuery(name);
     setShowDropdown(false);
+    setErrors((prev) => { const n = { ...prev }; delete n.patientName; delete n.paymentMethodId; return n; });
   };
+
+  const isCardPayment = form.paymentMethodType === "credit_card" || form.paymentMethodType === "debit_card";
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.patientName.trim()) e.patientName = "Patient is required";
-    if (!form.amount || parseFloat(form.amount) <= 0) e.amount = "Valid amount required";
+    if (!form.patientName.trim()) {
+      e.patientName = "Patient is required";
+    } else if (!form.patientId) {
+      e.patientName = "Please select a patient from the search results";
+    }
+    if (!form.amount || parseFloat(form.amount) <= 0) e.amount = "Valid amount is required";
     if (!form.description.trim()) e.description = "Description is required";
     if (!form.paymentMethodType) e.paymentMethodType = "Payment method type is required";
-    // paymentMethodId is optional — backend can handle card payments without a saved method on file
+    if (isCardPayment) {
+      if (!form.patientId) {
+        e.paymentMethodId = "Select a patient first to load their saved cards";
+      } else if (savedMethods.length === 0) {
+        e.paymentMethodId = "No saved cards for this patient — add a card in Payment Methods or choose Cash / Check";
+      } else if (!form.paymentMethodId) {
+        e.paymentMethodId = "Please select a saved card";
+      }
+    }
     if (form.receiptEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.receiptEmail.trim())) {
       e.receiptEmail = "Please enter a valid email address";
     }
@@ -216,6 +231,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
                   setPatientQuery(e.target.value);
                   setForm((prev) => ({ ...prev, patientId: "", patientName: "" }));
                   setShowDropdown(true);
+                  setErrors((prev) => { const n = { ...prev }; delete n.patientName; delete n.paymentMethodId; return n; });
                 }}
                 placeholder="Search patient..."
               />
@@ -244,7 +260,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
                 min="0"
                 className={inputCls("amount")}
                 value={form.amount}
-                onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+                onChange={(e) => { setForm((prev) => ({ ...prev, amount: e.target.value })); setErrors((p) => { const n = { ...p }; delete n.amount; return n; }); }}
                 placeholder="0.00"
               />
               {errors.amount && <p className="text-xs text-red-500 mt-1">{errors.amount}</p>}
@@ -256,7 +272,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
               <select
                 className={inputCls("paymentMethodType")}
                 value={form.paymentMethodType}
-                onChange={(e) => setForm((prev) => ({ ...prev, paymentMethodType: e.target.value as MethodType }))}
+                onChange={(e) => { setForm((prev) => ({ ...prev, paymentMethodType: e.target.value as MethodType, paymentMethodId: null })); setErrors((p) => { const n = { ...p }; delete n.paymentMethodType; delete n.paymentMethodId; return n; }); }}
               >
                 {METHOD_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -273,7 +289,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
                   <select
                     className={inputCls("paymentMethodId")}
                     value={form.paymentMethodId ?? ""}
-                    onChange={(e) => setForm((prev) => ({ ...prev, paymentMethodId: e.target.value ? parseInt(e.target.value) : null }))}
+                    onChange={(e) => { setForm((prev) => ({ ...prev, paymentMethodId: e.target.value ? parseInt(e.target.value) : null })); setErrors((p) => { const n = { ...p }; delete n.paymentMethodId; return n; }); }}
                   >
                     <option value="">Select a saved card...</option>
                     {savedMethods.map((m) => (
@@ -299,7 +315,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
               <input
                 className={inputCls("description")}
                 value={form.description}
-                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => { setForm((prev) => ({ ...prev, description: e.target.value })); setErrors((p) => { const n = { ...p }; delete n.description; return n; }); }}
                 placeholder="Payment for visit..."
               />
               {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
