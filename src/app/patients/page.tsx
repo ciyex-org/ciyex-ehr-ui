@@ -677,9 +677,12 @@ export default function PatientListPage() {
                                     value={newPatient.dateOfBirth}
                                     onChange={(e) => {
                                         const v = e.target.value;
-                                        if (v && v > new Date().toISOString().split("T")[0]) return;
                                         setNewPatient({ ...newPatient, dateOfBirth: v });
-                                        if (addErrors.dateOfBirth) setAddErrors(p => { const n = {...p}; delete n.dateOfBirth; return n; });
+                                        if (v && v > new Date().toISOString().split("T")[0]) {
+                                            setAddErrors(p => ({ ...p, dateOfBirth: "Date of birth cannot be in the future" }));
+                                        } else {
+                                            setAddErrors(p => { const n = {...p}; delete n.dateOfBirth; return n; });
+                                        }
                                     }}
                                     className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.dateOfBirth ? "border-red-400" : ""}`}
                                 />
@@ -709,8 +712,9 @@ export default function PatientListPage() {
                                     type="tel"
                                     required
                                     placeholder="(555) 123-4567"
+                                    maxLength={10}
                                     value={newPatient.phoneNumber}
-                                    onChange={(e) => { setNewPatient({ ...newPatient, phoneNumber: e.target.value }); if (addErrors.phoneNumber) setAddErrors(p => { const n = {...p}; delete n.phoneNumber; return n; }); }}
+                                    onChange={(e) => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setNewPatient({ ...newPatient, phoneNumber: v }); if (addErrors.phoneNumber) setAddErrors(p => { const n = {...p}; delete n.phoneNumber; return n; }); }}
                                     className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${addErrors.phoneNumber ? "border-red-400" : ""}`}
                                 />
                                 {addErrors.phoneNumber && <p className="text-xs text-red-500 mt-1">{addErrors.phoneNumber}</p>}
