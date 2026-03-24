@@ -550,6 +550,11 @@ export default function AddPatient() {
 
             if (!response.ok) {
                 const text = await response.text();
+                // Check for duplicate email/phone errors
+                const lower = text.toLowerCase();
+                if (response.status === 409 || lower.includes('already exists') || lower.includes('duplicate') || lower.includes('exists with same email')) {
+                    throw new Error('A patient with this email already exists. Please use a different email address.');
+                }
                 throw new Error(`HTTP error! status: ${response.status}, message: ${text}`);
             }
 

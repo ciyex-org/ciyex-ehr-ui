@@ -1242,6 +1242,27 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
 
         // --- Reverse mappings: ensure field-config keys are populated from normalized values ---
 
+        // Insurance: extract planName/groupNumber/memberId from FHIR Coverage class array
+        if (Array.isArray(r.class)) {
+            for (const cls of r.class) {
+                const code = cls?.type?.coding?.[0]?.code || cls?.type?.text || cls?.type || "";
+                const val = cls?.value || cls?.name || "";
+                if (val) {
+                    if (code === "plan" && !r.planName) { r.planName = val; r.plan = val; r.coveragePlan = val; }
+                    if (code === "group" && !r.groupNumber) { r.groupNumber = val; r.group = val; r.groupNo = val; }
+                }
+            }
+        }
+        // Insurance: reverse subscriberId → memberId/policyNumber
+        if (r.memberId == null && r.subscriberId != null) r.memberId = r.subscriberId;
+        if (r.policyNumber == null && r.subscriberId != null) r.policyNumber = r.subscriberId;
+        if (r.subscriberId == null && r.memberId != null) r.subscriberId = r.memberId;
+        // Insurance: reverse planName aliases
+        if (r.planName == null && r.plan != null) r.planName = r.plan;
+        if (r.planName == null && r.coveragePlan != null) r.planName = r.coveragePlan;
+        if (r.plan == null && r.planName != null) r.plan = r.planName;
+        if (r.coveragePlan == null && r.planName != null) r.coveragePlan = r.planName;
+
         // Insurance: reverse policyEffectiveDate/policyEndDate → effectiveDate/endDate
         if (r.effectiveDate == null && r.policyEffectiveDate != null) r.effectiveDate = r.policyEffectiveDate;
         if (r.endDate == null && r.policyEndDate != null) r.endDate = r.policyEndDate;
@@ -2374,8 +2395,15 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     }
                 }
                 // Wrap reaction manifestation coding if present
-                if (payload.reaction && typeof payload.reaction === "string") {
-                    payload.reaction = [{ manifestation: [wrapCoding(payload.reaction, allergySystem)] }];
+                // Check both "reaction" and "manifestation" field keys since form config may use either
+                const reactionValue = (typeof payload.reaction === "string" && payload.reaction) ||
+                    (typeof payload.manifestation === "string" && payload.manifestation) ||
+                    (typeof payload.reactionDisplay === "string" && payload.reactionDisplay);
+                if (reactionValue) {
+                    payload.reaction = [{ manifestation: [wrapCoding(reactionValue, allergySystem)] }];
+                    // Clean up alternate keys so they don't get sent as separate fields
+                    delete payload.manifestation;
+                    delete payload.reactionDisplay;
                 }
                 // Ensure verificationStatus and clinicalStatus have proper FHIR coding systems
                 if (!payload.verificationStatus) {
@@ -3069,7 +3097,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         }
         const str = String(value);
         // Render image URLs as actual images for photo/avatar fields
-        if (typeof colKey === "string" && /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture)$/i.test(colKey)) {
+        if (typeof colKey === "string" && /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo)$/i.test(colKey)) {
             if (str.startsWith("http") || str.startsWith("/") || str.startsWith("data:image")) {
                 return <img src={str} alt="Profile" className="w-8 h-8 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />;
             }

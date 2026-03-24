@@ -1827,7 +1827,33 @@ const auditLog: ReportDefinition = {
         byAction: toChartData(actionCounts, "name", "count"),
         dailyTrend,
       },
-      tableData: records.slice(0, 100).map((a: any) => ({ timestamp: a.timestamp || a.createdAt || "", user: a.user || a.username || a.userId || a.performedBy || a.actor || a.modifiedBy || a.createdBy || "", action: a.action || a.actionType || a.eventType || "", resource: a.resource || a.entityType || a.entityId || a.targetResource || a.targetType || a.resourceType || a.object || "", details: a.details || a.description || a.message || a.note || a.detail || a.info || "", ipAddress: a.ipAddress || a.ip || "" })),
+      tableData: records.slice(0, 100).map((a: any) => {
+        let details = a.details || a.description || a.message || a.note || a.detail || a.info || "";
+        // Parse JSON details into readable summary
+        if (typeof details === "object" && details !== null) {
+          try {
+            const entries = Object.entries(details);
+            const hasChanges = entries.some(([, v]) => v && typeof v === "object" && ("old" in (v as any) || "new" in (v as any)));
+            if (hasChanges) {
+              details = entries.map(([field, v]) => { const c = v as any; return `${field}: ${c.old ?? "—"} → ${c.new ?? "—"}`; }).join("; ");
+            } else {
+              details = entries.map(([k, v]) => `${k}: ${v}`).join(", ");
+            }
+          } catch { details = JSON.stringify(details); }
+        } else if (typeof details === "string" && details.startsWith("{")) {
+          try {
+            const parsed = JSON.parse(details);
+            const entries = Object.entries(parsed);
+            const hasChanges = entries.some(([, v]) => v && typeof v === "object" && ("old" in (v as any) || "new" in (v as any)));
+            if (hasChanges) {
+              details = entries.map(([field, v]) => { const c = v as any; return `${field}: ${c.old ?? "—"} → ${c.new ?? "—"}`; }).join("; ");
+            } else {
+              details = entries.map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(", ");
+            }
+          } catch { /* keep original string */ }
+        }
+        return { timestamp: a.timestamp || a.createdAt || "", user: a.user || a.username || a.userId || a.performedBy || a.actor || a.modifiedBy || a.createdBy || "", action: a.action || a.actionType || a.eventType || "", resource: a.resource || a.entityType || a.entityId || a.targetResource || a.targetType || a.resourceType || a.object || "", details, ipAddress: a.ipAddress || a.ip || "" };
+      }),
       totalRecords: records.length,
     };
   },

@@ -253,7 +253,16 @@ export default function ClinicalSidebar({
 
                 {/* ---- Tab Navigation by Category ---- */}
                 {/* Deduplicate categories by label */}
-                {tabCategories.filter((cat, idx, arr) => arr.findIndex(c => c.label === cat.label) === idx).map(cat => {
+                {tabCategories.reduce((acc: typeof tabCategories, cat) => {
+                    const existing = acc.find(c => c.label === cat.label);
+                    if (existing) {
+                        const existingKeys = new Set(existing.tabs.map(t => t.key));
+                        existing.tabs.push(...cat.tabs.filter(t => !existingKeys.has(t.key)));
+                    } else {
+                        acc.push({ ...cat, tabs: cat.tabs.filter((t, i, arr) => arr.findIndex(x => x.key === t.key) === i) });
+                    }
+                    return acc;
+                }, [] as typeof tabCategories).map(cat => {
                     const isCollapsed = collapsedCats.has(cat.label);
                     const hasActiveTab = cat.tabs.some(t => t.key === activeTab);
                     return (

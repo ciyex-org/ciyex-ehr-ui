@@ -2076,7 +2076,7 @@ export default function DynamicFormRenderer({
                 ? value ? "Yes" : "No"
                 : field.fhirMapping?.type === "reference"
                 ? formData[field.key + "Display"] || value || "-"
-                : (/^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture)$/i.test(field.key) && typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image")))
+                : (/^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo)$/i.test(field.key) && typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image")))
                 ? <img src={value} alt="Profile" className="w-10 h-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 : value || "-"}
             </span>
@@ -2168,6 +2168,8 @@ export default function DynamicFormRenderer({
         const isSsn = ssnKeys.includes(field.key);
         const groupNumberKeys = ["groupNumber", "group_number", "groupNo", "group"];
         const isGroupNumber = groupNumberKeys.includes(field.key);
+        const memberIdKeys = ["memberId", "memberNumber", "subscriberId", "idNo", "policyNumber", "policyNo", "member_id", "policy_number"];
+        const isMemberId = memberIdKeys.includes(field.key);
         return (
           <Input
             type={field.type}
@@ -2177,7 +2179,7 @@ export default function DynamicFormRenderer({
               if (isSsn) {
                 const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
                 onChange(field.key, digits);
-              } else if (isGroupNumber) {
+              } else if (isGroupNumber || isMemberId) {
                 const filtered = e.target.value.replace(/[^a-zA-Z0-9\-]/g, "");
                 onChange(field.key, filtered);
               } else {
@@ -2413,7 +2415,7 @@ export default function DynamicFormRenderer({
 
       default: {
         // Photo/image fields: show image preview + URL input
-        const isPhotoField = /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture)$/i.test(field.key);
+        const isPhotoField = /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo)$/i.test(field.key);
         if (isPhotoField) {
           const hasUrl = typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image"));
           return (
