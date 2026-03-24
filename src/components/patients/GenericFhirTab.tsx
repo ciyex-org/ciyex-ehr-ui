@@ -1551,6 +1551,24 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 value = value.slice(0, value.length - (digitsOnly.length - 9));
             }
         }
+        // Insurance: groupNumber and policyNumber/memberId — alphanumeric only (real-time block)
+        if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && typeof value === "string") {
+            const kl = key.toLowerCase();
+            const isGroupKey = ["groupnumber", "group_number", "groupno", "group", "groupid"].includes(kl) ||
+                (kl.includes("group") && (kl.includes("number") || kl.includes("no") || kl.includes("num") || kl.includes("id")));
+            const isPolicyKey = ["memberid", "membernumber", "subscriberid", "idno", "policynumber", "policyno", "member_id", "policy_number"].includes(kl) ||
+                (kl.includes("policy") && (kl.includes("number") || kl.includes("no") || kl.includes("num") || kl.includes("id"))) ||
+                (kl.includes("member") && (kl.includes("id") || kl.includes("number") || kl.includes("no")));
+            if (isGroupKey || isPolicyKey) {
+                const filtered = value.replace(/[^a-zA-Z0-9]/g, "");
+                if (filtered !== value) {
+                    setValidationErrors((prev) => ({ ...prev, [key]: "Only letters and numbers are allowed" }));
+                }  else {
+                    setValidationErrors((prev) => { const n = { ...prev }; delete n[key]; return n; });
+                }
+                value = filtered;
+            }
+        }
         setFormData((prev) => {
             const next = { ...prev, [key]: value };
             // Insurance: plan selection requires company to be selected first
@@ -2158,27 +2176,18 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     errors[endKey] = "End Date cannot be before Effective Date";
                 }
             }
-            // Insurance: group number must be alphanumeric only
+            // Insurance: groupNumber and policyNumber/memberId — alphanumeric only
             if (tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") {
-                for (const key of ["groupNumber", "group_number", "groupNo", "group"]) {
+                for (const key of ["groupNumber", "group_number", "groupNo", "group", "groupId"]) {
                     const val = formData[key];
-                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9\-]+$/.test(val.trim())) {
-                        errors[key] = "Group Number must contain only letters, numbers, or hyphens";
+                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9]+$/.test(val.trim())) {
+                        errors[key] = "Group Number must contain only letters and numbers";
                     }
                 }
-            }
-            // Insurance: memberId and groupNumber should allow alphanumeric characters
-            if (tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") {
-                for (const key of ["memberId", "memberNumber", "subscriberId", "idNo", "policyNumber", "policyNo"]) {
+                for (const key of ["memberId", "memberNumber", "subscriberId", "idNo", "policyNumber", "policyNo", "member_id", "policy_number"]) {
                     const val = formData[key];
-                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9\-\s]+$/.test(val.trim())) {
-                        errors[key] = "ID must be alphanumeric (letters, numbers, hyphens)";
-                    }
-                }
-                for (const key of ["groupNumber", "group", "groupNo", "groupId"]) {
-                    const val = formData[key];
-                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9\-\s]+$/.test(val.trim())) {
-                        errors[key] = "Group number must be alphanumeric";
+                    if (typeof val === "string" && val.trim() && !/^[A-Za-z0-9]+$/.test(val.trim())) {
+                        errors[key] = "Policy/Member Number must contain only letters and numbers";
                     }
                 }
             }
