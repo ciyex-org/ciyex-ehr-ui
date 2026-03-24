@@ -58,6 +58,33 @@ const DEA_SCHEDULE_OPTIONS = [
   { value: "V", label: "Schedule V" },
 ];
 
+/* ── helpers (module-level, no component state) ── */
+function parseProviderList(json: any): any[] {
+  if (Array.isArray(json?.data?.content)) return json.data.content;
+  if (Array.isArray(json?.data)) return json.data;
+  if (Array.isArray(json?.content)) return json.content;
+  if (Array.isArray(json)) return json;
+  return [];
+}
+function resolveProviderName(p: any): string {
+  if (p.fullName && typeof p.fullName === "string" && p.fullName.trim()) return p.fullName.trim();
+  if (p.name && typeof p.name === "string" && p.name.trim()) return p.name.trim();
+  if (p.displayName && typeof p.displayName === "string" && p.displayName.trim()) return p.displayName.trim();
+  if (p.providerName && typeof p.providerName === "string" && p.providerName.trim()) return p.providerName.trim();
+  if (p.fullProviderName && typeof p.fullProviderName === "string" && p.fullProviderName.trim()) return p.fullProviderName.trim();
+  if (p.providerDisplayName && typeof p.providerDisplayName === "string" && p.providerDisplayName.trim()) return p.providerDisplayName.trim();
+  const ident = p.identification || {};
+  const first = String(p.firstName || p["identification.firstName"] || ident.firstName || p.providerFirstName || "").trim();
+  const last  = String(p.lastName  || p["identification.lastName"]  || ident.lastName  || p.providerLastName  || "").trim();
+  const built = `${first} ${last}`.trim();
+  if (built) return built;
+  return String(p.id || p.fhirId || "");
+}
+function resolveProviderNpi(p: any): string {
+  const ident = p.identification || {};
+  return String(p.npi || p["identification.npi"] || ident.npi || p.providerNpi || "");
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -178,63 +205,73 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     }
   }, [showPrescriberDropdown, prescriberResults.length]);
 
+  /* Prescriber search — mirrors runPatientSearch pattern */
+  const runPrescriberSearch = useCallback(async (q: string) => {
+    const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+    try {
+      let list: any[] = [];
+
+      // 1. Server-side search when query is non-empty
+      if (q.trim().length >= 1) {
+        const res = await fetchWithAuth(`${base}/api/providers?search=${encodeURIComponent(q)}&page=0&size=100`);
+        if (res.ok) list = parseProviderList(await res.json());
+      }
+
+      // 2. Fetch full list when query is empty OR server search returned nothing
+      if (list.length === 0) {
+        const allRes = await fetchWithAuth(`${base}/api/providers?page=0&size=1000`);
+        if (allRes.ok) list = parseProviderList(await allRes.json());
+
+        // 3. FHIR fallback — covers role-filtered cases where /api/providers returns only self
+        if (list.length <= 1) {
+          try {
+            const fb = await fetchWithAuth(`${base}/api/fhir-resource/providers?size=100`);
+            if (fb.ok) {
+              const fbList = parseProviderList(await fb.json());
+              if (fbList.length > list.length) list = fbList;
+            }
+          } catch { /* ignore */ }
+        }
+
+        // 4. Client-side filter when user has typed something
+        if (q.trim().length >= 1) {
+          const ql = q.toLowerCase();
+          list = list.filter((p: any) => {
+            const ident = p.identification || {};
+            const first = String(p.firstName || p["identification.firstName"] || ident.firstName || p.providerFirstName || "").toLowerCase();
+            const last  = String(p.lastName  || p["identification.lastName"]  || ident.lastName  || p.providerLastName  || "").toLowerCase();
+            const full  = String(p.fullName  || p.name || p.displayName || p.providerName || p.fullProviderName || p.providerDisplayName || "").toLowerCase();
+            const npi   = String(p.npi || p["identification.npi"] || ident.npi || p.providerNpi || "").toLowerCase();
+            const built = full || `${first} ${last}`.trim();
+            return built.includes(ql) || first.includes(ql) || last.includes(ql) || npi.includes(ql);
+          });
+        }
+      }
+
+      // Normalise id field
+      list = list.filter((p: any) => p && (p.id || p.fhirId));
+      list.forEach((p: any) => { if (!p.id && p.fhirId) p.id = String(p.fhirId); });
+
+      setPrescriberResults(list);
+      setShowPrescriberDropdown(list.length > 0);
+    } catch { /* silent */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* Debounced prescriber search */
   useEffect(() => {
-    if (!prescriberQuery.trim() || prescriberQuery.length < 1) {
-      skipPrescriberSearchRef.current = false;
+    if (skipPrescriberSearchRef.current) { skipPrescriberSearchRef.current = false; return; }
+    if (!prescriberQuery.trim()) {
       setPrescriberResults([]);
+      setShowPrescriberDropdown(false);
       return;
     }
-    if (skipPrescriberSearchRef.current) { skipPrescriberSearchRef.current = false; return; }
-    const t = setTimeout(async () => {
-      try {
-        const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
-        const parseProviders = (json: any) => {
-          if (Array.isArray(json?.data?.content)) return json.data.content;
-          if (Array.isArray(json?.data)) return json.data;
-          if (Array.isArray(json?.content)) return json.content;
-          if (Array.isArray(json)) return json;
-          return [];
-        };
-
-        // Try search param first
-        let list: typeof prescriberResults = [];
-        const res = await fetchWithAuth(`${base}/api/providers?search=${encodeURIComponent(prescriberQuery)}`);
-        if (res.ok) {
-          list = parseProviders(await res.json());
-        }
-
-        // If search returned nothing, fetch all and filter client-side
-        if (list.length === 0) {
-          const allRes = await fetchWithAuth(`${base}/api/providers?page=0&size=200`);
-          if (allRes.ok) {
-            const allList = parseProviders(await allRes.json());
-            const q = prescriberQuery.toLowerCase();
-            list = allList.filter((p: any) => {
-              const first = p.firstName || p['identification.firstName'] || p.identification?.firstName || p.providerFirstName || '';
-              const last = p.lastName || p['identification.lastName'] || p.identification?.lastName || p.providerLastName || '';
-              const full = p.fullName || p.name || p.displayName || p.providerName || p.fullProviderName || p.providerDisplayName || '';
-              const name = (full || `${first} ${last}`.trim() || "").toLowerCase();
-              const npi = String(p.npi || p['identification.npi'] || p.identification?.npi || p.providerNpi || "").toLowerCase();
-              return name.includes(q) || first.toString().toLowerCase().includes(q) || last.toString().toLowerCase().includes(q) || npi.includes(q);
-            });
-          }
-        }
-
-        setPrescriberResults(list);
-        setShowPrescriberDropdown(list.length > 0);
-      } catch { /* silent */ }
-    }, 300);
+    const t = setTimeout(() => runPrescriberSearch(prescriberQuery), 300);
     return () => clearTimeout(t);
-  }, [prescriberQuery]);
+  }, [prescriberQuery, runPrescriberSearch]);
 
-  const prescriberName = (p: typeof prescriberResults[0]) =>
-    p.fullName || p.name || (p as any).displayName || (p as any).providerName || (p as any).fullProviderName ||
-    `${p.firstName || (p as any)['identification.firstName'] || (p as any).identification?.firstName || (p as any).providerFirstName || ''} ${p.lastName || (p as any)['identification.lastName'] || (p as any).identification?.lastName || (p as any).providerLastName || ''}`.trim() || p.id;
-
-  const selectPrescriber = (p: typeof prescriberResults[0]) => {
-    const name = prescriberName(p);
-    const npi = p.npi || (p as any)['identification.npi'] || (p as any).identification?.npi || "";
+  const selectPrescriber = (p: any) => {
+    const name = resolveProviderName(p);
+    const npi  = resolveProviderNpi(p);
     setForm((prev) => ({ ...prev, prescriberName: name, prescriberNpi: npi || prev.prescriberNpi || "" }));
     skipPrescriberSearchRef.current = true;
     setPrescriberQuery(name);
@@ -431,21 +468,9 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                     set("prescriberName", e.target.value);
                     setShowPrescriberDropdown(true);
                   }}
-                  onFocus={async () => {
+                  onFocus={() => {
                     if (prescriberResults.length > 0) { setShowPrescriberDropdown(true); return; }
-                    // Fetch all providers on focus to populate dropdown immediately
-                    try {
-                      const res = await fetchWithAuth(`${(getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "")}/api/providers?page=0&size=50`);
-                      if (res.ok) {
-                        const json = await res.json();
-                        let list: typeof prescriberResults = [];
-                        if (Array.isArray(json?.data?.content)) list = json.data.content;
-                        else if (Array.isArray(json?.data)) list = json.data;
-                        else if (Array.isArray(json?.content)) list = json.content;
-                        else if (Array.isArray(json)) list = json;
-                        if (list.length > 0) { setPrescriberResults(list); setShowPrescriberDropdown(true); }
-                      }
-                    } catch { /* silent */ }
+                    runPrescriberSearch(prescriberQuery);
                   }}
                   onBlur={() => setTimeout(() => setShowPrescriberDropdown(false), 150)}
                   placeholder="Search provider by name..."
@@ -462,8 +487,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                         onClick={() => selectPrescriber(p)}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0"
                       >
-                        <span className="font-medium">{prescriberName(p)}</span>
-                        {(p.npi || (p as any)['identification.npi'] || (p as any).identification?.npi) && <span className="text-xs text-gray-400 ml-2">NPI: {p.npi || (p as any)['identification.npi'] || (p as any).identification?.npi}</span>}
+                        <span className="font-medium">{resolveProviderName(p)}</span>
+                        {resolveProviderNpi(p) && <span className="text-xs text-gray-400 ml-2">NPI: {resolveProviderNpi(p)}</span>}
                       </button>
                     ))}
                   </div>
