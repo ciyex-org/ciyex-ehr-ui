@@ -573,7 +573,31 @@ const downloadPdf = useCallback(() => {
           .ml-5 { margin-left: 1.25rem; }
           .overflow-auto { overflow: auto; }
           .bg-gray-50 { background: #f9fafb; }
-          @media print { body { padding: 10px; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .gap-2 { gap: 0.5rem; }
+          .gap-4 { gap: 1rem; }
+          .flex { display: flex; }
+          .flex-wrap { flex-wrap: wrap; }
+          .items-center { align-items: center; }
+          .justify-between { justify-content: space-between; }
+          ul { margin: 0; padding-left: 1.25rem; }
+          li { margin-bottom: 0.25rem; }
+          .border-b { border-bottom: 1px solid #e5e7eb; }
+          .text-blue-600 { color: #2563eb; }
+          .text-green-600 { color: #16a34a; }
+          .text-red-600 { color: #dc2626; }
+          .text-yellow-600 { color: #ca8a04; }
+          .font-bold { font-weight: 700; }
+          .rounded-xl { border-radius: 0.75rem; }
+          .bg-gray-50 { background: #f9fafb; }
+          .space-y-2 > * + * { margin-top: 0.5rem; }
+          .space-y-4 > * + * { margin-top: 1rem; }
+          @media print {
+            body { padding: 10px; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; overflow: visible !important; max-height: none !important; }
+            .overflow-auto, .overflow-hidden { overflow: visible !important; }
+            .max-h-24, .max-h-48 { max-height: none !important; }
+          }
         </style>
       </head>
       <body>${summaryRef.current.innerHTML}</body>
@@ -582,7 +606,9 @@ const downloadPdf = useCallback(() => {
     printWindow.document.write(htmlContent);
     printWindow.document.close();
     printWindow.onload = () => {
-        printWindow.print();
+        setTimeout(() => {
+            printWindow.print();
+        }, 300);
     };
 }, [encounterId]);
 

@@ -2076,7 +2076,7 @@ export default function DynamicFormRenderer({
                 ? value ? "Yes" : "No"
                 : field.fhirMapping?.type === "reference"
                 ? formData[field.key + "Display"] || value || "-"
-                : (/^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo)$/i.test(field.key) && typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image")))
+                : ((/photo|image|avatar|picture/i.test(field.key) || /^(photoUrl|imageUrl|avatarUrl|profilePhoto|profileImage|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo|patientPhoto|profilePicture)$/i.test(field.key)) && typeof value === "string" && (value.startsWith("http") || value.startsWith("https") || value.startsWith("/") || value.startsWith("data:image")))
                 ? <img src={value} alt="Profile" className="w-10 h-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 : value || "-"}
             </span>
@@ -2105,7 +2105,9 @@ export default function DynamicFormRenderer({
           const fieldLabel = (field.label || "").toLowerCase();
           const isEndDateKey =
             /end.*date|^end$|enddate|endtime|resolv|abate|conclus/i.test(field.key) ||
-            /end\s*date|end\s*time|resolv|abate/i.test(fieldLabel);
+            /end\s*date|end\s*time|resolv|abate/i.test(fieldLabel) ||
+            /^(serviceTo|serviceToDate|serviceDateTo|billablePeriodEnd|serviceEndDate)$/i.test(field.key) ||
+            /service\s*to|service\s*end/i.test(fieldLabel);
           const isOnsetKey =
             /onset.*date|^onset$|onset.*time|start.*date|^recorded|^identified/i.test(field.key) ||
             /onset|start\s*date/i.test(fieldLabel);
@@ -2113,8 +2115,8 @@ export default function DynamicFormRenderer({
           // Dynamically find onset date from formData (any key containing "onset" or "start")
           const findDateInFormData = (patterns: RegExp[]): string | undefined => {
             // Check exact known keys first
-            const knownOnset = ["onsetDate", "onset", "onsetDateTime", "onsetTime", "startDate", "recordedDate", "identifiedDate", "appointmentStartDate", "appointmentStart", "scheduledStart"];
-            const knownEnd = ["endDate", "end", "endDateTime", "resolvedDate", "abatementDate", "conclusionDate", "appointmentEndDate", "appointmentEnd", "scheduledEnd"];
+            const knownOnset = ["onsetDate", "onset", "onsetDateTime", "onsetTime", "startDate", "recordedDate", "identifiedDate", "appointmentStartDate", "appointmentStart", "scheduledStart", "serviceFrom", "serviceFromDate", "serviceDateFrom", "billablePeriodStart", "serviceStartDate"];
+            const knownEnd = ["endDate", "end", "endDateTime", "resolvedDate", "abatementDate", "conclusionDate", "appointmentEndDate", "appointmentEnd", "scheduledEnd", "serviceTo", "serviceToDate", "serviceDateTo", "billablePeriodEnd", "serviceEndDate"];
             const keys = patterns.some(p => p.source.includes("onset") || p.source.includes("start") || p.source.includes("record"))
               ? knownOnset : knownEnd;
             for (const k of keys) {
@@ -2415,7 +2417,7 @@ export default function DynamicFormRenderer({
 
       default: {
         // Photo/image fields: show image preview + URL input
-        const isPhotoField = /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo)$/i.test(field.key);
+        const isPhotoField = /photo|image|avatar|picture/i.test(field.key) || /^(photoUrl|imageUrl|avatarUrl|profilePhoto|profileImage|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo|patientPhoto|profilePicture)$/i.test(field.key);
         if (isPhotoField) {
           const hasUrl = typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image"));
           return (

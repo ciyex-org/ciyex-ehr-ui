@@ -351,8 +351,8 @@ function FormDrawer({
         }
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
         // Lot number: alphanumeric with hyphens allowed between characters
-        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(form.lotNumber.trim())) {
-            e.lotNumber = "Lot number must be alphanumeric (hyphens allowed between characters)";
+        if (form.lotNumber && form.lotNumber.trim() && (!/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(form.lotNumber.trim()) || /^-|-$/.test(form.lotNumber.trim()))) {
+            e.lotNumber = "Lot number must start and end with alphanumeric characters (hyphens allowed between)";
         }
         // Dose: must be a positive number if provided
         if (form.dose !== undefined && form.dose !== null) {
@@ -428,10 +428,11 @@ function FormDrawer({
                             label="Lot Number (min 8 chars)"
                             value={form.lotNumber ?? ""}
                             onChange={(v) => {
-                                const filtered = v.replace(/[^A-Za-z0-9\-]/g, "");
+                                // Strip non-alphanumeric except internal hyphens; disallow leading/trailing hyphens
+                                const filtered = v.replace(/[^A-Za-z0-9\-]/g, "").replace(/^-+/, "").replace(/-+$/, "");
                                 set("lotNumber", filtered);
-                                if (filtered && !/^[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9]$/.test(filtered) && filtered.length > 1) {
-                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must be alphanumeric (hyphens allowed between characters)" }));
+                                if (filtered && !/^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$/.test(filtered) && filtered.length > 1) {
+                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must start and end with alphanumeric characters (hyphens allowed between)" }));
                                 } else if (filtered && filtered.length < 8) {
                                     setErrors(prev => ({ ...prev, lotNumber: "Lot number must be at least 8 characters" }));
                                 } else {

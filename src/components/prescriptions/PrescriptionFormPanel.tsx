@@ -109,11 +109,12 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       const p = prescription ? { ...prescription } : blankPrescription();
       setForm(p);
       setErrors({});
-      skipPatientSearchRef.current = true; // suppress the search triggered by the patientQuery change below
+      // Only set skip flag if there's an actual value to suppress searching on
+      skipPatientSearchRef.current = !!(p.patientName);
       setPatientQuery(p.patientName || "");
       setPatientResults([]);
       setShowPatientDropdown(false);
-      skipPrescriberSearchRef.current = true;
+      skipPrescriberSearchRef.current = !!(p.prescriberName);
       setPrescriberQuery(p.prescriberName || "");
       setPrescriberResults([]);
       setShowPrescriberDropdown(false);
@@ -179,8 +180,12 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
 
   /* Debounced prescriber search */
   useEffect(() => {
+    if (!prescriberQuery.trim() || prescriberQuery.length < 1) {
+      skipPrescriberSearchRef.current = false;
+      setPrescriberResults([]);
+      return;
+    }
     if (skipPrescriberSearchRef.current) { skipPrescriberSearchRef.current = false; return; }
-    if (!prescriberQuery.trim() || prescriberQuery.length < 1) { setPrescriberResults([]); return; }
     const t = setTimeout(async () => {
       try {
         const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");

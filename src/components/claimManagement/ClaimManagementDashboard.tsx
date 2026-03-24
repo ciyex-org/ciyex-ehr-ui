@@ -271,7 +271,7 @@ const ClaimManagementDashboard: React.FC = () => {
           // Non-404/405 error — read message and check if we should try next
           try { const j = await r.json(); lastErr = j.message || lastErr; } catch { try { lastErr = await r.text() || lastErr; } catch {} }
           // If error is about invoice/null, try next endpoint
-          if (lastErr.toLowerCase().includes("invoice") || lastErr.toLowerCase().includes("null") || lastErr.toLowerCase().includes("not supported")) continue;
+          if (lastErr.toLowerCase().includes("invoice") || lastErr.toLowerCase().includes("null") || lastErr.toLowerCase().includes("not supported") || lastErr.toLowerCase().includes("no endpoint") || lastErr.toLowerCase().includes("method not allowed") || lastErr.toLowerCase().includes("not found")) continue;
           res = r; break;
         } catch { continue; }
       }
@@ -322,7 +322,7 @@ const ClaimManagementDashboard: React.FC = () => {
           if (r.status === 404 || r.status === 405) continue;
           try { const j = await r.json(); lastErr = j.message || j.error || lastErr; } catch { try { lastErr = await r.text() || lastErr; } catch {} }
           // If error contains "invoice" or "null", try next endpoint instead of stopping
-          if (lastErr.toLowerCase().includes("invoice") || lastErr.toLowerCase().includes("null")) continue;
+          if (lastErr.toLowerCase().includes("invoice") || lastErr.toLowerCase().includes("null") || lastErr.toLowerCase().includes("no endpoint") || lastErr.toLowerCase().includes("method not allowed") || lastErr.toLowerCase().includes("not found")) continue;
           res = r; break;
         } catch { continue; }
       }

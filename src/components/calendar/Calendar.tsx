@@ -676,9 +676,11 @@ const Calendar: React.FC = () => {
                 if (providerList.length > 0) {
                     active = providerList
                         .filter((p: any) => {
-                            // Facade endpoint returns nested structure with systemAccess.status
-                            const status = String(p?.systemAccess?.status || p['systemAccess.status'] || 'ACTIVE').toUpperCase();
-                            return status === 'ACTIVE' || status === 'TRUE' || status === '';
+                            // Include providers unless explicitly disabled/inactive
+                            const rawStatus = p?.systemAccess?.status || p['systemAccess.status'];
+                            if (rawStatus == null || rawStatus === '' || rawStatus === undefined) return true;
+                            const status = String(rawStatus).toUpperCase();
+                            return !['INACTIVE', 'DISABLED', 'FALSE', 'SUSPENDED', '0', 'BLOCKED'].includes(status);
                         })
                         .map((p: any) => {
                             const firstName = p.identification?.firstName || p['identification.firstName'] || p.firstName || '';

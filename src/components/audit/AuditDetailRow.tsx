@@ -45,10 +45,11 @@ export default function AuditDetailRow({ details, colSpan }: AuditDetailRowProps
               <div className="font-semibold text-slate-600 dark:text-slate-300 text-xs uppercase">New Value</div>
               {entries.map(([field, value]) => {
                 const change = value as Record<string, unknown>;
+                const formatKey = (k: string) => k.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
                 return (
                   <React.Fragment key={field}>
                     <div className="text-slate-700 dark:text-slate-200 font-medium py-1 border-t border-slate-100 dark:border-slate-700">
-                      {field}
+                      {formatKey(field)}
                     </div>
                     <div className="text-red-600 dark:text-red-400 py-1 border-t border-slate-100 dark:border-slate-700 break-all">
                       {change.old != null ? String(change.old) : "\u2014"}
@@ -72,9 +73,17 @@ export default function AuditDetailRow({ details, colSpan }: AuditDetailRowProps
           <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">
             Details
           </div>
-          <pre className="text-xs bg-slate-100 dark:bg-slate-800 rounded p-3 overflow-auto max-h-48 text-slate-700 dark:text-slate-300">
-            {JSON.stringify(parsed, null, 2)}
-          </pre>
+          <div className="grid grid-cols-2 gap-1 text-sm max-w-2xl mt-1">
+            {Object.entries(parsed).map(([key, val]) => {
+              const fmtKey = (k: string) => k.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+              return (
+                <React.Fragment key={key}>
+                  <div className="text-slate-600 dark:text-slate-300 font-medium text-xs py-1 border-t border-slate-100 dark:border-slate-700">{fmtKey(key)}</div>
+                  <div className="text-slate-700 dark:text-slate-200 text-xs py-1 border-t border-slate-100 dark:border-slate-700 break-all">{val != null ? String(val) : '—'}</div>
+                </React.Fragment>
+              );
+            })}
+          </div>
         </td>
       </tr>
     );
