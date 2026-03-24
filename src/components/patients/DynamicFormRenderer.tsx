@@ -2182,7 +2182,7 @@ export default function DynamicFormRenderer({
                 const digits = e.target.value.replace(/\D/g, "").slice(0, 9);
                 onChange(field.key, digits);
               } else if (isGroupNumber || isMemberId) {
-                const filtered = e.target.value.replace(/[^a-zA-Z0-9\-]/g, "");
+                const filtered = e.target.value.replace(/[^a-zA-Z0-9]/g, "");
                 onChange(field.key, filtered);
               } else {
                 onChange(field.key, e.target.value);

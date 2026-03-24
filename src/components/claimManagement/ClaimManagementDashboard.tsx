@@ -246,7 +246,13 @@ const ClaimManagementDashboard: React.FC = () => {
     setEditError("");
     try {
       // Merge edit form with original claim data to preserve IDs and required fields
-      const payload = { ...editClaim, ...editForm };
+      // Strip nested objects with null/undefined id to avoid "id cannot be null" backend errors
+      const merged: Record<string, any> = { ...editClaim, ...editForm };
+      const payload: Record<string, any> = {};
+      for (const [k, v] of Object.entries(merged)) {
+        if (v !== null && typeof v === "object" && !Array.isArray(v) && "id" in v && (v as any).id == null) continue;
+        payload[k] = v;
+      }
       const claimId = editClaim.id;
       // Try PATCH first (more widely supported), then PUT as fallback
       const endpoints = [
