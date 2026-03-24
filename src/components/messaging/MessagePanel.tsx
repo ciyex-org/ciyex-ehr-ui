@@ -13,6 +13,7 @@ interface Props {
   typingUsers: string[];
   onSendMessage: (content: string, files?: File[]) => void;
   onOpenThread: (messageId: string) => void;
+  readOnly?: boolean;
   onReact: (messageId: string, emoji: string) => void;
   onRemoveReaction: (messageId: string, emoji: string) => void;
   onPin: (messageId: string) => void;
@@ -37,7 +38,7 @@ export default function MessagePanel({
   channel, messages, currentUserId, typingUsers,
   onSendMessage, onOpenThread, onReact, onRemoveReaction,
   onPin, onDelete, onReply, onToggleSearch, onToggleDetail,
-  replyingTo, onCancelReply, mentionUsers,
+  replyingTo, onCancelReply, mentionUsers, readOnly,
 }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevMsgCount = useRef(0);
@@ -235,6 +236,7 @@ export default function MessagePanel({
         replyingTo={replyingTo}
         onCancelReply={onCancelReply}
         mentionUsers={mentionUsers}
+        readOnly={readOnly}
       />
     </div>
   );

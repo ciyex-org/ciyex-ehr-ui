@@ -13,10 +13,13 @@ import * as api from "@/components/messaging/messagingApi";
 import type { MessageItem, ChannelMember } from "@/components/messaging/types";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { usePermissions } from "@/context/PermissionContext";
 
 const API_URL = () => getEnv("NEXT_PUBLIC_API_URL") || "";
 
 export default function MessagingPage() {
+  const { hasCategoryWrite } = usePermissions();
+  const canSendMessages = hasCategoryWrite("messaging");
   const [state, dispatch] = useReducer(messagingReducer, initialState);
   const [replyingTo, setReplyingTo] = useState<MessageItem | null>(null);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
@@ -418,6 +421,7 @@ export default function MessagingPage() {
             replyingTo={replyingTo}
             onCancelReply={() => setReplyingTo(null)}
             mentionUsers={availableUsers}
+            readOnly={!canSendMessages}
           />
 
           {/* Search overlay */}

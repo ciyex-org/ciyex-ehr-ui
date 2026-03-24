@@ -17,6 +17,7 @@ interface Props {
   replyingTo: MessageItem | null;
   onCancelReply: () => void;
   mentionUsers?: MentionUser[];
+  readOnly?: boolean;
 }
 
 function formatBytes(bytes: number) {
@@ -25,7 +26,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function ComposeBar({ channelName, onSend, replyingTo, onCancelReply, mentionUsers = [] }: Props) {
+export default function ComposeBar({ channelName, onSend, replyingTo, onCancelReply, mentionUsers = [], readOnly = false }: Props) {
   const [content, setContent] = useState("");
   const [showFormatting, setShowFormatting] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -57,7 +58,7 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
     };
   }, [pendingFiles]);
 
-  const canSend = content.trim().length > 0 || pendingFiles.length > 0;
+  const canSend = !readOnly && (content.trim().length > 0 || pendingFiles.length > 0);
 
   const handleSend = useCallback(() => {
     if (!canSend) return;
@@ -348,9 +349,10 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
               }
               handleKeyDown(e);
             }}
-            placeholder={`Message ${channelName.startsWith("#") ? channelName : "#" + channelName}...`}
+            placeholder={readOnly ? "You don't have permission to send messages" : `Message ${channelName.startsWith("#") ? channelName : "#" + channelName}...`}
             rows={1}
-            className="max-h-40 min-h-[44px] w-full resize-none bg-transparent py-2.5 text-sm leading-relaxed text-gray-900 placeholder-gray-400 outline-none dark:text-gray-100"
+            disabled={readOnly}
+            className={`max-h-40 min-h-[44px] w-full resize-none bg-transparent py-2.5 text-sm leading-relaxed placeholder-gray-400 outline-none ${readOnly ? "cursor-not-allowed text-gray-400" : "text-gray-900 dark:text-gray-100"}`}
           />
           {showMentionDropdown && (
             <div className="absolute bottom-full left-0 mb-1 w-56 max-h-40 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50">
