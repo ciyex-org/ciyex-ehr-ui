@@ -211,11 +211,11 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
             const allList = parseProviders(await allRes.json());
             const q = prescriberQuery.toLowerCase();
             list = allList.filter((p: any) => {
-              const first = p.firstName || p['identification.firstName'] || p.identification?.firstName || '';
-              const last = p.lastName || p['identification.lastName'] || p.identification?.lastName || '';
-              const full = p.fullName || p.name || p.displayName || '';
+              const first = p.firstName || p['identification.firstName'] || p.identification?.firstName || p.providerFirstName || '';
+              const last = p.lastName || p['identification.lastName'] || p.identification?.lastName || p.providerLastName || '';
+              const full = p.fullName || p.name || p.displayName || p.providerName || p.fullProviderName || p.providerDisplayName || '';
               const name = (full || `${first} ${last}`.trim() || "").toLowerCase();
-              const npi = String(p.npi || p['identification.npi'] || p.identification?.npi || "").toLowerCase();
+              const npi = String(p.npi || p['identification.npi'] || p.identification?.npi || p.providerNpi || "").toLowerCase();
               return name.includes(q) || first.toString().toLowerCase().includes(q) || last.toString().toLowerCase().includes(q) || npi.includes(q);
             });
           }
@@ -229,7 +229,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   }, [prescriberQuery]);
 
   const prescriberName = (p: typeof prescriberResults[0]) =>
-    p.fullName || p.name || (p as any).displayName || `${p.firstName || (p as any)['identification.firstName'] || (p as any).identification?.firstName || ''} ${p.lastName || (p as any)['identification.lastName'] || (p as any).identification?.lastName || ''}`.trim() || p.id;
+    p.fullName || p.name || (p as any).displayName || (p as any).providerName || (p as any).fullProviderName ||
+    `${p.firstName || (p as any)['identification.firstName'] || (p as any).identification?.firstName || (p as any).providerFirstName || ''} ${p.lastName || (p as any)['identification.lastName'] || (p as any).identification?.lastName || (p as any).providerLastName || ''}`.trim() || p.id;
 
   const selectPrescriber = (p: typeof prescriberResults[0]) => {
     const name = prescriberName(p);

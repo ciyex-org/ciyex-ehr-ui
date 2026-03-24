@@ -2753,15 +2753,37 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 if (!payload.status) payload.status = "final";
             }
 
-            const url = isEdit
+            const primaryUrl = isEdit
                 ? `${API_BASE()}/api/fhir-resource/${resourceKey}/patient/${patientId}/${resourceId}`
                 : `${API_BASE()}/api/fhir-resource/${resourceKey}/patient/${patientId}`;
 
-            const res = await fetchWithAuth(url, {
+            let res = await fetchWithAuth(primaryUrl, {
                 method: isEdit ? "PUT" : "POST",
                 headers: saveHeaders,
                 body: JSON.stringify(payload),
             });
+
+            // Fallback endpoints for billing/claims/transactions if primary PUT fails
+            if (!res.ok && isEdit && resourceId && ["billing", "claims", "transactions"].includes(tabKey)) {
+                const altUrls = tabKey === "billing"
+                    ? [
+                        `${API_BASE()}/api/invoices/${resourceId}`,
+                        `${API_BASE()}/api/billing/${resourceId}`,
+                      ]
+                    : [
+                        `${API_BASE()}/api/all-claims/${resourceId}`,
+                        `${API_BASE()}/api/claims/${resourceId}`,
+                      ];
+                for (const altUrl of altUrls) {
+                    for (const method of ["PATCH", "PUT"] as const) {
+                        try {
+                            const altRes = await fetchWithAuth(altUrl, { method, headers: saveHeaders, body: JSON.stringify(payload) });
+                            if (altRes.ok) { res = altRes; break; }
+                        } catch { /* try next */ }
+                    }
+                    if (res.ok) break;
+                }
+            }
 
             if (res.ok) {
                 const isMessaging = tabKey === "messaging";

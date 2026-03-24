@@ -138,10 +138,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     if (!form.amount || parseFloat(form.amount) <= 0) e.amount = "Valid amount required";
     if (!form.description.trim()) e.description = "Description is required";
     if (!form.paymentMethodType) e.paymentMethodType = "Payment method type is required";
-    const cardMethods: MethodType[] = ["credit_card", "debit_card"];
-    if (cardMethods.includes(form.paymentMethodType) && !form.paymentMethodId) {
-      e.paymentMethodId = "A saved payment method is required for card payments. Please add a card first or select a different payment method.";
-    }
+    // paymentMethodId is optional — backend can handle card payments without a saved method on file
     if (form.receiptEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.receiptEmail.trim())) {
       e.receiptEmail = "Please enter a valid email address";
     }
