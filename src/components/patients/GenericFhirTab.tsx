@@ -1532,14 +1532,39 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         }
         setFormData((prev) => {
             const next = { ...prev, [key]: value };
-            // ERA/Remittance: auto-update serviceTo when serviceFrom changes
-            const isEraTab = tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance";
+            // Insurance: plan selection requires company to be selected first
+            const isInsuranceTab = tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage";
+            const isPlanKey = key === "planName" || key === "plan" || key === "coveragePlan";
+            if (isInsuranceTab && isPlanKey) {
+                const companyKeys = ["payerName", "insurerName", "companyName", "insurer", "payor"];
+                const hasCompany = companyKeys.some(k => next[k] && String(next[k]).trim());
+                if (!hasCompany) {
+                    setValidationErrors(prev => ({ ...prev, payerName: "Please select an Insurance Company first", insurerName: "Please select an Insurance Company first" }));
+                    return prev; // Prevent plan selection without company
+                }
+            }
+            // ERA/Remittance/Submissions: auto-update serviceTo when serviceFrom changes
+            const isServiceTab = tabKey === "era" || tabKey === "remittance" || tabKey === "eob" || tabKey === "era-remittance" || tabKey === "submissions" || tabKey === "claim-submissions" || tabKey === "claims";
             const isServiceFromKey = key === "serviceFrom" || key === "serviceFromDate" || key === "serviceDateFrom" || key === "billablePeriodStart";
-            if (isEraTab && isServiceFromKey && value) {
+            const isServiceToKey = key === "serviceTo" || key === "serviceToDate" || key === "serviceDateTo" || key === "billablePeriodEnd";
+            if (isServiceTab && isServiceFromKey && value) {
                 const toKeys = ["serviceTo", "serviceToDate", "serviceDateTo", "billablePeriodEnd"];
                 const currentTo = toKeys.map(k => next[k]).find(v => v);
                 if (currentTo && new Date(String(currentTo)) < new Date(String(value))) {
                     for (const tk of toKeys) { if (next[tk] != null) next[tk] = value; }
+                    setValidationErrors(prev => { const n = { ...prev }; delete n.serviceTo; delete n.serviceToDate; delete n.serviceDateTo; delete n.billablePeriodEnd; return n; });
+                }
+            }
+            // Block serviceTo from being set before serviceFrom
+            if (isServiceTab && isServiceToKey && value) {
+                const fromKeys = ["serviceFrom", "serviceFromDate", "serviceDateFrom", "billablePeriodStart"];
+                const currentFrom = fromKeys.map(k => next[k]).find(v => v);
+                if (currentFrom && new Date(String(value)) < new Date(String(currentFrom))) {
+                    const msg = "Service To must be on or after Service From";
+                    setValidationErrors(prev => ({ ...prev, [key]: msg }));
+                    return prev; // Block the change
+                } else {
+                    setValidationErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
                 }
             }
             // Auto-calculate duration from start/end time for appointments

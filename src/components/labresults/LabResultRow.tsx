@@ -92,7 +92,15 @@ export const LabResultRow: React.FC<LabResultRowProps> = ({ result, onChange, on
         <input
           type="date"
           value={result.collectedDate || ""}
-          onChange={(e) => onChange({ collectedDate: e.target.value })}
+          onChange={(e) => {
+            const v = e.target.value;
+            const updates: Record<string, unknown> = { collectedDate: v };
+            // Clear reported date if it's now before the new collected date
+            if (v && result.reportedDate && result.reportedDate < v) {
+              updates.reportedDate = "";
+            }
+            onChange(updates);
+          }}
           placeholder="Collected YYYY-MM-DD"
           className="mt-1 w-36 border rounded px-2 py-1 text-xs"
         />

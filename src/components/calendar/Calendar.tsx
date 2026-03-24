@@ -1794,12 +1794,13 @@ const Calendar: React.FC = () => {
                 )}
                 {multiColumnDay ? (
                     /* === Multi-provider Day View → side-by-side columns */
-                    <div>
+                    <div className="overflow-x-auto" style={{ minWidth: 0 }}>
                         {/* Sticky provider name header row */}
                         <div
                             className="sticky top-0 z-20 bg-white dark:bg-dark-900 grid gap-px border-b"
                             style={{
-                                gridTemplateColumns: `repeat(${Math.max(visibleProviders.length, 1)}, minmax(100px, 1fr))`,
+                                gridTemplateColumns: `repeat(${Math.max(visibleProviders.length, 1)}, minmax(180px, 1fr))`,
+                                minWidth: visibleProviders.length > 5 ? `${visibleProviders.length * 180}px` : undefined,
                             }}
                         >
                             {visibleProviders.map((p) => {
@@ -1820,7 +1821,8 @@ const Calendar: React.FC = () => {
                         <div
                             className="multi-provider-grid grid gap-px"
                             style={{
-                                gridTemplateColumns: `repeat(${Math.max(visibleProviders.length, 1)}, minmax(100px, 1fr))`,
+                                gridTemplateColumns: `repeat(${Math.max(visibleProviders.length, 1)}, minmax(180px, 1fr))`,
+                                minWidth: visibleProviders.length > 5 ? `${visibleProviders.length * 180}px` : undefined,
                             }}
                         >
                             {visibleProviders.map((p) => (

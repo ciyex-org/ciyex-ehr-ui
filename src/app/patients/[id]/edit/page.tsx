@@ -214,6 +214,7 @@ export default function EditPatientPage() {
                             type="tel"
                             id="phoneNumber"
                             name="phoneNumber"
+                            inputMode="numeric"
                             value={formData.phoneNumber || ""}
                             onChange={(e) => {
                                 // Only allow digits, strip non-digits, enforce max 10
@@ -221,14 +222,33 @@ export default function EditPatientPage() {
                                 if (formData) setFormData({ ...formData, phoneNumber: digits });
                                 if (formErrors.phoneNumber) setFormErrors(prev => { const n = { ...prev }; delete n.phoneNumber; return n; });
                             }}
+                            onPaste={(e) => {
+                                e.preventDefault();
+                                const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 10);
+                                if (formData) setFormData({ ...formData, phoneNumber: pasted });
+                            }}
                             onBlur={(e) => {
-                                const digits = e.target.value.replace(/\D/g, '');
+                                const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                if (formData) setFormData({ ...formData, phoneNumber: digits });
                                 if (digits.length > 0 && digits.length < 10) {
+                                    setFormErrors(prev => ({ ...prev, phoneNumber: "Must be exactly 10 digits: (xxx) xxx-xxxx" }));
+                                } else if (digits.length > 10) {
                                     setFormErrors(prev => ({ ...prev, phoneNumber: "Must be exactly 10 digits: (xxx) xxx-xxxx" }));
                                 }
                             }}
+                            onKeyDown={(e) => {
+                                // Allow control keys but block non-digit character input
+                                if (e.key.length === 1 && !/\d/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+                                    e.preventDefault();
+                                }
+                                // Block further digit input when already at 10 digits
+                                const currentDigits = (formData.phoneNumber || '').replace(/\D/g, '');
+                                if (currentDigits.length >= 10 && /\d/.test(e.key) && !e.ctrlKey && !e.metaKey && e.key !== 'Backspace' && e.key !== 'Delete') {
+                                    e.preventDefault();
+                                }
+                            }}
                             placeholder="(xxx) xxx-xxxx"
-                            maxLength={10}
+                            maxLength={14}
                             className={inputCls(formErrors.phoneNumber)}
                             required
                         />

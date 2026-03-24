@@ -91,8 +91,7 @@ export default function FilterMultiSelect({
             onChange(next.length === 0 ? ["__none__"] : next);
         } else {
             const next = [...selected, value];
-            // If all individually selected → collapse to "all"
-            onChange(next.length === options.length ? [] : next);
+            onChange(next);
         }
     };
 

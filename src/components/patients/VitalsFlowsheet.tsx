@@ -83,7 +83,7 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
     const [heightDisplay, setHeightDisplay] = useState("");
     const [currentPage, setCurrentPage] = useState(0);
     const [sortAsc, setSortAsc] = useState(false);
-    const PAGE_SIZE = 10;
+    const PAGE_SIZE = 5;
 
     function handleWeightChange(val: string) {
         setWeightDisplay(val);
@@ -384,7 +384,7 @@ export default function VitalsFlowsheet({ patientId }: { patientId: number }) {
                     <p className="text-xs mt-1">Vitals are recorded during encounters</p>
                 </div>
             ) : (<>
-                <div className="flex-1 overflow-auto border rounded-lg bg-white" style={{ minHeight: 0, maxHeight: "calc(100vh - 300px)" }}>
+                <div className="flex-1 overflow-x-auto overflow-y-hidden border rounded-lg bg-white">
                     <table className="text-sm border-collapse w-full" style={{ minWidth: `${160 + columns.length * 130}px` }}>
                         <thead className="sticky top-0 z-10">
                             <tr className="bg-gray-50 border-b">

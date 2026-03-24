@@ -469,7 +469,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     }
   }
 
-  const [errors, setErrors] = useState<{ patientId?: string; orderNumber?: string; testCode?: string; orderingProvider?: string; physicianName?: string; procedureRows?: string }>({});
+  const [errors, setErrors] = useState<{ patientId?: string; orderNumber?: string; testCode?: string; orderingProvider?: string; physicianName?: string; procedureRows?: string; labName?: string }>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
 
@@ -742,6 +742,7 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
     if (!draft.testCode || String(draft.testCode).trim() === "") newErrors.testCode = "Please fill in this field.";
     if (!draft.orderingProvider || String(draft.orderingProvider).trim() === "") newErrors.orderingProvider = "Please fill in this field.";
     if (!draft.physicianName || String(draft.physicianName).trim() === "") newErrors.physicianName = "Please fill in this field.";
+    if (draft.labName && /\d/.test(draft.labName)) newErrors.labName = "Lab name must contain only letters/text, no numbers";
     const hasValidProcRow = procModalRows.some(r => (r.test?.trim() || r.testCode?.trim()) && Array.isArray(r.diagnosisCodes) && r.diagnosisCodes.length > 0);
     if (!hasValidProcRow) newErrors.procedureRows = "Please fill in this field.";
     
@@ -940,13 +941,27 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
           {/* Order Meta Card */}
           <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Lab Name</label>
+              <label className={`block text-sm font-medium mb-2 ${errors.labName ? 'text-red-600' : 'text-slate-700'}`}>Lab Name</label>
               <input
-                className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.labName ? 'border-orange-500' : 'border-slate-300'}`}
                 value={draft.labName ?? ""}
-                onChange={(e) => upd('labName', e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v && /\d/.test(v)) {
+                    setErrors(prev => ({ ...prev, labName: "Lab name must contain only letters/text, no numbers" }));
+                  } else {
+                    setErrors(prev => ({ ...prev, labName: undefined }));
+                  }
+                  upd('labName', v);
+                }}
                 placeholder="Lab name"
               />
+              {errors.labName && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-orange-600">
+                  <span className="flex items-center justify-center w-4 h-4 bg-orange-500 text-white rounded-sm font-bold text-[10px]">!</span>
+                  <span>{errors.labName}</span>
+                </div>
+              )}
             </div>
             <div>
               <label className={`block text-sm font-medium mb-2 ${errors.orderNumber ? 'text-red-600' : 'text-slate-700'}`}>Order Number <span className="text-red-600">*</span></label>

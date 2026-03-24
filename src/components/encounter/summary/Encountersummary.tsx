@@ -427,6 +427,8 @@ const loadAll = useCallback(async () => {
       plan: Plan[];
       providerNotes: ProviderNote[];
       providerSignature: ProviderSignature;
+      signoff: Signoff;
+      codes: Code[];
       dateTimeFinalized: DateTimeFinalized;
     }>>(res);
 
@@ -487,12 +489,12 @@ const loadAll = useCallback(async () => {
     setPe(px);
     setVitals(vt);
     setProcedures(pr);
-    setCodes(null);
+    setCodes(d?.codes || null);
     setAssessment(asmt);
     setPlan(pl);
     setProviderNotes(pnotes);
     setProviderSignature(sig);
-    setSignoff(null);
+    setSignoff(d?.signoff || null);
     setDateTimeFinalized(dtf);
   } catch (e: unknown) {
     setTopErr(e instanceof Error ? e.message : "Failed to load summary");
@@ -559,7 +561,19 @@ const downloadPdf = useCallback(() => {
           .min-w-\\[140px\\] { min-width: 140px; }
           .font-medium { font-weight: 500; }
           b, strong { font-weight: 700; }
-          @media print { body { padding: 10px; } }
+          .bg-gradient-to-br { background: linear-gradient(to bottom right, #eff6ff, #fff); }
+          .sm\\:grid-cols-2, .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .sm\\:col-span-2 { grid-column: span 2; }
+          .whitespace-pre-wrap { white-space: pre-wrap; }
+          .italic { font-style: italic; }
+          .max-h-24 { max-height: 6rem; }
+          .mt-1 { margin-top: 0.25rem; }
+          .mt-2 { margin-top: 0.5rem; }
+          .ml-4 { margin-left: 1rem; }
+          .ml-5 { margin-left: 1.25rem; }
+          .overflow-auto { overflow: auto; }
+          .bg-gray-50 { background: #f9fafb; }
+          @media print { body { padding: 10px; } * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
       </head>
       <body>${summaryRef.current.innerHTML}</body>

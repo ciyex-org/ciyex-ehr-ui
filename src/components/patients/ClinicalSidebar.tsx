@@ -210,14 +210,14 @@ export default function ClinicalSidebar({
                         )}
                     </button>
 
-                    {/* Smoking Status row */}
+                    {/* History row */}
                     <button
                         onClick={() => onNavigate("history")}
                         className={`w-full flex items-center gap-2 px-2 py-1 rounded text-[12px] ${activeTab === "history" ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}
                     >
                         <Cigarette className="w-3 h-3 shrink-0 text-amber-500" />
                         <span className="flex-1 text-left truncate">
-                            <span className="font-medium">Smoking: </span>
+                            <span className="font-medium">History: </span>
                             {!loaded ? "..." : smokingStatus || "Unknown"}
                         </span>
                     </button>
