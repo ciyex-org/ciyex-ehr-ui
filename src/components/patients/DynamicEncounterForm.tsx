@@ -355,10 +355,33 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
     [patientId, encounterId, autoSave, pluginEvents]
   );
 
-  // Client-side print — captures all rendered sections via contentRef
+  // Client-side print — clones the DOM and syncs live input values so all sections print correctly
   const downloadPdf = useCallback(() => {
     if (!contentRef.current) return;
-    const html = contentRef.current.innerHTML;
+
+    // Clone the live DOM tree
+    const clone = contentRef.current.cloneNode(true) as HTMLElement;
+
+    // React sets the DOM .value property, not the HTML attribute — sync them on the clone
+    const liveEls = Array.from(contentRef.current.querySelectorAll("input, textarea, select"));
+    const cloneEls = Array.from(clone.querySelectorAll("input, textarea, select"));
+    liveEls.forEach((live, i) => {
+      const cl = cloneEls[i];
+      if (!cl) return;
+      if (live instanceof HTMLTextAreaElement) {
+        (cl as HTMLTextAreaElement).textContent = live.value;
+      } else if (live instanceof HTMLSelectElement) {
+        Array.from(live.options).forEach((opt, j) => {
+          const co = (cl as HTMLSelectElement).options[j];
+          if (!co) return;
+          if (opt.selected) co.setAttribute("selected", "selected");
+          else co.removeAttribute("selected");
+        });
+      } else {
+        (cl as HTMLInputElement).setAttribute("value", (live as HTMLInputElement).value);
+      }
+    });
+
     const win = window.open("", "_blank");
     if (!win) { toast.error("Popup blocked — please allow popups and try again."); return; }
     win.document.write(`<!DOCTYPE html><html><head><title>Encounter ${encounterId} Summary</title>
@@ -367,9 +390,10 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
   h1,h2,h3 { margin: 0 0 6px; }
   label { font-weight: 600; }
   input, textarea, select { border: none; background: transparent; width: 100%; }
-  .dark\\:bg-gray-950, .bg-gray-50 { background: #fff !important; }
+  .bg-gray-50, [class*="bg-gray"] { background: #fff !important; }
+  [class*="dark:"] { background: #fff !important; color: #111 !important; }
   @media print { body { margin: 0; } button { display: none !important; } }
-</style></head><body>${html}</body></html>`);
+</style></head><body>${clone.innerHTML}</body></html>`);
     win.document.close();
     win.focus();
     win.print();
