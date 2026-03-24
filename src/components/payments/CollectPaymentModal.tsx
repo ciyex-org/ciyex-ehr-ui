@@ -120,6 +120,10 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     const e: Record<string, string> = {};
     if (!form.patientName.trim()) e.patientName = "Patient is required";
     if (!form.amount || parseFloat(form.amount) <= 0) e.amount = "Valid amount required";
+    const cardMethods: MethodType[] = ["credit_card", "debit_card"];
+    if (cardMethods.includes(form.paymentMethodType) && !form.paymentMethodId) {
+      e.paymentMethodType = "A saved payment method is required for card payments. Please add a card first or select a different payment method.";
+    }
     if (form.receiptEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.receiptEmail.trim())) {
       e.receiptEmail = "Please enter a valid email address";
     }
@@ -235,7 +239,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
             <div>
               <label className={labelCls}>Payment Method Type</label>
               <select
-                className={inputCls()}
+                className={inputCls("paymentMethodType")}
                 value={form.paymentMethodType}
                 onChange={(e) => setForm((prev) => ({ ...prev, paymentMethodType: e.target.value as MethodType }))}
               >
@@ -243,6 +247,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
+              {errors.paymentMethodType && <p className="text-xs text-red-500 mt-1">{errors.paymentMethodType}</p>}
             </div>
 
             {/* Description */}

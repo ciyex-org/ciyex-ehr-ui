@@ -293,7 +293,7 @@ export default function PrescriptionsPage() {
       const base = apiBase();
       let url = `${base}/api/prescriptions?page=${page}&size=${pageSize}`;
       if (searchQuery) url += `&q=${encodeURIComponent(searchQuery)}`;
-      if (prescriberFilter) url += `&prescriberName=${encodeURIComponent(prescriberFilter)}`;
+      if (prescriberFilter) url += `&prescriberName=${encodeURIComponent(prescriberFilter)}&search=${encodeURIComponent(prescriberFilter)}`;
       if (statusFilter !== "all") url += `&status=${statusFilter}`;
       if (priorityFilter !== "all") url += `&priority=${priorityFilter}`;
       const res = await fetchWithAuth(url);

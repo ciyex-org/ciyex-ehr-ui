@@ -248,12 +248,13 @@ const ClaimManagementDashboard: React.FC = () => {
       // Merge edit form with original claim data to preserve IDs and required fields
       const payload = { ...editClaim, ...editForm };
       const claimId = editClaim.id;
-      // Try multiple endpoint patterns — backend may support PUT or PATCH at different paths
+      // Try PATCH first (more widely supported), then PUT as fallback
       const endpoints = [
-        { url: `/api/all-claims/${claimId}`, method: "PUT" },
         { url: `/api/all-claims/${claimId}`, method: "PATCH" },
-        { url: `/api/claims/${claimId}`, method: "PUT" },
+        { url: `/api/all-claims/${claimId}`, method: "PUT" },
         { url: `/api/claims/${claimId}`, method: "PATCH" },
+        { url: `/api/claims/${claimId}`, method: "PUT" },
+        { url: `/api/fhir-resource/claims/patient/${payload.patientId || "0"}/${claimId}`, method: "PATCH" },
         { url: `/api/fhir-resource/claims/patient/${payload.patientId || "0"}/${claimId}`, method: "PUT" },
       ];
       let res: Response | null = null;
@@ -267,8 +268,10 @@ const ClaimManagementDashboard: React.FC = () => {
           });
           if (r.ok) { res = r; break; }
           if (r.status === 404 || r.status === 405) continue; // try next endpoint
-          // Non-404/405 error — read message and stop
+          // Non-404/405 error — read message and check if we should try next
           try { const j = await r.json(); lastErr = j.message || lastErr; } catch { try { lastErr = await r.text() || lastErr; } catch {} }
+          // If error is about invoice/null, try next endpoint
+          if (lastErr.toLowerCase().includes("invoice") || lastErr.toLowerCase().includes("null") || lastErr.toLowerCase().includes("not supported")) continue;
           res = r; break;
         } catch { continue; }
       }
@@ -295,14 +298,15 @@ const ClaimManagementDashboard: React.FC = () => {
       if (remitDate) payload.remitDate = remitDate;
       if (paymentAmount) payload.paymentAmount = paymentAmount;
 
-      // Try multiple endpoints — backend may expose status update at different paths
+      // Try PATCH first (more widely supported), then PUT as fallback
       const claimId = modalClaim.id;
       const endpoints = [
+        { url: `/api/all-claims/${claimId}/status`, method: "PATCH" },
         { url: `/api/all-claims/${claimId}/status`, method: "PUT" },
-        { url: `/api/all-claims/${claimId}`, method: "PUT" },
         { url: `/api/all-claims/${claimId}`, method: "PATCH" },
-        { url: `/api/claims/${claimId}`, method: "PUT" },
+        { url: `/api/all-claims/${claimId}`, method: "PUT" },
         { url: `/api/claims/${claimId}`, method: "PATCH" },
+        { url: `/api/claims/${claimId}`, method: "PUT" },
       ];
 
       let res: Response | null = null;
