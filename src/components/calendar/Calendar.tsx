@@ -499,10 +499,11 @@ const Calendar: React.FC = () => {
     // Quick Create Patient form in appointment modal
     const [showCreatePatient, setShowCreatePatient] = useState(false);
     const [createPatientSaving, setCreatePatientSaving] = useState(false);
-    const [newPt, setNewPt] = useState({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phoneNumber: '', status: 'Active' });
+    const [newPt, setNewPt] = useState({ firstName: '', lastName: '', dateOfBirth: '', gender: '', phoneNumber: '', email: '', status: 'Active' });
     const [newPtError, setNewPtError] = useState('');
     const nameRegex = /^[A-Za-z\s\-'.]+$/;
     const phoneRegex = /^\+?[\d\s\-().]{7,20}$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     // Priority / Provider / Location / Status
     const [appointmentPriority, setAppointmentPriority] = useState<Priority>('Routine');
@@ -1489,13 +1490,15 @@ const Calendar: React.FC = () => {
         }
     };
     const handleCreatePatientAndSelect = async () => {
-        if (!newPt.firstName || !newPt.lastName || !newPt.dateOfBirth || !newPt.phoneNumber || !newPt.gender) return;
+        if (!newPt.firstName || !newPt.lastName || !newPt.dateOfBirth || !newPt.phoneNumber || !newPt.gender || !newPt.email) return;
         setNewPtError('');
         // Validate name fields (letters, spaces, hyphens, apostrophes only)
         if (!nameRegex.test(newPt.firstName)) { setNewPtError('First name must contain only letters'); return; }
         if (!nameRegex.test(newPt.lastName)) { setNewPtError('Last name must contain only letters'); return; }
         // Validate phone format
         if (!phoneRegex.test(newPt.phoneNumber)) { setNewPtError('Please enter a valid phone number'); return; }
+        // Validate email format
+        if (!emailRegex.test(newPt.email)) { setNewPtError('Please enter a valid email address'); return; }
         setCreatePatientSaving(true);
         try {
             // Check for duplicate patient by phone number
@@ -2180,6 +2183,10 @@ const Calendar: React.FC = () => {
                                                 <input type="tel" value={newPt.phoneNumber} maxLength={10} onChange={(e) => { const digits = e.target.value.replace(/\D/g, '').slice(0, 10); setNewPt(p => ({ ...p, phoneNumber: digits })); }} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
                                             </div>
                                             <div>
+                                                <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Email*</label>
+                                                <input type="email" value={newPt.email} onChange={(e) => { setNewPt(p => ({ ...p, email: e.target.value.trim() })); setNewPtError(''); }} className={`h-8 w-full rounded-md border px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100 ${newPt.email && !emailRegex.test(newPt.email) ? 'border-red-400' : 'border-gray-300'}`} placeholder="patient@example.com" />
+                                            </div>
+                                            <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Status</label>
                                                 <select value={newPt.status} onChange={(e) => setNewPt(p => ({ ...p, status: e.target.value }))} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100">
                                                     <option value="Active">Active</option>
@@ -2189,7 +2196,7 @@ const Calendar: React.FC = () => {
                                         </div>
                                         <div className="flex justify-end gap-2 pt-1">
                                             <button type="button" onClick={() => setShowCreatePatient(false)} className="px-3 py-1.5 text-xs rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50">Cancel</button>
-                                            <button type="button" onClick={handleCreatePatientAndSelect} disabled={createPatientSaving || !newPt.firstName || !newPt.lastName || !newPt.dateOfBirth || !newPt.phoneNumber || !newPt.gender} className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
+                                            <button type="button" onClick={handleCreatePatientAndSelect} disabled={createPatientSaving || !newPt.firstName || !newPt.lastName || !newPt.dateOfBirth || !newPt.phoneNumber || !newPt.gender || !newPt.email || !emailRegex.test(newPt.email)} className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">
                                                 {createPatientSaving ? 'Creating...' : 'Create & Select Patient'}
                                             </button>
                                         </div>
