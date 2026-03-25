@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
 interface Option {
     value: string;
@@ -26,18 +26,6 @@ export default function FilterMultiSelect({
     const [search, setSearch] = useState("");
     const ref = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
-    const prevOptionsLenRef = useRef(options.length);
-
-    // When options grow (new provider added), if all previous options were explicitly selected
-    // reset to allSelected ([]) so the new option is included automatically.
-    useEffect(() => {
-        const prev = prevOptionsLenRef.current;
-        if (options.length > prev && selected.length === prev && selected.length > 0) {
-            onChange([]);
-        }
-        prevOptionsLenRef.current = options.length;
-    }, [options.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
     // Click-outside to close
     useEffect(() => {
         if (!open) return;

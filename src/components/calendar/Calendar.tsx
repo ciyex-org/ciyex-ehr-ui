@@ -726,12 +726,6 @@ const Calendar: React.FC = () => {
         return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, [fetchProviders]);
 
-    // When providers list grows, reset selection to "All" so the new provider is included
-    // Only reset if currently showing all (not when user has specific selections)
-    useEffect(() => {
-        setSelectedProviders((prev) => prev.length === 0 ? [] : prev);
-    }, [providers.length]);
-
     // No auto-select: let users freely choose "All Providers" in any view
 
 
