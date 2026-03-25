@@ -495,7 +495,8 @@ export default function AddPatient() {
         if (!formData.contactInfo.cellPhone) errs.cellPhone = "Mobile number is required";
         else if (!isValidUSPhone(formData.contactInfo.cellPhone)) errs.cellPhone = "Enter a valid 10-digit US phone number";
         if (formData.contactInfo.homePhone && !isValidUSPhone(formData.contactInfo.homePhone)) errs.homePhone = "Enter a valid 10-digit US phone number";
-        if (formData.contactInfo.email && !isValidEmail(formData.contactInfo.email)) errs.email = "Enter a valid email address";
+        if (!formData.contactInfo.email?.trim()) errs.email = "Email is required";
+        else if (!isValidEmail(formData.contactInfo.email)) errs.email = "Enter a valid email address";
         if (formData.personalInfo.ptssn && formData.personalInfo.ptssn.trim() && !isValidSSN(formData.personalInfo.ptssn)) errs.ptssn = "SSN must be exactly 9 digits";
         // Validate DOB is present and not in the future
         if (!formData.personalInfo.dob) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
@@ -72,6 +72,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
     const [records, setRecords] = useState<Record<string, any>[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const savingRef = useRef(false);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [singleRecord, setSingleRecord] = useState(false);
@@ -1806,6 +1807,9 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
     };
 
     const handleSave = async () => {
+        // Prevent double-submit (ref guard for rapid clicks before state updates)
+        if (savingRef.current) return;
+        savingRef.current = true;
         // Validate required fields
         if (fieldConfig?.sections) {
             const errors: Record<string, string> = {};
@@ -2287,6 +2291,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
             if (Object.keys(errors).length > 0) {
                 setValidationErrors(errors);
                 setError("Please correct the highlighted fields");
+                savingRef.current = false;
                 return;
             }
         }
@@ -2846,6 +2851,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
             setError("Failed to save");
         } finally {
             setSaving(false);
+            savingRef.current = false;
         }
     };
 
@@ -3131,6 +3137,13 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         if (typeof colKey === "string" && /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo)$/i.test(colKey)) {
             if (str.startsWith("http") || str.startsWith("/") || str.startsWith("data:image")) {
                 return <img src={str} alt="Profile" className="w-8 h-8 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />;
+            }
+        }
+        // Render URL strings as clickable links (for education URLs, website fields, etc.)
+        if (typeof colKey === "string" && /^(url|externalUrl|videoUrl|articleUrl|link|resourceUrl|website|websiteUrl|web_url)$/i.test(colKey)) {
+            if (str.startsWith("http://") || str.startsWith("https://")) {
+                const display = str.length > 60 ? str.substring(0, 60) + "..." : str;
+                return <a href={str} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{display}</a>;
             }
         }
         return str.length > 120 ? str.substring(0, 120) + "..." : str;

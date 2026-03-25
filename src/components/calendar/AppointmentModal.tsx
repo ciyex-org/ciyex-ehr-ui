@@ -861,7 +861,13 @@ const AppointmentModal: React.FC = () => {
                                 <input
                                     type="time"
                                     value={endTime}
-                                    onChange={(e) => setEndTime(e.target.value)}
+                                    min={startDate && endDate && startDate === endDate ? startTime : undefined}
+                                    onChange={(e) => {
+                                        const t = e.target.value;
+                                        // Prevent end time before start time on same day
+                                        if (startDate && endDate && startDate === endDate && startTime && t < startTime) return;
+                                        setEndTime(t);
+                                    }}
                                     className="h-9 w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100"
                                 />
                             </div>

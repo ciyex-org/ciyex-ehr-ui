@@ -14,6 +14,7 @@ type ImmunizationDto = {
     doseUnit?: string | null;
     route?: string | null;
     site?: string | null;
+    administeredBy?: string | null;
     administeredDate?: string | null; // yyyy-MM-dd
     status?: "completed" | "entered-in-error" | "not-done" | "in-progress" | string | null;
     notes?: string | null;
@@ -81,6 +82,7 @@ export default function ImmunizationManager({
             doseUnit: "",
             route: "",
             site: "",
+            administeredBy: "",
             administeredDate: new Date().toISOString().slice(0, 10), // yyyy-MM-dd
             status: "completed",
             notes: "",
@@ -148,6 +150,7 @@ finally {
                 i.status,
                 i.site,
                 i.route,
+                i.administeredBy,
                 i.notes,
             ]
                 .filter(Boolean)
@@ -217,6 +220,7 @@ finally {
                                     "Dose",
                                     "Route",
                                     "Site",
+                                    "Administered By",
                                     "Status",
                                     "Notes",
                                     "",
@@ -244,6 +248,7 @@ finally {
                                     </td>
                                     <td className="px-4 py-3">{it.route || "-"}</td>
                                     <td className="px-4 py-3">{it.site || "-"}</td>
+                                    <td className="px-4 py-3">{it.administeredBy || "-"}</td>
                                     <td className="px-4 py-3">
                       <select
                         value={it.status || ""}
@@ -350,6 +355,7 @@ function FormDrawer({
             e.vaccineName = "Vaccine name contains invalid characters";
         }
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
+        if (!form.administeredBy?.trim()) e.administeredBy = "Administered By is required";
         // Lot number: strictly alphanumeric only
         if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]+$/.test(form.lotNumber.trim())) {
             e.lotNumber = "Lot number must contain only alphanumeric characters (letters and numbers)";
@@ -472,6 +478,16 @@ function FormDrawer({
                             onChange={(v) => set("site", v)}
                             placeholder="Left deltoid, Right thigh…"
                         />
+                        <Field
+                            label="Administered By *"
+                            value={form.administeredBy ?? ""}
+                            onChange={(v) => set("administeredBy", v)}
+                            placeholder="Provider name…"
+                            error={errors.administeredBy}
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                         <Field
                             label="External ID (optional)"
                             value={form.externalId ?? ""}

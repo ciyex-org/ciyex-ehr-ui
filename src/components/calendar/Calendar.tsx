@@ -1816,6 +1816,7 @@ const Calendar: React.FC = () => {
                             className="sticky top-0 z-20 bg-white dark:bg-dark-900 grid gap-px border-b"
                             style={{
                                 gridTemplateColumns: `repeat(${Math.max(visibleProviders.length, 1)}, minmax(${visibleProviders.length > 5 ? '140px' : '180px'}, 1fr))`,
+                                minWidth: visibleProviders.length > 5 ? `${visibleProviders.length * 140}px` : undefined,
                             }}
                         >
                             {visibleProviders.map((p) => {
@@ -1837,6 +1838,7 @@ const Calendar: React.FC = () => {
                             className="multi-provider-grid grid gap-px"
                             style={{
                                 gridTemplateColumns: `repeat(${Math.max(visibleProviders.length, 1)}, minmax(${visibleProviders.length > 5 ? '140px' : '180px'}, 1fr))`,
+                                minWidth: visibleProviders.length > 5 ? `${visibleProviders.length * 140}px` : undefined,
                             }}
                         >
                             {visibleProviders.map((p) => (
