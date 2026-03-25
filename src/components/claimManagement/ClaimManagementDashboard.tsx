@@ -4,6 +4,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 interface Claim {
   id: number;
+  invoiceId?: number;
   patientName: string;
   provider: string;
   payerName: string;
@@ -114,6 +115,7 @@ const ClaimManagementDashboard: React.FC = () => {
         diagnosisCode: item.diagnosisCode || item.diagnosis || item.icdCode || item.primaryDiagnosis || "—",
         policyNumber: item.policyNumber || item.subscriberId || item.memberId || "—",
         planName: item.planName || item.plan || item.insurancePlan || "—",
+        invoiceId: item.invoiceId ?? item.invoice_id ?? undefined,
         createdOn: item.createdOn || item.serviceDate || item.dateOfService || "",
       }));
       setClaims(data);
@@ -404,6 +406,7 @@ const ClaimManagementDashboard: React.FC = () => {
           <thead className="bg-gray-50 sticky top-0">
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Claim #</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Invoice #</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Patient</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Provider</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Payer</th>
@@ -430,6 +433,7 @@ const ClaimManagementDashboard: React.FC = () => {
                   }`}
                 >
                   <td className="px-4 py-3 font-medium text-gray-900">{c.id}</td>
+                  <td className="px-4 py-3 text-gray-700">{c.invoiceId ?? "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.patientName || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.provider || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.payerName || "—"}</td>

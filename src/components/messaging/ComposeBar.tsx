@@ -147,8 +147,7 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
         }
       }, 100);
     } catch {
-      // Fallback to file input if camera not available
-      cameraInputRef.current?.click();
+      alert("Camera is not available on this device or browser. Please attach a file instead.");
     }
   };
 

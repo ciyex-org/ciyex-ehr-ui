@@ -2700,16 +2700,12 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                         diagnosisCodeableConcept: wrapCoding(code, "http://hl7.org/fhir/sid/icd-10"),
                     }];
                 }
+                if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string") {
+                    payload.provider = payload.provider.reference.replace(/^(Practitioner\/)+/, "Practitioner/");
+                }
                 if (payload.provider && typeof payload.provider === "string") {
-                    const provRef = payload.provider.startsWith("Practitioner/") ? payload.provider : `Practitioner/${payload.provider}`;
-                    payload.provider = { reference: provRef };
-                } else if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string") {
-                    // Fix double-prefix: "Practitioner/Practitioner/123" → "Practitioner/123"
-                    payload.provider.reference = payload.provider.reference.replace(/^(Practitioner\/)+/, "Practitioner/");
-                    if (payload.provider.reference.startsWith("Organization/")) {
-                        // Reject Organization reference — Claim.provider must be Practitioner
-                        delete payload.provider;
-                    }
+                    payload.provider = payload.provider.startsWith("Practitioner/") ? payload.provider : `Practitioner/${payload.provider}`;
+                    payload.provider = payload.provider.replace(/^(Practitioner\/)+/, "Practitioner/");
                 }
                 if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
@@ -2720,14 +2716,12 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
 
             // Issues 17, 21: Claims & Transactions — add Claim.provider + patient
             if (tabKey === "claims" || tabKey === "transactions") {
+                if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string") {
+                    payload.provider = payload.provider.reference.replace(/^(Practitioner\/)+/, "Practitioner/");
+                }
                 if (payload.provider && typeof payload.provider === "string") {
-                    const provRef = payload.provider.startsWith("Practitioner/") ? payload.provider : `Practitioner/${payload.provider}`;
-                    payload.provider = { reference: provRef };
-                } else if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string") {
-                    payload.provider.reference = payload.provider.reference.replace(/^(Practitioner\/)+/, "Practitioner/");
-                    if (payload.provider.reference.startsWith("Organization/")) {
-                        delete payload.provider;
-                    }
+                    payload.provider = payload.provider.startsWith("Practitioner/") ? payload.provider : `Practitioner/${payload.provider}`;
+                    payload.provider = payload.provider.replace(/^(Practitioner\/)+/, "Practitioner/");
                 }
                 if (!payload.patient) payload.patient = { reference: `Patient/${patientId}` };
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
@@ -2738,14 +2732,12 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
 
             // Issue 18: Claim Submissions — add Claim.provider
             if (tabKey === "submissions" || tabKey === "claim-submissions") {
+                if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string") {
+                    payload.provider = payload.provider.reference.replace(/^(Practitioner\/)+/, "Practitioner/");
+                }
                 if (payload.provider && typeof payload.provider === "string") {
-                    const provRef = payload.provider.startsWith("Practitioner/") ? payload.provider : `Practitioner/${payload.provider}`;
-                    payload.provider = { reference: provRef };
-                } else if (payload.provider && typeof payload.provider === "object" && typeof payload.provider.reference === "string") {
-                    payload.provider.reference = payload.provider.reference.replace(/^(Practitioner\/)+/, "Practitioner/");
-                    if (payload.provider.reference.startsWith("Organization/")) {
-                        delete payload.provider;
-                    }
+                    payload.provider = payload.provider.startsWith("Practitioner/") ? payload.provider : `Practitioner/${payload.provider}`;
+                    payload.provider = payload.provider.replace(/^(Practitioner\/)+/, "Practitioner/");
                 }
                 if (!payload.type) payload.type = wrapCoding("professional", "http://terminology.hl7.org/CodeSystem/claim-type");
                 if (!payload.use) payload.use = "claim";
