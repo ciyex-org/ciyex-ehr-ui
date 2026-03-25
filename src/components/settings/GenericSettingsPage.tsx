@@ -496,9 +496,14 @@ export default function GenericSettingsPage({ pageKey, embedded = false, forceWr
             if (res.ok) {
                 setRecords(prev => prev.filter(r => (r.id || r.fhirId) !== resourceId));
                 setTotalElements(prev => prev - 1);
+            } else {
+                const json = await res.json().catch(() => null);
+                const msg = json?.message || "Failed to delete record";
+                setError(msg);
             }
         } catch (err) {
             console.error("Error deleting record:", err);
+            setError("Failed to delete record");
         }
     };
 
