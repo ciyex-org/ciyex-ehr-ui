@@ -96,6 +96,39 @@ const monthViewStyles = `
 .custom-calendar .fc-day-today {
   background-color: var(--cal-working-bg, #ffffff) !important;
 }
+
+/* Month view: custom day-number + event-count cell */
+.fc-month-card {
+  display: block;
+  width: 100%;
+}
+.fc-month-card-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 2px 4px 2px 2px;
+}
+.fc-month-day {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: inherit;
+}
+.fc-month-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background-color: #22c55e;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
 `;
 
 /* =========================
