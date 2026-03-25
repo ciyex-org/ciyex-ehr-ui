@@ -302,6 +302,7 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
     if (!form.vaccineName.trim()) { showToast({ type: "error", text: "Vaccine name is required" }); return; }
     if (!/[A-Za-z]/.test(form.vaccineName.trim())) { showToast({ type: "error", text: "Vaccine name must contain at least one letter" }); return; }
     if (!/^[A-Za-z0-9\s\-.,/()':#&+]+$/.test(form.vaccineName.trim())) { showToast({ type: "error", text: "Vaccine name contains invalid characters" }); return; }
+    if (!form.administeredBy?.trim()) { showToast({ type: "error", text: "Administered By is required" }); return; }
     // Negative validation: lot number must be alphanumeric (letters, digits, hyphens only)
     if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9\-]+$/.test(form.lotNumber.trim())) {
       showToast({ type: "error", text: "Lot number must be alphanumeric (letters, digits, hyphens only)" }); return;
@@ -474,7 +475,7 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
             <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Provider Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="relative">
-                <label className={labelCls}>Administered By</label>
+                <label className={labelCls}>Administered By <span className="text-red-500">*</span></label>
                 <input className={inputCls} value={adminByQuery} onChange={(e) => { setAdminByQuery(e.target.value); set("administeredBy", e.target.value); setShowAdminByDropdown(true); }} onFocus={() => adminByResults.length > 0 && setShowAdminByDropdown(true)} onBlur={() => setTimeout(() => setShowAdminByDropdown(false), 200)} placeholder="Search provider..." autoComplete="off" />
                 {showAdminByDropdown && adminByResults.length > 0 && (
                   <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">

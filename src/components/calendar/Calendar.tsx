@@ -681,26 +681,26 @@ const Calendar: React.FC = () => {
             return !['INACTIVE', 'DISABLED', 'FALSE', 'SUSPENDED', '0', 'BLOCKED'].includes(String(rawStatus).toUpperCase());
         };
         try {
-            // page=0&size=1000 avoids backend default page-size truncation (was cutting list at 5)
             let providerList: any[] = [];
-            const res = await fetchWithAuth(`${apiUrl}/api/providers?page=0&size=1000`);
-            if (res.ok) {
-                const json = await res.json();
-                const raw = json?.data?.content || json?.data || json?.content || json;
-                providerList = Array.isArray(raw) ? raw : [];
-            }
-            // Fallback: FHIR resource endpoint (role-filtered users may only see themselves above)
-            if (providerList.length <= 1) {
-                try {
-                    const fb = await fetchWithAuth(`${apiUrl}/api/fhir-resource/providers?size=100`);
-                    if (fb.ok) {
-                        const fj = await fb.json();
-                        const fr = fj?.data?.content || fj?.data || fj?.content || fj;
-                        const fbList = Array.isArray(fr) ? fr : [];
-                        if (fbList.length > providerList.length) providerList = fbList;
-                    }
-                } catch { /* ignore */ }
-            }
+            // Try facade endpoint first — returns all providers for the org
+            try {
+                const res = await fetchWithAuth(`${apiUrl}/api/providers`);
+                if (res.ok) {
+                    const json = await res.json();
+                    const raw = json?.data?.content || json?.data || json?.content || json;
+                    providerList = Array.isArray(raw) ? raw : [];
+                }
+            } catch { /* ignore */ }
+            // Also try FHIR resource endpoint and merge — catches providers the facade may miss
+            try {
+                const fb = await fetchWithAuth(`${apiUrl}/api/fhir-resource/providers?size=200`);
+                if (fb.ok) {
+                    const fj = await fb.json();
+                    const fr = fj?.data?.content || fj?.data || fj?.content || fj;
+                    const fbList = Array.isArray(fr) ? fr : [];
+                    if (fbList.length > providerList.length) providerList = fbList;
+                }
+            } catch { /* ignore */ }
             let active = providerList.filter(isActive).map(toOption).filter((p: any) => p.value);
             if (active.length === 0) active = providerList.map(toOption).filter((p: any) => p.value);
             setProviders([{ value: 'all', label: 'All Providers' }, ...active]);
@@ -721,8 +721,9 @@ const Calendar: React.FC = () => {
     }, [fetchProviders]);
 
     // When providers list grows, reset selection to "All" so the new provider is included
+    // Only reset if currently showing all (not when user has specific selections)
     useEffect(() => {
-        setSelectedProviders([]);
+        setSelectedProviders((prev) => prev.length === 0 ? [] : prev);
     }, [providers.length]);
 
     // No auto-select: let users freely choose "All Providers" in any view
@@ -1702,10 +1703,7 @@ const Calendar: React.FC = () => {
                             label="Providers"
                             options={providers.filter((p) => p.value !== "all")}
                             selected={selectedProviders}
-                            onChange={(vals) =>
-                                // Normalize "__none__" (uncheck-all) to [] (show all) — calendar should never show zero providers
-                                setSelectedProviders(vals.length === 1 && vals[0] === "__none__" ? [] : vals)
-                            }
+                            onChange={setSelectedProviders}
                         />
                     </div>
                     <div className="w-52">

@@ -71,6 +71,8 @@ export default function FilterMultiSelect({
     let displayText: string;
     if (allSelected || allExplicit) {
         displayText = `All ${label}`;
+    } else if (noneSelected) {
+        displayText = `No ${label}`;
     } else if (selected.length === 1) {
         const match = options.find((o) => o.value === selected[0]);
         displayText = match?.label ?? `1 ${label}`;
@@ -82,12 +84,12 @@ export default function FilterMultiSelect({
 
     const toggleAll = () => {
         if (allSelected || allExplicit) {
-            // All are already shown — clicking "All" again is a no-op.
-            // Individual items can still be deselected one-by-one.
-            return;
+            // All are currently selected → uncheck all so user can pick specific items
+            onChange(["__none__"]);
+        } else {
+            // Some or none selected → select all
+            onChange([]);
         }
-        // Some or none selected → select all
-        onChange([]);
     };
 
     const toggleOption = (value: string) => {
@@ -99,8 +101,8 @@ export default function FilterMultiSelect({
             onChange([value]);
         } else if (selected.includes(value)) {
             const next = selected.filter((v) => v !== value);
-            // When deselecting the last item, go back to "all" rather than "none"
-            onChange(next.length === 0 ? [] : next);
+            // When deselecting the last item, show none so user can re-pick
+            onChange(next.length === 0 ? ["__none__"] : next);
         } else {
             const next = [...selected, value];
             onChange(next);
