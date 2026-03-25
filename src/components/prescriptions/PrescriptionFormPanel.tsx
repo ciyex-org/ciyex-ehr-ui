@@ -128,6 +128,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const [prescriberResults, setPrescriberResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string; npi?: string }[]>([]);
   const [showPrescriberDropdown, setShowPrescriberDropdown] = useState(false);
   const [prescriberDropdownStyle, setPrescriberDropdownStyle] = useState<React.CSSProperties>({});
+  const [prescriberSearching, setPrescriberSearching] = useState(false);
   const prescriberInputRef = useRef<HTMLDivElement>(null);
   const skipPrescriberSearchRef = useRef(false);
 
@@ -148,6 +149,11 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       setRefillsInput(p.refills != null ? String(p.refills) : "0");
     }
   }, [open, prescription]);
+
+  /* Pre-load provider list when form opens so dropdown is instant on first click */
+  useEffect(() => {
+    if (open) runPrescriberSearch("");
+  }, [open, runPrescriberSearch]);
 
   /* Update dropdown position when shown */
   useEffect(() => {
@@ -208,6 +214,7 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   /* Prescriber search — mirrors runPatientSearch pattern */
   const runPrescriberSearch = useCallback(async (q: string) => {
     const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+    setPrescriberSearching(true);
     try {
       let list: any[] = [];
 
@@ -254,7 +261,9 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
 
       setPrescriberResults(list);
       setShowPrescriberDropdown(list.length > 0);
-    } catch { /* silent */ }
+    } catch { /* silent */ } finally {
+      setPrescriberSearching(false);
+    }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Debounced prescriber search */
@@ -460,22 +469,30 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="relative" ref={prescriberInputRef}>
                 <label className={labelCls}>Prescriber Name</label>
-                <input
-                  className={inputCls("prescriberName")}
-                  value={prescriberQuery}
-                  onChange={(e) => {
-                    setPrescriberQuery(e.target.value);
-                    set("prescriberName", e.target.value);
-                    setShowPrescriberDropdown(true);
-                  }}
-                  onFocus={() => {
-                    if (prescriberResults.length > 0) { setShowPrescriberDropdown(true); return; }
-                    runPrescriberSearch(prescriberQuery);
-                  }}
-                  onBlur={() => setTimeout(() => setShowPrescriberDropdown(false), 150)}
-                  placeholder="Search provider by name..."
-                  autoComplete="off"
-                />
+                <div className="relative">
+                  <input
+                    className={inputCls("prescriberName")}
+                    value={prescriberQuery}
+                    onChange={(e) => {
+                      setPrescriberQuery(e.target.value);
+                      set("prescriberName", e.target.value);
+                      set("prescriberNpi", "");
+                      setShowPrescriberDropdown(true);
+                    }}
+                    onFocus={() => {
+                      if (prescriberResults.length > 0) { setShowPrescriberDropdown(true); return; }
+                      runPrescriberSearch(prescriberQuery);
+                    }}
+                    onBlur={() => setTimeout(() => setShowPrescriberDropdown(false), 150)}
+                    placeholder="Type to search provider..."
+                    autoComplete="off"
+                  />
+                  {prescriberSearching && (
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                    </span>
+                  )}
+                </div>
                 {errors.prescriberName && <p className="text-xs text-red-500 mt-1">{errors.prescriberName}</p>}
                 {showPrescriberDropdown && prescriberResults.length > 0 && (
                   <div style={prescriberDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
@@ -495,8 +512,8 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                 )}
               </div>
               <div>
-                <label className={labelCls}>Prescriber NPI</label>
-                <input className={inputCls("prescriberNpi")} value={form.prescriberNpi || ""} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 10); set("prescriberNpi", v); }} placeholder="1234567890" />
+                <label className={labelCls}>Prescriber NPI <span className="text-gray-400 font-normal">(auto-filled on selection)</span></label>
+                <input className={inputCls("prescriberNpi")} value={form.prescriberNpi || ""} onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 10); set("prescriberNpi", v); }} placeholder="Auto-filled from provider search" />
                 {errors.prescriberNpi && <p className="text-xs text-red-500 mt-1">{errors.prescriberNpi}</p>}
               </div>
             </div>
