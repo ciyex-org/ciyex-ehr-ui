@@ -2810,13 +2810,12 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     setSelectedRecord(savedData);
                     setMode("view");
                 } else {
-                    // Optimistic local update — immediately show saved record in list
+                    // Optimistic local update for edits — replace the existing record in-place
                     if (isEdit) {
                         setRecords(prev => prev.map(r => (r.id || r.fhirId) === (savedData.id || savedData.fhirId) ? savedData : r));
-                    } else {
-                        setRecords(prev => [savedData, ...prev]);
-                        setTotalElements(prev => prev + 1);
                     }
+                    // For new records, skip optimistic add to avoid duplicates when the
+                    // background re-fetch returns the same record from the server.
                     setMode("list");
                     setFormData({});
                     setSelectedRecord(null);
