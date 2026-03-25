@@ -65,7 +65,8 @@ export default function FilterMultiSelect({
     // Empty array = "all" (show everything); non-empty = only those selected
     const allSelected = selected.length === 0;
     // Check if ALL options are explicitly selected
-    const allExplicit = selected.length === options.length;
+    const allExplicit = selected.length === options.length && options.length > 0;
+    const noneSelected = selected.length === 1 && selected[0] === "__none__";
 
     // Build display text
     let displayText: string;
@@ -79,8 +80,6 @@ export default function FilterMultiSelect({
     } else {
         displayText = `${selected.length} ${label}`;
     }
-
-    const noneSelected = selected.length === 1 && selected[0] === "__none__";
 
     const toggleAll = () => {
         if (allSelected || allExplicit) {

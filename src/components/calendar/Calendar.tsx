@@ -681,26 +681,32 @@ const Calendar: React.FC = () => {
             return !['INACTIVE', 'DISABLED', 'FALSE', 'SUSPENDED', '0', 'BLOCKED'].includes(String(rawStatus).toUpperCase());
         };
         try {
-            let providerList: any[] = [];
-            // Try facade endpoint first — returns all providers for the org
+            const seen = new Map<string, any>();
+            const addToMap = (list: any[]) => {
+                for (const p of list) {
+                    const id = String(p.id || p.fhirId || '');
+                    if (id && !seen.has(id)) seen.set(id, p);
+                }
+            };
+            // Try facade endpoint — returns enriched nested providers
             try {
                 const res = await fetchWithAuth(`${apiUrl}/api/providers`);
                 if (res.ok) {
                     const json = await res.json();
                     const raw = json?.data?.content || json?.data || json?.content || json;
-                    providerList = Array.isArray(raw) ? raw : [];
+                    if (Array.isArray(raw)) addToMap(raw);
                 }
             } catch { /* ignore */ }
-            // Also try FHIR resource endpoint and merge — catches providers the facade may miss
+            // Also try FHIR resource endpoint — catches providers the facade may miss
             try {
                 const fb = await fetchWithAuth(`${apiUrl}/api/fhir-resource/providers?size=200`);
                 if (fb.ok) {
                     const fj = await fb.json();
                     const fr = fj?.data?.content || fj?.data || fj?.content || fj;
-                    const fbList = Array.isArray(fr) ? fr : [];
-                    if (fbList.length > providerList.length) providerList = fbList;
+                    if (Array.isArray(fr)) addToMap(fr);
                 }
             } catch { /* ignore */ }
+            const providerList = Array.from(seen.values());
             let active = providerList.filter(isActive).map(toOption).filter((p: any) => p.value);
             if (active.length === 0) active = providerList.map(toOption).filter((p: any) => p.value);
             setProviders([{ value: 'all', label: 'All Providers' }, ...active]);

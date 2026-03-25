@@ -720,9 +720,10 @@ export default function PatientListPage() {
                                 {addErrors.phoneNumber && <p className="text-xs text-red-500 mt-1">{addErrors.phoneNumber}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Email</label>
+                                <label className="block text-sm font-medium mb-1">Email <span className="text-red-500">*</span></label>
                                 <input
                                     type="email"
+                                    required
                                     placeholder="patient@email.com"
                                     value={newPatient.email}
                                     onChange={(e) => { setNewPatient({ ...newPatient, email: e.target.value }); if (addErrors.email) setAddErrors(p => { const n = {...p}; delete n.email; return n; }); }}
@@ -855,9 +856,10 @@ export default function PatientListPage() {
                                     {editErrors.phoneNumber && <p className="text-xs text-red-500 mt-1">{editErrors.phoneNumber}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Email</label>
+                                    <label className="block text-sm font-medium mb-1">Email <span className="text-red-500">*</span></label>
                                     <input
                                         type="email"
+                                        required
                                         value={editPatient.email}
                                         onChange={(e) => { setEditPatient({ ...editPatient, email: e.target.value }); if (editErrors.email) setEditErrors(p => { const n = {...p}; delete n.email; return n; }); }}
                                         className={`w-full p-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${editErrors.email ? "border-red-400" : ""}`}
