@@ -1324,6 +1324,13 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
             );
             if (res.ok) {
                 const json = await res.json();
+                if (json.success === false) {
+                    setError(json.message || "Failed to load records");
+                    setRecords([]);
+                    setTotalElements(0);
+                    setTotalPages(0);
+                    return;
+                }
                 const data = json.data || {};
                 const content = (data.content || []).filter((rec: any) => rec != null && typeof rec === "object").map((rec: Record<string, any>) => { try { return normalizeRecord(rec); } catch { return rec; } });
                 // Facility/location tabs should always allow multiple records even if backend says singleRecord
