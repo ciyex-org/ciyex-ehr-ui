@@ -129,6 +129,43 @@ const monthViewStyles = `
   font-weight: 600;
   line-height: 1;
 }
+
+/* "+N more" link styling for month view overflow */
+.fc .fc-daygrid-more-link {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #2563eb !important;
+  padding: 2px 4px !important;
+  margin-top: 2px !important;
+}
+.fc .fc-daygrid-more-link:hover {
+  color: #1d4ed8 !important;
+  text-decoration: underline !important;
+}
+
+/* Popover for "+N more" click — dropdown list of appointments */
+.fc .fc-popover {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+  border: 1px solid #e5e7eb !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  z-index: 100 !important;
+}
+.fc .fc-popover-header {
+  background: #f8fafc !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+.fc .fc-popover-body {
+  padding: 4px !important;
+}
+.fc .fc-popover-body .fc-daygrid-event {
+  margin: 2px 4px !important;
+  border-radius: 4px !important;
+}
 `;
 
 /* =========================
@@ -1952,6 +1989,8 @@ const Calendar: React.FC = () => {
                                         scrollTime={`${workingHoursStart}:00`}
                                         businessHours={businessHours}
                                         eventDisplay="block"
+                                        dayMaxEvents={3}
+                                        moreLinkClick="popover"
                                         views={{
                                             dayGridMonth: { titleFormat: { year: "numeric", month: "long" } },
                                             timeGridWeek: { titleFormat: { month: "short", day: "numeric" } },
@@ -2015,6 +2054,8 @@ const Calendar: React.FC = () => {
                                     scrollTime={`${workingHoursStart}:00`}
                                     businessHours={businessHours}
                                     eventDisplay="block"
+                                    dayMaxEvents={3}
+                                    moreLinkClick="popover"
                                     views={{
                                         dayGridMonth: { titleFormat: { year: "numeric", month: "long" } },
                                         timeGridWeek: { titleFormat: { month: "short", day: "numeric", year: "numeric" } },
