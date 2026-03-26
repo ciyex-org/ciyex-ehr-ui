@@ -2080,9 +2080,9 @@ export default function DynamicFormRenderer({
                 href={value}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-blue-500 hover:underline truncate max-w-xs"
+                className="text-xs text-blue-500 hover:underline"
               >
-                {value}
+                View photo
               </a>
             </div>
           ) : (

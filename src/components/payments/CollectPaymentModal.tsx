@@ -142,7 +142,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     } else if (!form.patientId) {
       e.patientName = "Please select a patient from the search results";
     }
-    if (!form.amount || parseFloat(form.amount) <= 0) e.amount = "Valid amount is required";
+    if (!form.amount || isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0) e.amount = "Valid amount is required";
     if (!form.description.trim()) e.description = "Description is required";
     if (!form.paymentMethodType) e.paymentMethodType = "Payment method type is required";
     if (isCardPayment) {

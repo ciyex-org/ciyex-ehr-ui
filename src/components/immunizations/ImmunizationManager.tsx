@@ -356,9 +356,9 @@ function FormDrawer({
         }
         if (!form.administeredDate?.trim()) e.administeredDate = "Date is required";
         if (!form.administeredBy?.trim()) e.administeredBy = "Administered By is required";
-        // Lot number: strictly alphanumeric only
-        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]+$/.test(form.lotNumber.trim())) {
-            e.lotNumber = "Lot number must contain only alphanumeric characters (letters and numbers)";
+        // Lot number: alphanumeric with hyphens allowed between characters
+        if (form.lotNumber && form.lotNumber.trim() && !/^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$/.test(form.lotNumber.trim())) {
+            e.lotNumber = "Lot number must be alphanumeric (hyphens allowed between characters)";
         }
         // Dose: must be a positive number if provided
         if (form.dose !== undefined && form.dose !== null) {
@@ -434,11 +434,11 @@ function FormDrawer({
                             label="Lot Number"
                             value={form.lotNumber ?? ""}
                             onChange={(v) => {
-                                // Allow only alphanumeric characters
-                                const filtered = v.replace(/[^A-Za-z0-9]/g, "");
+                                // Allow alphanumeric and hyphens; strip other characters
+                                const filtered = v.replace(/[^A-Za-z0-9-]/g, "");
                                 set("lotNumber", filtered);
-                                if (filtered && !/^[A-Za-z0-9]+$/.test(filtered)) {
-                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must contain only alphanumeric characters (letters and numbers)" }));
+                                if (filtered && !/^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$/.test(filtered)) {
+                                    setErrors(prev => ({ ...prev, lotNumber: "Lot number must be alphanumeric (hyphens allowed between characters)" }));
                                 } else {
                                     setErrors(prev => { const n = { ...prev }; delete n.lotNumber; return n; });
                                 }
