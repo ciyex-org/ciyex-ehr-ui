@@ -166,6 +166,7 @@ export default function RecallPage() {
   // Create/Edit modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editRecall, setEditRecall] = useState<PatientRecall | null>(null);
+  const [formErrors, setFormErrors] = useState<{ patientPhone?: string; patientEmail?: string }>({});
   const [formData, setFormData] = useState({
     patientId: "", patientName: "", patientPhone: "", patientEmail: "",
     recallTypeId: "", providerId: "", providerName: "", dueDate: "",
@@ -294,6 +295,7 @@ export default function RecallPage() {
       preferredContact: "PHONE", priority: "NORMAL", status: "DUE", notes: "",
     });
     setPatientQuery(""); setPatientResults([]); setShowPatientDropdown(false);
+    setFormErrors({});
     setShowCreateModal(true);
   };
 
@@ -308,7 +310,7 @@ export default function RecallPage() {
       dueDate: r.dueDate ?? "", preferredContact: r.preferredContact ?? "PHONE",
       priority: r.priority ?? "NORMAL", status: r.status ?? "DUE", notes: r.notes ?? "",
     });
-    setPatientQuery(""); setShowCreateModal(true);
+    setPatientQuery(""); setFormErrors({}); setShowCreateModal(true);
   };
 
   const choosePatient = (p: Patient) => {
@@ -780,16 +782,26 @@ export default function RecallPage() {
                   <div>
                     <Label>Phone</Label>
                     <input type="tel" value={formData.patientPhone}
-                      onChange={e => setFormData(prev => ({ ...prev, patientPhone: e.target.value }))}
+                      onChange={e => {
+                        const v = e.target.value;
+                        setFormData(prev => ({ ...prev, patientPhone: v }));
+                        setFormErrors(prev => ({ ...prev, patientPhone: v && !/^\+?[\d\s\-().]{7,20}$/.test(v) ? "Enter a valid phone number (7–20 digits)" : undefined }));
+                      }}
                       placeholder="e.g. (555) 123-4567"
-                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
+                      className={`mt-1 w-full h-9 rounded-lg border px-3 text-sm bg-white dark:bg-slate-800 ${formErrors.patientPhone ? "border-red-400 dark:border-red-500" : "border-slate-300 dark:border-slate-600"}`} />
+                    {formErrors.patientPhone && <p className="mt-1 text-xs text-red-500">{formErrors.patientPhone}</p>}
                   </div>
                   <div>
                     <Label>Email</Label>
                     <input type="email" value={formData.patientEmail}
-                      onChange={e => setFormData(prev => ({ ...prev, patientEmail: e.target.value }))}
+                      onChange={e => {
+                        const v = e.target.value;
+                        setFormData(prev => ({ ...prev, patientEmail: v }));
+                        setFormErrors(prev => ({ ...prev, patientEmail: v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? "Enter a valid email address" : undefined }));
+                      }}
                       placeholder="e.g. patient@email.com"
-                      className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
+                      className={`mt-1 w-full h-9 rounded-lg border px-3 text-sm bg-white dark:bg-slate-800 ${formErrors.patientEmail ? "border-red-400 dark:border-red-500" : "border-slate-300 dark:border-slate-600"}`} />
+                    {formErrors.patientEmail && <p className="mt-1 text-xs text-red-500">{formErrors.patientEmail}</p>}
                   </div>
                 </div>
 

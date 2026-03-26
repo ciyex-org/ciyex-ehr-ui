@@ -229,6 +229,10 @@ export default function Inventory() {
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const nameVal = String(fd.get("name") || "").trim();
+    if (!nameVal) { setAlertData({ variant: "error", title: "Validation Error", message: "Name is required." }); return; }
+    if (!/[A-Za-z]/.test(nameVal)) { setAlertData({ variant: "error", title: "Validation Error", message: "Name must contain at least one letter." }); return; }
+    if (!/^[A-Za-z0-9\s\-_().]+$/.test(nameVal)) { setAlertData({ variant: "error", title: "Validation Error", message: "Name may only contain letters, numbers, spaces, and - _ ( ) ." }); return; }
     const dto: Record<string, unknown> = {
       name: fd.get("name"),
       sku: fd.get("sku"),

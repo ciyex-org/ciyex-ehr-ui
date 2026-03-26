@@ -120,7 +120,25 @@ export default function TasksPage() {
         if (json.success && json.data) {
           // Handle both paginated (content) and flat array responses
           const items = Array.isArray(json.data) ? json.data : (json.data.content || []);
-          setTasks(items);
+          // Resolve fresh patient names to avoid showing stale names after patient updates
+          const uniqueIds = [...new Set(items.map((t: any) => t.patientId).filter(Boolean))];
+          const nameMap: Record<string, string> = {};
+          await Promise.allSettled(
+            uniqueIds.map(async (id) => {
+              try {
+                const r = await fetchWithAuth(apiUrl(`/api/patients/${id}`));
+                if (r.ok) {
+                  const d = await r.json();
+                  if (d?.data) nameMap[String(id)] = `${d.data.firstName ?? ""} ${d.data.lastName ?? ""}`.trim();
+                }
+              } catch { /* silent */ }
+            })
+          );
+          const resolved = items.map((t: any) => ({
+            ...t,
+            patientName: (t.patientId && nameMap[String(t.patientId)]) ? nameMap[String(t.patientId)] : (t.patientName || ""),
+          }));
+          setTasks(resolved);
           setTotalPages(Array.isArray(json.data) ? 1 : (json.data.totalPages || 1));
           setTotalElements(Array.isArray(json.data) ? items.length : (json.data.totalElements || 0));
         } else {

@@ -51,6 +51,13 @@ export default function CarePlanCard({
   const [expanded, setExpanded] = useState(false);
   const [detailsLoaded, setDetailsLoaded] = useState(false);
   const [providers, setProviders] = useState<{ id: number; name: string }[]>([]);
+  // Local copy of interventions so optimistic updates show immediately
+  const [localInterventions, setLocalInterventions] = useState<Intervention[]>(plan.interventions || []);
+
+  // Sync local interventions when the plan prop is refreshed from the server
+  useEffect(() => {
+    setLocalInterventions(plan.interventions || []);
+  }, [plan.interventions]);
 
   useEffect(() => {
     fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?status=ACTIVE`)
@@ -151,6 +158,10 @@ export default function CarePlanCard({
           { method: "PUT", body: JSON.stringify(intForm) }
         );
         if (!res.ok) throw new Error("Update failed");
+        // Optimistically update the intervention in local state
+        setLocalInterventions((prev) =>
+          prev.map((i) => (i.id === editingIntId ? { ...intForm, id: editingIntId } : i))
+        );
         showToast("Intervention updated", "success");
       } else {
         res = await fetchWithAuth(
@@ -158,6 +169,14 @@ export default function CarePlanCard({
           { method: "POST", body: JSON.stringify(intForm) }
         );
         if (!res.ok) throw new Error("Create failed");
+        // Optimistically add the intervention so it shows immediately
+        try {
+          const saved = await res.clone().json();
+          const newInt: Intervention = saved?.data ?? { ...intForm, id: String(Date.now()) };
+          setLocalInterventions((prev) => [...prev, newInt]);
+        } catch {
+          setLocalInterventions((prev) => [...prev, { ...intForm, id: String(Date.now()) }]);
+        }
         showToast("Intervention added", "success");
       }
       setShowIntForm(false);
@@ -172,6 +191,7 @@ export default function CarePlanCard({
   }
 
   async function deleteIntervention(intId: string) {
+    setLocalInterventions((prev) => prev.filter((i) => i.id !== intId));
     try {
       await fetchWithAuth(
         apiUrl(`/api/care-plans/${plan.id}/interventions/${intId}`),
@@ -181,6 +201,7 @@ export default function CarePlanCard({
       onRefresh();
     } catch {
       showToast("Failed to delete intervention", "error");
+      onRefresh(); // Revert by re-fetching
     }
   }
 
@@ -418,7 +439,7 @@ export default function CarePlanCard({
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Activity className="w-3.5 h-3.5" />
-                Interventions ({plan.interventions?.length || 0})
+                Interventions ({localInterventions?.length || 0})
               </h4>
               <button
                 onClick={() => {
@@ -434,9 +455,9 @@ export default function CarePlanCard({
               </button>
             </div>
 
-            {plan.interventions?.length > 0 ? (
+            {localInterventions?.length > 0 ? (
               <div className="space-y-2">
-                {plan.interventions.map((int) => (
+                {localInterventions.map((int) => (
                   <InterventionItem
                     key={int.id}
                     intervention={int}

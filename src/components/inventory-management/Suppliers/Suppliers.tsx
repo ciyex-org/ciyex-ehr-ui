@@ -70,6 +70,8 @@ export default function Suppliers() {
     const errs: Record<string, string> = {};
     if (!form.name.trim()) errs.name = "Supplier name is required";
     else if (form.name.trim().length < 2) errs.name = "Name must be at least 2 characters";
+    else if (!/[A-Za-z]/.test(form.name.trim())) errs.name = "Name must contain at least one letter";
+    else if (!/^[A-Za-z0-9\s\-_().&,']+$/.test(form.name.trim())) errs.name = "Name contains invalid characters";
     if (form.contactName && form.contactName.trim().length > 0) {
       if (form.contactName.trim().length < 2) errs.contactName = "Contact name must be at least 2 characters";
       else if (!/^[A-Za-z\s\-'.]+$/.test(form.contactName.trim())) errs.contactName = "Contact name must contain only letters, spaces, hyphens, or apostrophes";

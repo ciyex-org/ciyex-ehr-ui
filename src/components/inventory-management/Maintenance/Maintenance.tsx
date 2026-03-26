@@ -96,8 +96,16 @@ export default function Maintenance() {
     e.preventDefault();
     const errs: Record<string, string> = {};
     if (!form.equipmentName.trim()) errs.equipmentName = "Equipment name is required";
+    else if (!/[A-Za-z]/.test(form.equipmentName.trim())) errs.equipmentName = "Equipment name must contain at least one letter";
+    else if (!/^[A-Za-z0-9\s\-_().&,]+$/.test(form.equipmentName.trim())) errs.equipmentName = "Equipment name contains invalid characters";
     if (form.equipmentId.trim() && !/^[A-Za-z0-9\-_./]+$/.test(form.equipmentId.trim())) errs.equipmentId = "Only letters, numbers, hyphens, underscores, dots, and slashes allowed";
     if (form.equipmentId.length > 50) errs.equipmentId = "Equipment ID must be 50 characters or less";
+    if (form.location.trim() && !/[A-Za-z]/.test(form.location.trim())) errs.location = "Location must contain at least one letter";
+    if (form.location.trim() && !/^[A-Za-z0-9\s\-_().#,/]+$/.test(form.location.trim())) errs.location = "Location contains invalid characters";
+    if (form.assignee.trim() && !/[A-Za-z]/.test(form.assignee.trim())) errs.assignee = "Assignee must contain at least one letter";
+    if (form.assignee.trim() && !/^[A-Za-z\s\-'.]+$/.test(form.assignee.trim())) errs.assignee = "Assignee must contain only letters, spaces, hyphens, or apostrophes";
+    if (form.vendor.trim() && !/[A-Za-z]/.test(form.vendor.trim())) errs.vendor = "Vendor must contain at least one letter";
+    if (form.vendor.trim() && !/^[A-Za-z0-9\s\-_().&,']+$/.test(form.vendor.trim())) errs.vendor = "Vendor contains invalid characters";
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) return;
     try {
@@ -227,12 +235,12 @@ export default function Maintenance() {
                   <option value="medium">Medium</option><option value="low">Low</option>
                 </select>
               </div>
-              <div><Label>Location</Label><Input value={form.location} onChange={e => F("location", e.target.value)} /></div>
-              <div><Label>Assignee</Label><Input value={form.assignee} onChange={e => F("assignee", e.target.value)} /></div>
+              <div><Label>Location</Label><Input value={form.location} onChange={e => { F("location", e.target.value); if (formErrors.location) setFormErrors(p => { const n = {...p}; delete n.location; return n; }); }} className={formErrors.location ? "border-red-400" : ""} />{formErrors.location && <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>}</div>
+              <div><Label>Assignee</Label><Input value={form.assignee} onChange={e => { F("assignee", e.target.value); if (formErrors.assignee) setFormErrors(p => { const n = {...p}; delete n.assignee; return n; }); }} className={formErrors.assignee ? "border-red-400" : ""} />{formErrors.assignee && <p className="text-xs text-red-500 mt-1">{formErrors.assignee}</p>}</div>
               <div><Label>Due Date</Label><input type="date" value={form.dueDate} onChange={e => F("dueDate", e.target.value)} className={dateClass} /></div>
               <div><Label>Last Service Date</Label><input type="date" value={form.lastServiceDate} onChange={e => F("lastServiceDate", e.target.value)} className={dateClass} /></div>
               <div><Label>Next Service Date</Label><input type="date" value={form.nextServiceDate} onChange={e => F("nextServiceDate", e.target.value)} className={dateClass} /></div>
-              <div><Label>Vendor</Label><Input value={form.vendor} onChange={e => F("vendor", e.target.value)} /></div>
+              <div><Label>Vendor</Label><Input value={form.vendor} onChange={e => { F("vendor", e.target.value); if (formErrors.vendor) setFormErrors(p => { const n = {...p}; delete n.vendor; return n; }); }} className={formErrors.vendor ? "border-red-400" : ""} />{formErrors.vendor && <p className="text-xs text-red-500 mt-1">{formErrors.vendor}</p>}</div>
               <div><Label>Cost ($)</Label><Input type="number" value={String(form.cost)} onChange={e => F("cost", parseFloat(e.target.value) || 0)} /></div>
               {modal === "edit" && (
                 <div><Label>Status</Label>

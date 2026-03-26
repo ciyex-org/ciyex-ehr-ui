@@ -1664,6 +1664,7 @@ const Calendar: React.FC = () => {
             return (
                 <div
                     className={`fc-month-card ${isPastDate ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                    style={{ display: 'block', width: '100%' }}
                     onClick={(e) => {
                         e.stopPropagation();
                         if (isPastDate) return;
@@ -1678,12 +1679,16 @@ const Calendar: React.FC = () => {
                         handleDateSelect(selectInfo as any);
                     }}
                 >
-                    <div className="fc-month-card-inner">
-                        <span className="fc-month-day">
+                    <div
+                        className="fc-month-card-inner"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', padding: '2px 4px 2px 2px' }}
+                    >
+                        <span className="fc-month-day" style={{ fontSize: '0.8125rem', fontWeight: 500, lineHeight: '1.5' }}>
                             {arg.date.getDate()}
                         </span>
                         <span
                             className="fc-month-count cursor-pointer hover:bg-green-600 transition-colors"
+                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '20px', height: '20px', padding: '0 5px', borderRadius: '10px', backgroundColor: '#22c55e', color: '#fff', fontSize: '11px', fontWeight: 600, lineHeight: 1 }}
                             onMouseDown={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();

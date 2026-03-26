@@ -585,17 +585,34 @@ export default function ImmunizationsPage() {
           // Normalize status: backend may return hyphens (FHIR) or underscores
           const normalizeStatus = (s: string) => (s || "").replace(/-/g, "_");
           const matchesFilter = (r: Immunization) => normalizeStatus(r.status) === statusFilter;
+          const rawItems: Immunization[] = Array.isArray(json.data) ? json.data : (json.data.content || []);
+          const filtered = statusFilter === "all" ? rawItems : rawItems.filter(matchesFilter);
+          // Resolve fresh patient names to avoid showing stale names after patient updates
+          const uniqueIds = [...new Set(filtered.map((r) => r.patientId).filter(Boolean))];
+          const nameMap: Record<string, string> = {};
+          await Promise.allSettled(
+            uniqueIds.map(async (id) => {
+              try {
+                const r = await fetchWithAuth(apiUrl(`/api/patients/${id}`));
+                if (r.ok) {
+                  const d = await r.json();
+                  if (d?.data) nameMap[String(id)] = `${d.data.firstName ?? ""} ${d.data.lastName ?? ""}`.trim();
+                }
+              } catch { /* silent */ }
+            })
+          );
+          const resolved = filtered.map((r) => ({
+            ...r,
+            patientName: (r.patientId && nameMap[String(r.patientId)]) ? nameMap[String(r.patientId)] : (r.patientName || ""),
+          }));
           if (Array.isArray(json.data)) {
-            const filtered = statusFilter === "all" ? json.data : json.data.filter(matchesFilter);
-            setRecords(filtered);
+            setRecords(resolved);
             setTotalPages(1);
-            setTotalElements(filtered.length);
+            setTotalElements(resolved.length);
           } else {
-            const items = json.data.content || [];
-            const filtered = statusFilter === "all" ? items : items.filter(matchesFilter);
-            setRecords(filtered);
+            setRecords(resolved);
             setTotalPages(json.data.totalPages || 1);
-            setTotalElements(filtered.length);
+            setTotalElements(resolved.length);
           }
         } else { setRecords([]); }
       } else { setRecords([]); }

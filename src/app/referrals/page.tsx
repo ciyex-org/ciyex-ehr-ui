@@ -775,12 +775,31 @@ export default function ReferralsPage() {
       if (res.ok && json.success) {
         // Search returns a plain List; paginated fetch returns a Page object
         const data = json.data;
+        const rawItems = Array.isArray(data) ? data : (data.content || []);
+        // Resolve fresh patient names to avoid showing stale names after patient updates
+        const uniqueIds = [...new Set(rawItems.map((r: any) => r.patientId).filter(Boolean))];
+        const nameMap: Record<string, string> = {};
+        await Promise.allSettled(
+          uniqueIds.map(async (id) => {
+            try {
+              const r = await fetchWithAuth(`${apiBase()}/api/patients/${id}`);
+              if (r.ok) {
+                const d = await r.json();
+                if (d?.data) nameMap[String(id)] = `${d.data.firstName ?? ""} ${d.data.lastName ?? ""}`.trim();
+              }
+            } catch { /* silent */ }
+          })
+        );
+        const resolved = rawItems.map((r: any) => ({
+          ...r,
+          patientName: (r.patientId && nameMap[String(r.patientId)]) ? nameMap[String(r.patientId)] : (r.patientName || ""),
+        }));
         if (Array.isArray(data)) {
-          setReferrals(data);
+          setReferrals(resolved);
           setTotalPages(1);
-          setTotalElements(data.length);
+          setTotalElements(resolved.length);
         } else {
-          setReferrals(data.content || []);
+          setReferrals(resolved);
           setTotalPages(data.totalPages || 1);
           setTotalElements(data.totalElements || 0);
         }

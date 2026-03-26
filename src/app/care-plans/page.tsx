@@ -75,7 +75,26 @@ export default function CarePlansPage() {
         const json = await res.json();
         if (json.success) {
           const pd: PageData = json.data;
-          setPlans(pd.content);
+          // Resolve fresh patient names to avoid showing stale names after patient updates
+          const rawItems = pd.content || [];
+          const uniqueIds = [...new Set(rawItems.map((p) => p.patientId).filter(Boolean))];
+          const nameMap: Record<string, string> = {};
+          await Promise.allSettled(
+            uniqueIds.map(async (id) => {
+              try {
+                const r = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/patients/${id}`);
+                if (r.ok) {
+                  const d = await r.json();
+                  if (d?.data) nameMap[String(id)] = `${d.data.firstName ?? ""} ${d.data.lastName ?? ""}`.trim();
+                }
+              } catch { /* silent */ }
+            })
+          );
+          const resolved = rawItems.map((p) => ({
+            ...p,
+            patientName: (p.patientId && nameMap[String(p.patientId)]) ? nameMap[String(p.patientId)] : (p.patientName || ""),
+          }));
+          setPlans(resolved);
           setTotalPages(pd.totalPages);
           setTotalElements(pd.totalElements);
         }

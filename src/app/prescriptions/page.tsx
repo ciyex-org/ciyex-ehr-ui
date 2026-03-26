@@ -302,9 +302,27 @@ export default function PrescriptionsPage() {
         // Search returns a plain List; paginated listing returns a Page with .content
         const raw: any[] = Array.isArray(json.data) ? json.data : (json.data.content || []);
         // Normalize prescriber name — backend may use different field names
-        const items = raw.map((rx: any) => ({
+        let items = raw.map((rx: any) => ({
           ...rx,
           prescriberName: rx.prescriberName || rx.prescribingDoctor || rx.prescriber || rx.providerName || rx.renderingProvider || "",
+        }));
+        // Resolve fresh patient names to avoid showing stale names after patient updates
+        const uniqueIds = [...new Set(items.map((rx: any) => rx.patientId).filter(Boolean))];
+        const nameMap: Record<string, string> = {};
+        await Promise.allSettled(
+          uniqueIds.map(async (id) => {
+            try {
+              const r = await fetchWithAuth(`${apiBase()}/api/patients/${id}`);
+              if (r.ok) {
+                const d = await r.json();
+                if (d?.data) nameMap[String(id)] = `${d.data.firstName ?? ""} ${d.data.lastName ?? ""}`.trim();
+              }
+            } catch { /* silent */ }
+          })
+        );
+        items = items.map((rx: any) => ({
+          ...rx,
+          patientName: (rx.patientId && nameMap[String(rx.patientId)]) ? nameMap[String(rx.patientId)] : (rx.patientName || ""),
         }));
         setPrescriptions(items);
         setTotalPages(Array.isArray(json.data) ? 1 : (json.data.totalPages || 1));
