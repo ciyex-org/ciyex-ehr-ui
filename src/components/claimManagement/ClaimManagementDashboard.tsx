@@ -15,6 +15,7 @@ interface Claim {
   type: string;
   createdOn: string;
   notes: string;
+  invoiceNumber: string;
 }
 
 const STATUSES = ["ALL", "DRAFT", "IN_PROCESS", "READY_FOR_SUBMISSION", "SUBMITTED", "CLOSED", "VOID"];
@@ -117,6 +118,7 @@ const ClaimManagementDashboard: React.FC = () => {
         planName: item.planName || item.plan || item.insurancePlan || "—",
         invoiceId: item.invoiceId ?? item.invoice_id ?? undefined,
         createdOn: item.createdOn || item.serviceDate || item.dateOfService || "",
+        invoiceNumber: item.invoiceNumber || item.invoiceId || item.invoice || item.claimNumber || item.referenceNumber || "",
       }));
       setClaims(data);
     } catch (e: unknown) {
@@ -420,9 +422,9 @@ const ClaimManagementDashboard: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={10} className="text-center py-12 text-gray-400">Loading claims...</td></tr>
+              <tr><td colSpan={11} className="text-center py-12 text-gray-400">Loading claims...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={10} className="text-center py-12 text-gray-400">No claims found</td></tr>
+              <tr><td colSpan={11} className="text-center py-12 text-gray-400">No claims found</td></tr>
             ) : (
               filtered.map((c) => (
                 <tr
@@ -433,7 +435,7 @@ const ClaimManagementDashboard: React.FC = () => {
                   }`}
                 >
                   <td className="px-4 py-3 font-medium text-gray-900">{c.id}</td>
-                  <td className="px-4 py-3 text-gray-700">{c.invoiceId ?? "—"}</td>
+                  <td className="px-4 py-3 text-gray-700">{c.invoiceNumber || c.invoiceId || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.patientName || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.provider || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.payerName || "—"}</td>

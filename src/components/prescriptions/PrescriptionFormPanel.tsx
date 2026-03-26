@@ -359,9 +359,10 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     setSaving(true);
     try {
       const isEdit = !!form.id;
+      const apiBase = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
       const url = isEdit
-        ? `/api/prescriptions/${form.id}`
-        : `/api/prescriptions`;
+        ? `${apiBase}/api/prescriptions/${form.id}`
+        : `${apiBase}/api/prescriptions`;
       // Add MedicationRequest.intent (required by FHIR R4)
       const payload = { ...form, intent: (form as any).intent || "order", status: form.status || "active" };
       const res = await fetchWithAuth(url, {

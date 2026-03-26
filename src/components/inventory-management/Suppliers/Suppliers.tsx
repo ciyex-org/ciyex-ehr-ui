@@ -104,8 +104,20 @@ export default function Suppliers() {
     if (!deleteTarget) return;
     try {
       const res = await fetchWithAuth(`${API()}/${deleteTarget.id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (json.success) { setAlert({ variant: "success", title: "Deleted", message: `${deleteTarget.name} deleted.` }); close(); load(); }
+      if (res.ok) {
+        // Handle empty response body (204 No Content) and JSON responses
+        let json: any = null;
+        const text = await res.text();
+        if (text) { try { json = JSON.parse(text); } catch { /* non-JSON response */ } }
+        if (!json || json.success !== false) {
+          setAlert({ variant: "success", title: "Deleted", message: `${deleteTarget.name} deleted.` }); close(); load();
+        } else {
+          setAlert({ variant: "error", title: "Error", message: json.message || "Delete failed." });
+        }
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setAlert({ variant: "error", title: "Error", message: (errJson as any).message || `Delete failed (HTTP ${res.status})` });
+      }
     } catch { setAlert({ variant: "error", title: "Error", message: "Delete failed." }); }
   };
 

@@ -230,7 +230,10 @@ const patientDemographics: ReportDefinition = {
     for (const p of records) {
       const pid = String(p.id);
       if (patInsurance[pid]) continue;
-      const ins = p.insuranceName || p.primaryInsurance || p.insuranceCompany || p.insurance || p.insurancePlan || "";
+      let ins = p.insuranceName || p.primaryInsurance || p.insuranceCompany || p.insurance || p.insurancePlan || "";
+      if (!ins && Array.isArray(p.insurances) && p.insurances.length > 0) {
+        ins = p.insurances[0].insuranceName || p.insurances[0].name || p.insurances[0].payerName || "";
+      }
       if (ins) patInsurance[pid] = ins;
     }
     const ages = records.map(p => {
@@ -272,7 +275,7 @@ const patientDemographics: ReportDefinition = {
           dob,
           ageGroup: ageGroup(dob),
           status: p.status || "Active",
-          insurance: patInsurance[String(p.id)] || patInsurance[String(p.fhirId)] || p.insurance || p.insurancePlan || p.insuranceName || p.primaryInsurance || p.insuranceCompany || "",
+          insurance: patInsurance[String(p.id)] || patInsurance[String(p.fhirId)] || p.insurance || p.insurancePlan || p.insuranceName || p.primaryInsurance || p.insuranceCompany || (Array.isArray(p.insurances) && p.insurances.length > 0 ? (p.insurances[0].insuranceName || p.insurances[0].name || p.insurances[0].payerName || "") : "") || "",
         };
       }),
       totalRecords: records.length,

@@ -436,12 +436,31 @@ export default function PriorAuthorizationsPage() {
       const json = await res.json();
       if (json.success) {
         const pd: PageData = json.data ?? {};
-        setAuths(pd.content ?? []);
+        // Ensure content items have all expected string fields to prevent crashes during search/render
+        const safeContent = (pd.content ?? []).map((a: any) => ({
+          ...a,
+          patientName: a.patientName ?? "",
+          patientId: a.patientId ?? "",
+          providerName: a.providerName ?? "",
+          insuranceName: a.insuranceName ?? "",
+          insuranceId: a.insuranceId ?? "",
+          memberId: a.memberId ?? "",
+          authNumber: a.authNumber ?? "",
+          procedureCode: a.procedureCode ?? "",
+          procedureDescription: a.procedureDescription ?? "",
+          diagnosisCode: a.diagnosisCode ?? "",
+          diagnosisDescription: a.diagnosisDescription ?? "",
+          status: a.status ?? "pending",
+          priority: a.priority ?? "routine",
+          notes: a.notes ?? "",
+        }));
+        setAuths(safeContent);
         setTotalPages(pd.totalPages ?? 1);
         setTotalElements(pd.totalElements ?? 0);
       }
     } catch (err) {
       console.error("Failed to fetch prior authorizations:", err);
+      setAuths([]);
     } finally {
       setLoading(false);
     }
@@ -666,21 +685,25 @@ export default function PriorAuthorizationsPage() {
   // Client-side search filter — searches across patient name, patient ID, provider, and all key fields
   const displayedAuths = searchDraft
     ? auths.filter((a) => {
-        const q = searchDraft.toLowerCase();
-        return (
-          (a.patientName || "").toLowerCase().includes(q) ||
-          (a.patientId || "").toLowerCase().includes(q) ||
-          String(a.id || "").toLowerCase().includes(q) ||
-          (a.providerName || "").toLowerCase().includes(q) ||
-          (a.authNumber || "").toLowerCase().includes(q) ||
-          (a.procedureCode || "").toLowerCase().includes(q) ||
-          (a.procedureDescription || "").toLowerCase().includes(q) ||
-          (a.diagnosisCode || "").toLowerCase().includes(q) ||
-          (a.diagnosisDescription || "").toLowerCase().includes(q) ||
-          (a.insuranceName || "").toLowerCase().includes(q) ||
-          (a.insuranceId || "").toLowerCase().includes(q) ||
-          (a.memberId || "").toLowerCase().includes(q)
-        );
+        try {
+          const q = searchDraft.toLowerCase();
+          return (
+            String(a.patientName || "").toLowerCase().includes(q) ||
+            String(a.patientId || "").toLowerCase().includes(q) ||
+            String(a.id || "").toLowerCase().includes(q) ||
+            String(a.providerName || "").toLowerCase().includes(q) ||
+            String(a.authNumber || "").toLowerCase().includes(q) ||
+            String(a.procedureCode || "").toLowerCase().includes(q) ||
+            String(a.procedureDescription || "").toLowerCase().includes(q) ||
+            String(a.diagnosisCode || "").toLowerCase().includes(q) ||
+            String(a.diagnosisDescription || "").toLowerCase().includes(q) ||
+            String(a.insuranceName || "").toLowerCase().includes(q) ||
+            String(a.insuranceId || "").toLowerCase().includes(q) ||
+            String(a.memberId || "").toLowerCase().includes(q)
+          );
+        } catch {
+          return false;
+        }
       })
     : auths;
 

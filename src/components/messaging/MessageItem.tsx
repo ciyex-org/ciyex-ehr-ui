@@ -30,7 +30,23 @@ export default function MessageItemComponent({
   const [showActions, setShowActions] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [reacting, setReacting] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+
+  // Debounced reaction handler to prevent duplicate reactions on double-click
+  const handleReaction = async (messageId: string, emoji: string, remove: boolean) => {
+    if (reacting) return;
+    setReacting(true);
+    try {
+      if (remove) {
+        await onRemoveReaction(messageId, emoji);
+      } else {
+        await onReact(messageId, emoji);
+      }
+    } finally {
+      setTimeout(() => setReacting(false), 500);
+    }
+  };
 
   if (message.isSystem) {
     return (
@@ -118,11 +134,7 @@ export default function MessageItemComponent({
               <ReactionBadge
                 key={r.emoji}
                 reaction={r}
-                onToggle={() =>
-                  r.hasReacted
-                    ? onRemoveReaction(message.id, r.emoji)
-                    : onReact(message.id, r.emoji)
-                }
+                onToggle={() => handleReaction(message.id, r.emoji, !!r.hasReacted)}
               />
             ))}
             <button
@@ -159,8 +171,9 @@ export default function MessageItemComponent({
             return (
               <button
                 key={emoji}
-                onClick={() => hasReacted ? onRemoveReaction(message.id, emoji) : onReact(message.id, emoji)}
-                className={`rounded-lg p-1 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${hasReacted ? "bg-brand-50 dark:bg-brand-900/20" : ""}`}
+                onClick={() => handleReaction(message.id, emoji, !!hasReacted)}
+                disabled={reacting}
+                className={`rounded-lg p-1 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${hasReacted ? "bg-brand-50 dark:bg-brand-900/20" : ""} ${reacting ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {emoji}
               </button>
@@ -214,8 +227,9 @@ export default function MessageItemComponent({
             return (
               <button
                 key={emoji}
-                onClick={() => { hasReacted ? onRemoveReaction(message.id, emoji) : onReact(message.id, emoji); setShowEmojiPicker(false); }}
-                className={`rounded-lg p-1.5 text-lg transition-colors hover:bg-gray-100 hover:scale-110 dark:hover:bg-gray-700 ${hasReacted ? "bg-brand-50 dark:bg-brand-900/20" : ""}`}
+                onClick={() => { handleReaction(message.id, emoji, !!hasReacted); setShowEmojiPicker(false); }}
+                disabled={reacting}
+                className={`rounded-lg p-1.5 text-lg transition-colors hover:bg-gray-100 hover:scale-110 dark:hover:bg-gray-700 ${hasReacted ? "bg-brand-50 dark:bg-brand-900/20" : ""} ${reacting ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {emoji}
               </button>
