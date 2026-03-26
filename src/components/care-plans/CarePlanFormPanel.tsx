@@ -51,26 +51,40 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
   const [saving, setSaving] = useState(false);
   const [providers, setProviders] = useState<{ id: number; name: string }[]>([]);
 
-  // Load active providers for intervention assignment
+  // Load active providers for intervention assignment (with FHIR fallback)
   useEffect(() => {
-    fetchWithAuth(`/api/providers?status=ACTIVE`)
-      .then((r) => {
-        if (!r.ok) return null;
-        return r.json();
-      })
-      .then((json) => {
-        if (!json) return;
-        let raw: any[] = [];
-        if (Array.isArray(json?.data?.content)) raw = json.data.content;
-        else if (Array.isArray(json?.data)) raw = json.data;
-        else if (Array.isArray(json)) raw = json;
-        const list = raw.map((p: any) => ({
-          id: p.id,
-          name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.fullName || p.displayName || `Provider #${p.id}`,
-        })).filter((p: { name: string }) => p.name);
-        setProviders(list);
-      })
-      .catch(() => {});
+    async function loadProviders() {
+      const parseList = (json: any): any[] => {
+        if (Array.isArray(json?.data?.content)) return json.data.content;
+        if (Array.isArray(json?.data)) return json.data;
+        if (Array.isArray(json?.content)) return json.content;
+        if (Array.isArray(json)) return json;
+        return [];
+      };
+      const mapProviders = (raw: any[]) => raw.map((p: any) => ({
+        id: p.id || p.fhirId,
+        name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.fullName || p.displayName || `Provider #${p.id}`,
+      })).filter((p: { name: string }) => p.name);
+
+      try {
+        const res = await fetchWithAuth(`/api/providers`);
+        if (res.ok) {
+          const json = await res.json();
+          const list = mapProviders(parseList(json));
+          if (list.length > 0) { setProviders(list); return; }
+        }
+      } catch { /* silent */ }
+      // FHIR fallback
+      try {
+        const fb = await fetchWithAuth(`/api/fhir-resource/providers?size=200`);
+        if (fb.ok) {
+          const json = await fb.json();
+          const list = mapProviders(parseList(json));
+          if (list.length > 0) setProviders(list);
+        }
+      } catch { /* silent */ }
+    }
+    loadProviders();
   }, []);
 
   // Patient search state
@@ -93,28 +107,40 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
   const authorSearchRef = useRef<ReturnType<typeof setTimeout>>(null);
   const skipAuthorSearchRef = useRef(!!editing?.authorName);
 
-  // Debounced author/provider search
+  // Debounced author/provider search (with FHIR fallback)
   useEffect(() => {
     if (skipAuthorSearchRef.current) { skipAuthorSearchRef.current = false; return; }
     if (!authorQuery.trim() || authorQuery.length < 2) { setAuthorResults([]); return; }
     if (authorSearchRef.current) clearTimeout(authorSearchRef.current);
     authorSearchRef.current = setTimeout(async () => {
       setAuthorSearching(true);
+      const parseList = (json: any): any[] => {
+        if (Array.isArray(json?.data?.content)) return json.data.content;
+        if (Array.isArray(json?.data)) return json.data;
+        if (Array.isArray(json?.content)) return json.content;
+        if (Array.isArray(json)) return json;
+        return [];
+      };
+      const mapProviders = (raw: any[]) => raw.map((p: any) => ({
+        id: p.id || p.fhirId,
+        name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.fullName || p.displayName || `Provider #${p.id}`,
+      })).filter((p: { name: string }) => p.name);
       try {
-        const res = await fetchWithAuth(`/api/providers?status=ACTIVE&search=${encodeURIComponent(authorQuery)}`);
-        if (!res.ok) return;
-        const json = await res.json();
-        let list: any[] = [];
-        if (Array.isArray(json?.data?.content)) list = json.data.content;
-        else if (Array.isArray(json?.data)) list = json.data;
-        else if (Array.isArray(json?.content)) list = json.content;
-        else if (Array.isArray(json)) list = json;
-        const mapped = list.map((p: any) => ({
-          id: p.id,
-          name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.fullName || p.displayName || `Provider #${p.id}`,
-        })).filter((p: { name: string }) => p.name);
+        let mapped: { id: number; name: string }[] = [];
+        // Try /api/providers first
+        const res = await fetchWithAuth(`/api/providers?search=${encodeURIComponent(authorQuery)}`);
+        if (res.ok) mapped = mapProviders(parseList(await res.json()));
+        // FHIR fallback if empty
+        if (mapped.length === 0) {
+          const fb = await fetchWithAuth(`/api/fhir-resource/providers?size=200`);
+          if (fb.ok) {
+            const all = mapProviders(parseList(await fb.json()));
+            const ql = authorQuery.toLowerCase();
+            mapped = all.filter((p: { name: string }) => p.name.toLowerCase().includes(ql));
+          }
+        }
         setAuthorResults(mapped);
-        setShowAuthorDropdown(true);
+        setShowAuthorDropdown(mapped.length > 0);
       } catch { /* silent */ }
       finally { setAuthorSearching(false); }
     }, 300);

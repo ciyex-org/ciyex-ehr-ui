@@ -51,25 +51,50 @@ export default function CarePlanCard({
   const [expanded, setExpanded] = useState(false);
   const [detailsLoaded, setDetailsLoaded] = useState(false);
   const [providers, setProviders] = useState<{ id: number; name: string }[]>([]);
-  // Local copy of interventions so optimistic updates show immediately
+  // Local copies so optimistic updates show immediately
+  const [localGoals, setLocalGoals] = useState<Goal[]>(plan.goals || []);
   const [localInterventions, setLocalInterventions] = useState<Intervention[]>(plan.interventions || []);
 
-  // Sync local interventions when the plan prop is refreshed from the server
+  // Sync local state when the plan prop is refreshed from the server
+  useEffect(() => {
+    setLocalGoals(plan.goals || []);
+  }, [plan.goals]);
   useEffect(() => {
     setLocalInterventions(plan.interventions || []);
   }, [plan.interventions]);
 
+  // Load providers with FHIR fallback
   useEffect(() => {
-    fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers?status=ACTIVE`)
-      .then((r) => r.json())
-      .then((json) => {
-        const list = (json?.data ?? []).map((p: any) => ({
-          id: p.id,
-          name: `${p?.identification?.firstName ?? ""} ${p?.identification?.lastName ?? ""}`.trim(),
-        })).filter((p: { name: string }) => p.name);
-        setProviders(list);
-      })
-      .catch(() => {});
+    async function loadProviders() {
+      const parseList = (json: any): any[] => {
+        if (Array.isArray(json?.data?.content)) return json.data.content;
+        if (Array.isArray(json?.data)) return json.data;
+        if (Array.isArray(json?.content)) return json.content;
+        if (Array.isArray(json)) return json;
+        return [];
+      };
+      const mapProviders = (raw: any[]) => raw.map((p: any) => ({
+        id: p.id || p.fhirId,
+        name: `${p?.identification?.firstName ?? p.firstName ?? ""} ${p?.identification?.lastName ?? p.lastName ?? ""}`.trim() || p.name || p.fullName || p.displayName || "",
+      })).filter((p: { name: string }) => p.name);
+
+      try {
+        const res = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
+        if (res.ok) {
+          const list = mapProviders(parseList(await res.json()));
+          if (list.length > 0) { setProviders(list); return; }
+        }
+      } catch { /* silent */ }
+      // FHIR fallback
+      try {
+        const fb = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/fhir-resource/providers?size=200`);
+        if (fb.ok) {
+          const list = mapProviders(parseList(await fb.json()));
+          if (list.length > 0) setProviders(list);
+        }
+      } catch { /* silent */ }
+    }
+    loadProviders();
   }, []);
 
   // Auto-refresh to load goals/interventions on first expand
@@ -105,6 +130,10 @@ export default function CarePlanCard({
           { method: "PUT", body: JSON.stringify(goalForm) }
         );
         if (!res.ok) throw new Error("Update failed");
+        // Optimistically update the goal in local state
+        setLocalGoals((prev) =>
+          prev.map((g) => (String(g.id) === editingGoalId ? { ...goalForm, id: editingGoalId } : g))
+        );
         showToast("Goal updated", "success");
       } else {
         res = await fetchWithAuth(apiUrl(`/api/care-plans/${plan.id}/goals`), {
@@ -112,6 +141,14 @@ export default function CarePlanCard({
           body: JSON.stringify(goalForm),
         });
         if (!res.ok) throw new Error("Create failed");
+        // Optimistically add the goal so it shows immediately
+        try {
+          const saved = await res.clone().json();
+          const newGoal: Goal = saved?.data ?? { ...goalForm, id: String(Date.now()) };
+          setLocalGoals((prev) => [...prev, newGoal]);
+        } catch {
+          setLocalGoals((prev) => [...prev, { ...goalForm, id: String(Date.now()) }]);
+        }
         showToast("Goal added", "success");
       }
       setShowGoalForm(false);
@@ -126,6 +163,7 @@ export default function CarePlanCard({
   }
 
   async function deleteGoal(goalId: string) {
+    setLocalGoals((prev) => prev.filter((g) => String(g.id) !== goalId));
     try {
       await fetchWithAuth(
         apiUrl(`/api/care-plans/${plan.id}/goals/${goalId}`),
@@ -135,6 +173,7 @@ export default function CarePlanCard({
       onRefresh();
     } catch {
       showToast("Failed to delete goal", "error");
+      onRefresh(); // Revert by re-fetching
     }
   }
 
@@ -255,7 +294,7 @@ export default function CarePlanCard({
               {formatDate(plan.startDate)}
               {plan.endDate ? ` - ${formatDate(plan.endDate)}` : ""}
             </span>
-            {plan.goals?.length > 0 && (
+            {localGoals?.length > 0 && (
               <span className="inline-flex items-center gap-1">
                 <Target className="w-3 h-3" />
                 {plan.goals.length} goal{plan.goals.length !== 1 ? "s" : ""}
@@ -318,7 +357,7 @@ export default function CarePlanCard({
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5" />
-                Goals ({plan.goals?.length || 0})
+                Goals ({localGoals?.length || 0})
               </h4>
               <button
                 onClick={() => {
@@ -334,9 +373,9 @@ export default function CarePlanCard({
               </button>
             </div>
 
-            {plan.goals?.length > 0 ? (
+            {localGoals?.length > 0 ? (
               <div className="space-y-2">
-                {plan.goals.map((g) => (
+                {localGoals.map((g) => (
                   <GoalItem
                     key={g.id}
                     goal={g}

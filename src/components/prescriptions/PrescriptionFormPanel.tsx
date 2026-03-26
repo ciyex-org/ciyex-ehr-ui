@@ -535,10 +535,10 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                 </div>
                 {errors.prescriberName && <p className="text-xs text-red-500 mt-1">{errors.prescriberName}</p>}
                 {showPrescriberDropdown && prescriberResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 z-[9999] mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
-                    {prescriberResults.length === 0 && prescriberSearching && (
-                      <div className="px-3 py-2 text-sm text-gray-400">Searching...</div>
-                    )}
+                  <div
+                    className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg"
+                    style={prescriberDropdownStyle.position ? prescriberDropdownStyle : { position: "absolute" as const, top: "100%", left: 0, right: 0, marginTop: 4, zIndex: 9999 }}
+                  >
                     {prescriberResults.map((p) => {
                       const name = resolveProviderName(p);
                       const npi = resolveProviderNpi(p);

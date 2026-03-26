@@ -339,9 +339,9 @@ export default function PatientDashboardPage() {
                                     icon: ICON_MAP[tab.icon] || FileText,
                                 })),
                         })).filter((cat: any) => cat.tabs.length > 0);
-                        // Deduplicate categories by label, merging tabs
+                        // Deduplicate categories by label (case-insensitive), merging tabs
                         const deduped = mapped.reduce((acc: any[], cat: any) => {
-                            const existing = acc.find((c: any) => c.label === cat.label);
+                            const existing = acc.find((c: any) => c.label.toLowerCase() === cat.label.toLowerCase());
                             if (existing) {
                                 const existingKeys = new Set(existing.tabs.map((t: any) => t.key));
                                 existing.tabs.push(...cat.tabs.filter((t: any) => !existingKeys.has(t.key)));

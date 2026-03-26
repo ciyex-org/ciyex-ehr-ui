@@ -3186,8 +3186,8 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         }
         const str = String(value);
         // Render image URLs as actual images for photo/avatar fields
-        if (typeof colKey === "string" && /^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo)$/i.test(colKey)) {
-            if (str.startsWith("http") || str.startsWith("/") || str.startsWith("data:image")) {
+        if (typeof colKey === "string" && /photo|image|avatar|picture|pic$|img$|imgurl/i.test(colKey)) {
+            if (str.startsWith("http") || str.startsWith("/") || str.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|$)/i.test(str)) {
                 return <img src={str} alt="Profile" className="w-8 h-8 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />;
             }
         }

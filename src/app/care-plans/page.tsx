@@ -229,8 +229,25 @@ export default function CarePlansPage() {
       if (!planJson.success) return;
       const plan = planJson.data;
 
-      // Preserve interventions from plan response if already present (toDto always includes them)
+      // Preserve data from plan response if already present (toDto always includes them)
+      const planGoals = Array.isArray(plan.goals) ? plan.goals : [];
       const planInterventions = Array.isArray(plan.interventions) ? plan.interventions : [];
+
+      // Try fetching goals from dedicated endpoint
+      try {
+        const goalRes = await fetchWithAuth(apiUrl(`/api/care-plans/${planId}/goals`));
+        if (goalRes.ok) {
+          const goalJson = await goalRes.json();
+          if (goalJson.success) {
+            const fetched = Array.isArray(goalJson.data)
+              ? goalJson.data
+              : goalJson.data?.content ?? goalJson.data?.goals ?? [];
+            plan.goals = fetched.length > 0 ? fetched : planGoals;
+          }
+        }
+      } catch {
+        plan.goals = planGoals;
+      }
 
       // Try fetching interventions from dedicated endpoint as well
       try {

@@ -2099,7 +2099,7 @@ export default function DynamicFormRenderer({
                 ? value ? "Yes" : "No"
                 : field.fhirMapping?.type === "reference"
                 ? formData[field.key + "Display"] || value || "-"
-                : (/^(photo|image|avatar|profilePhoto|profileImage|profilePicture|photoUrl|imageUrl|avatarUrl|picture|photo_url|image_url|avatar_url|profile_photo|profile_image|profile_picture|photo[-_]?url|profile[-_]?photo)$/i.test(field.key) && typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image")))
+                : (/photo|image|avatar|picture|pic$|img$|imgurl/i.test(field.key) && typeof value === "string" && (value.startsWith("http") || value.startsWith("/") || value.startsWith("data:image") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|$)/i.test(value)))
                 ? <img src={value} alt="Profile" className="w-10 h-10 rounded-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 : (/^(url|externalUrl|videoUrl|articleUrl|link|resourceUrl|website|websiteUrl|web_url)$/i.test(field.key) && typeof value === "string" && (value.startsWith("http://") || value.startsWith("https://")))
                 ? <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{value}</a>
