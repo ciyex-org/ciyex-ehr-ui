@@ -73,6 +73,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const savingRef = useRef(false);
+    const uploadedDocFhirIdRef = useRef<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [singleRecord, setSingleRecord] = useState(false);
@@ -2306,8 +2307,12 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         setSaving(true);
         setError(null);
         try {
-            const isEdit = (mode === "edit") && selectedRecord;
-            const resourceId = isEdit ? (selectedRecord!.fhirId || selectedRecord!.id) : null;
+            const isUploadPreCreated = !((mode === "edit") && selectedRecord) && tabKey === "documents" && !!uploadedDocFhirIdRef.current;
+            const isEdit = ((mode === "edit") && !!selectedRecord) || isUploadPreCreated;
+            const resourceId = isUploadPreCreated
+                ? uploadedDocFhirIdRef.current
+                : (isEdit && selectedRecord ? (selectedRecord.fhirId || selectedRecord.id) : null);
+            if (isUploadPreCreated) uploadedDocFhirIdRef.current = null;
 
             // Pre-save: include orgId header for tenant partitioning (fixes issue 22 reports)
             const saveHeaders: HeadersInit = { "Content-Type": "application/json" };
@@ -3295,6 +3300,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                             readOnly={mode === "view"}
                             errors={validationErrors}
                             patientId={patientId}
+                            onPreCreatedId={tabKey === "documents" ? (id) => { uploadedDocFhirIdRef.current = id; } : undefined}
                         />
                     )}
                 </div>
@@ -3353,6 +3359,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                             readOnly={mode === "view"}
                             errors={validationErrors}
                             patientId={patientId}
+                            onPreCreatedId={tabKey === "documents" ? (id) => { uploadedDocFhirIdRef.current = id; } : undefined}
                         />
                     )}
                     {/* Send channel selector for messaging tab */}

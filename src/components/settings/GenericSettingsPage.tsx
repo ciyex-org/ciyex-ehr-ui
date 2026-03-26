@@ -493,11 +493,10 @@ export default function GenericSettingsPage({ pageKey, embedded = false, forceWr
 
         try {
             const res = await fetchWithAuth(fhirUrl(`/${resourceId}`), { method: "DELETE" });
-            if (res.ok) {
-                setRecords(prev => prev.filter(r => (r.id || r.fhirId) !== resourceId));
-                setTotalElements(prev => prev - 1);
+            const json = await res.json().catch(() => null);
+            if (res.ok && json?.success !== false) {
+                await fetchRecords(page);
             } else {
-                const json = await res.json().catch(() => null);
                 const msg = json?.message || "Failed to delete record";
                 setError(msg);
             }

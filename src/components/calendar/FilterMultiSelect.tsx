@@ -88,8 +88,8 @@ export default function FilterMultiSelect({
             onChange([value]);
         } else if (selected.includes(value)) {
             const next = selected.filter((v) => v !== value);
-            // When deselecting the last item, show none so user can re-pick
-            onChange(next.length === 0 ? ["__none__"] : next);
+            // When deselecting the last item, go back to "all" mode
+            onChange(next.length === 0 ? [] : next);
         } else {
             const next = [...selected, value];
             onChange(next);

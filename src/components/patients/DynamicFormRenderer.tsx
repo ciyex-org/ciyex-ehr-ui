@@ -168,6 +168,7 @@ export interface DynamicFormRendererProps {
   readOnly?: boolean;
   errors?: Record<string, string>;
   patientId?: number;
+  onPreCreatedId?: (id: string) => void;
 }
 
 // ---- Combobox Field Component (select + free text, fixed positioning) ----
@@ -559,6 +560,7 @@ function FileUploadField({
   features,
   patientId,
   formData: parentFormData,
+  onPreCreatedId,
 }: {
   field: FieldDef;
   value: any;
@@ -566,6 +568,7 @@ function FileUploadField({
   features?: FieldConfigFeatures;
   patientId?: number;
   formData?: Record<string, any>;
+  onPreCreatedId?: (id: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -625,6 +628,8 @@ function FileUploadField({
           const json = await res.json();
           const data = json.data || json;
           const fileUrl = data.fileUrl || data.url || data.id || data.fhirId;
+          // If upload pre-created a FHIR document record, notify parent
+          if (data.fhirId && onPreCreatedId) onPreCreatedId(String(data.fhirId));
           onChange(fileUrl);
           setFileName(file.name);
         } else {
@@ -1839,6 +1844,7 @@ export default function DynamicFormRenderer({
   readOnly = false,
   errors = {},
   patientId,
+  onPreCreatedId,
 }: DynamicFormRendererProps) {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     () => new Set<string>()
@@ -2449,6 +2455,7 @@ export default function DynamicFormRenderer({
             features={fieldConfig.features}
             patientId={patientId}
             formData={formData}
+            onPreCreatedId={onPreCreatedId}
           />
         );
 
