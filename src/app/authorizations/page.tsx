@@ -585,8 +585,8 @@ export default function PriorAuthorizationsPage() {
         setSaveError("Member ID must be at least 3 characters.");
         return;
       }
-      if (!/^[a-zA-Z0-9]+$/.test(formData.memberId.trim())) {
-        setSaveError("Member ID must contain only alphanumeric characters.");
+      if (!/^[a-zA-Z0-9\-]+$/.test(formData.memberId.trim())) {
+        setSaveError("Member ID must contain only letters, numbers, and hyphens.");
         return;
       }
     }
@@ -1308,11 +1308,11 @@ export default function PriorAuthorizationsPage() {
                       label="Member ID"
                       value={formData.memberId}
                       onChange={(v) =>
-                        setFormData({ ...formData, memberId: v.replace(/[^a-zA-Z0-9]/g, "").slice(0, 30) })
+                        setFormData({ ...formData, memberId: v.replace(/[^a-zA-Z0-9\-]/g, "").slice(0, 30) })
                       }
                     />
-                    {formData.memberId && !/^[a-zA-Z0-9]+$/.test(formData.memberId) && (
-                      <p className="text-xs text-red-500 mt-1">Member ID must contain only alphanumeric characters</p>
+                    {formData.memberId && !/^[a-zA-Z0-9\-]+$/.test(formData.memberId) && (
+                      <p className="text-xs text-red-500 mt-1">Member ID must contain only letters, numbers, and hyphens</p>
                     )}
                     {formData.memberId && formData.memberId.length > 0 && formData.memberId.length < 3 && (
                       <p className="text-xs text-amber-500 mt-1">Member ID should be at least 3 characters</p>

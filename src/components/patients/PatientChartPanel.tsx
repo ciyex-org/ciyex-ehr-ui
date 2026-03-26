@@ -126,9 +126,9 @@ export default function PatientChartPanel({ patientId }: PatientChartPanelProps)
             }))
             .filter((cat: any) => cat.tabs.length > 0);
           if (mapped.length > 0) {
-            // Deduplicate categories by label, merging tabs from duplicates
+            // Deduplicate categories by label (case-insensitive), merging tabs from duplicates
             const deduped = mapped.reduce((acc: any[], cat: any) => {
-                const existing = acc.find((c: any) => c.label === cat.label);
+                const existing = acc.find((c: any) => c.label.toLowerCase().trim() === cat.label.toLowerCase().trim());
                 if (existing) {
                     const existingKeys = new Set(existing.tabs.map((t: any) => t.key));
                     existing.tabs.push(...cat.tabs.filter((t: any) => !existingKeys.has(t.key)));
@@ -224,6 +224,19 @@ export default function PatientChartPanel({ patientId }: PatientChartPanelProps)
     <div className="flex flex-col h-full bg-gray-50">
       {/* Patient header */}
       <div className="shrink-0 bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-2.5">
+        {/* Patient photo */}
+        {(patient.photoUrl || patient.photo || patient.profilePhoto || patient.imageUrl || patient.avatarUrl || patient.photo_url || patient.profile_photo) ? (
+          <img
+            src={patient.photoUrl || patient.photo || patient.profilePhoto || patient.imageUrl || patient.avatarUrl || patient.photo_url || patient.profile_photo}
+            alt={`${patient.firstName} ${patient.lastName}`}
+            className="w-8 h-8 rounded-full object-cover border border-gray-200 shrink-0"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-semibold shrink-0">
+            {(patient.firstName?.[0] || "").toUpperCase()}{(patient.lastName?.[0] || "").toUpperCase()}
+          </div>
+        )}
         <h3 className="text-sm font-semibold text-gray-900 truncate">
           {patient.firstName} {patient.lastName}
         </h3>

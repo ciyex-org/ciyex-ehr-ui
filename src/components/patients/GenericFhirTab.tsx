@@ -324,7 +324,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     if (f.required) section.fields[i] = { ...f, required: false };
                 }
                 // Ensure lotNumber allows alphanumeric input (not just letters)
-                if ((tabKey === "immunizations" || tabKey === "immunization") && (f.key === "lotNumber" || f.key === "lot_number" || f.key === "lot")) {
+                if ((tabKey === "immunizations" || tabKey === "immunization") && /^(lotNumber|lot_number|lot|lotNo|lotNum|batchNumber|batch_number)$/i.test(f.key)) {
                     section.fields[i] = { ...section.fields[i] || f, type: "text", validation: undefined, placeholder: "e.g., AB1234, 12345" } as any;
                 }
                 // Encounters: keep reasonForVisit as-is (honor backend required flag)
@@ -1530,7 +1530,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         }
         // Immunizations: lot number → alphanumeric+hyphen, dose → numeric (real-time block)
         if (tabKey === "immunizations" || tabKey === "immunization") {
-            if ((key === "lotNumber" || key === "lot_number") && typeof value === "string") {
+            if (/^(lotNumber|lot_number|lot|lotNo|lotNum|batchNumber|batch_number)$/i.test(key) && typeof value === "string") {
                 // Strip characters that are never allowed (anything other than alphanumeric or hyphen)
                 const stripped = value.replace(/[^A-Za-z0-9\-]/g, "");
                 // Lot number must start and end with an alphanumeric character (no leading/trailing hyphens)

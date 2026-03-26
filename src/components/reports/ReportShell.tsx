@@ -508,6 +508,79 @@ function downloadCSV(report: ReportDefinition, data: Record<string, unknown>[]) 
   URL.revokeObjectURL(url);
 }
 
+/* ── Searchable Filter Dropdown (replaces native <select> for large option lists) ── */
+function SearchableFilterDropdown({ label, options, value, onChange }: {
+  label: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return options;
+    const q = search.toLowerCase();
+    return options.filter(o => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+  }, [options, search]);
+
+  const selectedLabel = options.find(o => o.value === value)?.label || `All ${label}s`;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-1 relative" ref={ref}>
+      <label className="text-xs font-medium text-slate-500">{label}</label>
+      <button
+        type="button"
+        onClick={() => { setOpen(!open); setSearch(""); }}
+        className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[160px] text-left truncate ${
+          value ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
+        }`}
+      >
+        {selectedLabel}
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-slate-100 dark:border-slate-700">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={`Search ${label.toLowerCase()}...`}
+              className="w-full px-2 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded bg-white dark:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="px-3 py-2 text-xs text-slate-400">No matches</div>
+            ) : filtered.map(o => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 ${
+                  o.value === value ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium" : "text-slate-700 dark:text-slate-200"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main Shell ── */
 export default function ReportShell({ report }: { report: ReportDefinition }) {
   const { hasCategoryWrite } = usePermissions();
@@ -784,9 +857,13 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
             </div>
           </>
         )}
-        {/* API-sourced select filters (e.g. Provider) */}
+        {/* API-sourced select filters (e.g. Provider) — searchable dropdown for large lists */}
         {selectFilters.map(f => {
           const opts = apiFilterOptions[f.key] || f.options || [];
+          const useSearchable = opts.length > 8;
+          if (useSearchable) {
+            return <SearchableFilterDropdown key={f.key} label={f.label} options={opts} value={(filters[f.key] as string) || ""} onChange={v => setFilters({ ...filters, [f.key]: v })} />;
+          }
           return (
             <div key={f.key} className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-500">{f.label}</label>
@@ -802,22 +879,28 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
             </div>
           );
         })}
-        {/* Data filters inline (after data is loaded) */}
-        {!loading && result && dynamicFilters.map(f => (
-          <div key={f.key} className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-500">{f.label}</label>
-            <select
-              value={dataFilters[f.key] || ""}
-              onChange={e => handleDataFilterChange(f.key, e.target.value)}
-              className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer appearance-auto ${
-                dataFilters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
-              }`}
-            >
-              <option value="">All {f.label}</option>
-              {f.uniqueValues.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </div>
-        ))}
+        {/* Data filters inline (after data is loaded) — searchable for large option sets */}
+        {!loading && result && dynamicFilters.map(f => {
+          if (f.uniqueValues.length > 8) {
+            const opts = [{ value: "", label: `All ${f.label}` }, ...f.uniqueValues.map(v => ({ value: v, label: v }))];
+            return <SearchableFilterDropdown key={f.key} label={f.label} options={opts} value={dataFilters[f.key] || ""} onChange={v => handleDataFilterChange(f.key, v)} />;
+          }
+          return (
+            <div key={f.key} className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-slate-500">{f.label}</label>
+              <select
+                value={dataFilters[f.key] || ""}
+                onChange={e => handleDataFilterChange(f.key, e.target.value)}
+                className={`px-3 py-1.5 border rounded-lg text-sm bg-white dark:bg-slate-800 min-w-[130px] cursor-pointer appearance-auto ${
+                  dataFilters[f.key] ? "border-blue-400 ring-1 ring-blue-200" : "border-slate-300 dark:border-slate-600"
+                }`}
+              >
+                <option value="">All {f.label}</option>
+                {f.uniqueValues.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+          );
+        })}
         {!loading && result && Object.values(dataFilters).some(v => v !== "") && (
           <button onClick={() => setDataFilters({})} className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
             <X className="w-3 h-3" /> Clear

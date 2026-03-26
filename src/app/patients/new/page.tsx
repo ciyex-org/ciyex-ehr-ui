@@ -535,32 +535,62 @@ export default function AddPatient() {
                 status: formData.personalInfo.status || "Active",
                 medicalRecordNumber: "MRN-" + Date.now(),
             };
-            // Remove undefined/empty values
+            // Remove undefined/empty values AND any id-like fields to prevent HAPI-1396 update errors
             Object.keys(fhirPayload).forEach(key => {
                 if (fhirPayload[key] === undefined || fhirPayload[key] === "") delete fhirPayload[key];
             });
+            // Explicitly remove id fields that could cause FHIR server to treat this as an update
+            delete fhirPayload.id;
+            delete fhirPayload.fhirId;
+            delete fhirPayload.resourceId;
 
-            const response = await fetchWithAuth(
-                `${getEnv("NEXT_PUBLIC_API_URL")}/api/fhir-resource/demographics`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(fhirPayload),
-                }
-            );
+            const apiBase = getEnv("NEXT_PUBLIC_API_URL");
 
-            if (!response.ok) {
-                const text = await response.text();
-                // Check for duplicate email/phone errors
-                const lower = text.toLowerCase();
-                if (response.status === 409 || lower.includes('already exists') || lower.includes('duplicate') || lower.includes('exists with same email')) {
-                    throw new Error('A patient with this email already exists. Please use a different email address.');
+            // Try the direct patients endpoint first (avoids FHIR update-vs-create confusion),
+            // then fall back to the FHIR demographics endpoint
+            let response: Response | null = null;
+            let data: any = null;
+
+            try {
+                response = await fetchWithAuth(
+                    `${apiBase}/api/patients`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(fhirPayload),
+                    }
+                );
+                if (response.ok) {
+                    data = await response.json();
                 }
-                throw new Error('Failed to create patient. Please check your information and try again.');
+            } catch { /* fall through to FHIR endpoint */ }
+
+            // Fallback to FHIR demographics endpoint if /api/patients failed or returned error
+            if (!data || !response?.ok) {
+                response = await fetchWithAuth(
+                    `${apiBase}/api/fhir-resource/demographics`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(fhirPayload),
+                    }
+                );
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    const lower = text.toLowerCase();
+                    if (response.status === 409 || lower.includes('already exists') || lower.includes('duplicate') || lower.includes('exists with same email')) {
+                        throw new Error('A patient with this email already exists. Please use a different email address.');
+                    }
+                    if (lower.includes('hapi-1396') || lower.includes('no id supplied')) {
+                        throw new Error('Unable to create patient record. Please contact your administrator to verify the FHIR server configuration.');
+                    }
+                    throw new Error('Failed to create patient. Please check your information and try again.');
+                }
+                data = await response.json();
             }
 
-            const data = await response.json();
-            const patientId = data.data?.fhirId || data.data?.id;
+            const patientId = data?.data?.fhirId || data?.data?.id || data?.id;
 
             if (patientId) {
                 // Redirect to patient demographics to add more details

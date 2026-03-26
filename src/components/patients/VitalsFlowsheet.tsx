@@ -15,7 +15,7 @@ const VITAL_ROWS = [
     { key: "bpSystolic", label: "BP Systolic", unit: "mmHg", icon: "❤️" },
     { key: "bpDiastolic", label: "BP Diastolic", unit: "mmHg", icon: "❤️" },
     { key: "pulse", label: "Pulse", unit: "/min", icon: "💓" },
-    { key: "respiration", label: "Respiration", unit: "/min", icon: "🫁" },
+    { key: "respiration", label: "Respiration", unit: "breaths/min", icon: "💨" },
     { key: "temperatureC", label: "Temperature", unit: "°C", icon: "🌡️" },
     { key: "oxygenSaturation", label: "O₂ Saturation", unit: "%", icon: "🩸" },
 ];

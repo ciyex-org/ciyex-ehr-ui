@@ -278,11 +278,11 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   useEffect(() => {
     if (skipPrescriberSearchRef.current) { skipPrescriberSearchRef.current = false; return; }
     if (!prescriberQuery.trim()) {
-      setPrescriberResults([]);
+      // Don't clear results for empty query — keep preloaded provider list visible on focus
       setShowPrescriberDropdown(false);
       return;
     }
-    const t = setTimeout(() => runPrescriberSearch(prescriberQuery), 300);
+    const t = setTimeout(() => runPrescriberSearch(prescriberQuery), 250);
     return () => clearTimeout(t);
   }, [prescriberQuery, runPrescriberSearch]);
 
@@ -520,9 +520,10 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                     }}
                     onFocus={() => {
                       if (prescriberResults.length > 0) { setShowPrescriberDropdown(true); return; }
-                      runPrescriberSearch(prescriberQuery);
+                      // Always trigger search on focus — fetch all providers if query is empty
+                      runPrescriberSearch(prescriberQuery || "");
                     }}
-                    onBlur={() => setTimeout(() => setShowPrescriberDropdown(false), 150)}
+                    onBlur={() => setTimeout(() => setShowPrescriberDropdown(false), 200)}
                     placeholder="Type to search provider..."
                     autoComplete="off"
                   />
@@ -534,19 +535,27 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                 </div>
                 {errors.prescriberName && <p className="text-xs text-red-500 mt-1">{errors.prescriberName}</p>}
                 {showPrescriberDropdown && prescriberResults.length > 0 && (
-                  <div style={prescriberDropdownStyle} className="max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
-                    {prescriberResults.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => selectPrescriber(p)}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0"
-                      >
-                        <span className="font-medium">{resolveProviderName(p)}</span>
-                        {resolveProviderNpi(p) && <span className="text-xs text-gray-400 ml-2">NPI: {resolveProviderNpi(p)}</span>}
-                      </button>
-                    ))}
+                  <div className="absolute top-full left-0 right-0 z-[9999] mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
+                    {prescriberResults.length === 0 && prescriberSearching && (
+                      <div className="px-3 py-2 text-sm text-gray-400">Searching...</div>
+                    )}
+                    {prescriberResults.map((p) => {
+                      const name = resolveProviderName(p);
+                      const npi = resolveProviderNpi(p);
+                      if (!name && !npi) return null;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectPrescriber(p)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-slate-700 last:border-b-0"
+                        >
+                          <span className="font-medium">{name || `Provider ${p.id}`}</span>
+                          {npi && <span className="text-xs text-gray-400 ml-2">NPI: {npi}</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

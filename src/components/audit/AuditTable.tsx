@@ -181,7 +181,7 @@ export default function AuditTable({
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
-                            {log.userName || log.userId || (log as any).user || (log as any).username || (log as any).performedBy || (log as any).createdBy || (log as any).operator || (log as any).actor || "System"}
+                            {(log.userName && log.userName.trim()) || (log.userId && log.userId.trim()) || ((log as any).user && String((log as any).user).trim()) || ((log as any).username && String((log as any).username).trim()) || ((log as any).performedBy && String((log as any).performedBy).trim()) || ((log as any).createdBy && String((log as any).createdBy).trim()) || ((log as any).modifiedBy && String((log as any).modifiedBy).trim()) || ((log as any).operator && String((log as any).operator).trim()) || ((log as any).actor && String((log as any).actor).trim()) || ((log as any).email && String((log as any).email).trim()) || "System"}
                           </div>
                           {log.userRole && (
                             <span className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 mt-0.5">

@@ -545,10 +545,16 @@ export default function GenericSettingsPage({ pageKey, embedded = false, forceWr
                         if ((keySeg === "state" || labelLower === "state") && !/^[A-Za-z\s\-'.]{2,50}$/.test(val.trim())) errors[field.key] = "Invalid state value";
                         // First/Last name (no numbers)
                         if ((keySeg === "firstname" || keySeg === "lastname" || keySeg === "first_name" || keySeg === "last_name") && !/^[A-Za-z\s\-'.]+$/.test(val.trim())) errors[field.key] = `${field.label} must contain only letters, spaces, hyphens, or apostrophes`;
-                        // Custom pattern validation
+                        // Provider identifier fields — must allow alphanumeric (UPIN, Taxonomy, Tax ID, Medicare/Medicaid)
+                        const isProviderIdentifier = /^(upin|taxonomy|taxId|tax_id|taxid|medicareId|medicare_id|medicaidId|medicaid_id|medicareBeneficiaryId|deaNumber|dea_number|stateLicenseNumber|state_license_number)$/i.test(keySeg);
+                        // Custom pattern validation — skip for provider identifier fields that should accept alphanumeric
                         const fieldValidation = (field as any).validation;
-                        if (fieldValidation?.pattern && !new RegExp(fieldValidation.pattern).test(val.trim())) {
+                        if (fieldValidation?.pattern && !isProviderIdentifier && !new RegExp(fieldValidation.pattern).test(val.trim())) {
                             errors[field.key] = fieldValidation.patternMessage || `${field.label} has an invalid format`;
+                        }
+                        // Provider identifiers — validate alphanumeric format (allow letters, numbers, hyphens)
+                        if (isProviderIdentifier && !/^[A-Za-z0-9\s\-./]+$/.test(val.trim())) {
+                            errors[field.key] = `${field.label} must contain only letters, numbers, hyphens, or periods`;
                         }
                     }
                 }
