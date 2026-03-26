@@ -115,9 +115,13 @@ export default function TVDisplayPage() {
         const provRes = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/providers`);
         if (provRes.ok) {
           const d = await provRes.json();
-          setProviders(d.data.map((p: any) => ({
-            id: p.id, name: `${p.identification.firstName} ${p.identification.lastName}`,
-          })));
+          const providerList = d?.data?.content || d?.data || [];
+          setProviders((Array.isArray(providerList) ? providerList : []).map((p: any) => ({
+            id: p.id || p.fhirId || "",
+            name: p.identification
+              ? `${p.identification.firstName || ""} ${p.identification.lastName || ""}`.trim()
+              : (p.name || p.displayName || "Unknown Provider"),
+          })).filter((p: any) => p.id && p.name));
         }
         // Locations + derive practice name from first location
         const locRes = await fetchWithAuth(`${getEnv("NEXT_PUBLIC_API_URL")}/api/locations`);
@@ -167,13 +171,13 @@ export default function TVDisplayPage() {
       const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
       const todayAppts = content.filter((a) => a.appointmentStartDate === todayStr);
 
-      // Resolve names
+      // Resolve names (use String() comparison to handle number/string type mismatch)
       const enriched = await Promise.all(
         todayAppts.map(async (a) => ({
           ...a,
           patientName: await fetchPatientName(a.patientId),
-          providerName: providers.find((p) => p.id === a.providerId)?.name || String(a.providerId),
-          locationName: locations.find((l) => l.id === a.locationId)?.name || "",
+          providerName: providers.find((p) => String(p.id) === String(a.providerId))?.name || String(a.providerId),
+          locationName: locations.find((l) => String(l.id) === String(a.locationId))?.name || "",
         }))
       );
 

@@ -1638,10 +1638,19 @@ const Calendar: React.FC = () => {
 
             const count = events.filter((e) => {
                 if (!e.start) return false;
-                const eventStart = new Date(e.start as string | number | Date);
-                const eventDateStr = eventStart.getFullYear() + '-' +
-                    String(eventStart.getMonth() + 1).padStart(2, '0') + '-' +
-                    String(eventStart.getDate()).padStart(2, '0');
+                // Parse event start date — handle both ISO strings and Date objects
+                // Use the raw date string if available to avoid timezone shifts
+                let eventDateStr = '';
+                const rawStart = typeof e.start === 'string' ? e.start : '';
+                if (rawStart && rawStart.includes('-') && !rawStart.startsWith('-')) {
+                    // Extract date portion from ISO string (avoids timezone shift)
+                    eventDateStr = rawStart.substring(0, 10);
+                } else {
+                    const eventStart = new Date(e.start as string | number | Date);
+                    eventDateStr = eventStart.getFullYear() + '-' +
+                        String(eventStart.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(eventStart.getDate()).padStart(2, '0');
+                }
                 if (eventDateStr !== cellDateStr) return false;
                 if (!allProvidersSelected && (!e.extendedProps.providerId || !selectedProviders.includes(String(e.extendedProps.providerId)))) return false;
                 if (!allLocationsSelected && (!e.extendedProps.locationId || !selectedLocations.includes(String(e.extendedProps.locationId)))) return false;

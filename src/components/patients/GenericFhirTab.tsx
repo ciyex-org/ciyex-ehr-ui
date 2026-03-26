@@ -164,23 +164,48 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     }
                 }
             }
-            if (marked.length > 0) return marked.slice(0, 8);
-            // Fallback: first 6 non-group fields
-            const cols: { key: string; label: string }[] = [];
-            for (const section of fieldConfig.sections) {
-                if (!Array.isArray(section?.fields)) continue;
-                for (const field of section.fields) {
-                    if (!field) continue;
-                    if (field.type === "group" || field.type === "computed" || field.type === "textarea" || field.type === "address" || field.type === "hidden") continue;
-                    cols.push({ key: field.key, label: field.label });
-                    if (cols.length >= 6) return cols;
+            let cols = marked.length > 0 ? marked.slice(0, 8) : (() => {
+                // Fallback: first 6 non-group fields
+                const fallback: { key: string; label: string }[] = [];
+                for (const section of fieldConfig.sections) {
+                    if (!Array.isArray(section?.fields)) continue;
+                    for (const field of section.fields) {
+                        if (!field) continue;
+                        if (field.type === "group" || field.type === "computed" || field.type === "textarea" || field.type === "address" || field.type === "hidden") continue;
+                        fallback.push({ key: field.key, label: field.label });
+                        if (fallback.length >= 6) return fallback;
+                    }
+                }
+                return fallback;
+            })();
+
+            // Allergies: ensure Allergen column is included, remove End Date
+            if (tabKey === "allergies" || tabKey === "allergy-intolerances") {
+                // Remove end date columns
+                cols = cols.filter(c => !/^(endDate|end_date|end|abatement|abatementDate)$/i.test(c.key));
+                // Ensure allergen column exists
+                const hasAllergen = cols.some(c => /^(allergen|substance)$/i.test(c.key));
+                if (!hasAllergen) {
+                    // Find allergen field from config
+                    for (const section of fieldConfig.sections) {
+                        for (const field of section.fields || []) {
+                            if (field && (field.key === "allergen" || field.key === "substance")) {
+                                // Insert after allergy name (position 1)
+                                const insertIdx = Math.min(1, cols.length);
+                                cols.splice(insertIdx, 0, { key: field.key, label: field.label || "Allergen" });
+                                break;
+                            }
+                        }
+                        if (cols.some(c => /^(allergen|substance)$/i.test(c.key))) break;
+                    }
                 }
             }
+
             return cols;
         } catch {
             return [];
         }
-    }, [fieldConfig]);
+    }, [fieldConfig, tabKey]);
 
     // Patch field config to fix missing lookupConfig / field types that cause search to break
     const patchFieldConfig = useCallback((fc: FieldConfig): FieldConfig => {
@@ -389,6 +414,20 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     if (isDocFileField && !f.required) {
                         section.fields[i] = { ...f, required: true };
                     }
+                }
+                // Allergies & Problems: end date must be optional (not required)
+                if ((tabKey === "allergies" || tabKey === "allergy-intolerances" || tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "conditions" || tabKey === "problems") &&
+                    /^(endDate|end_date|end|abatement|abatementDate|resolvedDate)$/i.test(f.key)) {
+                    section.fields[i] = { ...f, required: false };
+                }
+                // Problems: limit clinicalStatus options to Active/Inactive/Resolved
+                if ((tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "conditions" || tabKey === "problems") &&
+                    (f.key === "clinicalStatus" || f.key === "status")) {
+                    section.fields[i] = { ...f, type: "select", options: [
+                        { value: "Active", label: "Active" },
+                        { value: "Inactive", label: "Inactive" },
+                        { value: "Resolved", label: "Resolved" },
+                    ] };
                 }
                 // Insurance: memberId must be alphanumeric (not letters-only)
                 if ((tabKey === "insurance-coverage" || tabKey === "insurance" || tabKey === "coverage") && (f.key === "memberId" || f.key === "memberNumber" || f.key === "subscriberId" || f.key === "idNo" || f.key === "policyNumber" || f.key === "policyNo")) {
@@ -2885,6 +2924,12 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
     };
 
     // Try to format a raw string as a readable date
+    const fmtMMDDYYYY = (d: Date): string => {
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${mm}/${dd}/${d.getFullYear()}`;
+    };
+
     const tryFormatDate = (val: string): string | null => {
         if (!val) return null;
         // Already a date-like string: 2026-03-09, 2026-03-09T10:00:00Z, etc.
@@ -2893,7 +2938,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
             try {
                 const d = new Date(dateOnly + "T00:00:00");
                 if (!isNaN(d.getTime())) {
-                    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                    return fmtMMDDYYYY(d);
                 }
             } catch { /* ignore */ }
         }
@@ -2901,7 +2946,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         try {
             const d = new Date(val);
             if (!isNaN(d.getTime())) {
-                return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                return fmtMMDDYYYY(d);
             }
         } catch { /* ignore */ }
         return null;
@@ -2912,7 +2957,11 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         try {
             const d = new Date(val);
             if (!isNaN(d.getTime())) {
-                return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+                const h = d.getHours();
+                const ampm = h >= 12 ? "PM" : "AM";
+                const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                const min = String(d.getMinutes()).padStart(2, "0");
+                return `${fmtMMDDYYYY(d)} ${h12}:${min} ${ampm}`;
             }
         } catch { /* ignore */ }
         return val.replace(/(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/, "").replace("T", " ");
@@ -3173,18 +3222,9 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         if (isAllergyTab) return ["Active", "Inactive", "Resolved"];
         const isEducationTab = tabKey === "education" || tabKey === "patient-education" || tabKey === "patient_education";
         if (isEducationTab) return ["Completed", "In Progress", "Preparation", "Not Done", "On Hold", "Assigned", "Viewed", "Dismissed"];
-        if (!isMedicalProblemsTab || !fieldConfig) return [] as string[];
-        for (const section of fieldConfig.sections || []) {
-            for (const field of section.fields || []) {
-                if (field.key === "clinicalStatus" || field.key === "status") {
-                    if (Array.isArray((field as any).options)) {
-                        return ((field as any).options as Array<{ value?: string; label?: string }>)
-                            .map((o) => o.label || o.value || "")
-                            .filter(Boolean);
-                    }
-                }
-            }
-        }
+        // For medical problems, always use these 3 standard options
+        if (isMedicalProblemsTab) return ["Active", "Inactive", "Resolved"];
+        if (!fieldConfig) return [] as string[];
         return [] as string[];
     }, [isAllergyTab, isMedicalProblemsTab, fieldConfig]);
 
@@ -3472,7 +3512,7 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Search..."
+                            placeholder={(tabKey === "allergies" || tabKey === "allergy-intolerances") ? "Search by Allergy..." : "Search..."}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-56"

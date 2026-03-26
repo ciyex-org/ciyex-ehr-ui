@@ -192,13 +192,13 @@ function timeFromMMDDYYYY(s: string, fallback: number, endOfDay = false): number
     : new Date(iso + "T00:00:00").getTime();
 }
 
-/** Format elapsed wait time with color */
-function formatWaitTime(lastModified: string): { text: string; color: string } | null {
-  if (!lastModified) return null;
-  const then = new Date(lastModified).getTime();
-  if (isNaN(then)) return null;
-  const mins = Math.floor((Date.now() - then) / 60000);
-  if (mins < 0) return null;
+/** Format wait time = Current Time - Scheduled Appointment Time (uses local timezone) */
+function formatWaitTime(scheduledDateTime: string): { text: string; color: string } | null {
+  if (!scheduledDateTime) return null;
+  const scheduled = new Date(scheduledDateTime).getTime();
+  if (isNaN(scheduled)) return null;
+  const mins = Math.floor((Date.now() - scheduled) / 60000);
+  if (mins < 0) return null; // appointment hasn't started yet
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   const text = h > 0 ? `${h}h ${m}m` : `${m}m`;
@@ -289,9 +289,10 @@ const REFRESH_OPTIONS = [
 /** Date preset options for the date filter dropdown */
 const DATE_PRESETS = [
   { label: "Today", value: "today" },
-  { label: "Last Week", value: "last_week" },
+  { label: "Last 7 Days", value: "last_7_days" },
+  { label: "Current Month", value: "current_month" },
   { label: "Last Month", value: "last_month" },
-  { label: "Last Year", value: "last_year" },
+  { label: "Upcoming", value: "upcoming" },
   { label: "All Time", value: "all_time" },
 ];
 
@@ -303,20 +304,26 @@ function getDateRange(preset: string): { from: string; to: string } {
   switch (preset) {
     case "today":
       return { from: today, to: today };
-    case "last_week": {
+    case "last_7_days": {
       const d = new Date(now);
       d.setDate(d.getDate() - 7);
+      return { from: fmt(d), to: fmt(new Date(now.getTime() - 86400000)) }; // exclude today
+    }
+    case "current_month": {
+      const d = new Date(now.getFullYear(), now.getMonth(), 1);
       return { from: fmt(d), to: today };
     }
     case "last_month": {
-      const d = new Date(now);
-      d.setMonth(d.getMonth() - 1);
-      return { from: fmt(d), to: today };
+      const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      return { from: fmt(d), to: fmt(end) };
     }
-    case "last_year": {
-      const d = new Date(now);
-      d.setFullYear(d.getFullYear() - 1);
-      return { from: fmt(d), to: today };
+    case "upcoming": {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const futureEnd = new Date(now);
+      futureEnd.setFullYear(futureEnd.getFullYear() + 1);
+      return { from: fmt(tomorrow), to: fmt(futureEnd) };
     }
     case "all_time":
       return { from: "", to: "" };
@@ -356,7 +363,7 @@ export default function AppointmentPage() {
 
   // Status
   const [statusFilter, setStatusFilter] = useState<string>("All");
-  const [hideCompleted, setHideCompleted] = useState(true); // hide fulfilled/cancelled by default
+  const [hideCompleted, setHideCompleted] = useState(false); // show all statuses by default
   const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>(FALLBACK_STATUS_OPTIONS);
   const [mounted, setMounted] = useState(false);
@@ -795,14 +802,14 @@ export default function AppointmentPage() {
       })();
       return matchDate && matchProvider && matchCategory && matchLocation && matchPatient && matchStatus && matchCompleted;
     }).sort((a, b) => {
-      // Sort by date first, then by time
+      // Sort by date descending (recent first), then by time descending
       const dateA = new Date(a.appointmentStartDate?.includes("T") ? a.appointmentStartDate : a.appointmentStartDate + "T00:00:00").getTime();
       const dateB = new Date(b.appointmentStartDate?.includes("T") ? b.appointmentStartDate : b.appointmentStartDate + "T00:00:00").getTime();
-      if (dateA !== dateB) return dateA - dateB;
-      // Parse time strings (HH:mm format) for same-day sorting
+      if (dateA !== dateB) return dateB - dateA;
+      // Parse time strings (HH:mm format) for same-day sorting (recent first)
       const timeA = (a.appointmentStartTime || "").replace(":", "");
       const timeB = (b.appointmentStartTime || "").replace(":", "");
-      return timeA.localeCompare(timeB);
+      return timeB.localeCompare(timeA);
     });
   }, [rows, from, to, provider, category, location, patientName, hideCompleted, statusOptions, statusFilter]);
 
@@ -869,10 +876,10 @@ export default function AppointmentPage() {
     <AdminLayout>
       <div className="text-gray-800 dark:text-gray-200">
         {/* Header */}
-        <div className="flex items-center justify-between mb-2 no-print">
+        <div className="flex items-center justify-between mb-3 no-print">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold">Appointments</h1>
-            <span className="text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Appointments</h1>
+            <span className="text-sm font-medium px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               {loadingAppointments ? "..." : `${total} appointments`}
             </span>
           </div>
@@ -1001,29 +1008,29 @@ export default function AppointmentPage() {
                 </th>
                 <th className="py-1.5 px-3"></th>
                 <th className="py-1.5 px-3">
-                  <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap cursor-pointer select-none font-normal">
-                    <input
-                      type="checkbox"
-                      checked={hideCompleted}
-                      onChange={(e) => setHideCompleted(e.target.checked)}
-                      className="rounded border-gray-300"
-                    />
-                    Hide done
-                  </label>
+                  {/* Custom date range for All Time */}
+                  {datePreset === "all_time" && (
+                    <div className="flex items-center gap-1">
+                      <input type="date" value={from ? parseMMDDYYYY(from) || "" : ""} onChange={(e) => { const v = e.target.value; if (v) setFrom(formatToMMDDYYYY(v)); else setFrom(""); setCurrentPage(1); }}
+                        className="rounded border px-1 py-0.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 w-24" title="Start date" />
+                      <input type="date" value={to ? parseMMDDYYYY(to) || "" : ""} onChange={(e) => { const v = e.target.value; if (v) setTo(formatToMMDDYYYY(v)); else setTo(""); setCurrentPage(1); }}
+                        className="rounded border px-1 py-0.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 w-24" title="End date" />
+                    </div>
+                  )}
                 </th>
                 <th className="py-1.5 px-3"></th>
               </tr>
               {/* Column headers */}
-              <tr>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Patient</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Provider</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Location</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Room</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase">Wait</th>
-                <th className="py-2 px-3 text-left text-xs font-semibold text-gray-500 uppercase no-print">Actions</th>
+              <tr className="bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-200 dark:border-blue-800">
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide">Date</th>
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide">Patient</th>
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide">Provider</th>
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide">Location</th>
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide">Type</th>
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide">Status</th>
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide">Room</th>
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide">Wait</th>
+                <th className="py-2.5 px-3 text-left text-sm font-bold text-blue-800 dark:text-blue-200 uppercase tracking-wide no-print">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1047,16 +1054,15 @@ export default function AppointmentPage() {
                   const hasNext = statusOpt?.nextStatus;
                   const nextOpt = hasNext ? getStatusOption(hasNext) : undefined;
 
-                  // Wait time for all active (non-terminal, non-cancelled) statuses
+                  // Wait time = Current Time - Scheduled Appointment Time (for active appointments only)
                   const waitStatusOpt = getStatusOption(r.status);
                   const showWait = !isCancelled && !waitStatusOpt?.terminal;
-                  // Use audit timestamp, meta timestamp, or appointment start datetime as fallback
-                  const waitTimestamp = r.audit?.lastModifiedDate || r._lastUpdated ||
-                    (r.appointmentStartDate && r.appointmentStartTime
-                      ? `${r.appointmentStartDate}T${r.appointmentStartTime}`
-                      : r.appointmentStartDate
-                        ? `${r.appointmentStartDate}T00:00:00`
-                        : "");
+                  // Always use scheduled appointment start time for wait calculation
+                  const waitTimestamp = r.appointmentStartDate && r.appointmentStartTime
+                    ? `${r.appointmentStartDate}T${r.appointmentStartTime}`
+                    : r.appointmentStartDate
+                      ? `${r.appointmentStartDate}T00:00:00`
+                      : "";
                   const waitInfo = showWait ? formatWaitTime(waitTimestamp) : null;
                   const duration = calcDuration(r.appointmentStartTime, r.appointmentEndTime);
 

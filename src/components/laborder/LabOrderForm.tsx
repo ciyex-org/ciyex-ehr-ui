@@ -67,20 +67,25 @@ function generateSequentialOrderNumber(): string {
   return `ORD-${year}-${String(uniqueNum).padStart(4,'0')}`;
 }
 
-// ---------------- Date display helpers (UI shows DD-MM-YYYY, we store YYYY-MM-DD) ----------------
+// ---------------- Date display helpers (UI shows MM/DD/YYYY, we store YYYY-MM-DD) ----------------
 function toDisplayDate(isoDate?: string) {
   if (!isoDate) return "";
   const parts = isoDate.split("-");
   if (parts.length !== 3) return isoDate;
   const [y, m, d] = parts;
-  return `${d}-${m}-${y}`; // DD-MM-YYYY
+  return `${m}/${d}/${y}`; // MM/DD/YYYY
 }
 
 function fromDisplayDate(display: string, fallback: string) {
   if (!display) return fallback;
+  const mmddyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/;
   const ddmmyyyy = /^(\d{2})-(\d{2})-(\d{4})$/;
   const yyyymmdd = /^(\d{4})-(\d{2})-(\d{2})$/;
   const trimmed = display.trim();
+  if (mmddyyyy.test(trimmed)) {
+    const [, mm, dd, yyyy] = trimmed.match(mmddyyyy)!;
+    return `${yyyy}-${mm}-${dd}`;
+  }
   if (ddmmyyyy.test(trimmed)) {
     const [, dd, mm, yyyy] = trimmed.match(ddmmyyyy)!;
     return `${yyyy}-${mm}-${dd}`;

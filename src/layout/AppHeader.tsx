@@ -304,7 +304,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                 value={searchTerm}
                                 onChange={(e) => { setSearchTerm(e.target.value); }}
                                 onFocus={() => searchResults.length > 0 && setShowSearchDropdown(true)}
-                                placeholder="Search patients..."
+                                placeholder="Search by name or DOB (MM/DD/YYYY)..."
                                 className="h-11 w-full rounded-lg border border-gray-200 pl-9 pr-14 text-sm text-gray-800 shadow-sm focus:ring-2 focus:ring-blue-500"
                             />
                             <button

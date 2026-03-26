@@ -8,7 +8,7 @@ interface DatePickerProps {
   maxDate?: string; // YYYY-MM-DD format — disables days after this date
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = "dd-mm-yyyy", maxDate }) => {
+const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = "mm/dd/yyyy", maxDate }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showYearPicker, setShowYearPicker] = useState(false);
@@ -30,7 +30,9 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeholder = 
     try {
       const date = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
       if (isNaN(date.getTime())) return '';
-      return date.toLocaleDateString('en-GB');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      return `${mm}/${dd}/${date.getFullYear()}`;
     } catch {
       return '';
     }

@@ -87,6 +87,16 @@ export default function PatientListPage() {
     const [showInactive, setShowInactive] = useState(false);
     const [genderFilter, setGenderFilter] = useState("all");
 
+    const [nameSortDir, setNameSortDir] = useState<"asc" | "desc" | null>(null);
+
+    const sortedPatients = nameSortDir
+        ? [...patients].sort((a, b) => {
+            const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+            const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+            return nameSortDir === "asc" ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+        })
+        : patients;
+
     const [editPatient, setEditPatient] = useState<Patient | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
     const [newPatient, setNewPatient] = useState(emptyPatient);
@@ -129,7 +139,11 @@ export default function PatientListPage() {
     const formatDate = (dateString: string) => {
         if (!dateString) return "N/A";
         try {
-            return new Date(dateString.includes("T") ? dateString : dateString + "T00:00:00").toLocaleDateString();
+            const d = new Date(dateString.includes("T") ? dateString : dateString + "T00:00:00");
+            if (isNaN(d.getTime())) return dateString;
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return `${mm}/${dd}/${d.getFullYear()}`;
         } catch {
             return dateString;
         }
@@ -391,7 +405,7 @@ export default function PatientListPage() {
                         </span>
                         <input
                             type="text"
-                            placeholder="Search by name..."
+                            placeholder="Search by name or DOB (MM/DD/YYYY)..."
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
                             className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
@@ -459,7 +473,17 @@ export default function PatientListPage() {
                             <table className="w-full text-sm">
                                 <thead className="bg-gray-50 sticky top-0 z-10">
                                     <tr>
-                                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Patient</th>
+                                        <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-blue-600"
+                                            onClick={() => setNameSortDir(prev => prev === "asc" ? "desc" : prev === "desc" ? null : "asc")}
+                                            title="Click to sort by name"
+                                        >
+                                            <span className="inline-flex items-center gap-1">
+                                                Patient
+                                                {nameSortDir === "asc" && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>}
+                                                {nameSortDir === "desc" && <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>}
+                                                {!nameSortDir && <svg className="w-3 h-3 opacity-30" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>}
+                                            </span>
+                                        </th>
                                         <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">MRN</th>
                                         <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
                                         <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">DOB</th>
@@ -469,7 +493,7 @@ export default function PatientListPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 bg-white">
-                                    {patients.map((patient) => (
+                                    {sortedPatients.map((patient) => (
                                         <tr key={patient.id} className="hover:bg-blue-50/40 transition-colors">
                                             {/* Name + avatar */}
                                             <td className="px-3 py-2">

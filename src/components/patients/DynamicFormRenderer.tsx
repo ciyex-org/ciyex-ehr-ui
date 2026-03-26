@@ -2121,7 +2121,10 @@ export default function DynamicFormRenderer({
             const s = typeof v === "string" ? v : String(v);
             // Already YYYY-MM-DD or ISO datetime
             if (s.includes("T")) return s.split("T")[0];
-            // Handle DD-MM-YYYY display format → convert to YYYY-MM-DD
+            // Handle MM/DD/YYYY display format → convert to YYYY-MM-DD
+            const mmddyyyy = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (mmddyyyy) return `${mmddyyyy[3]}-${mmddyyyy[1]}-${mmddyyyy[2]}`;
+            // Handle DD-MM-YYYY display format → convert to YYYY-MM-DD (legacy)
             const ddmmyyyy = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
             if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2]}-${ddmmyyyy[1]}`;
             return s;
