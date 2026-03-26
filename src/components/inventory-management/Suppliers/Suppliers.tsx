@@ -78,11 +78,11 @@ export default function Suppliers() {
     }
     if (form.phone) {
       const phoneDigits = form.phone.replace(/\D/g, "").length;
-      if (phoneDigits < 7) errs.phone = "Phone number must have at least 7 digits";
+      if (phoneDigits < 10) errs.phone = "Phone number must have at least 10 digits";
       else if (phoneDigits > 15) errs.phone = "Phone number must have at most 15 digits";
-      else if (!/^\+?[\d\s\-().]{7,20}$/.test(form.phone)) errs.phone = "Please enter a valid phone number";
+      else if (!/^\+?[\d\s\-().]{10,20}$/.test(form.phone)) errs.phone = "Please enter a valid phone number";
     }
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Please enter a valid email address";
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(form.email)) errs.email = "Please enter a valid email address (e.g. user@example.com)";
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) return;
     try {
@@ -195,7 +195,7 @@ export default function Suppliers() {
             <form onSubmit={save} className="p-6 grid grid-cols-2 gap-4 text-sm">
               <div className="col-span-2"><Label>Name <span className="text-red-500">*</span></Label><Input value={form.name} onChange={e => { F("name", e.target.value); if (formErrors.name) setFormErrors(p => { const n = {...p}; delete n.name; return n; }); }} className={formErrors.name ? "border-red-400" : ""} placeholder="e.g. Medline Industries" />{formErrors.name && <p className="text-xs text-red-500 mt-1">{formErrors.name}</p>}</div>
               <div><Label>Contact Name</Label><Input value={form.contactName} onChange={e => { F("contactName", e.target.value); if (formErrors.contactName) setFormErrors(p => { const n = {...p}; delete n.contactName; return n; }); }} className={formErrors.contactName ? "border-red-400" : ""} placeholder="e.g. John Smith" />{formErrors.contactName && <p className="text-xs text-red-500 mt-1">{formErrors.contactName}</p>}</div>
-              <div><Label>Phone</Label><Input type="tel" value={form.phone} onChange={e => { F("phone", e.target.value); if (formErrors.phone) setFormErrors(p => { const n = {...p}; delete n.phone; return n; }); }} className={formErrors.phone ? "border-red-400" : ""} placeholder="e.g. (555) 123-4567" />{formErrors.phone && <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>}</div>
+              <div><Label>Phone</Label><Input type="tel" value={form.phone} onChange={e => { const v = e.target.value.replace(/[^\d\s\-().+]/g, ""); F("phone", v); if (formErrors.phone) setFormErrors(p => { const n = {...p}; delete n.phone; return n; }); }} maxLength={20} className={formErrors.phone ? "border-red-400" : ""} placeholder="e.g. (555) 123-4567" />{formErrors.phone && <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>}</div>
               <div className="col-span-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => { F("email", e.target.value); if (formErrors.email) setFormErrors(p => { const n = {...p}; delete n.email; return n; }); }} className={formErrors.email ? "border-red-400" : ""} placeholder="e.g. contact@supplier.com" />{formErrors.email && <p className="text-xs text-red-500 mt-1">{formErrors.email}</p>}</div>
               <div className="col-span-2"><Label>Address</Label><Input value={form.address} onChange={e => F("address", e.target.value)} placeholder="e.g. 123 Main St, City, State" /></div>
               <div className="col-span-2"><Label>Notes</Label><textarea value={form.notes} onChange={e => F("notes", e.target.value)} rows={2} className={`${dateInput} py-2`} /></div>

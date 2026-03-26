@@ -435,7 +435,7 @@ const ClaimManagementDashboard: React.FC = () => {
                   }`}
                 >
                   <td className="px-4 py-3 font-medium text-gray-900">{c.id}</td>
-                  <td className="px-4 py-3 text-gray-700">{c.invoiceNumber || c.invoiceId || "—"}</td>
+                  <td className="px-4 py-3 text-gray-700">{c.invoiceNumber || (c.invoiceId ? `INV-${c.invoiceId}` : "") || `CLM-${c.id}`}</td>
                   <td className="px-4 py-3 text-gray-700">{c.patientName || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.provider || "—"}</td>
                   <td className="px-4 py-3 text-gray-700">{c.payerName || "—"}</td>

@@ -162,6 +162,7 @@ export default function PrescriptionTable({
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Refills</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden xl:table-cell">Pharmacy</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Prescriber</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Priority</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
             </tr>
@@ -169,14 +170,14 @@ export default function PrescriptionTable({
           <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
             {loading ? (
               <tr>
-                <td colSpan={9} className="text-center py-20">
+                <td colSpan={10} className="text-center py-20">
                   <Loader2 className="w-6 h-6 animate-spin text-blue-500 mx-auto mb-2" />
                   <span className="text-sm text-gray-500 dark:text-gray-400">Loading prescriptions...</span>
                 </td>
               </tr>
             ) : prescriptions.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-20">
+                <td colSpan={10} className="text-center py-20">
                   <Inbox className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">No prescriptions found</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
@@ -250,6 +251,9 @@ export default function PrescriptionTable({
                         NPI: {rx.prescriberNpi || rx.prescriberName}
                       </div>
                     )}
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <PriorityBadge priority={rx.priority} />
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge status={rx.status} />

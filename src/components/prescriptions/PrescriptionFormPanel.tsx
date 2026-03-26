@@ -123,6 +123,11 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
   const patientInputRef = useRef<HTMLDivElement>(null);
   const skipPatientSearchRef = useRef(false);
 
+  /* Pharmacy search state */
+  const [pharmacyQuery, setPharmacyQuery] = useState("");
+  const [pharmacyResults, setPharmacyResults] = useState<{ id?: string; name: string; phone?: string; address?: string }[]>([]);
+  const [showPharmacyDropdown, setShowPharmacyDropdown] = useState(false);
+
   /* Prescriber search state */
   const [prescriberQuery, setPrescriberQuery] = useState("");
   const [prescriberResults, setPrescriberResults] = useState<{ id: string; firstName?: string; lastName?: string; fullName?: string; name?: string; npi?: string }[]>([]);
@@ -142,6 +147,9 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
       setPatientQuery(p.patientName || "");
       setPatientResults([]);
       setShowPatientDropdown(false);
+      setPharmacyQuery(p.pharmacyName || "");
+      setPharmacyResults([]);
+      setShowPharmacyDropdown(false);
       skipPrescriberSearchRef.current = !!(p.prescriberName);
       setPrescriberQuery(p.prescriberName || "");
       setPrescriberResults([]);
@@ -278,6 +286,34 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
     return () => clearTimeout(t);
   }, [prescriberQuery, runPrescriberSearch]);
 
+  /* Debounced pharmacy search */
+  useEffect(() => {
+    if (!pharmacyQuery.trim() || pharmacyQuery.length < 2) { setPharmacyResults([]); setShowPharmacyDropdown(false); return; }
+    const t = setTimeout(async () => {
+      const base = (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
+      try {
+        const res = await fetchWithAuth(`${base}/api/pharmacies?search=${encodeURIComponent(pharmacyQuery)}&size=20`);
+        if (res.ok) {
+          const json = await res.json();
+          let list: any[] = [];
+          if (Array.isArray(json?.data?.content)) list = json.data.content;
+          else if (Array.isArray(json?.data)) list = json.data;
+          else if (Array.isArray(json?.content)) list = json.content;
+          else if (Array.isArray(json)) list = json;
+          setPharmacyResults(list.map((p: any) => ({ id: p.id, name: p.name || p.pharmacyName || "", phone: p.phone || p.phoneNumber || "", address: p.address || p.streetAddress || "" })));
+          setShowPharmacyDropdown(list.length > 0);
+        }
+      } catch { /* silent */ }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [pharmacyQuery]);
+
+  const selectPharmacy = (p: { name: string; phone?: string; address?: string }) => {
+    setForm((prev) => ({ ...prev, pharmacyName: p.name, pharmacyPhone: p.phone || prev.pharmacyPhone || "", pharmacyAddress: p.address || prev.pharmacyAddress || "" }));
+    setPharmacyQuery(p.name);
+    setShowPharmacyDropdown(false);
+  };
+
   const selectPrescriber = (p: any) => {
     const name = resolveProviderName(p);
     const npi  = resolveProviderNpi(p);
@@ -364,7 +400,9 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
         ? `${apiBase}/api/prescriptions/${form.id}`
         : `${apiBase}/api/prescriptions`;
       // Add MedicationRequest.intent (required by FHIR R4)
-      const payload = { ...form, intent: (form as any).intent || "order", status: form.status || "active" };
+      // On create, set refillsRemaining equal to refills so new prescriptions start with full refill count
+      const refillsRemaining = isEdit ? (form.refillsRemaining ?? form.refills ?? 0) : (form.refills ?? 0);
+      const payload = { ...form, intent: (form as any).intent || "order", status: form.status || "active", refillsRemaining };
       const res = await fetchWithAuth(url, {
         method: isEdit ? "PUT" : "POST",
         body: JSON.stringify(payload),
@@ -633,9 +671,26 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
           {/* Pharmacy */}
           <Section title="Pharmacy Information" icon={<Building2 className="w-4 h-4" />}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 relative">
                 <label className={labelCls}>Pharmacy Name</label>
-                <input className={inputCls("pharmacyName")} value={form.pharmacyName || ""} onChange={(e) => set("pharmacyName", e.target.value)} placeholder="CVS Pharmacy" />
+                <input
+                  className={inputCls("pharmacyName")}
+                  value={pharmacyQuery}
+                  onChange={(e) => { setPharmacyQuery(e.target.value); set("pharmacyName", e.target.value); }}
+                  onFocus={() => { if (pharmacyResults.length > 0) setShowPharmacyDropdown(true); }}
+                  placeholder="Search pharmacy..."
+                  autoComplete="off"
+                />
+                {showPharmacyDropdown && pharmacyResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg">
+                    {pharmacyResults.map((p, i) => (
+                      <button key={p.id || i} type="button" onClick={() => selectPharmacy(p)} className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-800 dark:text-gray-200 cursor-pointer">
+                        <div className="font-medium">{p.name}</div>
+                        {(p.phone || p.address) && <div className="text-xs text-gray-400">{[p.phone, p.address].filter(Boolean).join(" · ")}</div>}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {errors.pharmacyName && <p className="text-xs text-red-500 mt-1">{errors.pharmacyName}</p>}
               </div>
               <div>

@@ -275,7 +275,7 @@ const patientDemographics: ReportDefinition = {
           dob,
           ageGroup: ageGroup(dob),
           status: p.status || "Active",
-          insurance: patInsurance[String(p.id)] || patInsurance[String(p.fhirId)] || p.insurance || p.insurancePlan || p.insuranceName || p.primaryInsurance || p.insuranceCompany || (Array.isArray(p.insurances) && p.insurances.length > 0 ? (p.insurances[0].insuranceName || p.insurances[0].name || p.insurances[0].payerName || "") : "") || "",
+          insurance: patInsurance[String(p.id)] || patInsurance[String(p.fhirId)] || p.insurance || p.insurancePlan || p.insuranceName || p.primaryInsurance || p.insuranceCompany || (Array.isArray(p.insurances) && p.insurances.length > 0 ? (p.insurances[0].insuranceName || p.insurances[0].name || p.insurances[0].payerName || "") : "") || "Self-Pay",
         };
       }),
       totalRecords: records.length,

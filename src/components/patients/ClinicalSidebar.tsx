@@ -252,17 +252,24 @@ export default function ClinicalSidebar({
                 </div>
 
                 {/* ---- Tab Navigation by Category ---- */}
-                {/* Deduplicate categories by label */}
-                {tabCategories.reduce((acc: typeof tabCategories, cat) => {
-                    const existing = acc.find(c => c.label === cat.label);
-                    if (existing) {
-                        const existingKeys = new Set(existing.tabs.map(t => t.key));
-                        existing.tabs.push(...cat.tabs.filter(t => !existingKeys.has(t.key)));
-                    } else {
-                        acc.push({ ...cat, tabs: cat.tabs.filter((t, i, arr) => arr.findIndex(x => x.key === t.key) === i) });
-                    }
-                    return acc;
-                }, [] as typeof tabCategories).map(cat => {
+                {/* Deduplicate categories by label (case-insensitive) AND ensure each tab key appears only once globally */}
+                {(() => {
+                    const globalSeen = new Set<string>();
+                    return tabCategories.reduce((acc: typeof tabCategories, cat) => {
+                        const existing = acc.find(c => c.label.toLowerCase().trim() === cat.label.toLowerCase().trim());
+                        if (existing) {
+                            const existingKeys = new Set(existing.tabs.map(t => t.key));
+                            const newTabs = cat.tabs.filter(t => !existingKeys.has(t.key) && !globalSeen.has(t.key));
+                            existing.tabs.push(...newTabs);
+                            newTabs.forEach(t => globalSeen.add(t.key));
+                        } else {
+                            const uniqueTabs = cat.tabs.filter((t, i, arr) => arr.findIndex(x => x.key === t.key) === i && !globalSeen.has(t.key));
+                            acc.push({ ...cat, tabs: uniqueTabs });
+                            uniqueTabs.forEach(t => globalSeen.add(t.key));
+                        }
+                        return acc;
+                    }, [] as typeof tabCategories);
+                })().map(cat => {
                     const isCollapsed = collapsedCats.has(cat.label);
                     const hasActiveTab = cat.tabs.some(t => t.key === activeTab);
                     return (

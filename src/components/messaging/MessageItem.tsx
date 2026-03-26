@@ -135,6 +135,7 @@ export default function MessageItemComponent({
                 key={r.emoji}
                 reaction={r}
                 onToggle={() => handleReaction(message.id, r.emoji, !!r.hasReacted)}
+                disabled={reacting}
               />
             ))}
             <button
@@ -339,11 +340,12 @@ function AttachmentList({ attachments, messageId }: { attachments: MessageAttach
   );
 }
 
-function ReactionBadge({ reaction, onToggle }: { reaction: Reaction; onToggle: () => void }) {
+function ReactionBadge({ reaction, onToggle, disabled }: { reaction: Reaction; onToggle: () => void; disabled?: boolean }) {
   return (
     <button
       onClick={onToggle}
-      className={`flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs transition-all ${
+      disabled={disabled}
+      className={`flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs transition-all ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${
         reaction.hasReacted
           ? "border-brand-300/60 bg-brand-50 text-brand-700 shadow-sm dark:border-brand-600/40 dark:bg-brand-900/20 dark:text-brand-300"
           : "border-gray-200/80 bg-white text-gray-600 hover:border-gray-300 hover:shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"

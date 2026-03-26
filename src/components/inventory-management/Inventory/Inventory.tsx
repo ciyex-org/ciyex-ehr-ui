@@ -33,6 +33,7 @@ type InvItem = {
   locationName: string;
   supplierId: number | null;
   supplierName: string;
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -416,14 +417,15 @@ export default function Inventory() {
                   <Th label="Category" sortField="categoryName" />
                   <Th label="Location" sortField="locationName" />
                   <Th label="Status" sortField="status" />
+                  <th className="px-4 py-3 text-left">By</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">Loading...</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400">Loading...</td></tr>
                 ) : displayed.length === 0 ? (
-                  <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">No items found.</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400">No items found.</td></tr>
                 ) : displayed.map((item) => {
                   const tone = item.status === "inactive" ? "neutral" : stockTone(item);
                   const label = item.status === "inactive" ? "Inactive" : stockLabel(item);
@@ -437,6 +439,7 @@ export default function Inventory() {
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.categoryName || "\u2014"}</td>
                       <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.locationName || "\u2014"}</td>
                       <td className="px-4 py-3"><Pill tone={tone}>{label}</Pill></td>
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.createdBy || "\u2014"}</td>
                       <td className="px-4 py-3 text-right space-x-1">
                         <button onClick={() => { setEditItem(item); setModalMode("edit"); }} className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 transition" title="Edit">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>

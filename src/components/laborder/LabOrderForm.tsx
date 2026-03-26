@@ -196,7 +196,7 @@ export const generateLabOrderPrintContent = (draft: Draft, procModalRows: ProcRo
         <table class="patient-table">
           <tr>
             <td style="width: 33.3%">
-              <span class="patient-field">Patient:</span> ${(draft.patientFirstName || draft.patientLastName) ? `${draft.patientFirstName || ''} ${draft.patientLastName || ''}`.trim() : ((draft as any).patientName || (draft as any).patient || 'N/A')}
+              <span class="patient-field">Patient:</span> ${(draft.patientFirstName || draft.patientLastName) ? `${draft.patientFirstName || ''} ${draft.patientLastName || ''}`.trim() : ((draft as any).patientName || (draft as any).patient || (draft as any).patientDisplay || (draft.patientId ? 'Patient #' + draft.patientId : 'N/A'))}
             </td>
             <td style="width: 33.3%">
               <span class="patient-field">DOB:</span> ${draft.orderDate || new Date().toISOString().slice(0,10)}

@@ -148,12 +148,16 @@ export default function CarePlansPage() {
     }, 400);
   }
 
-  // Client-side fallback filter for author (in case backend ignores &author=)
-  const filteredPlans = authorFilter
-    ? plans.filter((p) =>
-        (p.authorName || "").toLowerCase().includes(authorFilter.toLowerCase())
-      )
-    : plans;
+  // Client-side fallback filter for author and search term (in case backend ignores &author= or &q=)
+  const filteredPlans = plans.filter((p) => {
+    if (authorFilter && !(p.authorName || "").toLowerCase().includes(authorFilter.toLowerCase())) return false;
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      const searchable = [p.title, p.patientName, p.authorName, p.category, p.status, p.description].filter(Boolean).join(" ").toLowerCase();
+      if (!searchable.includes(q)) return false;
+    }
+    return true;
+  });
 
   // ------- CRUD -------
   function openNewForm() {

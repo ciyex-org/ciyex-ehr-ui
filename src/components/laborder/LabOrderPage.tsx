@@ -387,7 +387,13 @@ export default function LabOrdersPage() {
       const procCodes = (o.procedureCode || "").split(",").map(c => c.trim()).filter(Boolean);
       const diagList = (o.diagnosisCode || "").split(/[;,]/).map(c => c.trim()).filter(Boolean);
       const procRows = procCodes.length ? procCodes.map((code, i) => ({ test: code, testCode: code, diagnosisCodes: i === 0 ? diagList : [] })) : [];
-      handleLabOrderPrint(o, procRows, false);
+      // Ensure patient name is resolved from cache when not in order fields
+      const enriched = { ...o };
+      if (!enriched.patientFirstName && !enriched.patientLastName) {
+        const c = patientCache.get(o.patientId);
+        if (c) { enriched.patientFirstName = c.firstName; enriched.patientLastName = c.lastName; }
+      }
+      handleLabOrderPrint(enriched, procRows, false);
     });
     setBatchIds(new Set());
   };
@@ -409,7 +415,13 @@ export default function LabOrdersPage() {
     const procCodes = (selected.procedureCode || "").split(",").map(c => c.trim()).filter(Boolean);
     const diagList = (selected.diagnosisCode || "").split(/[;,]/).map(c => c.trim()).filter(Boolean);
     const procRows = procCodes.length ? procCodes.map((code, i) => ({ test: code, testCode: code, diagnosisCodes: i === 0 ? diagList : [] })) : [];
-    handleLabOrderPrint(selected, procRows, false);
+    // Ensure patient name is resolved from cache when not in order fields
+    const enriched = { ...selected };
+    if (!enriched.patientFirstName && !enriched.patientLastName) {
+      const c = patientCache.get(selected.patientId);
+      if (c) { enriched.patientFirstName = c.firstName; enriched.patientLastName = c.lastName; }
+    }
+    handleLabOrderPrint(enriched, procRows, false);
   };
 
   const patientName = (o: LabOrder) => {
