@@ -237,8 +237,9 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Snooze (days)</label>
               <input
-                type="number" min={0} value={form.snoozeDays ?? 0}
-                onChange={(e) => set("snoozeDays", parseInt(e.target.value) || 0)}
+                type="number" min={0} value={form.snoozeDays ?? ""}
+                onChange={(e) => set("snoozeDays", e.target.value === "" ? null : (parseInt(e.target.value) || 0))}
+                placeholder="0"
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

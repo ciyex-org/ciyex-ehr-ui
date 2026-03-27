@@ -1123,6 +1123,8 @@ export default function PriorAuthorizationsPage() {
                       onChange={(v) =>
                         setFormData({ ...formData, patientId: v })
                       }
+                      placeholder="Auto-filled from patient search"
+                      readOnly
                     />
                     {/* Patient Name - Searchable */}
                     <div className="relative" ref={patientInputRef}>
@@ -1811,13 +1813,17 @@ function FormField({
   value,
   onChange,
   type = "text",
+  placeholder,
+  readOnly,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  placeholder?: string;
+  readOnly?: boolean;
 }) {
-  const inputClass = "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const inputClass = `w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500${readOnly ? " bg-gray-50 dark:bg-gray-800 cursor-not-allowed" : ""}`;
   return (
     <div>
       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -1835,6 +1841,8 @@ function FormField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={inputClass}
+          placeholder={placeholder}
+          readOnly={readOnly}
         />
       )}
     </div>

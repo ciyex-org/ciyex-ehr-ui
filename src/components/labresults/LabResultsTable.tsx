@@ -337,7 +337,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search test, code, value..." className={`${inputCls} md:col-span-2`} />
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={inputCls}>
             <option value="all">All Status</option>
-            {["pending", "preliminary", "final", "corrected", "amended"].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+            {["Pending", "Preliminary", "Final", "Corrected", "Amended"].map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
           </select>
           <select value={abnFilter} onChange={e => setAbnFilter(e.target.value)} className={inputCls}>
             <option value="all">All Flags</option>

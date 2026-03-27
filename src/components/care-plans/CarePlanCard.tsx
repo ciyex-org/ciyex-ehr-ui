@@ -298,14 +298,14 @@ export default function CarePlanCard({
             {localGoals?.length > 0 && (
               <span className="inline-flex items-center gap-1">
                 <Target className="w-3 h-3" />
-                {plan.goals.length} goal{plan.goals.length !== 1 ? "s" : ""}
+                {localGoals.length} goal{localGoals.length !== 1 ? "s" : ""}
               </span>
             )}
-            {plan.interventions?.length > 0 && (
+            {localInterventions?.length > 0 && (
               <span className="inline-flex items-center gap-1">
                 <Activity className="w-3 h-3" />
-                {plan.interventions.length} intervention
-                {plan.interventions.length !== 1 ? "s" : ""}
+                {localInterventions.length} intervention
+                {localInterventions.length !== 1 ? "s" : ""}
               </span>
             )}
           </div>

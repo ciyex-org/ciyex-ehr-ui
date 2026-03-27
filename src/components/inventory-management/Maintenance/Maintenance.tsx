@@ -9,6 +9,7 @@ import Alert from "@/components/ui/alert/Alert";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import DateInput from "@/components/ui/DateInput";
 import { formatDisplayDate } from "@/utils/dateUtils";
+import { Play, CheckCircle2, RotateCcw, Pencil, Trash2 } from "lucide-react";
 
 type Maint = {
   id: number; equipmentName: string; equipmentId: string; category: string;
@@ -202,11 +203,11 @@ export default function Maintenance() {
                   <td className="px-4 py-3"><Pill text={statusLabel[m.status] || m.status} colors={statusBadge[m.status] || statusBadge.scheduled} /></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      {m.status === "scheduled" && <button onClick={() => updateStatus(m.id, "in_progress")} className="rounded px-2 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700">Start</button>}
-                      {m.status === "in_progress" && <button onClick={() => updateStatus(m.id, "completed")} className="rounded px-2 py-1 text-xs bg-green-600 text-white hover:bg-green-700">Complete</button>}
-                      {(m.status === "completed" || m.status === "cancelled") && <button onClick={() => updateStatus(m.id, "scheduled")} className="rounded px-2 py-1 text-xs bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300">Reopen</button>}
-                      <button onClick={() => openEdit(m)} className="rounded px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600">Edit</button>
-                      <button onClick={() => openDelete(m)} className="rounded px-2 py-1 text-xs bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400">Delete</button>
+                      {m.status === "scheduled" && <button onClick={() => updateStatus(m.id, "in_progress")} title="Start" className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition"><Play className="w-4 h-4" /></button>}
+                      {m.status === "in_progress" && <button onClick={() => updateStatus(m.id, "completed")} title="Complete" className="p-1.5 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400 transition"><CheckCircle2 className="w-4 h-4" /></button>}
+                      {(m.status === "completed" || m.status === "cancelled") && <button onClick={() => updateStatus(m.id, "scheduled")} title="Reopen" className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition"><RotateCcw className="w-4 h-4" /></button>}
+                      <button onClick={() => openEdit(m)} title="Edit" className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => openDelete(m)} title="Delete" className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 dark:text-red-400 transition"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>

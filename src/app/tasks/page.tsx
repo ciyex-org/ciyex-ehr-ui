@@ -173,14 +173,31 @@ export default function TasksPage() {
 
   const handleEditTask = useCallback((task: Task) => {
     setEditingId(task.id);
+    // Normalize date values — backend may return Java LocalDate as [yyyy,mm,dd] array
+    const normalizeDate = (d: any): string => {
+      if (!d) return "";
+      if (Array.isArray(d)) {
+        const [y, m, day] = d;
+        return `${y}-${String(m).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      }
+      return String(d);
+    };
+    const normalizeTime = (t: any): string => {
+      if (!t) return "";
+      if (Array.isArray(t)) {
+        const [h, m] = t;
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      }
+      return String(t);
+    };
     setFormData({
       title: task.title || "",
       description: task.description || "",
       taskType: task.taskType || "general",
       status: task.status || "pending",
       priority: task.priority || "normal",
-      dueDate: task.dueDate ? String(task.dueDate) : "",
-      dueTime: task.dueTime ? String(task.dueTime) : "",
+      dueDate: normalizeDate(task.dueDate),
+      dueTime: normalizeTime(task.dueTime),
       assignedTo: task.assignedTo || "",
       assignedBy: task.assignedBy || "",
       patientId: task.patientId != null ? String(task.patientId) : "",

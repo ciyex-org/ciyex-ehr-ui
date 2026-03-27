@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 import {
   Eye,
   Filter,
@@ -13,6 +14,8 @@ import {
   Send,
 } from "lucide-react";
 import type { NotificationLog, NotificationStats, NotificationStatus } from "./types";
+
+const apiBase = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 
 const STATUS_FILTERS: { value: string; label: string }[] = [
   { value: "", label: "All" },
@@ -77,7 +80,7 @@ export default function MessageLog() {
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `/api/notifications/log?page=${page}&size=20`;
+      let url = `${apiBase()}/api/notifications/log?page=${page}&size=20`;
       if (statusFilter) url += `&status=${statusFilter}`;
       const res = await fetchWithAuth(url);
       if (res.ok) {
@@ -96,7 +99,7 @@ export default function MessageLog() {
   /* --- load stats --- */
   const loadStats = useCallback(async () => {
     try {
-      const res = await fetchWithAuth("/api/notifications/log/stats");
+      const res = await fetchWithAuth(`${apiBase()}/api/notifications/log/stats`);
       if (res.ok) {
         const json = await res.json();
         setStats(json.data ?? json);
@@ -329,9 +332,9 @@ export default function MessageLog() {
                           setRetryingId(log.id);
                           try {
                             // Try without /log/ prefix first, fallback to /resend/
-                            let res = await fetchWithAuth(`/api/notifications/${log.id}/retry`, { method: "POST" });
+                            let res = await fetchWithAuth(`${apiBase()}/api/notifications/${log.id}/retry`, { method: "POST" });
                             if (!res.ok) {
-                              res = await fetchWithAuth(`/api/notifications/resend/${log.id}`, { method: "POST" });
+                              res = await fetchWithAuth(`${apiBase()}/api/notifications/resend/${log.id}`, { method: "POST" });
                             }
                             if (res.ok) {
                               setActionFeedback({ type: "success", text: "Notification queued for resend" });

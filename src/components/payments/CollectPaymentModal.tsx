@@ -36,7 +36,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
     referenceType: "",
     referenceId: "",
     invoiceNumber: "",
-    paymentMethodType: "credit_card" as MethodType,
+    paymentMethodType: "cash" as MethodType,
     receiptEmail: "",
   });
   const [saving, setSaving] = useState(false);
@@ -64,7 +64,7 @@ export default function CollectPaymentModal({ open, onClose, onSuccess, showToas
       referenceType: "",
       referenceId: "",
       invoiceNumber: "",
-      paymentMethodType: "credit_card",
+      paymentMethodType: "cash",
       receiptEmail: "",
     });
     setErrors({});

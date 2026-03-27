@@ -130,7 +130,7 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
     else if (form.title.trim().length > 200) e.title = "Title must be less than 200 characters";
     else if (!/^[A-Za-z0-9\s\-_/()&.,:'!?@#"+]+$/.test(form.title.trim())) e.title = "Title contains invalid characters";
     else if (!/[A-Za-z]/.test(form.title.trim())) e.title = "Title must contain at least one letter";
-    if (form.contentType === "article" && !form.content.trim() && !form.externalUrl.trim()) {
+    if (["article", "handout"].includes(form.contentType) && !form.content.trim() && !form.externalUrl.trim()) {
       e.content = "Content or External URL is required";
     }
     if (["video", "pdf", "link"].includes(form.contentType) && !form.externalUrl.trim()) {

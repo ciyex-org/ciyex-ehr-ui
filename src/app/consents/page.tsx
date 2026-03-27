@@ -321,6 +321,15 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
               </select>
             </div>
             <div>
+              <label className={labelCls}>Status</label>
+              <select className={inputCls} value={form.status || "pending"} onChange={(e) => set("status", e.target.value)}>
+                <option value="pending">Pending</option>
+                <option value="signed">Signed</option>
+                <option value="expired">Expired</option>
+                <option value="revoked">Revoked</option>
+              </select>
+            </div>
+            <div>
               <label className={labelCls}>Expiry Date</label>
               <DateInput className={inputCls} value={form.expiryDate || ""} onChange={(e) => set("expiryDate", e.target.value)} />
             </div>
