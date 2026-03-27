@@ -10,6 +10,7 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Radio from "@/components/form/input/Radio";
 import Switch from "@/components/form/switch/Switch";
 import FileInput from "@/components/form/input/FileInput";
+import DateInput from "@/components/ui/DateInput";
 import { ChevronDown, ChevronRight, Upload, FileText, X as XIcon } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
@@ -2199,13 +2200,12 @@ export default function DynamicFormRenderer({
               ? findDateInFormData([/end/i, /resolv/i, /abate/i, /conclus/i])
               : undefined;
           return (
-            <Input
-              type="date"
+            <DateInput
               value={dateValue}
               onChange={(e) => onChange(field.key, e.target.value)}
-              error={!!error}
               min={minDate}
               max={maxDate}
+              className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${error ? "border-red-500 text-red-900" : "border-gray-300 dark:border-gray-600 bg-transparent text-gray-800 dark:text-white/90"}`}
             />
           );
         })() : (
@@ -2449,12 +2449,11 @@ export default function DynamicFormRenderer({
         const dateValue = typeof value === "string" && value.includes("T") ? value.split("T")[0] : (value || "");
         const isDob = /^(dateOfBirth|dob|birthDate|birthdate|birth_date|date_of_birth|ptDob|patientDob)$/i.test(field.key);
         return (
-          <Input
-            type="date"
+          <DateInput
             value={dateValue}
             onChange={(e) => onChange(field.key, e.target.value)}
-            error={!!error}
             max={isDob ? new Date().toISOString().slice(0, 10) : undefined}
+            className={`h-11 w-full rounded-lg border px-4 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${error ? "border-red-500 text-red-900" : "border-gray-300 dark:border-gray-600 bg-transparent text-gray-800 dark:text-white/90"}`}
           />
         );
       }
