@@ -106,6 +106,10 @@ export default function Maintenance() {
     if (form.assignee.trim() && !/^[A-Za-z\s\-'.]+$/.test(form.assignee.trim())) errs.assignee = "Assignee must contain only letters, spaces, hyphens, or apostrophes";
     if (form.vendor.trim() && !/[A-Za-z]/.test(form.vendor.trim())) errs.vendor = "Vendor must contain at least one letter";
     if (form.vendor.trim() && !/^[A-Za-z0-9\s\-_().&,']+$/.test(form.vendor.trim())) errs.vendor = "Vendor contains invalid characters";
+    // Block past dates for due date and next service date
+    const today = new Date().toISOString().split("T")[0];
+    if (form.dueDate && form.dueDate < today) errs.dueDate = "Due date cannot be in the past";
+    if (form.nextServiceDate && form.nextServiceDate < today) errs.nextServiceDate = "Next service date cannot be in the past";
     setFormErrors(errs);
     if (Object.keys(errs).length > 0) return;
     try {
@@ -249,9 +253,9 @@ export default function Maintenance() {
               </div>
               <div><Label>Location</Label><Input value={form.location} onChange={e => { F("location", e.target.value); if (formErrors.location) setFormErrors(p => { const n = {...p}; delete n.location; return n; }); }} className={formErrors.location ? "border-red-400" : ""} placeholder="e.g. Room 101, Building A" />{formErrors.location && <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>}</div>
               <div><Label>Assignee</Label><Input value={form.assignee} onChange={e => { F("assignee", e.target.value); if (formErrors.assignee) setFormErrors(p => { const n = {...p}; delete n.assignee; return n; }); }} className={formErrors.assignee ? "border-red-400" : ""} placeholder="e.g. John Smith" />{formErrors.assignee && <p className="text-xs text-red-500 mt-1">{formErrors.assignee}</p>}</div>
-              <div><Label>Due Date</Label><input type="date" value={form.dueDate} onChange={e => F("dueDate", e.target.value)} className={dateClass} /></div>
+              <div><Label>Due Date</Label><input type="date" value={form.dueDate} min={new Date().toISOString().split("T")[0]} onChange={e => { F("dueDate", e.target.value); if (formErrors.dueDate) setFormErrors(p => { const n = {...p}; delete n.dueDate; return n; }); }} className={`${dateClass} ${formErrors.dueDate ? "border-red-400" : ""}`} />{formErrors.dueDate && <p className="text-xs text-red-500 mt-1">{formErrors.dueDate}</p>}</div>
               <div><Label>Last Service Date</Label><input type="date" value={form.lastServiceDate} onChange={e => F("lastServiceDate", e.target.value)} className={dateClass} /></div>
-              <div><Label>Next Service Date</Label><input type="date" value={form.nextServiceDate} onChange={e => F("nextServiceDate", e.target.value)} className={dateClass} /></div>
+              <div><Label>Next Service Date</Label><input type="date" value={form.nextServiceDate} min={new Date().toISOString().split("T")[0]} onChange={e => { F("nextServiceDate", e.target.value); if (formErrors.nextServiceDate) setFormErrors(p => { const n = {...p}; delete n.nextServiceDate; return n; }); }} className={`${dateClass} ${formErrors.nextServiceDate ? "border-red-400" : ""}`} />{formErrors.nextServiceDate && <p className="text-xs text-red-500 mt-1">{formErrors.nextServiceDate}</p>}</div>
               <div><Label>Vendor</Label><Input value={form.vendor} onChange={e => { F("vendor", e.target.value); if (formErrors.vendor) setFormErrors(p => { const n = {...p}; delete n.vendor; return n; }); }} className={formErrors.vendor ? "border-red-400" : ""} placeholder="e.g. GE Healthcare" />{formErrors.vendor && <p className="text-xs text-red-500 mt-1">{formErrors.vendor}</p>}</div>
               <div><Label>Cost ($)</Label><Input type="number" value={String(form.cost)} onChange={e => F("cost", parseFloat(e.target.value) || 0)} /></div>
               {modal === "edit" && (
