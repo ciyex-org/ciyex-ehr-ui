@@ -1675,17 +1675,51 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                         return isNaN(h) || isNaN(m) ? null : [h, m];
                     };
                     const allNextKeys = Object.keys(next);
-                    const stRaw = allNextKeys.filter(isApptStartKey).map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
-                    const etRaw = allNextKeys.filter(isApptEndKey).map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
-                    const stParts = parseTime(stRaw);
-                    const etParts = parseTime(etRaw);
-                    if (stParts && etParts) {
-                        const diff = (etParts[0] * 60 + etParts[1]) - (stParts[0] * 60 + stParts[1]);
-                        if (diff > 0) {
-                            for (const dk of durKeys) { next[dk] = diff; }
-                            // Also update any other duration-named field that already exists in formData
+
+                    // When start time changes, auto-set end time to start + 15 minutes
+                    if (isApptStartKey(key)) {
+                        const stParts = parseTime(value);
+                        if (stParts) {
+                            const totalMin = stParts[0] * 60 + stParts[1] + 15;
+                            const nh = Math.floor(totalMin / 60) % 24;
+                            const nm = totalMin % 60;
+                            const newEnd = `${String(nh).padStart(2, "0")}:${String(nm).padStart(2, "0")}`;
+                            // Update all end-time fields
                             for (const k of allNextKeys) {
-                                if (/duration/i.test(k) && !durKeys.includes(k)) next[k] = diff;
+                                if (isApptEndKey(k)) next[k] = newEnd;
+                            }
+                            // If no end-time field exists yet, set common ones
+                            if (!allNextKeys.some(isApptEndKey)) {
+                                next.appointmentEndTime = newEnd;
+                                next.endTime = newEnd;
+                            }
+                            // Also auto-fill end date from start date if not set
+                            const startDateKeys = allNextKeys.filter(k => /^(appointmentStartDate|startDate)$/i.test(k));
+                            const endDateKeys = allNextKeys.filter(k => /^(appointmentEndDate|endDate)$/i.test(k));
+                            if (startDateKeys.length > 0 && endDateKeys.length > 0) {
+                                for (const edk of endDateKeys) {
+                                    if (!next[edk]) next[edk] = next[startDateKeys[0]];
+                                }
+                            }
+                            // Set duration to 15
+                            for (const dk of durKeys) { next[dk] = 15; }
+                            for (const k of allNextKeys) {
+                                if (/duration/i.test(k) && !durKeys.includes(k)) next[k] = 15;
+                            }
+                        }
+                    } else {
+                        // End time changed manually — recalculate duration from start/end
+                        const stRaw = allNextKeys.filter(isApptStartKey).map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
+                        const etRaw = allNextKeys.filter(isApptEndKey).map(k => next[k]).find(v => v && typeof v === "string" && v.includes(":"));
+                        const stParts = parseTime(stRaw);
+                        const etParts = parseTime(etRaw);
+                        if (stParts && etParts) {
+                            const diff = (etParts[0] * 60 + etParts[1]) - (stParts[0] * 60 + stParts[1]);
+                            if (diff > 0) {
+                                for (const dk of durKeys) { next[dk] = diff; }
+                                for (const k of allNextKeys) {
+                                    if (/duration/i.test(k) && !durKeys.includes(k)) next[k] = diff;
+                                }
                             }
                         }
                     }
@@ -2652,6 +2686,28 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     ...p,
                     actor: typeof p?.actor === "object" ? (p.actor.reference || String(p.actor)) : String(p?.actor || ""),
                 }));
+                // Add provider participant if set in form fields
+                const provId = payload.provider || payload.providerId || payload.practitioner || payload.practitionerId || '';
+                const provRef = typeof provId === 'string' && provId.includes('/') ? provId
+                    : (provId ? `Practitioner/${provId}` : '');
+                const hasProviderParticipant = cleaned.some((p: any) => String(p.actor || '').startsWith('Practitioner/'));
+                if (provRef && !hasProviderParticipant) {
+                    cleaned.push({ actor: provRef, required: "required", status: "accepted" });
+                }
+                // Set provider as simple string reference for the backend
+                if (provRef) payload.provider = provRef;
+
+                // Add location participant if set in form fields
+                const locId = payload.location || payload.locationId || '';
+                const locRef = typeof locId === 'string' && locId.includes('/') ? locId
+                    : (locId ? `Location/${locId}` : '');
+                const hasLocationParticipant = cleaned.some((p: any) => String(p.actor || '').startsWith('Location/'));
+                if (locRef && !hasLocationParticipant) {
+                    cleaned.push({ actor: locRef, required: "required", status: "accepted" });
+                }
+                // Set location as simple string reference for the backend
+                if (locRef) payload.location = locRef;
+
                 payload.participant = [
                     ...cleaned,
                     { actor: patRef, required: "required", status: "accepted" },
@@ -2663,6 +2719,40 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                 payload.patientId = patientId;
                 // Set subject as simple string reference
                 payload.subject = patRef;
+
+                // Combine separate date+time fields into FHIR start/end ISO datetime strings
+                // so the appointment appears correctly in the main Appointments table and Calendar.
+                const startDateVal = payload.appointmentStartDate || payload.startDate || '';
+                const startTimeVal = payload.appointmentStartTime || payload.startTime || '';
+                const endDateVal = payload.appointmentEndDate || payload.endDate || startDateVal || '';
+                const endTimeVal = payload.appointmentEndTime || payload.endTime || '';
+                if (startDateVal && startTimeVal && !payload.start) {
+                    const dt = new Date(`${startDateVal}T${startTimeVal}:00`);
+                    if (!isNaN(dt.getTime())) {
+                        const off = -dt.getTimezoneOffset();
+                        const sign = off >= 0 ? '+' : '-';
+                        const absOff = Math.abs(off);
+                        const oh = String(Math.floor(absOff / 60)).padStart(2, '0');
+                        const om = String(absOff % 60).padStart(2, '0');
+                        const p2 = (n: number) => String(n).padStart(2, '0');
+                        payload.start = `${dt.getFullYear()}-${p2(dt.getMonth()+1)}-${p2(dt.getDate())}T${p2(dt.getHours())}:${p2(dt.getMinutes())}:${p2(dt.getSeconds())}${sign}${oh}:${om}`;
+                    }
+                }
+                if (endDateVal && endTimeVal && !payload.end) {
+                    const dt = new Date(`${endDateVal}T${endTimeVal}:00`);
+                    if (!isNaN(dt.getTime())) {
+                        const off = -dt.getTimezoneOffset();
+                        const sign = off >= 0 ? '+' : '-';
+                        const absOff = Math.abs(off);
+                        const oh = String(Math.floor(absOff / 60)).padStart(2, '0');
+                        const om = String(absOff % 60).padStart(2, '0');
+                        const p2 = (n: number) => String(n).padStart(2, '0');
+                        payload.end = `${dt.getFullYear()}-${p2(dt.getMonth()+1)}-${p2(dt.getDate())}T${p2(dt.getHours())}:${p2(dt.getMinutes())}:${p2(dt.getSeconds())}${sign}${oh}:${om}`;
+                    }
+                }
+
+                // Ensure status defaults to Scheduled if not set
+                if (!payload.status) payload.status = "Scheduled";
             }
 
             // Issue 4: Insurance Coverage — ensure period/coding structures
