@@ -411,7 +411,7 @@ function CodeTable({
             {showType && <th className="text-left px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400 w-20">Type</th>}
             <th className="text-left px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400">Description</th>
             <th className="text-left px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400 w-20">Status</th>
-            {isCustom && <th className="text-right px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400 w-24">Actions</th>}
+            <th className="text-right px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400 w-24">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -438,16 +438,14 @@ function CodeTable({
                     {c.active ? "Active" : "Inactive"}
                   </span>
                 </td>
-                {isCustom && (
-                  <td className="px-4 py-2.5 text-right">
-                    <button onClick={(e) => { e.stopPropagation(); onEdit(c); }} className="p-1 text-slate-400 hover:text-blue-600" title="Edit"><Pencil className="w-3.5 h-3.5" /></button>
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(c.id); }} className="p-1 text-slate-400 hover:text-red-600 ml-1" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                  </td>
-                )}
+                <td className="px-4 py-2.5 text-right">
+                  <button onClick={(e) => { e.stopPropagation(); onEdit(c); }} className="p-1 text-slate-400 hover:text-blue-600" title="Edit"><Pencil className="w-3.5 h-3.5" /></button>
+                  <button onClick={(e) => { e.stopPropagation(); onDelete(c.id); }} className="p-1 text-slate-400 hover:text-red-600 ml-1" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                </td>
               </tr>
               {expandedRow === c.id && (
                 <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                  <td colSpan={showType ? 5 : isCustom ? 4 : 3} className="px-6 py-3">
+                  <td colSpan={showType ? 5 : 4} className="px-6 py-3">
                     <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs">
                       <Detail label="Code" value={c.code} />
                       <Detail label="Type" value={c.codeType} />
