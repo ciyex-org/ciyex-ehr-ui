@@ -299,13 +299,34 @@ export default function MessagingPage() {
   }, [state.activeChannelId, state.activeThreadId, state.threadMessages, state.messages, loadThread]);
 
   const handleReact = useCallback(async (messageId: string, emoji: string) => {
+    // Find existing reaction by this user on this message
+    const msg = [...state.messages, ...state.threadMessages].find((m) => m.id === messageId);
+    const existingReaction = msg?.reactions?.find((r) => r.hasReacted);
+    const existingEmoji = existingReaction?.emoji;
+
+    // If user already reacted with a different emoji, remove old first (replace)
+    if (existingEmoji && existingEmoji !== emoji) {
+      dispatch({ type: "REMOVE_REACTION", messageId, emoji: existingEmoji });
+      try { await api.removeReaction(messageId, existingEmoji); } catch { /* best effort */ }
+    }
+
+    // If clicking the same emoji they already reacted with, just remove it (toggle off)
+    if (existingEmoji === emoji) {
+      dispatch({ type: "REMOVE_REACTION", messageId, emoji });
+      try { await api.removeReaction(messageId, emoji); } catch {
+        dispatch({ type: "ADD_REACTION", messageId, emoji });
+      }
+      return;
+    }
+
+    // Add the new reaction
     dispatch({ type: "ADD_REACTION", messageId, emoji });
     try {
       await api.addReaction(messageId, emoji);
     } catch {
       dispatch({ type: "REMOVE_REACTION", messageId, emoji });
     }
-  }, []);
+  }, [state.messages, state.threadMessages]);
 
   const handleRemoveReaction = useCallback(async (messageId: string, emoji: string) => {
     dispatch({ type: "REMOVE_REACTION", messageId, emoji });
@@ -456,6 +477,11 @@ export default function MessagingPage() {
             pinnedMessages={state.pinnedMessages}
             onClose={() => dispatch({ type: "TOGGLE_DETAIL_PANEL" })}
             onGoToMessage={(id) => handleGoToMessage(activeChannel.id, id)}
+            onAddMember={async (userId, displayName) => {
+              await api.addChannelMember(activeChannel.id, userId, displayName);
+              const updated = await api.getChannelMembers(activeChannel.id);
+              setChannelMembers(updated);
+            }}
           />
         )}
 

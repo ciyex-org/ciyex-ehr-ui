@@ -119,7 +119,7 @@ export default function MessageItemComponent({
 
         {/* Message text */}
         <div className="text-[14px] leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
-          {message.content}
+          <FormattedContent text={message.content} />
         </div>
 
         {/* Attachments */}
@@ -371,6 +371,98 @@ function MenuItem({ icon, label, onClick, danger }: { icon: React.ReactNode; lab
       {label}
     </button>
   );
+}
+
+/** Renders inline markdown: **bold**, _italic_, `code`, @mentions, - lists */
+function FormattedContent({ text }: { text: string }) {
+  if (!text) return null;
+
+  // Split text into lines first for list handling
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+
+  lines.forEach((line, lineIdx) => {
+    if (lineIdx > 0) elements.push(<br key={`br-${lineIdx}`} />);
+
+    // Check for list items
+    const isList = /^- /.test(line);
+    const lineContent = isList ? line.slice(2) : line;
+
+    const parts = parseInlineFormatting(lineContent, `line-${lineIdx}`);
+
+    if (isList) {
+      elements.push(
+        <span key={`li-${lineIdx}`} className="flex gap-1.5">
+          <span className="text-gray-400 select-none">•</span>
+          <span>{parts}</span>
+        </span>
+      );
+    } else {
+      elements.push(<span key={`span-${lineIdx}`}>{parts}</span>);
+    }
+  });
+
+  return <>{elements}</>;
+}
+
+/** Parse inline formatting: **bold**, _italic_, `code`, @mention, [link](url) */
+function parseInlineFormatting(text: string, keyPrefix: string): React.ReactNode[] {
+  const result: React.ReactNode[] = [];
+  // Regex to match: **bold**, _italic_, `code`, @mention, [text](url)
+  const regex = /(\*\*(.+?)\*\*)|(_(.+?)_)|(`(.+?)`)|(@\w+)|(\[([^\]]+)\]\(([^)]+)\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    // Plain text before the match
+    if (match.index > lastIndex) {
+      result.push(text.slice(lastIndex, match.index));
+    }
+
+    if (match[1]) {
+      // **bold**
+      result.push(<strong key={`${keyPrefix}-b-${match.index}`} className="font-bold">{match[2]}</strong>);
+    } else if (match[3]) {
+      // _italic_
+      result.push(<em key={`${keyPrefix}-i-${match.index}`} className="italic">{match[4]}</em>);
+    } else if (match[5]) {
+      // `code`
+      result.push(
+        <code key={`${keyPrefix}-c-${match.index}`} className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px] text-pink-600 dark:bg-gray-800 dark:text-pink-400">
+          {match[6]}
+        </code>
+      );
+    } else if (match[7]) {
+      // @mention
+      result.push(
+        <span key={`${keyPrefix}-m-${match.index}`} className="rounded bg-brand-50 px-1 py-0.5 font-semibold text-brand-600 dark:bg-brand-900/20 dark:text-brand-400">
+          {match[7]}
+        </span>
+      );
+    } else if (match[8]) {
+      // [text](url)
+      result.push(
+        <a
+          key={`${keyPrefix}-a-${match.index}`}
+          href={match[10]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-brand-600 underline hover:text-brand-700 dark:text-brand-400"
+        >
+          {match[9]}
+        </a>
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Remaining plain text
+  if (lastIndex < text.length) {
+    result.push(text.slice(lastIndex));
+  }
+
+  return result.length > 0 ? result : [text];
 }
 
 function formatFileSize(bytes: number): string {

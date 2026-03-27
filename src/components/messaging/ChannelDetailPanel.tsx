@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { X, Hash, Lock, Users, Pin, FileText } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Hash, Lock, Users, Pin, FileText, UserPlus, Search } from "lucide-react";
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { getEnv } from "@/utils/env";
 import type { Channel, ChannelMember, MessageItem, PresenceStatus } from "./types";
 
 interface Props {
@@ -10,6 +12,7 @@ interface Props {
   pinnedMessages: MessageItem[];
   onClose: () => void;
   onGoToMessage: (messageId: string) => void;
+  onAddMember?: (userId: string, displayName: string) => void;
 }
 
 type Tab = "about" | "members" | "pinned" | "files";
@@ -22,7 +25,7 @@ function PresenceDot({ status }: { status?: PresenceStatus }) {
   return <span className={`h-2.5 w-2.5 rounded-full ${color}`} />;
 }
 
-export default function ChannelDetailPanel({ channel, members, pinnedMessages, onClose, onGoToMessage }: Props) {
+export default function ChannelDetailPanel({ channel, members, pinnedMessages, onClose, onGoToMessage, onAddMember }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("about");
 
   return (
@@ -63,7 +66,7 @@ export default function ChannelDetailPanel({ channel, members, pinnedMessages, o
           <AboutTab channel={channel} memberCount={members.length} />
         )}
         {activeTab === "members" && (
-          <MembersTab members={members} />
+          <MembersTab members={members} onAddMember={onAddMember} />
         )}
         {activeTab === "pinned" && (
           <PinnedTab messages={pinnedMessages} onGoToMessage={onGoToMessage} />
@@ -119,12 +122,113 @@ function AboutTab({ channel, memberCount }: { channel: Channel; memberCount: num
   );
 }
 
-function MembersTab({ members }: { members: ChannelMember[] }) {
+function MembersTab({ members, onAddMember }: { members: ChannelMember[]; onAddMember?: (userId: string, displayName: string) => void }) {
   const online = members.filter((m) => m.presence === "online" || m.presence === "away");
   const offline = members.filter((m) => m.presence === "offline" || !m.presence);
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ id: string; name: string; email?: string }[]>([]);
+  const [adding, setAdding] = useState<string | null>(null);
+  const searchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const memberIds = new Set(members.map((m) => m.userId));
+
+  // Debounced patient search
+  useEffect(() => {
+    if (!showAddPanel || searchQuery.length < 2) { setSearchResults([]); return; }
+    if (searchRef.current) clearTimeout(searchRef.current);
+    searchRef.current = setTimeout(async () => {
+      try {
+        const apiUrl = getEnv("NEXT_PUBLIC_API_URL") || "";
+        const res = await fetchWithAuth(`${apiUrl}/api/patients?search=${encodeURIComponent(searchQuery)}&size=20`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const items = json?.data?.content || json?.data || json?.content || [];
+        const list = (Array.isArray(items) ? items : []).map((p: any) => ({
+          id: String(p.id || p.fhirId),
+          name: `${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.fullName || p.name || `Patient #${p.id}`,
+          email: p.email,
+        }));
+        setSearchResults(list);
+      } catch { /* silent */ }
+    }, 300);
+    return () => { if (searchRef.current) clearTimeout(searchRef.current); };
+  }, [searchQuery, showAddPanel]);
+
+  const handleAdd = async (patient: { id: string; name: string; email?: string }) => {
+    if (!onAddMember) return;
+    setAdding(patient.id);
+    try {
+      const userId = patient.email || patient.id;
+      await onAddMember(userId, patient.name);
+      setSearchResults((prev) => prev.filter((p) => p.id !== patient.id));
+    } finally {
+      setAdding(null);
+    }
+  };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Add Member button */}
+      {onAddMember && !showAddPanel && (
+        <button
+          onClick={() => setShowAddPanel(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2.5 text-sm font-medium text-brand-600 transition-colors hover:border-brand-400 hover:bg-brand-50 dark:border-gray-600 dark:text-brand-400 dark:hover:border-brand-500 dark:hover:bg-brand-900/20"
+        >
+          <UserPlus className="h-4 w-4" />
+          Add Member
+        </button>
+      )}
+
+      {/* Add Member search panel */}
+      {showAddPanel && (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/60">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">Add Patient to Channel</span>
+            <button onClick={() => { setShowAddPanel(false); setSearchQuery(""); setSearchResults([]); }} className="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+              <X className="h-3.5 w-3.5 text-gray-400" />
+            </button>
+          </div>
+          <div className="relative mb-2">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search patients..."
+              autoFocus
+              className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-8 pr-3 text-xs text-gray-900 focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+            />
+          </div>
+          {searchResults.length > 0 && (
+            <div className="max-h-40 space-y-0.5 overflow-y-auto">
+              {searchResults.filter((p) => !memberIds.has(p.email || p.id)).map((p) => (
+                <div key={p.id} className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-white dark:hover:bg-gray-700">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-gray-800 dark:text-gray-200">{p.name}</p>
+                    {p.email && <p className="truncate text-[10px] text-gray-400">{p.email}</p>}
+                  </div>
+                  <button
+                    onClick={() => handleAdd(p)}
+                    disabled={adding === p.id}
+                    className="shrink-0 rounded-md bg-brand-500 px-2 py-1 text-[10px] font-medium text-white hover:bg-brand-600 disabled:opacity-50"
+                  >
+                    {adding === p.id ? "..." : "Add"}
+                  </button>
+                </div>
+              ))}
+              {searchResults.filter((p) => !memberIds.has(p.email || p.id)).length === 0 && (
+                <p className="py-2 text-center text-[10px] text-gray-400">All results already members</p>
+              )}
+            </div>
+          )}
+          {searchQuery.length >= 2 && searchResults.length === 0 && (
+            <p className="py-2 text-center text-[10px] text-gray-400">No patients found</p>
+          )}
+        </div>
+      )}
+
+      {/* Existing member list */}
       {online.length > 0 && (
         <div>
           <h4 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
