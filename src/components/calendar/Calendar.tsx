@@ -1012,7 +1012,13 @@ const Calendar: React.FC = () => {
                         const rawStartStr = typeof a.start === 'string' && !/^\d+$/.test(a.start) ? a.start : '';
                         const rawEndStr = typeof a.end === 'string' && !/^\d+$/.test(a.end) ? a.end : '';
                         const startDt = rawStartStr ? new Date(rawStartStr) : null;
-                        const endDt = rawEndStr ? new Date(rawEndStr) : null;
+                        let endDt = rawEndStr ? new Date(rawEndStr) : null;
+
+                        // If end is missing but start is valid, compute end from duration or default to +15 min
+                        if (!endDt && startDt && !isNaN(startDt.getTime())) {
+                            const dur = Number(a.minutesDuration ?? a.duration ?? a.durationMinutes ?? 15);
+                            endDt = new Date(startDt.getTime() + (dur > 0 ? dur : 15) * 60 * 1000);
+                        }
 
                         let name = a.patientName || a.patientDisplay || '';
                         if (!name && patientId && patientNameCache.current[patientId]) {
@@ -1940,6 +1946,9 @@ const Calendar: React.FC = () => {
                                         height="auto"
                                         contentHeight="auto"
                                         slotMinTime="00:00:00"
+                                        slotDuration="00:15:00"
+                                        slotLabelInterval="00:30:00"
+                                        defaultTimedEventDuration="00:15:00"
                                         scrollTime={`${workingHoursStart}:00`}
                                         businessHours={businessHours}
                                         views={{ timeGridDay: { titleFormat: { year: "numeric", month: "long", day: "numeric", weekday: "long" } } }}
@@ -1986,6 +1995,9 @@ const Calendar: React.FC = () => {
                                         height="auto"
                                         contentHeight="auto"
                                         slotMinTime="00:00:00"
+                                        slotDuration="00:15:00"
+                                        slotLabelInterval="00:30:00"
+                                        defaultTimedEventDuration="00:15:00"
                                         scrollTime={`${workingHoursStart}:00`}
                                         businessHours={businessHours}
                                         eventDisplay="block"
@@ -2051,6 +2063,8 @@ const Calendar: React.FC = () => {
                                     height="auto"
                                     contentHeight="auto"
                                     slotMinTime="00:00:00"
+                                    slotDuration="00:15:00"
+                                    defaultTimedEventDuration="00:15:00"
                                     scrollTime={`${workingHoursStart}:00`}
                                     businessHours={businessHours}
                                     eventDisplay="block"
