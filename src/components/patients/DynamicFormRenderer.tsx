@@ -975,12 +975,39 @@ function DiagnosisList({
       if (!q || q.length < 2) { setSearchResults([]); return; }
       try {
         const codeSystem = field.diagnosisConfig?.codeSystem || "ICD10_CM";
+        const codeTypeMap: Record<string, string> = { ICD10_CM: "ICD10", ICD10: "ICD10", ICD9: "ICD9" };
+        const mappedCodeType = codeTypeMap[codeSystem] || codeSystem;
         const base = API_BASE();
+
+        // Primary: ciyex-codes proxy
         const url = `${base}/api/app-proxy/ciyex-codes/api/codes/${codeSystem}/search?q=${encodeURIComponent(q)}&size=15`;
         const res = await fetchWithAuth(url);
         if (res.ok) {
           const json = await res.json();
-          setSearchResults(json.content || []);
+          const results = json.content || json.data || [];
+          if (results.length > 0) { setSearchResults(results); return; }
+        }
+
+        // Fallback: global_codes search
+        const fb = await fetchWithAuth(`${base}/api/global_codes/search?q=${encodeURIComponent(q)}&codeType=${mappedCodeType}`);
+        if (fb.ok) {
+          const fj = await fb.json();
+          const fbResults = fj.data || fj.content || [];
+          if (fbResults.length > 0) { setSearchResults(fbResults); return; }
+        }
+
+        // Second fallback: global_codes list + client filter
+        const fb2 = await fetchWithAuth(`${base}/api/global_codes?codeType=${mappedCodeType}&page=0&size=50`);
+        if (fb2.ok) {
+          const fj2 = await fb2.json();
+          const allCodes = fj2.data || fj2.content || [];
+          const ql = q.toLowerCase();
+          const filtered = allCodes.filter((c: any) =>
+            (c.code || "").toLowerCase().includes(ql) ||
+            (c.description || "").toLowerCase().includes(ql) ||
+            (c.shortDescription || "").toLowerCase().includes(ql)
+          );
+          setSearchResults(filtered.slice(0, 15));
         }
       } catch { setSearchResults([]); }
     },
