@@ -31,6 +31,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
     private sessionId: string = "";
     private userId: string = "";
     private remotePeersSnapshot: Map<string, { displayName: string }> = new Map();
+    private joinTimeout: ReturnType<typeof setTimeout> | null = null;
 
     async connect(
         session: VideoCallSession,
@@ -64,9 +65,10 @@ export class MediasoupStompProvider implements VideoCallProvider {
     }
 
     private connectSignaling(wsUrl: string, displayName: string): Promise<void> {
-        return new Promise((resolve) => {
-            // If the server never sends "joined" within 20s, surface an error instead of spinning forever
-            const joinTimeout = setTimeout(() => {
+        return new Promise((resolve, reject) => {
+            // If the server never sends "joined" within 20s, surface an error instead of spinning forever.
+            // This timeout is NOT cleared on STOMP connect — only when "joined" is received in setupMediasoup.
+            this.joinTimeout = setTimeout(() => {
                 console.error("[telehealth] Timed out waiting for 'joined' from signaling server");
                 this.onStateChange?.({ error: "Could not connect to session — the session may have ended. Please try again.", callStatus: "error" });
                 resolve();
@@ -81,7 +83,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
             });
 
             stompClient.onConnect = () => {
-                clearTimeout(joinTimeout);
+                // Do NOT clear joinTimeout here — it should only be cleared when "joined" is received
                 const sid = this.sessionId;
                 const uid = this.userId;
 
@@ -124,10 +126,21 @@ export class MediasoupStompProvider implements VideoCallProvider {
             };
 
             stompClient.onStompError = (frame) => {
-                clearTimeout(joinTimeout);
+                if (this.joinTimeout) { clearTimeout(this.joinTimeout); this.joinTimeout = null; }
                 console.error("[STOMP] Error:", frame.headers["message"]);
                 this.onStateChange?.({ error: "Signaling connection error — please refresh", callStatus: "error" });
                 resolve();
+            };
+
+            stompClient.onWebSocketClose = () => {
+                // If WebSocket closes before "joined" is received, fire error immediately
+                if (this.joinTimeout) {
+                    clearTimeout(this.joinTimeout);
+                    this.joinTimeout = null;
+                    console.error("[telehealth] WebSocket closed before session joined");
+                    this.onStateChange?.({ error: "Connection lost — the telehealth server may be unavailable. Please try again.", callStatus: "error" });
+                    resolve();
+                }
             };
 
             stompClient.activate();
@@ -155,6 +168,8 @@ export class MediasoupStompProvider implements VideoCallProvider {
     }
 
     private async setupMediasoup(joinData: any): Promise<void> {
+        // "joined" received — clear the connection timeout
+        if (this.joinTimeout) { clearTimeout(this.joinTimeout); this.joinTimeout = null; }
         try {
             const { Device } = await import("mediasoup-client");
             const device = new Device();
