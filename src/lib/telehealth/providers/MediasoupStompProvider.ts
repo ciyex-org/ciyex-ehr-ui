@@ -91,7 +91,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
                 const sid = this.sessionId;
                 const uid = this.userId;
 
-                stompClient.subscribe(`/user/${uid}/queue/signal`, (msg) => {
+                stompClient.subscribe(`/topic/signal/${uid}`, (msg) => {
                     this.handleSignalingMessage(JSON.parse(msg.body));
                 });
 
