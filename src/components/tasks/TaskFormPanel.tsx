@@ -449,7 +449,7 @@ export default function TaskFormPanel({
                 placeholder="Auto-filled from search"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none transition cursor-not-allowed"
               />
-              {!form.patientId?.trim() && form.patientName !== undefined && form.patientName !== "" && (
+              {!String(form.patientId || "").trim() && form.patientName !== undefined && form.patientName !== "" && (
                 <p className="text-xs text-red-500 mt-1">Please select a patient from the dropdown</p>
               )}
             </div>
@@ -528,7 +528,7 @@ export default function TaskFormPanel({
           </button>
           <button
             onClick={onSave}
-            disabled={saving || !form.title.trim() || !/^[A-Za-z0-9\s\-_/()&.,:'!?]+$/.test(form.title.trim()) || /^-|-$/.test(form.title.trim()) || !/[A-Za-z]/.test(form.title) || !form.patientId?.trim() || !form.assignedTo?.trim()}
+            disabled={saving || !form.title.trim() || !/^[A-Za-z0-9\s\-_/()&.,:'!?]+$/.test(form.title.trim()) || /^-|-$/.test(form.title.trim()) || !/[A-Za-z]/.test(form.title) || !String(form.patientId || "").trim() || !String(form.assignedTo || "").trim()}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg shadow-sm transition-colors"
           >
             {saving ? (
