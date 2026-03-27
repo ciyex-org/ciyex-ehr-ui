@@ -50,9 +50,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <meta name="msvalidate.01" content="AC1E1053B65B61FB1E59A16FF3036505" />
-      </head>
       <body className={`${outfit.className} dark:bg-gray-900`}>
         <EnvProvider>
           <ThemeProvider>
