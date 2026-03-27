@@ -32,6 +32,9 @@ export const metadata: Metadata = {
         template: "Ciyex | %s",
     },
     description: "Ciyex Admin Dashboard",
+    other: {
+        'msvalidate.01': 'AC1E1053B65B61FB1E59A16FF3036505',
+    },
     icons: {
         icon: [
             { url: '/favicon.ico', sizes: '32x32' },
