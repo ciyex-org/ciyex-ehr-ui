@@ -47,8 +47,12 @@ export class MediasoupStompProvider implements VideoCallProvider {
         this.remoteVideoEl = remoteVideoEl;
         this.onStateChange = onStateChange;
 
-        // wsUrl comes from the session joinInfo populated by the SDK/vendor
-        const wsUrl = session.joinInfo?.wsUrl;
+        // Build wsUrl from current page origin so WebSocket goes through the same
+        // Cloudflare-cleared domain the browser is already on (avoids cross-domain
+        // Cloudflare managed challenges that block WebSocket upgrades).
+        const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
+        const host = typeof window !== "undefined" ? window.location.host : "";
+        const wsUrl = host ? `${protocol}//${host}/ws/telehealth` : session.joinInfo?.wsUrl;
         if (!wsUrl) {
             throw new Error("Session missing joinInfo.wsUrl — check that the telehealth vendor is configured in the marketplace");
         }
