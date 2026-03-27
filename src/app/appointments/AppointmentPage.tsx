@@ -192,12 +192,28 @@ function timeFromMMDDYYYY(s: string, fallback: number, endOfDay = false): number
     : new Date(iso + "T00:00:00").getTime();
 }
 
-/** Format wait time = Current Time - Scheduled Appointment Time (uses local timezone) */
+/** Format wait time = Current Time - Scheduled Appointment Time (uses local timezone).
+ *  Only shows wait time for TODAY's appointments where the appointment time has passed.
+ *  Returns null for future appointments or appointments from other days. */
 function formatWaitTime(scheduledDateTime: string): { text: string; color: string } | null {
   if (!scheduledDateTime) return null;
-  const scheduled = new Date(scheduledDateTime).getTime();
+  // Parse as local time (no "Z" suffix so it's treated as local)
+  const raw = scheduledDateTime.endsWith("Z") ? scheduledDateTime.slice(0, -1) : scheduledDateTime;
+  const scheduled = new Date(raw).getTime();
   if (isNaN(scheduled)) return null;
-  const mins = Math.floor((Date.now() - scheduled) / 60000);
+
+  // Only show wait time for today's appointments
+  const now = new Date();
+  const scheduledDate = new Date(raw);
+  if (
+    scheduledDate.getFullYear() !== now.getFullYear() ||
+    scheduledDate.getMonth() !== now.getMonth() ||
+    scheduledDate.getDate() !== now.getDate()
+  ) {
+    return null; // not today — no wait time
+  }
+
+  const mins = Math.floor((now.getTime() - scheduled) / 60000);
   if (mins < 0) return null; // appointment hasn't started yet
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -624,24 +640,40 @@ export default function AppointmentPage() {
   }, [refreshInterval, loadAppointments]);
 
   const onPrint = () => {
-    const el = tableRef.current;
-    if (!el) { window.print(); return; }
+    // Build a clean print table from actual data — no raw innerHTML to avoid interactive elements
     const pw = window.open("", "_blank");
     if (!pw) { window.print(); return; }
+
+    const printRows = filtered.map((r) => {
+      const statusOpt = getStatusOption(r.status);
+      return `<tr>
+        <td>${formatToMMDDYYYY(r.appointmentStartDate)}<br><small>${formatTimeTo12h(r.appointmentStartTime) || "—"} - ${formatTimeTo12h(r.appointmentEndTime) || "—"}</small></td>
+        <td>${r.patientName || "—"}<br><small>MRN: ${r.patientId}</small>${r.patientPhone ? `<br><small>${r.patientPhone}</small>` : ""}</td>
+        <td>${r.providerName || providers.find((p) => String(p.id) === String(r.providerId))?.name || "—"}</td>
+        <td>${r.locationName || locations.find((l) => String(l.id) === String(r.locationId))?.name || "—"}</td>
+        <td>${typeof r.visitType === "object" && r.visitType !== null ? ((r.visitType as any).text || (r.visitType as any).coding?.[0]?.display || "—") : (r.visitType || "—")}</td>
+        <td>${statusOpt?.label || r.status || "—"}</td>
+        <td>${r.room || "—"}</td>
+        <td>${r.reason || "—"}</td>
+      </tr>`;
+    }).join("");
+
     pw.document.write(`<!DOCTYPE html><html><head><title>Ciyex | FrontDesk</title><style>
       body { font-family: system-ui, -apple-system, sans-serif; margin: 0.5in; }
       table { width: 100%; border-collapse: collapse; font-size: 11px; }
       th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
       th { background: #f9fafb; font-weight: 600; text-transform: uppercase; font-size: 10px; color: #6b7280; }
-      .no-print { display: none !important; }
-      svg { display: none !important; }
-      select { appearance: none; border: none; background: transparent; }
-      input[type="checkbox"] { display: none; }
+      small { color: #6b7280; }
       @page { size: landscape; margin: 0.5in; }
       h2 { text-align: center; font-size: 14px; margin-bottom: 8px; }
     </style></head><body>
-      <h2>${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} &mdash; Appointments</h2>
-      ${el.innerHTML}
+      <h2>${formatToMMDDYYYY(todayISO())} &mdash; Appointments</h2>
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Patient</th><th>Provider</th><th>Location</th><th>Type</th><th>Status</th><th>Room</th><th>Reason</th>
+        </tr></thead>
+        <tbody>${printRows}</tbody>
+      </table>
     </body></html>`);
     pw.document.close();
     setTimeout(() => { pw.print(); pw.close(); }, 300);
