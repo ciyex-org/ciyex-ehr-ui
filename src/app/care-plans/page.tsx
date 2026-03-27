@@ -148,8 +148,9 @@ export default function CarePlansPage() {
     }, 400);
   }
 
-  // Client-side fallback filter for author and search term (in case backend ignores &author= or &q=)
+  // Client-side fallback filter for category, author and search term (in case backend ignores filters)
   const filteredPlans = plans.filter((p) => {
+    if (categoryFilter !== "all" && (p.category || "").toLowerCase() !== categoryFilter.toLowerCase()) return false;
     if (authorFilter && !(p.authorName || "").toLowerCase().includes(authorFilter.toLowerCase())) return false;
     if (searchTerm) {
       const q = searchTerm.toLowerCase();

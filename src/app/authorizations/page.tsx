@@ -531,11 +531,19 @@ export default function PriorAuthorizationsPage() {
     setEditingAuth(auth);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, ...rest } = auth;
-    setFormData(rest);
-    setPatientQuery(auth.patientName); setProviderQuery(auth.providerName);
+    // Convert all fields to strings to prevent .trim() crashes on numeric values from backend
+    const safeRest: typeof rest = { ...rest };
+    for (const key of Object.keys(safeRest) as (keyof typeof safeRest)[]) {
+      const v = safeRest[key];
+      if (v != null && typeof v !== 'string' && typeof v !== 'number') continue;
+      if (typeof v === 'number') (safeRest as any)[key] = String(v);
+    }
+    setFormData(safeRest);
+    resetSearchFields();
+    setPatientQuery(auth.patientName || ""); setProviderQuery(auth.providerName || "");
     skipInsuranceSearchRef.current = true;
-    setInsuranceQuery(auth.insuranceName); setDiagnosisQuery(auth.diagnosisCode);
-    setProcedureQuery(auth.procedureCode);
+    setInsuranceQuery(auth.insuranceName || ""); setDiagnosisQuery(auth.diagnosisCode || "");
+    setProcedureQuery(auth.procedureCode || "");
     setShowForm(true);
     setActionMenuId(null);
     // Always refresh patient name from live data so updated names are reflected
