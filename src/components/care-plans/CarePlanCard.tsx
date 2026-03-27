@@ -28,6 +28,7 @@ import GoalItem from "./GoalItem";
 import InterventionItem from "./InterventionItem";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import DateInput from "@/components/ui/DateInput";
 
 function apiUrl(path: string) {
   return `${getEnv("NEXT_PUBLIC_API_URL")}${path}`;
@@ -406,8 +407,7 @@ export default function CarePlanCard({
                   className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <input
-                    type="date"
+                  <DateInput
                     value={goalForm.targetDate}
                     onChange={(e) =>
                       setGoalForm({ ...goalForm, targetDate: e.target.value })

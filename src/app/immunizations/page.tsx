@@ -5,6 +5,7 @@ import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { formatDisplayDate } from "@/utils/dateUtils";
+import DateInput from "@/components/ui/DateInput";
 import {
   Search,
   Plus,
@@ -434,7 +435,7 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
               </div>
               <div>
                 <label className={labelCls}>Expiration Date</label>
-                <input type="date" className={inputCls} value={form.expirationDate || ""} onChange={(e) => set("expirationDate", e.target.value)} />
+                <DateInput className={inputCls} value={form.expirationDate || ""} onChange={(e) => set("expirationDate", e.target.value)} />
               </div>
             </div>
           </div>
@@ -445,7 +446,7 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Administration Date</label>
-                <input type="date" className={inputCls} value={form.administrationDate} onChange={(e) => set("administrationDate", e.target.value)} />
+                <DateInput className={inputCls} value={form.administrationDate} onChange={(e) => set("administrationDate", e.target.value)} />
               </div>
               <div>
                 <label className={labelCls}>Site</label>
@@ -518,7 +519,7 @@ function ImmunizationFormPanel({ open, onClose, record, onSaved, showToast }: {
               </div>
               <div>
                 <label className={labelCls}>VIS Date</label>
-                <input type="date" className={inputCls} value={form.visDate || ""} onChange={(e) => set("visDate", e.target.value)} />
+                <DateInput className={inputCls} value={form.visDate || ""} onChange={(e) => set("visDate", e.target.value)} />
               </div>
               {form.status === "not_done" && (
                 <div className="sm:col-span-2">

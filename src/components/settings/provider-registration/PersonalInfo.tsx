@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import DateInput from "@/components/ui/DateInput";
 
 interface PersonalInfoFormData {
     firstName: string;
@@ -61,11 +62,10 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ formData, handleChange, err
             {/* Date of Birth Input */}
             <div>
                 <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                <input
-                    type="date"
+                <DateInput
                     name="dob"
                     value={formData.dob}
-                    onChange={handleChange}
+                    onChange={(e) => handleChange(e as unknown as React.ChangeEvent<HTMLInputElement>)}
                     className="order-date-input flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />
                 {errors.dob && <p className="text-red-500 text-xs">{errors.dob}</p>}

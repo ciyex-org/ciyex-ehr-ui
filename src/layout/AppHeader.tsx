@@ -7,7 +7,7 @@ import { useSidebar } from "@/context/SidebarContext";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
-import DatePicker from "@/components/DatePicker";
+import DateInput from "@/components/ui/DateInput";
 import PluginSlot from "@/components/plugins/PluginSlot";
 import { usePermissions } from "@/context/PermissionContext";
 import { isValidName, isValidPhone, isValidEmail } from "@/utils/validation";
@@ -504,14 +504,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({ pageTitle }) => {
                                 <label className="block text-sm font-medium mb-1">
                                     <span className="text-red-500">*</span> Date of Birth
                                 </label>
-                                <DatePicker
+                                <DateInput
                                     value={formData.dateOfBirth}
-                                    onChange={(date) => {
-                                        setFormData(prev => ({ ...prev, dateOfBirth: date }));
+                                    onChange={(e) => {
+                                        setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }));
                                         if (fieldErrors.dateOfBirth) setFieldErrors(prev => { const n = { ...prev }; delete n.dateOfBirth; return n; });
                                     }}
-                                    placeholder="dd-mm-yyyy"
-                                    maxDate={new Date().toISOString().split("T")[0]}
+                                    placeholder="MM/DD/YYYY"
+                                    max={new Date().toISOString().split("T")[0]}
                                 />
                                 {fieldErrors.dateOfBirth && <p className="text-xs text-red-500 mt-1">{fieldErrors.dateOfBirth}</p>}
                             </div>

@@ -20,6 +20,7 @@ import {
   EMPTY_INTERVENTION,
   CATEGORIES,
 } from "./types";
+import DateInput from "@/components/ui/DateInput";
 
 type FormData = Omit<CarePlan, "id" | "createdAt" | "updatedAt">;
 
@@ -409,8 +410,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Start Date</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.startDate}
                   onChange={(e) => setField("startDate", e.target.value)}
                   className={inputClass}
@@ -418,8 +418,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
               </div>
               <div>
                 <label className={labelClass}>End Date</label>
-                <input
-                  type="date"
+                <DateInput
                   value={form.endDate}
                   min={form.startDate || undefined}
                   onChange={(e) => { setField("endDate", e.target.value); setFormError(null); }}
@@ -545,8 +544,7 @@ export default function CarePlanFormPanel({ editing, onClose, onSave }: Props) {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className={labelClass}>Target Date</label>
-                      <input
-                        type="date"
+                      <DateInput
                         value={goal.targetDate}
                         onChange={(e) =>
                           updateGoal(idx, { targetDate: e.target.value })

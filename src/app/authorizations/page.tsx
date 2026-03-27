@@ -5,6 +5,7 @@ import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { formatDisplayDate } from "@/utils/dateUtils";
+import DateInput from "@/components/ui/DateInput";
 import {
   Search,
   Plus,
@@ -1816,22 +1817,26 @@ function FormField({
   onChange: (v: string) => void;
   type?: string;
 }) {
+  const inputClass = "w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500";
   return (
     <div>
       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
         {label}
       </label>
-      <div className="relative">
+      {type === "date" ? (
+        <DateInput
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputClass}
+        />
+      ) : (
         <input
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500${type === "date" ? " [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer pr-9" : ""}`}
+          className={inputClass}
         />
-        {type === "date" && (
-          <Calendar className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        )}
-      </div>
+      )}
     </div>
   );
 }

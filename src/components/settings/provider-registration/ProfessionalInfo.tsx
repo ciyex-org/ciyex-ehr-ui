@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import DateInput from "@/components/ui/DateInput";
 
 interface ProfessionalInfoFormData {
     providerType: string;
@@ -96,11 +97,10 @@ const ProfessionalInfo: React.FC<ProfessionalInfoProps> = ({ formData, handleCha
                 <label className="block text-sm font-medium text-gray-700">
                     License Expiry <span className="text-red-500">*</span>
                 </label>
-                <input
-                    type="date"
+                <DateInput
                     name="licenseExpiry"
                     value={formData.licenseExpiry}
-                    onChange={handleChange}
+                    onChange={(e) => handleChange(e as unknown as React.ChangeEvent<HTMLInputElement>)}
                     required
                     className="order-date-input flex h-9 w-full rounded-md border border-gray-300 bg-white px-3 py-1 text-sm shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 />

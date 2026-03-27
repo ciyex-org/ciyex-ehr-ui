@@ -13,6 +13,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import { usePermissions } from "@/context/PermissionContext";
+import DateInput from "@/components/ui/DateInput";
 import type {
   ReportDefinition, ReportResult, FilterValues, ChartConfig,
   ChartDataPoint, KpiValue, ColumnConfig,
@@ -320,11 +321,11 @@ function ApiFilterBar({
         <>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">From</label>
-            <input type="date" value={(filters.fromDate as string) || ""} onChange={e => onChange({ ...filters, fromDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
+            <DateInput value={(filters.fromDate as string) || ""} onChange={e => onChange({ ...filters, fromDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-slate-500">To</label>
-            <input type="date" value={(filters.toDate as string) || ""} onChange={e => onChange({ ...filters, toDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
+            <DateInput value={(filters.toDate as string) || ""} onChange={e => onChange({ ...filters, toDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
           </div>
         </>
       )}
@@ -848,11 +849,11 @@ export default function ReportShell({ report }: { report: ReportDefinition }) {
           <>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-500">From</label>
-              <input type="date" value={(filters.fromDate as string) || ""} onChange={e => setFilters({ ...filters, fromDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
+              <DateInput value={(filters.fromDate as string) || ""} onChange={e => setFilters({ ...filters, fromDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-slate-500">To</label>
-              <input type="date" value={(filters.toDate as string) || ""} onChange={e => setFilters({ ...filters, toDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
+              <DateInput value={(filters.toDate as string) || ""} onChange={e => setFilters({ ...filters, toDate: e.target.value })} className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-800" />
             </div>
           </>
         )}

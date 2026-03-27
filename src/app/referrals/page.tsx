@@ -33,6 +33,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { isValidUSPhone, isValidFax, isValidNpi } from "@/utils/validation";
+import DateInput from "@/components/ui/DateInput";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -482,7 +483,7 @@ function ReferralFormPanel({
               </div>
               <div>
                 <label className={labelCls}>Referral Date <span className="text-red-500">*</span></label>
-                <input type="date" className={inputCls("referralDate")} value={form.referralDate} onChange={(e) => set("referralDate", e.target.value)} />
+                <DateInput className={inputCls("referralDate")} value={form.referralDate} onChange={(e) => set("referralDate", e.target.value)} />
                 {errors.referralDate && <p className="text-xs text-red-500 mt-1">{errors.referralDate}</p>}
               </div>
             </div>
@@ -586,7 +587,7 @@ function ReferralFormPanel({
               </div>
               <div>
                 <label className={labelCls}>Expiry Date</label>
-                <input type="date" className={inputCls("expiryDate")} value={form.expiryDate} onChange={(e) => set("expiryDate", e.target.value)} />
+                <DateInput className={inputCls("expiryDate")} value={form.expiryDate} onChange={(e) => set("expiryDate", e.target.value)} />
                 {errors.expiryDate && <p className="text-xs text-red-500 mt-1">{errors.expiryDate}</p>}
               </div>
             </div>
@@ -629,7 +630,7 @@ function ReferralFormPanel({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Appointment Date</label>
-                  <input type="date" className={inputCls("appointmentDate")} value={form.appointmentDate} onChange={(e) => set("appointmentDate", e.target.value)} />
+                  <DateInput className={inputCls("appointmentDate")} value={form.appointmentDate} onChange={(e) => set("appointmentDate", e.target.value)} />
                   {errors.appointmentDate && <p className="text-xs text-red-500 mt-1">{errors.appointmentDate}</p>}
                 </div>
               </div>

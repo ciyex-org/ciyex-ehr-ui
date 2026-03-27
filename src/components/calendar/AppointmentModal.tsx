@@ -13,6 +13,7 @@ import {
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import Alert from "@/components/ui/alert/Alert";
 import { usePermissions } from "@/context/PermissionContext";
+import DateInput from "@/components/ui/DateInput";
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.css";
 
@@ -801,8 +802,7 @@ const AppointmentModal: React.FC = () => {
                             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                 Start Date
                             </label>
-                            <input
-                                type="date"
+                            <DateInput
                                 value={startDate}
                                 min={new Date().toISOString().split("T")[0]}
                                 onChange={(e) => {
@@ -820,8 +820,7 @@ const AppointmentModal: React.FC = () => {
                             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                 End Date
                             </label>
-                            <input
-                                type="date"
+                            <DateInput
                                 value={endDate}
                                 min={startDate || new Date().toISOString().split("T")[0]}
                                 onChange={(e) => {

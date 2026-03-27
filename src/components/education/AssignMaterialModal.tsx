@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { X, Loader2, Search, Send, BookOpen } from "lucide-react";
 import { EducationMaterial, CATEGORY_COLORS, categoryLabel } from "./types";
+import DateInput from "@/components/ui/DateInput";
 
 interface Props {
   open: boolean;
@@ -357,8 +358,7 @@ export default function AssignMaterialModal({
             {/* Due Date */}
             <div>
               <label className={labelCls}>Due Date</label>
-              <input
-                type="date"
+              <DateInput
                 className={inputCls()}
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}

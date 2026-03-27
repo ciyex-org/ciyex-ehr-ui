@@ -5,6 +5,7 @@ import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { formatDisplayDate } from "@/utils/dateUtils";
+import DateInput from "@/components/ui/DateInput";
 import {
   Search,
   Plus,
@@ -321,7 +322,7 @@ function ConsentFormPanel({ open, onClose, consent, onSaved, showToast }: {
             </div>
             <div>
               <label className={labelCls}>Expiry Date</label>
-              <input type="date" className={inputCls} value={form.expiryDate || ""} onChange={(e) => set("expiryDate", e.target.value)} />
+              <DateInput className={inputCls} value={form.expiryDate || ""} onChange={(e) => set("expiryDate", e.target.value)} />
             </div>
             <div>
               <label className={labelCls}>Version</label>

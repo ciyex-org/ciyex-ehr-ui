@@ -17,6 +17,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { usePermissions } from "@/context/PermissionContext";
+import DateInput from "@/components/ui/DateInput";
 
 interface Patient {
     id: number;
@@ -694,8 +695,7 @@ export default function PatientListPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium mb-1">Date of Birth <span className="text-red-500">*</span></label>
-                                <input
-                                    type="date"
+                                <DateInput
                                     required
                                     max={new Date().toISOString().split("T")[0]}
                                     value={newPatient.dateOfBirth}
@@ -837,8 +837,7 @@ export default function PatientListPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Date of Birth <span className="text-red-500">*</span></label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         required
                                         max={new Date().toISOString().split("T")[0]}
                                         value={editPatient.dateOfBirth}

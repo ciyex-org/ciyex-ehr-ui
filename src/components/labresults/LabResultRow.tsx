@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import DateInput from "@/components/ui/DateInput";
 
 // Inline LabResultDto (kept consistent with definition in LabResultsTable)
 export interface LabResultDto {
@@ -89,8 +90,7 @@ export const LabResultRow: React.FC<LabResultRowProps> = ({ result, onChange, on
           placeholder="Specimen"
           className="w-28 border rounded px-2 py-1 text-xs"
         />
-        <input
-          type="date"
+        <DateInput
           value={result.collectedDate || ""}
           onChange={(e) => {
             const v = e.target.value;
@@ -106,8 +106,7 @@ export const LabResultRow: React.FC<LabResultRowProps> = ({ result, onChange, on
         />
       </Td>
       <Td>
-        <input
-          type="date"
+        <DateInput
           value={result.reportedDate || ""}
           min={result.collectedDate || undefined}
           onChange={(e) => {

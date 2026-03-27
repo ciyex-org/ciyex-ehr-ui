@@ -7,6 +7,7 @@ import { getEnv } from "@/utils/env";
 import { isValidName, isValidPhone, isValidEmail, isValidUSPhone, formatUSPhone, isValidSSN } from "@/utils/validation";
 import { usePermissions } from "@/context/PermissionContext";
 import { toast } from "@/utils/toast";
+import DateInput from "@/components/ui/DateInput";
 
 // Define interfaces for your form data structure
 interface PersonalInfo {
@@ -705,8 +706,7 @@ export default function AddPatient() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth*</label>
-                                    <input
-                                        type="date"
+                                    <DateInput
                                         value={formData.personalInfo.dob}
                                         onChange={(e) => {
                                             const val = e.target.value;
@@ -720,7 +720,6 @@ export default function AddPatient() {
                                             setFormErrors(prev => { const n = { ...prev }; delete n.dob; return n; });
                                         }}
                                         max={new Date().toISOString().split("T")[0]}
-                                        onKeyDown={(e) => e.preventDefault()}
                                         className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${formErrors.dob ? "border-red-500" : "border-gray-300"}`}
                                         required
                                     />
@@ -1638,8 +1637,7 @@ export default function AddPatient() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             value={formData.insurance.primary.effectiveDate}
                                             onChange={(e) => handleNestedChange("insurance", "primary", "effectiveDate", e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -1649,8 +1647,7 @@ export default function AddPatient() {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             value={formData.insurance.primary.endDate}
                                             onChange={(e) => {
                                                 const val = e.target.value;
@@ -1748,8 +1745,7 @@ export default function AddPatient() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                                            <input
-                                                type="date"
+                                            <DateInput
                                                 value={formData.insurance.primary.guarantor.dob}
                                                 onChange={(e) => handleDeepNestedChange("insurance", "primary", "guarantor", "dob", e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -2024,8 +2020,7 @@ export default function AddPatient() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             value={formData.insurance.secondary.effectiveDate}
                                             onChange={(e) => handleNestedChange("insurance", "secondary", "effectiveDate", e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -2068,8 +2063,7 @@ export default function AddPatient() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                                            <input
-                                                type="date"
+                                            <DateInput
                                                 value={formData.insurance.secondary.guarantor.dob}
                                                 onChange={(e) => handleDeepNestedChange("insurance", "secondary", "guarantor", "dob", e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -2295,8 +2289,7 @@ export default function AddPatient() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             value={formData.insurance.tertiary.effectiveDate}
                                             onChange={(e) => handleNestedChange("insurance", "tertiary", "effectiveDate", e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -2339,8 +2332,7 @@ export default function AddPatient() {
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                                            <input
-                                                type="date"
+                                            <DateInput
                                                 value={formData.insurance.tertiary.guarantor.dob}
                                                 onChange={(e) => handleDeepNestedChange("insurance", "tertiary", "guarantor", "dob", e.target.value)}
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { Search, Filter, Download, Calendar } from "lucide-react";
+import DateInput from "@/components/ui/DateInput";
 
 const ACTIONS = ["ALL", "VIEW", "CREATE", "UPDATE", "DELETE", "SIGN", "PRINT", "EXPORT"] as const;
 
@@ -97,28 +98,20 @@ export default function AuditFilters({
         </select>
 
         {/* Date from */}
-        <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => onDateFromChange(e.target.value)}
-            className="pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            title="From date"
-          />
-        </div>
+        <DateInput
+          value={dateFrom}
+          onChange={(e) => onDateFromChange(e.target.value)}
+          className="pr-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          title="From date"
+        />
 
         {/* Date to */}
-        <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => onDateToChange(e.target.value)}
-            className="pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            title="To date"
-          />
-        </div>
+        <DateInput
+          value={dateTo}
+          onChange={(e) => onDateToChange(e.target.value)}
+          className="pr-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          title="To date"
+        />
 
         {/* User filter */}
         <input

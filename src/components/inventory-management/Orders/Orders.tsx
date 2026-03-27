@@ -6,6 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import Button from "@/components/ui/button/Button";
 import Alert from "@/components/ui/alert/Alert";
+import DateInput from "@/components/ui/DateInput";
 
 const API = () => getEnv("NEXT_PUBLIC_API_URL");
 
@@ -367,7 +368,7 @@ export default function Orders() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Order Date</label>
-              <input type="date" value={orderDate} onChange={e => {
+              <DateInput value={orderDate} onChange={e => {
                 const val = e.target.value;
                 setOrderDate(val);
                 if (expectedDate && val && expectedDate < val) {
@@ -379,7 +380,7 @@ export default function Orders() {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Expected Date</label>
-              <input type="date" value={expectedDate} onChange={e => {
+              <DateInput value={expectedDate} onChange={e => {
                 const val = e.target.value;
                 setExpectedDate(val);
                 if (val && orderDate && val < orderDate) {
@@ -425,7 +426,7 @@ export default function Orders() {
                     <td className="px-1 py-1"><input type="number" min={0} step={0.01} value={l.unitCost} onChange={e => updateLine(idx, { unitCost: +e.target.value })} className={`${inputCls} text-right text-xs`} /></td>
                     <td className="px-1 py-1 text-right font-medium text-gray-700 dark:text-gray-300">{currency(l.quantityOrdered * l.unitCost)}</td>
                     <td className="px-1 py-1"><input value={l.lotNumber} onChange={e => updateLine(idx, { lotNumber: e.target.value })} className={`${inputCls} text-xs`} /></td>
-                    <td className="px-1 py-1"><input type="date" value={l.expiryDate} onChange={e => updateLine(idx, { expiryDate: e.target.value })} className={`${inputCls} text-xs`} /></td>
+                    <td className="px-1 py-1"><DateInput value={l.expiryDate} onChange={e => updateLine(idx, { expiryDate: e.target.value })} className={`${inputCls} text-xs`} /></td>
                     <td className="px-1 py-1 text-center">
                       {lines.length > 1 && <button onClick={() => removeLine(idx)} className="text-rose-500 hover:text-rose-700 text-sm leading-none">&times;</button>}
                     </td>

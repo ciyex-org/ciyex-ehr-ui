@@ -8,6 +8,8 @@ import {
     MapPin, Clock, Calendar, ChevronDown, ChevronUp,
 } from "lucide-react";
 
+import DateInput from "@/components/ui/DateInput";
+
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
 /* ========================= Types ========================= */
@@ -776,8 +778,7 @@ function BlockForm({
                 </div>
                 <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Effective From</label>
-                    <input
-                        type="date"
+                    <DateInput
                         value={form.effectiveFrom}
                         onChange={e => update("effectiveFrom", e.target.value)}
                         className="w-full h-8 px-2 text-xs border border-gray-300 rounded-md"
@@ -785,8 +786,7 @@ function BlockForm({
                 </div>
                 <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Effective To (optional)</label>
-                    <input
-                        type="date"
+                    <DateInput
                         value={form.effectiveTo}
                         onChange={e => update("effectiveTo", e.target.value)}
                         className="w-full h-8 px-2 text-xs border border-gray-300 rounded-md"

@@ -2,6 +2,7 @@
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { formatDisplayDate } from "@/utils/dateUtils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import DateInput from "@/components/ui/DateInput";
 
 /* ── Exported DTO (matches backend LabResultDto exactly) ── */
 export interface LabResultDto {
@@ -556,7 +557,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                 <Inp label="Specimen"><input value={editDraft.specimen || ""} onChange={e => upd("specimen", e.target.value)} className={inputCls} /></Inp>
                 <div className="grid grid-cols-2 gap-3">
                   <Inp label="Collected Date" required>
-                    <input type="date" value={editDraft.collectedDate || ""} onChange={e => {
+                    <DateInput value={editDraft.collectedDate || ""} onChange={e => {
                       const v = e.target.value;
                       upd("collectedDate", v);
                       setFormErrors(prev => {
@@ -575,7 +576,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                     {formErrors.collectedDate && <p className="text-red-500 text-xs mt-1">{formErrors.collectedDate}</p>}
                   </Inp>
                   <Inp label="Reported Date">
-                    <input type="date" value={editDraft.reportedDate || ""} min={editDraft.collectedDate || undefined} onChange={e => {
+                    <DateInput value={editDraft.reportedDate || ""} min={editDraft.collectedDate || undefined} onChange={e => {
                       const v = e.target.value;
                       upd("reportedDate", v);
                       setFormErrors(prev => {

@@ -11,6 +11,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import DateInput from "@/components/ui/DateInput";
 
 const API = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/+$/, "");
 const PROXY = () => `${API()}/api/app-proxy/ask-ciya`;
@@ -141,15 +142,13 @@ export default function AiUsageDashboard() {
 
       {/* Date range + refresh */}
       <div className="flex items-center gap-2">
-        <input
-          type="date"
+        <DateInput
           value={fromDate}
           onChange={(e) => setFromDate(e.target.value)}
           className="px-2 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
         />
         <span className="text-xs text-slate-400">to</span>
-        <input
-          type="date"
+        <DateInput
           value={toDate}
           onChange={(e) => setToDate(e.target.value)}
           className="px-2 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"

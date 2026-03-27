@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import DateInput from "@/components/ui/DateInput";
 
 type ImmunizationDto = {
     id?: number;
@@ -542,18 +543,27 @@ function Field({
     type?: "text" | "date" | "number";
     error?: string;
 }) {
+    const cls = `w-full rounded-xl border px-3 py-2 text-sm outline-none transition
+          ${error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-neutral-300 focus:border-blue-500 focus:ring-blue-100"}
+          bg-white focus:ring-2`;
     return (
         <label className="block">
             <span className="mb-1 block text-sm font-medium text-neutral-700">{label}</span>
-            <input
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                type={type}
-                placeholder={placeholder}
-                className={`w-full rounded-xl border px-3 py-2 text-sm outline-none transition
-          ${error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-neutral-300 focus:border-blue-500 focus:ring-blue-100"}
-          bg-white focus:ring-2`}
-            />
+            {type === "date" ? (
+                <DateInput
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    className={cls}
+                />
+            ) : (
+                <input
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    type={type}
+                    placeholder={placeholder}
+                    className={cls}
+                />
+            )}
             {error && <span className="mt-1 block text-xs text-red-600">{error}</span>}
         </label>
     );

@@ -8,6 +8,7 @@ import { formatDisplayDate } from "@/utils/dateUtils";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
+import DateInput from "@/components/ui/DateInput";
 import {
   Calendar, Clock, AlertTriangle, CheckCircle2, Phone, Mail, MessageSquare,
   FileText, ChevronRight, ChevronDown, Search, Plus, Filter, X, User,
@@ -727,7 +728,7 @@ export default function RecallPage() {
                   {/* Due Date */}
                   <div>
                     <Label>Due Date <span className="text-red-500">*</span></Label>
-                    <input type="date" value={formData.dueDate}
+                    <DateInput value={formData.dueDate}
                       onChange={e => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
                       className="mt-1 w-full h-9 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 text-sm" />
                   </div>

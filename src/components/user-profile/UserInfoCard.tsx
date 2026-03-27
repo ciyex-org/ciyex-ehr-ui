@@ -8,6 +8,7 @@ import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import {fetchWithAuth} from "@/utils/fetchWithAuth";
+import DateInput from "@/components/ui/DateInput";
 
 type User = {
     firstName: string;
@@ -250,8 +251,7 @@ export default function UserInfoCard() {
                                 </div>
                                 <div className="col-span-2">
                                     <Label>Date of Birth</Label>
-                                    <Input
-                                        type="date"
+                                    <DateInput
                                         value={formData?.dateOfBirth || ""}
                                         onChange={(e) => setFormData((prev) => ({ ...prev!, dateOfBirth: e.target.value }))}
                                     />

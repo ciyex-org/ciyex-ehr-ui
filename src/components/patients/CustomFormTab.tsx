@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Save, Loader2, CheckCircle } from "lucide-react";
+import DateInput from "@/components/ui/DateInput";
 
 const METADATA_API_BASE = () => (getEnv("NEXT_PUBLIC_METADATA_URL") || "").replace(/\/$/, "");
 
@@ -202,8 +203,7 @@ export default function CustomFormTab({ tabId, patientId, formSchema, tabLabel }
                 );
             case "date":
                 return (
-                    <input
-                        type="date"
+                    <DateInput
                         value={value}
                         onChange={(e) => handleFieldChange(field.name, e.target.value)}
                         className={baseClass}

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { formatDisplayDate } from "@/utils/dateUtils";
+import DateInput from "@/components/ui/DateInput";
 
 interface Claim {
   id: number;
@@ -492,8 +493,7 @@ const ClaimManagementDashboard: React.FC = () => {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Remittance Date</label>
-                    <input
-                      type="date"
+                    <DateInput
                       value={remitDate}
                       onChange={(e) => setRemitDate(e.target.value)}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

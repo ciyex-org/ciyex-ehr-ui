@@ -6,6 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { isValidName, isValidEmail, isValidUSPhone, isValidSSN } from "@/utils/validation";
 import AdminLayout from "@/app/(admin)/layout";
 import { usePermissions } from "@/context/PermissionContext";
+import DateInput from "@/components/ui/DateInput";
 
 interface Patient {
     id: string;
@@ -262,8 +263,7 @@ export default function EditPatientPage() {
                     </div>
                     <div className="mb-4">
                         <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                        <input
-                            type="date"
+                        <DateInput
                             id="dateOfBirth"
                             name="dateOfBirth"
                             value={formData.dateOfBirth || ""}

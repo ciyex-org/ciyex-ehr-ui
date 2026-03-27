@@ -17,6 +17,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import type { PaymentPlan, PlanStatus, PlanFrequency, PatientPaymentMethod } from "./types";
 import { formatCurrency, formatDate } from "./types";
+import DateInput from "@/components/ui/DateInput";
 
 const apiUrl = (p: string) => `${getEnv("NEXT_PUBLIC_API_URL")}${p}`;
 
@@ -415,7 +416,7 @@ export default function PaymentPlansTab({ showToast }: Props) {
                   </div>
                   <div>
                     <label className={labelCls}>Start Date</label>
-                    <input type="date" className={inputCls} value={form.startDate} onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))} />
+                    <DateInput className={inputCls} value={form.startDate} onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))} />
                   </div>
                 </div>
 

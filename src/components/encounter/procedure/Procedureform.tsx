@@ -6,6 +6,7 @@ import { fetchWithOrg } from "@/utils/fetchWithOrg";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import type { ApiResponse, ProcedureDto } from "@/utils/types";
 import { getEncounterData, setEncounterSection, removeEncounterSection } from "@/utils/encounterStorage";
+import DateInput from "@/components/ui/DateInput";
 
 type Props = {
     patientId: number;
@@ -583,8 +584,7 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
 
                         <div>
                             <label className="block text-sm font-medium mb-1">Date Performed</label>
-                            <input
-                                type="date"
+                            <DateInput
                                 className="w-full rounded-lg border px-3 py-2 focus:ring"
                                 value={proc.datePerformed}
                                 onChange={(e) => updateProcedure(index, "datePerformed", e.target.value)}
@@ -593,8 +593,7 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
 
                         <div>
                             <label className="block text-sm font-medium mb-1">Hospital Billing Start</label>
-                            <input
-                                type="date"
+                            <DateInput
                                 className="w-full rounded-lg border px-3 py-2 focus:ring"
                                 value={proc.hospitalBillingStart}
                                 onChange={(e) => updateProcedure(index, "hospitalBillingStart", e.target.value)}
@@ -603,8 +602,7 @@ export default function Procedureform({ patientId, encounterId, editing, onSaved
 
                         <div>
                             <label className="block text-sm font-medium mb-1">Hospital Billing End</label>
-                            <input
-                                type="date"
+                            <DateInput
                                 className="w-full rounded-lg border px-3 py-2 focus:ring"
                                 value={proc.hospitalBillingEnd}
                                 onChange={(e) => updateProcedure(index, "hospitalBillingEnd", e.target.value)}

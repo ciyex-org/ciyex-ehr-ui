@@ -7,6 +7,7 @@ import { getEnv } from "@/utils/env";
 import AdminLayout from "@/app/(admin)/layout";
 import { Loader2 } from "lucide-react";
 import { usePermissions } from "@/context/PermissionContext";
+import DateInput from "@/components/ui/DateInput";
 
 interface Provider {
   id: number | string;
@@ -146,8 +147,7 @@ export default function NewEncounterPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Date <span className="text-red-500">*</span>
             </label>
-            <input
-              type="date"
+            <DateInput
               value={form.encounterDate}
               onChange={(e) => setForm((f) => ({ ...f, encounterDate: e.target.value }))}
               className="w-full h-9 rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Loader2, Save } from "lucide-react";
 import { GrowthMeasurement } from "./types";
+import DateInput from "@/components/ui/DateInput";
 
 interface Props {
   measurement?: GrowthMeasurement | null;
@@ -99,8 +100,8 @@ export default function GrowthMeasurementForm({ measurement, open, patientId, pa
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
           <div>
             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Date *</label>
-            <input
-              type="date" required value={form.measurementDate}
+            <DateInput
+              required value={form.measurementDate}
               onChange={(e) => set("measurementDate", e.target.value)}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

@@ -17,6 +17,7 @@ import {
 } from '@fullcalendar/core';
 import Alert from "@/components/ui/alert/Alert";
 import FilterMultiSelect from "@/components/calendar/FilterMultiSelect";
+import DateInput from "@/components/ui/DateInput";
 
 const monthViewStyles = `
 /* Hide horizontal scrollbar only — use clip (not hidden) so position:sticky still works */
@@ -2263,7 +2264,7 @@ const Calendar: React.FC = () => {
                                             </div>
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Date of Birth*</label>
-                                                <input type="date" value={newPt.dateOfBirth} max={new Date().toISOString().split('T')[0]} onChange={(e) => { const v = e.target.value; if (v > new Date().toISOString().split('T')[0]) return; setNewPt(p => ({ ...p, dateOfBirth: v })); }} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
+                                                <DateInput value={newPt.dateOfBirth} max={new Date().toISOString().split('T')[0]} onChange={(e) => { const v = e.target.value; if (v > new Date().toISOString().split('T')[0]) return; setNewPt(p => ({ ...p, dateOfBirth: v })); }} className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm dark:border-gray-700 dark:bg-dark-900 dark:text-gray-100" />
                                             </div>
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-400">Gender*</label>
@@ -2305,8 +2306,7 @@ const Calendar: React.FC = () => {
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                             Start Date
                                         </label>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             value={startDate}
                                             onChange={(e) => {
                                                 const d = e.target.value;
@@ -2321,8 +2321,7 @@ const Calendar: React.FC = () => {
                                         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">
                                             End Date
                                         </label>
-                                        <input
-                                            type="date"
+                                        <DateInput
                                             value={endDate}
                                             onChange={(e) => {
                                                 const d = e.target.value;

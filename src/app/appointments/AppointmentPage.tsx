@@ -13,6 +13,7 @@ import DynamicEncounterForm from "@/components/patients/DynamicEncounterForm";
 import PatientChartPanel from "@/components/patients/PatientChartPanel";
 import Encountersummary from "@/components/encounter/summary/Encountersummary";
 import { usePermissions } from "@/context/PermissionContext";
+import DateInput from "@/components/ui/DateInput";
 import * as XLSX from "xlsx";
 import { toast } from "@/utils/toast";
 
@@ -1043,9 +1044,9 @@ export default function AppointmentPage() {
                   {/* Custom date range for All Time */}
                   {datePreset === "all_time" && (
                     <div className="flex items-center gap-1">
-                      <input type="date" value={from ? parseMMDDYYYY(from) || "" : ""} onChange={(e) => { const v = e.target.value; if (v) setFrom(formatToMMDDYYYY(v)); else setFrom(""); setCurrentPage(1); }}
+                      <DateInput value={from ? parseMMDDYYYY(from) || "" : ""} onChange={(e) => { const v = e.target.value; if (v) setFrom(formatToMMDDYYYY(v)); else setFrom(""); setCurrentPage(1); }}
                         className="rounded border px-1 py-0.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 w-24" title="Start date" />
-                      <input type="date" value={to ? parseMMDDYYYY(to) || "" : ""} onChange={(e) => { const v = e.target.value; if (v) setTo(formatToMMDDYYYY(v)); else setTo(""); setCurrentPage(1); }}
+                      <DateInput value={to ? parseMMDDYYYY(to) || "" : ""} onChange={(e) => { const v = e.target.value; if (v) setTo(formatToMMDDYYYY(v)); else setTo(""); setCurrentPage(1); }}
                         className="rounded border px-1 py-0.5 text-xs bg-white dark:bg-gray-800 dark:border-gray-600 w-24" title="End date" />
                     </div>
                   )}
