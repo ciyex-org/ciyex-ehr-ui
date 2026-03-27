@@ -103,7 +103,18 @@ export function messagingReducer(
       const updateReactions = (messages: typeof state.messages) =>
         messages.map((m) => {
           if (m.id !== action.messageId) return m;
-          const reactions = [...(m.reactions || [])];
+          // First: remove user from any existing reaction (enforce single reaction per user)
+          let reactions = (m.reactions || []).map((r) => {
+            if (!r.users.includes(state.currentUser.id)) return r;
+            return {
+              ...r,
+              count: r.count - 1,
+              hasReacted: false,
+              users: r.users.filter((u) => u !== state.currentUser.id),
+            };
+          }).filter((r) => r.count > 0);
+
+          // Then: add user to the new emoji reaction
           const idx = reactions.findIndex((r) => r.emoji === action.emoji);
           if (idx >= 0) {
             reactions[idx] = {

@@ -33,16 +33,12 @@ export default function MessageItemComponent({
   const [reacting, setReacting] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
-  // Debounced reaction handler to prevent duplicate reactions on double-click
-  const handleReaction = async (messageId: string, emoji: string, remove: boolean) => {
+  // All reaction clicks go through onReact — page.tsx handles replace/toggle logic
+  const handleReaction = async (messageId: string, emoji: string) => {
     if (reacting) return;
     setReacting(true);
     try {
-      if (remove) {
-        await onRemoveReaction(messageId, emoji);
-      } else {
-        await onReact(messageId, emoji);
-      }
+      await onReact(messageId, emoji);
     } finally {
       setTimeout(() => setReacting(false), 500);
     }
@@ -134,16 +130,10 @@ export default function MessageItemComponent({
               <ReactionBadge
                 key={r.emoji}
                 reaction={r}
-                onToggle={() => handleReaction(message.id, r.emoji, !!r.hasReacted)}
+                onToggle={() => handleReaction(message.id, r.emoji)}
                 disabled={reacting}
               />
             ))}
-            <button
-              onClick={() => setShowEmojiPicker(true)}
-              className="flex h-7 items-center rounded-full border border-dashed border-gray-300/60 px-2 text-gray-400 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-500 dark:border-gray-600"
-            >
-              <Smile className="h-3.5 w-3.5" />
-            </button>
           </div>
         )}
 
@@ -167,24 +157,10 @@ export default function MessageItemComponent({
       {/* Floating action bar */}
       {showActions && (
         <div className="absolute -top-3 right-6 flex items-center gap-0.5 rounded-xl border border-gray-200/80 bg-white px-1.5 py-1 shadow-md dark:border-gray-700 dark:bg-gray-800">
-          {quickEmojis.slice(0, 3).map((emoji) => {
-            const hasReacted = message.reactions?.find((r) => r.emoji === emoji)?.hasReacted;
-            return (
-              <button
-                key={emoji}
-                onClick={() => handleReaction(message.id, emoji, !!hasReacted)}
-                disabled={reacting}
-                className={`rounded-lg p-1 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 ${hasReacted ? "bg-brand-50 dark:bg-brand-900/20" : ""} ${reacting ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {emoji}
-              </button>
-            );
-          })}
-          <div className="mx-0.5 h-5 w-px bg-gray-200 dark:bg-gray-700" />
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
-            title="Add reaction"
+            title="React"
           >
             <Smile className="h-3.5 w-3.5" />
           </button>
@@ -220,17 +196,18 @@ export default function MessageItemComponent({
         </div>
       )}
 
-      {/* Quick emoji picker */}
+      {/* Emoji picker (opens from the single smiley button) */}
       {showEmojiPicker && (
         <div className="absolute -top-11 right-6 z-50 flex gap-1 rounded-xl border border-gray-200/80 bg-white p-2 shadow-xl dark:border-gray-700 dark:bg-gray-800">
           {quickEmojis.map((emoji) => {
-            const hasReacted = message.reactions?.find((r) => r.emoji === emoji)?.hasReacted;
+            const existing = message.reactions?.find((r) => r.hasReacted);
+            const isActive = existing?.emoji === emoji;
             return (
               <button
                 key={emoji}
-                onClick={() => { handleReaction(message.id, emoji, !!hasReacted); setShowEmojiPicker(false); }}
+                onClick={() => { handleReaction(message.id, emoji); setShowEmojiPicker(false); }}
                 disabled={reacting}
-                className={`rounded-lg p-1.5 text-lg transition-colors hover:bg-gray-100 hover:scale-110 dark:hover:bg-gray-700 ${hasReacted ? "bg-brand-50 dark:bg-brand-900/20" : ""} ${reacting ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`rounded-lg p-1.5 text-lg transition-colors hover:bg-gray-100 hover:scale-110 dark:hover:bg-gray-700 ${isActive ? "bg-brand-50 ring-2 ring-brand-300 dark:bg-brand-900/20" : ""} ${reacting ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {emoji}
               </button>
