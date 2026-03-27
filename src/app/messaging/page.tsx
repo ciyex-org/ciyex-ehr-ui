@@ -56,18 +56,45 @@ export default function MessagingPage() {
     }
   }, []);
 
+  // Sanitize reactions: keep only one reaction per user (the last one)
+  const sanitizeReactions = useCallback((messages: MessageItem[], userId: string): MessageItem[] => {
+    return messages.map((m) => {
+      if (!m.reactions || m.reactions.length === 0) return m;
+      // Find which reaction the current user has (keep only the last one)
+      const userReactions = m.reactions.filter((r) => r.users?.includes(userId) || r.hasReacted);
+      if (userReactions.length <= 1) return m; // Already fine
+      // User has multiple reactions — keep only the last one, remove from others
+      const keepEmoji = userReactions[userReactions.length - 1].emoji;
+      const cleaned = m.reactions
+        .map((r) => {
+          if (r.emoji === keepEmoji) return r;
+          if (!(r.users?.includes(userId) || r.hasReacted)) return r;
+          // Remove user from this reaction
+          return {
+            ...r,
+            count: r.count - 1,
+            hasReacted: false,
+            users: (r.users || []).filter((u) => u !== userId),
+          };
+        })
+        .filter((r) => r.count > 0);
+      return { ...m, reactions: cleaned };
+    });
+  }, []);
+
   // Load messages for active channel
   const loadMessages = useCallback(async (channelId: string) => {
     try {
       const messages = await api.getMessages(channelId);
-      dispatch({ type: "SET_MESSAGES", messages: Array.isArray(messages) ? messages : [] });
+      const raw = Array.isArray(messages) ? messages : [];
+      dispatch({ type: "SET_MESSAGES", messages: sanitizeReactions(raw, currentUser.id) });
       api.markChannelRead(channelId).catch(() => {});
       dispatch({ type: "MARK_CHANNEL_READ", channelId });
     } catch (err) {
       console.error("Failed to load messages:", err);
       dispatch({ type: "SET_MESSAGES", messages: [] });
     }
-  }, []);
+  }, [sanitizeReactions, currentUser.id]);
 
   // Load channel members
   const loadMembers = useCallback(async (channelId: string) => {
@@ -299,24 +326,24 @@ export default function MessagingPage() {
   }, [state.activeChannelId, state.activeThreadId, state.threadMessages, state.messages, loadThread]);
 
   const handleReact = useCallback(async (messageId: string, emoji: string) => {
-    // Find existing reaction by this user on this message
+    // Find ALL existing reactions by this user on this message
     const msg = [...state.messages, ...state.threadMessages].find((m) => m.id === messageId);
-    const existingReaction = msg?.reactions?.find((r) => r.hasReacted);
-    const existingEmoji = existingReaction?.emoji;
+    const userReactions = (msg?.reactions || []).filter((r) => r.hasReacted);
 
-    // If user already reacted with a different emoji, remove old first (replace)
-    if (existingEmoji && existingEmoji !== emoji) {
-      dispatch({ type: "REMOVE_REACTION", messageId, emoji: existingEmoji });
-      try { await api.removeReaction(messageId, existingEmoji); } catch { /* best effort */ }
-    }
-
-    // If clicking the same emoji they already reacted with, just remove it (toggle off)
-    if (existingEmoji === emoji) {
+    // If clicking the same emoji the user already has, toggle it off
+    const hasSameEmoji = userReactions.some((r) => r.emoji === emoji);
+    if (hasSameEmoji) {
       dispatch({ type: "REMOVE_REACTION", messageId, emoji });
       try { await api.removeReaction(messageId, emoji); } catch {
         dispatch({ type: "ADD_REACTION", messageId, emoji });
       }
       return;
+    }
+
+    // Remove ALL existing reactions by this user first (enforce one-at-a-time)
+    for (const r of userReactions) {
+      dispatch({ type: "REMOVE_REACTION", messageId, emoji: r.emoji });
+      try { await api.removeReaction(messageId, r.emoji); } catch { /* best effort */ }
     }
 
     // Add the new reaction
