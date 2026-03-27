@@ -4,6 +4,7 @@ import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
 import Alert from "../ui/alert/Alert";
@@ -416,7 +417,7 @@ export default function RecallPage() {
   };
 
   /* ── Helpers ── */
-  const formatDate = (d?: string) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  const formatDate = (d?: string) => formatDisplayDate(d) || "—";
   const daysUntil = (d?: string) => {
     if (!d) return 0;
     return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);

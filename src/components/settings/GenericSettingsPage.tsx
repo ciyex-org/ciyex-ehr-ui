@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { isValidEmail, isValidPhone, isValidUSPhone, isValidFax, isValidUrl, formatUSPhone } from "@/utils/validation";
 import { confirmDialog } from "@/utils/toast";
+import { formatDisplayDate, formatDisplayDateTime } from "@/utils/dateUtils";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -648,11 +649,8 @@ export default function GenericSettingsPage({ pageKey, embedded = false, forceWr
         if (typeof value === "boolean") return value ? "Yes" : "No";
         // Handle Java date arrays
         if (Array.isArray(value) && value.length >= 3 && typeof value[0] === "number" && value[0] > 1900) {
-            try {
-                const [y, m, d, hh = 0, mm = 0, ss = 0] = value;
-                const dt = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, ss || 0);
-                if (!isNaN(dt.getTime())) return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-            } catch { /* fallthrough */ }
+            const result = formatDisplayDate(value);
+            if (result) return result;
         }
         if (typeof value === "object") {
             if (value.line1) return [value.line1, value.city, value.state].filter(Boolean).join(", ");
@@ -661,16 +659,12 @@ export default function GenericSettingsPage({ pageKey, embedded = false, forceWr
         // Auto-detect date-like strings
         const str = String(value);
         if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
-            try {
-                const d = new Date(str);
-                if (!isNaN(d.getTime())) return d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-            } catch { /* fallthrough */ }
+            const result = formatDisplayDateTime(str);
+            if (result) return result;
         }
         if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-            try {
-                const d = new Date(str + "T00:00:00");
-                if (!isNaN(d.getTime())) return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-            } catch { /* fallthrough */ }
+            const result = formatDisplayDate(str);
+            if (result) return result;
         }
         return str.length > 60 ? str.substring(0, 60) + "..." : str;
     };

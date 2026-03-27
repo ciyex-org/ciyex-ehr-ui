@@ -4,6 +4,7 @@
 import { getEnv } from "@/utils/env";
 import { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 type Coverage = Record<string, any>;
 
@@ -110,17 +111,7 @@ export default function InsuranceSummary({
                         const endDate = c.policyEndDate || c.endDate || "";
 
                         // Format date for display
-                        const fmtDate = (d: string) => {
-                            if (!d) return "";
-                            try {
-                                const dateOnly = d.includes("T") ? d.split("T")[0] : d;
-                                const parsed = new Date(dateOnly + "T00:00:00");
-                                if (!isNaN(parsed.getTime())) {
-                                    return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                                }
-                            } catch { /* ignore */ }
-                            return d;
-                        };
+                        const fmtDate = (d: string) => formatDisplayDate(d);
 
                         // Build a meaningful display line from whatever fields are available
                         const allValues = Object.values(c).filter(

@@ -9,6 +9,7 @@ import DynamicFormRenderer, { FieldConfig, FieldConfigFeatures, SectionDef, Fiel
 import { Plus, Pencil, Trash2, X, Save, Send, Loader2, Search, ChevronLeft, ChevronRight, Download, FileText, CheckCircle2 } from "lucide-react";
 import { isValidEmail, isValidPhone, isValidFax, isValidUrl, isValidName, isValidUSPhone, isValidSSN, isStringOnly, isValidDriverLicense, isValidMedicaidId, isValidMedicareBeneficiaryId } from "@/utils/validation";
 import { toast, confirmDialog } from "@/utils/toast";
+import { formatDisplayDate, formatDisplayDateTime, parseLocalDate } from "@/utils/dateUtils";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -420,8 +421,8 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                     /^(endDate|end_date|end|abatement|abatementDate|resolvedDate)$/i.test(f.key)) {
                     section.fields[i] = { ...f, required: false };
                 }
-                // Problems: limit clinicalStatus options to Active/Inactive/Resolved
-                if ((tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "conditions" || tabKey === "problems") &&
+                // Problems & Allergies: limit clinicalStatus options to Active/Inactive/Resolved
+                if ((tabKey === "medicalproblems" || tabKey === "medical-problems" || tabKey === "conditions" || tabKey === "problems" || tabKey === "allergies" || tabKey === "allergy-intolerances") &&
                     (f.key === "clinicalStatus" || f.key === "status")) {
                     section.fields[i] = { ...f, type: "select", options: [
                         { value: "Active", label: "Active" },
@@ -3014,47 +3015,16 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
     };
 
     // Try to format a raw string as a readable date
-    const fmtMMDDYYYY = (d: Date): string => {
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        return `${mm}/${dd}/${d.getFullYear()}`;
-    };
-
     const tryFormatDate = (val: string): string | null => {
         if (!val) return null;
-        // Already a date-like string: 2026-03-09, 2026-03-09T10:00:00Z, etc.
-        const dateOnly = val.includes("T") ? val.split("T")[0] : val;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
-            try {
-                const d = new Date(dateOnly + "T00:00:00");
-                if (!isNaN(d.getTime())) {
-                    return fmtMMDDYYYY(d);
-                }
-            } catch { /* ignore */ }
-        }
-        // Fallback: try parsing any date string (e.g. "Tue Mar 10 01:53:55 UTC 2026")
-        try {
-            const d = new Date(val);
-            if (!isNaN(d.getTime())) {
-                return fmtMMDDYYYY(d);
-            }
-        } catch { /* ignore */ }
-        return null;
+        const result = formatDisplayDate(val);
+        return result || null;
     };
 
     const tryFormatDatetime = (val: string): string | null => {
         if (!val) return null;
-        try {
-            const d = new Date(val);
-            if (!isNaN(d.getTime())) {
-                const h = d.getHours();
-                const ampm = h >= 12 ? "PM" : "AM";
-                const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-                const min = String(d.getMinutes()).padStart(2, "0");
-                return `${fmtMMDDYYYY(d)} ${h12}:${min} ${ampm}`;
-            }
-        } catch { /* ignore */ }
-        return val.replace(/(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/, "").replace("T", " ");
+        const result = formatDisplayDateTime(val);
+        return result || null;
     };
 
     // Format display value for list table

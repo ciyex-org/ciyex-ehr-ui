@@ -5,6 +5,7 @@ import { Hash, Lock, Users, Search, Info, MessageSquarePlus, Send } from "lucide
 import MessageItemComponent from "./MessageItem";
 import ComposeBar from "./ComposeBar";
 import type { Channel, MessageItem } from "./types";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface Props {
   channel: Channel | null;
@@ -59,9 +60,7 @@ export default function MessagePanel({
     let currentDate = "";
 
     for (const msg of messages) {
-      const date = new Date(msg.createdAt).toLocaleDateString("en-US", {
-        weekday: "long", month: "long", day: "numeric",
-      });
+      const date = formatDisplayDate(msg.createdAt);
       if (date !== currentDate) {
         currentDate = date;
         groups.push({ date, messages: [] });

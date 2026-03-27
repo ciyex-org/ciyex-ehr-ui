@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Eye, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, User, Shield } from "lucide-react";
 import AuditDetailRow from "./AuditDetailRow";
+import { formatDisplayDateTime } from "@/utils/dateUtils";
 
 export interface AuditLogEntry {
   id: number;
@@ -46,32 +47,7 @@ const ACTION_COLORS: Record<string, string> = {
 
 function formatTimestamp(iso: string): string {
   if (!iso) return "\u2014";
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) {
-      // Try parsing LocalDateTime format "2026-02-21T15:45:00"
-      const withZ = new Date(iso + (iso.includes("Z") || iso.includes("+") ? "" : "Z"));
-      if (isNaN(withZ.getTime())) return iso;
-      return withZ.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    }
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } catch {
-    return iso;
-  }
+  return formatDisplayDateTime(iso) || iso;
 }
 
 const SORTABLE_COLUMNS = [

@@ -4,6 +4,7 @@ import { getEnv } from "@/utils/env";
 import { useEffect, useState, useMemo } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { Activity, Plus, TrendingUp, TrendingDown, Minus, Save, X, Loader2, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -35,13 +36,7 @@ type VitalsRecord = Record<string, unknown>;
 
 function formatDate(dateStr: string | undefined): string {
     if (!dateStr) return "—";
-    try {
-        const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
-        if (isNaN(d.getTime())) return "—";
-        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    } catch {
-        return "—";
-    }
+    return formatDisplayDate(dateStr) || "—";
 }
 
 function formatTime(dateStr: string | undefined): string {

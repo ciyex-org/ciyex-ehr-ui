@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Loader2, Copy, Calendar, User, Tag } from "lucide-react";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -105,12 +106,7 @@ export default function CloneEncounterModal({
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return "—";
-        try {
-            const d = new Date(dateStr);
-            return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-        } catch {
-            return dateStr;
-        }
+        return formatDisplayDate(dateStr) || "—";
     };
 
     const statusColor = (s?: string) => {

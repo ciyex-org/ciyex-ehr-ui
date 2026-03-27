@@ -19,6 +19,7 @@ import {
   type TaskStatus,
   type TaskPriority,
 } from "./types";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface Props {
   tasks: Task[];
@@ -47,8 +48,7 @@ function isOverdue(task: Task): boolean {
 
 function formatDueDate(date?: string, time?: string): string {
   if (!date) return "--";
-  const d = new Date(date + "T00:00:00");
-  const formatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const formatted = formatDisplayDate(date) || "--";
   if (time) return `${formatted} ${time}`;
   return formatted;
 }

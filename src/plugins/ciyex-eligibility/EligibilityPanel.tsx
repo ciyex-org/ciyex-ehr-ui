@@ -5,6 +5,7 @@ import {
     ShieldCheck, ShieldAlert, RefreshCw, ChevronDown, ChevronUp,
     CheckCircle2, XCircle, AlertTriangle, Search, Printer, DollarSign
 } from "lucide-react";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface CoverageInfo {
     type: string;
@@ -32,7 +33,7 @@ const DEMO_COVERAGES: CoverageInfo[] = [
         memberId: "AET987654321", groupNumber: "ABC123", status: "ACTIVE",
         effectiveDate: "01/01/2026", terminationDate: "12/31/2026",
         inNetwork: true, networkName: "Aetna Open Access", pcpName: "Dr. James Wilson",
-        lastVerified: new Date().toLocaleDateString(),
+        lastVerified: formatDisplayDate(new Date().toISOString()),
         deductible: { individual: 1500, met: 820, family: 3000, familyMet: 1640 },
         oopMax: { individual: 6000, met: 1200, family: 12000, familyMet: 2400 },
         copays: [
@@ -75,7 +76,7 @@ export default function EligibilityPanel({ patientId }: { patientId?: string }) 
     const reverify = () => {
         setVerifying(true);
         setTimeout(() => {
-            setCoverages(c => c.map((cov, i) => i === 0 ? { ...cov, lastVerified: new Date().toLocaleDateString() } : cov));
+            setCoverages(c => c.map((cov, i) => i === 0 ? { ...cov, lastVerified: formatDisplayDate(new Date().toISOString()) } : cov));
             setVerifying(false);
         }, 1500);
     };

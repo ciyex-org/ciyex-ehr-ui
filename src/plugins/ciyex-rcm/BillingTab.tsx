@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Search, FileText, DollarSign, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface BillingTabProps {
     patientId: string;
@@ -31,15 +32,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
 };
 
 function formatDate(dateStr: string): string {
-    try {
-        return new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00").toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
-    } catch {
-        return dateStr;
-    }
+    return formatDisplayDate(dateStr) || dateStr;
 }
 
 export default function BillingTab({ patientId }: BillingTabProps) {

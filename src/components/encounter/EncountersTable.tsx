@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchWithOrg } from "@/utils/fetchWithOrg";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import { Loader2, ExternalLink } from "lucide-react";
 
 type EncounterStatus = "SIGNED" | "INCOMPLETE" | "UNSIGNED";
@@ -218,7 +219,7 @@ export default function EncountersTable() {
                                     >
                                         <td className="px-4 py-3 text-gray-400 dark:text-gray-500">{clampedPage * pageSize + idx + 1}</td>
                                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{row.patientName || "—"}</td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">{d ? d.toLocaleDateString() : "—"}</td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">{formatDisplayDate(row.encounterDate) || "—"}</td>
                                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{row.encounterProvider || "—"}</td>
                                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{row.visitCategory || "—"}</td>
                                         <td className="px-4 py-3 text-gray-600 dark:text-gray-300 max-w-[200px] truncate">{row.reason || "—"}</td>

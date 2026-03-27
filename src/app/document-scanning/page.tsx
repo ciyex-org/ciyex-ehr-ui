@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import {
   ScanLine,
   Upload,
@@ -493,7 +494,7 @@ export default function DocumentScanningPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">{formatFileSize(doc.fileSize)}</td>
                       <td className="px-4 py-3 text-xs text-slate-500 hidden lg:table-cell">
-                        {new Date(doc.createdAt).toLocaleDateString()}
+                        {formatDisplayDate(doc.createdAt)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">

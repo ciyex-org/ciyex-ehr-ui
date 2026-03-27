@@ -1,6 +1,7 @@
 // ---------------------------------------------------------------------------
 // Care Plans – shared types
 // ---------------------------------------------------------------------------
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 export interface Goal {
   id?: string;
@@ -148,11 +149,7 @@ export function categoryLabel(cat: string): string {
 
 export function formatDate(d: string | null | undefined): string {
   if (!d) return "--";
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatDisplayDate(d) || "--";
 }
 
 export function statusLabel(s: string): string {

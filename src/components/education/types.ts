@@ -1,6 +1,7 @@
 /* ------------------------------------------------------------------ */
 /*  Education Module — Shared Types                                    */
 /* ------------------------------------------------------------------ */
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 export type MaterialCategory =
   | "diabetes"
@@ -132,15 +133,7 @@ export function parseTags(tags: string): string[] {
 
 export function formatDate(d?: string | null): string {
   if (!d) return "--";
-  try {
-    return new Date(d).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return d;
-  }
+  return formatDisplayDate(d) || "--";
 }
 
 export function categoryLabel(cat: MaterialCategory): string {

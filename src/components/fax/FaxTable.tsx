@@ -17,6 +17,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { FaxMessage, CATEGORY_LABELS, FaxCategory } from "./types";
+import { formatDisplayDateTime } from "@/utils/dateUtils";
 
 interface Props {
   faxes: FaxMessage[];
@@ -60,13 +61,7 @@ function categoryBadge(category: FaxCategory) {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return "--";
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatDisplayDateTime(d) || "--";
 }
 
 export default function FaxTable({

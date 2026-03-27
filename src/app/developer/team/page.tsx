@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Link from "next/link";
 import {
     Users,
@@ -265,8 +266,8 @@ export default function TeamPage() {
                                         </td>
                                         <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                                             {member.acceptedAt
-                                                ? new Date(member.acceptedAt).toLocaleDateString()
-                                                : new Date(member.invitedAt).toLocaleDateString() + " (invited)"}
+                                                ? formatDisplayDate(member.acceptedAt)
+                                                : formatDisplayDate(member.invitedAt) + " (invited)"}
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             {member.role !== "owner" && (

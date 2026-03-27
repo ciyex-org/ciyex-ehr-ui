@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import {
   Search,
   Plus,
@@ -153,11 +154,7 @@ function priorityBadge(priority: string) {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return "--";
-  return new Date(d).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatDisplayDate(d) || "--";
 }
 
 function daysUntil(d: string | null | undefined): number | null {

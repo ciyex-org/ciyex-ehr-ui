@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import AdminLayout from "@/app/(admin)/layout";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import {
   Search,
   Plus,
@@ -105,7 +106,7 @@ function blankConsent(): Consent {
 
 function formatDate(d?: string) {
   if (!d) return "--";
-  try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); } catch { return d; }
+  return formatDisplayDate(d) || "--";
 }
 
 function consentTypeLabel(t: string) {

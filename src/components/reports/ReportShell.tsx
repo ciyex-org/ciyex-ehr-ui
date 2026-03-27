@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import { usePermissions } from "@/context/PermissionContext";
 import type {
   ReportDefinition, ReportResult, FilterValues, ChartConfig,
@@ -477,9 +478,7 @@ function DataTable({ columns, data, totalRecords }: { columns: ColumnConfig[]; d
 /* ── CSV Export (with BOM for Excel compatibility) ── */
 function formatDateForExcel(dateStr: string): string {
   if (!dateStr) return "";
-  const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00");
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+  return formatDisplayDate(dateStr) || dateStr;
 }
 
 function downloadCSV(report: ReportDefinition, data: Record<string, unknown>[]) {

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Link from "next/link";
 import {
     ShieldCheck,
@@ -132,7 +133,7 @@ export default function AdminReviewQueuePage() {
                                                 <span>slug: {sub.appSlug}</span>
                                                 {sub.submittedAt && (
                                                     <span>
-                                                        Submitted {new Date(sub.submittedAt).toLocaleDateString()}
+                                                        Submitted {formatDisplayDate(sub.submittedAt)}
                                                     </span>
                                                 )}
                                             </div>

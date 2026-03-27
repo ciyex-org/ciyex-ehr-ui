@@ -1,5 +1,6 @@
 "use client";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 /* ── Exported DTO (matches backend LabResultDto exactly) ── */
@@ -68,7 +69,7 @@ function valueCls(r: LabResultDto) {
   return "text-gray-900 dark:text-gray-100";
 }
 
-function fmtDate(d?: string) { return d ? d.slice(0, 10) : ""; }
+function fmtDate(d?: string) { return formatDisplayDate(d); }
 
 /* ── Modal ── */
 function Modal({ title, open, onClose, children, footer }: { title: string; open: boolean; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) {

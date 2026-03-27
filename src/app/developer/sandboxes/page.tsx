@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Link from "next/link";
 import {
     Server,
@@ -265,7 +266,7 @@ export default function SandboxesPage() {
                                     <div>
                                         <span className="text-gray-500 dark:text-gray-400">Expires:</span>{" "}
                                         <span className="text-gray-900 dark:text-white">
-                                            {sandbox.expiresAt ? new Date(sandbox.expiresAt).toLocaleDateString() : "Never"}
+                                            {sandbox.expiresAt ? formatDisplayDate(sandbox.expiresAt) : "Never"}
                                         </span>
                                     </div>
                                 </div>

@@ -13,6 +13,7 @@ import CloneEncounterModal from "@/components/encounter/CloneEncounterModal";
 import { PluginContextProvider } from "@/context/PluginContextProvider";
 import { usePluginEventBus } from "@/context/PluginEventBus";
 import { toast } from "@/utils/toast";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -399,7 +400,7 @@ export default function DynamicEncounterForm({ patientId, encounterId, embedded,
     win.print();
   }, [encounterId, contentRef]);
 
-  const fmt = (d?: string) => (d ? new Date(d).toLocaleDateString() : "");
+  const fmt = (d?: string) => formatDisplayDate(d);
 
   const statusIcon = (s: AutoSaveStatus) => {
     switch (s) {

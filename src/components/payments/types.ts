@@ -1,6 +1,7 @@
 /* ------------------------------------------------------------------ */
 /*  Payment Integration – Shared Types                                 */
 /* ------------------------------------------------------------------ */
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 export type MethodType =
   | "credit_card"
@@ -179,13 +180,5 @@ export function formatCurrency(amount: number | null | undefined): string {
 
 export function formatDate(d?: string): string {
   if (!d) return "--";
-  try {
-    return new Date(d).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return d;
-  }
+  return formatDisplayDate(d) || "--";
 }

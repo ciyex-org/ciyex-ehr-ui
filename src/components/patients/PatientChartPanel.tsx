@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import ClinicalSidebar from "@/components/patients/ClinicalSidebar";
 import GenericFhirTab from "@/components/patients/GenericFhirTab";
 import AllergiesSummary from "@/components/patients/AllergiesSummary";
@@ -171,7 +172,7 @@ export default function PatientChartPanel({ patientId }: PatientChartPanelProps)
     setHighlightedTab(key);
   };
 
-  const fmt = (d?: string) => (d ? new Date(d).toLocaleDateString() : "—");
+  const fmt = (d?: string) => formatDisplayDate(d) || "—";
   const age = (dob?: string) => {
     if (!dob) return "—";
     const birth = new Date(dob.includes("T") ? dob : dob + "T00:00:00");

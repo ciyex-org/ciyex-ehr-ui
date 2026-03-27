@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Link from "next/link";
 import {
     Key,
@@ -299,11 +300,11 @@ export default function ApiKeysPage() {
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                                            {new Date(key.createdAt).toLocaleDateString()}
+                                            {formatDisplayDate(key.createdAt)}
                                         </td>
                                         <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                                             {key.expiresAt
-                                                ? new Date(key.expiresAt).toLocaleDateString()
+                                                ? formatDisplayDate(key.expiresAt)
                                                 : "Never"}
                                         </td>
                                         <td className="px-4 py-3 text-right">

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { Hash, Lock, MessageSquare, Users, Plus, Search, ChevronDown, ChevronRight, X, PenSquare } from "lucide-react";
 import type { Channel } from "./types";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface Props {
   channels: Channel[];
@@ -51,7 +52,7 @@ function formatTimeShort(dateStr?: string) {
   if (diff < 604800000) {
     return d.toLocaleDateString([], { weekday: "short" });
   }
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  return formatDisplayDate(dateStr);
 }
 
 function PresenceDot({ status }: { status?: string }) {

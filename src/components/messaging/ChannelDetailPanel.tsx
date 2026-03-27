@@ -5,6 +5,7 @@ import { X, Hash, Lock, Users, Pin, FileText, UserPlus, Search } from "lucide-re
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import type { Channel, ChannelMember, MessageItem, PresenceStatus } from "./types";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface Props {
   channel: Channel;
@@ -97,9 +98,7 @@ function AboutTab({ channel, memberCount }: { channel: Channel; memberCount: num
       <div>
         <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Created</h4>
         <p className="text-sm text-gray-700 dark:text-gray-300">
-          {new Date(channel.createdAt).toLocaleDateString("en-US", {
-            month: "long", day: "numeric", year: "numeric",
-          })}
+          {formatDisplayDate(channel.createdAt)}
         </p>
       </div>
       <div className="flex items-center gap-2.5 rounded-xl bg-gray-50 px-3 py-2.5 dark:bg-gray-800">
@@ -314,7 +313,7 @@ function PinnedTab({ messages, onGoToMessage }: { messages: MessageItem[]; onGoT
               {msg.senderName}
             </span>
             <span className="text-xs text-gray-400">
-              {new Date(msg.createdAt).toLocaleDateString()}
+              {formatDisplayDate(msg.createdAt)}
             </span>
           </div>
           <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-gray-600 dark:text-gray-400">

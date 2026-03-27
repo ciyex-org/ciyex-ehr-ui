@@ -4,6 +4,7 @@ import { getEnv } from "@/utils/env";
 import React, { useEffect, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { formatDisplayDateTime } from "@/utils/dateUtils";
 
 const API = getEnv("NEXT_PUBLIC_API_URL")!;
 
@@ -49,9 +50,7 @@ function reasonBadge(code: string) {
 
 function formatDate(iso: string) {
   if (!iso) return "-";
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    + " " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  return formatDisplayDateTime(iso) || "-";
 }
 
 export default function Records() {

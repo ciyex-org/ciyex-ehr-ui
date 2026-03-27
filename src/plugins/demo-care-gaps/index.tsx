@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { PluginAPI } from "@/components/plugins/NativePluginLoader";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 /**
  * Demo "Care Gaps" plugin.
@@ -143,7 +144,7 @@ function CareGapTab({ patientId }: { patientId: string }) {
                                     </p>
                                 </div>
                                 <span className="text-xs text-gray-400 shrink-0 ml-4">
-                                    Due: {new Date(gap.dueDate + "T00:00:00").toLocaleDateString()}
+                                    Due: {formatDisplayDate(gap.dueDate)}
                                 </span>
                             </div>
                         </div>

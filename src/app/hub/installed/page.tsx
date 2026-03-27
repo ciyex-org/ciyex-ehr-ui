@@ -7,6 +7,7 @@ import AdminLayout from "@/app/(admin)/layout";
 import AppGrid from "@/components/hub/AppGrid";
 import { Package, ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 
@@ -86,7 +87,7 @@ export default function InstalledAppsPage() {
                         slug: a.appSlug,
                         name: a.appName,
                         category: a.appCategory || "",
-                        description: `Installed by ${a.installedBy || "system"} on ${new Date(a.installedAt).toLocaleDateString()}`,
+                        description: `Installed by ${a.installedBy || "system"} on ${formatDisplayDate(a.installedAt)}`,
                         iconUrl: a.appIconUrl,
                         installed: true,
                         pricingLabel: a.status === "active" ? "Active" : a.status,

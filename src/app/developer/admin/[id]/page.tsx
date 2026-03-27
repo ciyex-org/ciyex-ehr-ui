@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -495,7 +496,7 @@ export default function SubmissionReviewPage() {
                                 ? "This submission was approved"
                                 : `This submission was ${submission.status.replace("_", " ")}`}
                             {" on "}
-                            {new Date(submission.reviewedAt).toLocaleDateString()}
+                            {formatDisplayDate(submission.reviewedAt)}
                         </p>
                         {submission.reviewNotes && (
                             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">

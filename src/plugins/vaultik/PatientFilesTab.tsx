@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useVaultikApi } from "./useVaultikApi";
 import type { VaultikFile } from "./types";
 import { confirmDialog } from "@/utils/toast";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B";
@@ -12,15 +13,7 @@ function formatSize(bytes: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  try {
-    return new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00").toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  } catch {
-    return dateStr;
-  }
+  return formatDisplayDate(dateStr) || dateStr;
 }
 
 const FILE_ICONS: Record<string, string> = {

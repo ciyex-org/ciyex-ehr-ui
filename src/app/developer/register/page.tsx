@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -138,7 +139,7 @@ export default function DeveloperRegisterPage() {
                                     You&apos;ll be notified once approved.
                                 </p>
                                 <p className="text-xs text-gray-400">
-                                    Registered {status.createdAt && new Date(status.createdAt).toLocaleDateString()}
+                                    Registered {status.createdAt && formatDisplayDate(status.createdAt)}
                                 </p>
                             </>
                         ) : (

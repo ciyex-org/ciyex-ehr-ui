@@ -8,6 +8,7 @@ import ClinicalSidebar from "@/components/patients/ClinicalSidebar";
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import AdminLayout from "@/app/(admin)/layout";
 import PatientAccountCard from "@/components/patients/PatientAccountCard";
 
@@ -239,7 +240,7 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
                             <p className="text-xs text-gray-600 mt-0.5 truncate">{activity.description}</p>
                             <div className="flex items-center justify-between mt-1">
                                 <span className="text-[10px] text-gray-500">
-                                    {new Date(activity.timestamp).toLocaleDateString()}
+                                    {formatDisplayDate(activity.timestamp)}
                                 </span>
                                 {activity.priority === 'high' && (
                                     <span className="text-[10px] text-red-600 bg-red-100 px-1.5 py-0.5 rounded">High</span>
@@ -435,9 +436,7 @@ export default function PatientDashboardPage() {
 
     const formatDateLocal = (date: string) => {
         if (!date) return "\u2014";
-        const d = new Date(date.includes("T") ? date : date + "T00:00:00");
-        if (isNaN(d.getTime())) return "\u2014";
-        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        return formatDisplayDate(date) || "\u2014";
     };
     const genderLabel = (g?: string) => {
         if (!g) return "";

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Search, X, Hash } from "lucide-react";
 import type { MessageItem } from "./types";
 import { searchMessages } from "./messagingApi";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface Props {
   isOpen: boolean;
@@ -160,7 +161,7 @@ export default function MessageSearch({ isOpen, onClose, currentChannelId, onGoT
                       {msg.channelId}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {new Date(msg.createdAt).toLocaleDateString()}
+                      {formatDisplayDate(msg.createdAt)}
                     </span>
                   </div>
                   <p className="mt-0.5 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">

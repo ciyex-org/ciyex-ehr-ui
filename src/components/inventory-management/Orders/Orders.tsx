@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Button from "@/components/ui/button/Button";
 import Alert from "@/components/ui/alert/Alert";
 
@@ -46,8 +47,7 @@ const Badge = ({ status }: { status: string }) => (
 
 const dateLabel = (iso?: string | null) => {
   if (!iso) return "--";
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-US");
+  return formatDisplayDate(iso) || "--";
 };
 
 const TABS = ["all", "draft", "submitted", "partial", "received", "cancelled"] as const;

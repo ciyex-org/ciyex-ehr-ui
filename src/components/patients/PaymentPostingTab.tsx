@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { confirmDialog } from "@/utils/toast";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface PaymentPostingTabProps {
     patientId: number;
@@ -88,12 +89,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function formatDate(d: string): string {
     if (!d) return "-";
-    try {
-        const date = new Date(d.includes("T") ? d : d + "T00:00:00");
-        return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    } catch {
-        return d;
-    }
+    return formatDisplayDate(d) || "-";
 }
 
 function formatCurrency(n: number | string | undefined): string {

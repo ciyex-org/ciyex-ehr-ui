@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface Claim {
   id: number;
@@ -41,20 +42,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 const formatDate = (d: any) => {
   if (!d) return "—";
-  // Handle Java date arrays [year, month, day, ...]
-  if (Array.isArray(d) && d.length >= 3 && typeof d[0] === "number" && d[0] > 1900) {
-    const [y, m, day, hh = 0, mm = 0, ss = 0, ns = 0] = d;
-    const ms = Math.floor((ns || 0) / 1e6);
-    const date = new Date(y, (m || 1) - 1, day || 1, hh || 0, mm || 0, ss || 0, ms);
-    return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
-  }
-  try {
-    const date = new Date(d);
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
-    }
-  } catch { /* ignore */ }
-  return String(d);
+  return formatDisplayDate(d) || String(d);
 };
 
 const ClaimManagementDashboard: React.FC = () => {

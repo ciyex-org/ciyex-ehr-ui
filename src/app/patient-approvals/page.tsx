@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast, confirmDialog } from "@/utils/toast";
+import { formatDisplayDateTime } from "@/utils/dateUtils";
 
 interface PendingUser {
   id: number;
@@ -241,13 +242,7 @@ export default function PatientApprovals() {
                         Org ID: {user.orgId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(user.createdDate?.includes("T") ? user.createdDate : user.createdDate + "T00:00:00").toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {formatDisplayDateTime(user.createdDate)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">

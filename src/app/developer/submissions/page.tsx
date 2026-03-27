@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getEnv } from "@/utils/env";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import AdminLayout from "@/app/(admin)/layout";
+import { formatDisplayDate } from "@/utils/dateUtils";
 import Link from "next/link";
 import {
     Send,
@@ -165,7 +166,7 @@ export default function SubmissionsPage() {
                                                 <span>{sub.submissionType}</span>
                                                 {sub.category && <span>{sub.category}</span>}
                                                 <span>
-                                                    {new Date(sub.createdAt).toLocaleDateString()}
+                                                    {formatDisplayDate(sub.createdAt)}
                                                 </span>
                                             </div>
                                             {sub.rejectionReason && (

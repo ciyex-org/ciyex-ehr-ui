@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { getAppIcon, getAppColorClass } from "@/components/hub/appIcons";
 import { toast, confirmDialog } from "@/utils/toast";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 const API_BASE = () => (getEnv("NEXT_PUBLIC_API_URL") || "").replace(/\/$/, "");
 const MARKETPLACE_BASE = () => (getEnv("NEXT_PUBLIC_MARKETPLACE_URL") || "").replace(/\/$/, "");
@@ -319,7 +320,7 @@ export default function AppDetailPage() {
                             {isInstalled && (
                                 <div className="mt-3 flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
                                     <CheckCircle2 className="w-4 h-4" />
-                                    Installed {installation.installedAt && `on ${new Date(installation.installedAt).toLocaleDateString()}`}
+                                    Installed {installation.installedAt && `on ${formatDisplayDate(installation.installedAt)}`}
                                 </div>
                             )}
                         </div>
