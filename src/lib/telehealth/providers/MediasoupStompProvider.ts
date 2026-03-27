@@ -20,6 +20,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
     readonly type = "mediasoup";
 
     private stompClient: Client | null = null;
+    private device: any = null;
     private sendTransport: Transport | null = null;
     private recvTransport: Transport | null = null;
     private audioProducer: Producer | null = null;
@@ -32,6 +33,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
     private userId: string = "";
     private remotePeersSnapshot: Map<string, { displayName: string }> = new Map();
     private joinTimeout: ReturnType<typeof setTimeout> | null = null;
+    private pendingProduceCallbacks: Map<string, (result: { id: string }) => void> = new Map();
 
     async connect(
         session: VideoCallSession,
@@ -164,6 +166,14 @@ export class MediasoupStompProvider implements VideoCallProvider {
         switch (payload.type) {
             case "joined":    await this.setupMediasoup(payload); break;
             case "consumed":  await this.handleConsumed(payload); break;
+            case "produced": {
+                const cb = this.pendingProduceCallbacks.get(payload.kind);
+                if (cb) {
+                    this.pendingProduceCallbacks.delete(payload.kind);
+                    cb({ id: payload.producerId });
+                }
+                break;
+            }
             case "error":
                 console.error("[telehealth] server error:", payload.message);
                 this.onStateChange?.({ error: payload.message });
@@ -178,6 +188,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
             const { Device } = await import("mediasoup-client");
             const device = new Device();
             await device.load({ routerRtpCapabilities: joinData.routerRtpCapabilities });
+            this.device = device;
 
             const sid = this.sessionId;
             const uid = this.userId;
@@ -201,10 +212,7 @@ export class MediasoupStompProvider implements VideoCallProvider {
             });
 
             sendTransport.on("produce", ({ kind, rtpParameters, appData }, cb) => {
-                const sub = this.stompClient?.subscribe(`/user/${uid}/queue/signal`, (msg) => {
-                    const d = JSON.parse(msg.body);
-                    if (d.type === "produced" && d.kind === kind) { cb({ id: d.producerId }); sub?.unsubscribe(); }
-                });
+                this.pendingProduceCallbacks.set(kind, cb);
                 this.stompClient?.publish({
                     destination: `/app/session/${sid}/produce`,
                     body: JSON.stringify({ userId: uid, transportId: sendTransport.id, kind, rtpParameters, appData }),
@@ -241,6 +249,18 @@ export class MediasoupStompProvider implements VideoCallProvider {
                 if (video) this.videoProducer = await sendTransport.produce({ track: video });
             }
 
+            // --- Consume existing producers from peers already in the session ---
+            if (joinData.existingProducers?.length) {
+                for (const ep of joinData.existingProducers) {
+                    if (ep.peerId !== uid) {
+                        this.consumeTrack(ep.producerId, ep.kind);
+                        if (ep.peerId) {
+                            this.onStateChange?.({ remotePeers: this.updatePeers(ep.peerId, ep.displayName || "", "add") });
+                        }
+                    }
+                }
+            }
+
             this.onStateChange?.({ callStatus: "connected" });
         } catch (err: any) {
             console.error("[telehealth] mediasoup setup error:", err);
@@ -249,15 +269,14 @@ export class MediasoupStompProvider implements VideoCallProvider {
     }
 
     private consumeTrack(producerId: string, kind: string): void {
-        if (!this.recvTransport) return;
+        if (!this.recvTransport || !this.device) return;
         this.stompClient?.publish({
             destination: `/app/session/${this.sessionId}/consume`,
             body: JSON.stringify({
                 userId: this.userId,
                 transportId: this.recvTransport.id,
                 producerId,
-                rtpCapabilities: (this.recvTransport as any)._handler?._pc?.getConfiguration?.()
-                    ?? undefined,
+                rtpCapabilities: this.device.rtpCapabilities,
             }),
         });
     }
