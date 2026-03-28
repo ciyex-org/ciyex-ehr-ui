@@ -101,13 +101,33 @@ export default function ClinicalSidebar({
                     const name = (r.name || r.category || r.code || r.socialHistoryType || r.type || "").toString().toLowerCase();
                     return name.includes("smoking") || name.includes("tobacco");
                 });
+                const ignore = /^(unknown|null|none|n\/a|not\s*recorded|not\s*available|not\s*specified|undefined|-)$/i;
                 if (smokingRec) {
-                    const ignore = new Set(["unknown", "null", "none", "n/a", ""]);
-                    const raw = smokingRec.value || smokingRec.status || smokingRec.valueCodeableConcept?.text || smokingRec.valueCodeableConcept?.coding?.[0]?.display || smokingRec.answer || "";
+                    let raw = smokingRec.value || smokingRec.status || smokingRec.valueCodeableConcept?.text || smokingRec.valueCodeableConcept?.coding?.[0]?.display || smokingRec.answer || "";
+                    // Flatten object values
+                    if (raw && typeof raw === "object") {
+                        raw = raw.text || raw.display || raw.coding?.[0]?.display || raw.value || JSON.stringify(raw);
+                    }
                     const val = typeof raw === "string" ? raw.trim() : String(raw ?? "");
-                    setSmokingStatus(ignore.has(val.toLowerCase()) ? "No records" : (val || "No records"));
+                    setSmokingStatus((!val || ignore.test(val)) ? "No records" : val);
                 } else {
-                    setSmokingStatus("No records");
+                    // No smoking record — check if ANY social history exists to display
+                    if (content.length > 0) {
+                        const first = content[0];
+                        const label = first.name || first.category || first.type || "";
+                        let val = first.value || first.status || first.answer || "";
+                        if (val && typeof val === "object") {
+                            val = val.text || val.display || val.coding?.[0]?.display || "";
+                        }
+                        const valStr = typeof val === "string" ? val.trim() : String(val ?? "");
+                        if (valStr && !ignore.test(valStr)) {
+                            setSmokingStatus(`${typeof label === "string" ? label : ""}: ${valStr}`.replace(/^:\s*/, ""));
+                        } else {
+                            setSmokingStatus("No records");
+                        }
+                    } else {
+                        setSmokingStatus("No records");
+                    }
                 }
             }
             setLoaded(true);
