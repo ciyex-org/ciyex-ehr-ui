@@ -294,9 +294,9 @@ export default function LabOrdersPage() {
       String(o.patientId), cached?.firstName, cached?.lastName].filter(Boolean).join(" ").toLowerCase();
     const q = query.toLowerCase().trim();
     const matchQ = !q || (/^\d+$/.test(q) ? (String(o.patientId) === q || String(o.mrn) === q || hay.includes(q)) : hay.includes(q));
-    const matchS = statusFilter === "all" || o.status === statusFilter;
-    const matchP = priorityFilter === "all" || o.priority === priorityFilter;
-    const matchR = resultFilter === "all" || (o.result || "Pending") === resultFilter;
+    const matchS = statusFilter === "all" || (o.status || "").toLowerCase() === statusFilter.toLowerCase();
+    const matchP = priorityFilter === "all" || (o.priority || "").toLowerCase() === priorityFilter.toLowerCase();
+    const matchR = resultFilter === "all" || (o.result || "Pending").toLowerCase() === resultFilter.toLowerCase();
     return matchQ && matchS && matchP && matchR;
   }), [orders, query, statusFilter, priorityFilter, resultFilter, patientCache]);
 
