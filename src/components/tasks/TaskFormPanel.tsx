@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, Save, Loader2 } from "lucide-react";
 import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
-import DatePicker from "@/components/form/date-picker";
+import dynamic from "next/dynamic";
+const DatePicker = dynamic(() => import("@/components/form/date-picker"), { ssr: false });
 import {
   TASK_TYPE_LABELS,
   TASK_STATUS_LABELS,
