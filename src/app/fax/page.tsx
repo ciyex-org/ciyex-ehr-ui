@@ -94,10 +94,11 @@ export default function FaxQueuePage() {
           );
           if (filtered.length < content.length) content = filtered;
         }
-        // Client-side status filter fallback if backend doesn't honor &status=
-        if (statusFilter && statusFilter !== "all" && content && content.length > 0) {
-          const byStatus = content.filter((f: any) => (f.status || "").toLowerCase() === statusFilter.toLowerCase());
-          if (byStatus.length < content.length) content = byStatus;
+        // Normalize status to lowercase for consistent filtering
+        content = content.map((f: any) => ({ ...f, status: (f.status || "pending").toLowerCase() }));
+        // Client-side status filter
+        if (statusFilter && statusFilter !== "all") {
+          content = content.filter((f: any) => f.status === statusFilter);
         }
         setFaxes(content);
         setTotalPages(pd.totalPages);
