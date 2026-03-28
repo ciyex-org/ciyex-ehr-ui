@@ -19,7 +19,7 @@ import * as path from "path";
 
 const BASE_URL = "https://app-dev.ciyex.org";
 const API_URL = "https://api-dev.ciyex.org";
-const PASSWORD = "Test@123";
+const PASSWORD = process.env.TEST_USER_PASSWORD || "Test@123";
 const SCREENSHOTS_DIR = path.join(process.cwd(), "test-results", "rbac-screenshots");
 const REPORT_PATH = path.join(process.cwd(), "test-results", "rbac-report.html");
 
@@ -44,7 +44,7 @@ const USERS: TestUser[] = [
   // BILLING — Sunrise Family Medicine (confirmed working)
   { role: "BILLING",      email: "billing.davis@sunrisefamilymedicine.com" },
   // PATIENT — Sunrise Family Medicine (patients use portal, not EHR — login expected to fail)
-  { role: "PATIENT",      email: "jennifer.martinez@example.com", password: "Test@123" },
+  { role: "PATIENT",      email: "jennifer.martinez@example.com", password: PASSWORD },
 ];
 
 // ── Routes to test ───────────────────────────────────────────────────────────

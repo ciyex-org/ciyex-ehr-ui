@@ -2,6 +2,7 @@ import { test, expect, Page } from "@playwright/test";
 
 const APP_URL = "https://app-dev.ciyex.org";
 const API_URL = "https://api-dev.ciyex.org";
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || "Test@123";
 
 async function loginViaUI(page: Page) {
   await page.goto(APP_URL, { waitUntil: "networkidle", timeout: 30000 });
@@ -13,7 +14,7 @@ async function loginViaUI(page: Page) {
 
   if (await emailInput.count() > 0) {
     await emailInput.first().fill("kiran@example.com");
-    await passwordInput.first().fill("Test@123");
+    await passwordInput.first().fill(TEST_PASSWORD);
     // Submit login
     const submitBtn = page.locator('input[type="submit"], button[type="submit"], #kc-login');
     await submitBtn.first().click();

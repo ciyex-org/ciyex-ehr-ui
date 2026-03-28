@@ -6,6 +6,7 @@ import path from "path";
 
 const BASE_URL = "https://app-dev.ciyex.org";
 const API_URL = "https://api-dev.ciyex.org";
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || "Test@123";
 const SCREENSHOTS_DIR = path.join(process.cwd(), "test-results", "screenshots");
 
 async function shot(page: Page, name: string) {
@@ -20,7 +21,7 @@ test("Inspect pagePermissionMap and permissions at runtime for billing user", as
   const res = await fetch(`${API_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "billing.davis@sunrisefamilymedicine.com", password: "Test@123" }),
+    body: JSON.stringify({ email: "billing.davis@sunrisefamilymedicine.com", password: TEST_PASSWORD }),
   });
   const billingData = (await res.json() as any).data;
 
@@ -36,7 +37,7 @@ test("Inspect pagePermissionMap and permissions at runtime for billing user", as
 
   const passwordVisible = await page.locator('input[id="password"]').isVisible().catch(() => false);
   if (passwordVisible) {
-    await page.fill('input[id="password"]', "Test@123");
+    await page.fill('input[id="password"]', TEST_PASSWORD);
     await page.click('button:has-text("Sign in")');
     try {
       await page.waitForURL(`${BASE_URL}/calendar`, { timeout: 30000 });
@@ -124,7 +125,7 @@ test("Check PermissionGuard component rendering via page source", async ({ page 
   const res = await fetch(`${API_URL_LOCAL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "billing.davis@sunrisefamilymedicine.com", password: "Test@123" }),
+    body: JSON.stringify({ email: "billing.davis@sunrisefamilymedicine.com", password: TEST_PASSWORD }),
   });
   const billingData = (await res.json() as any).data;
   console.log("[setup] Billing groups: " + JSON.stringify(billingData.groups));
@@ -144,7 +145,7 @@ test("Check PermissionGuard component rendering via page source", async ({ page 
 
   const passwordVisible = await page.locator('input[id="password"]').isVisible().catch(() => false);
   if (passwordVisible) {
-    await page.fill('input[id="password"]', "Test@123");
+    await page.fill('input[id="password"]', TEST_PASSWORD);
     await page.click('button:has-text("Sign in")');
     try { await page.waitForURL(`${BASE_URL}/calendar`, { timeout: 30000 }); } catch {}
     await page.waitForTimeout(4000);

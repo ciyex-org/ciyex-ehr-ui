@@ -6,6 +6,7 @@ import path from "path";
 
 const BASE_URL = "https://app-dev.ciyex.org";
 const API_URL = "https://api-dev.ciyex.org";
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || TEST_PASSWORD;
 const SCREENSHOTS_DIR = path.join(process.cwd(), "test-results", "screenshots");
 
 async function shot(page: Page, name: string) {
@@ -32,7 +33,7 @@ test("DEFINITIVE: Billing user blocked from admin-only settings pages", async ({
   test.setTimeout(120000);
 
   // Do real login to ensure full context loading
-  await realLogin(page, "billing.davis@sunrisefamilymedicine.com", "Test@123");
+  await realLogin(page, "billing.davis@sunrisefamilymedicine.com", TEST_PASSWORD);
 
   if (!page.url().includes("/calendar")) {
     console.log("[SKIP] Login failed, skipping test");
@@ -75,7 +76,7 @@ test("DEFINITIVE: Billing user blocked from admin-only settings pages", async ({
 test("DEFINITIVE: Admin user full access", async ({ page }) => {
   test.setTimeout(120000);
 
-  await realLogin(page, "michael.chen@example.com", "Test@123");
+  await realLogin(page, "michael.chen@example.com", TEST_PASSWORD);
 
   if (!page.url().includes("/calendar")) {
     console.log("[SKIP] Login failed");
@@ -114,7 +115,7 @@ test("DEFINITIVE: Backend security check - billing user accessing admin APIs", a
   const res = await fetch(`${API_URL}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: "billing.davis@sunrisefamilymedicine.com", password: "Test@123" }),
+    body: JSON.stringify({ email: "billing.davis@sunrisefamilymedicine.com", password: TEST_PASSWORD }),
   });
   const billingData = (await res.json() as any).data;
 

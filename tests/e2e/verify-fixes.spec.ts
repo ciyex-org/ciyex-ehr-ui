@@ -6,6 +6,7 @@ import { test, expect, Page } from "@playwright/test";
  */
 
 const BASE = "https://app-dev.ciyex.org";
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || "Test@123";
 const PATIENT_URL = `${BASE}/patients/6762`;
 
 // Login helper — two-step: email → Continue → password → Sign In
@@ -26,7 +27,7 @@ async function login(page: Page) {
     // Step 2: Wait for password field to appear
     const passwordField = page.locator('input[type="password"]').first();
     await passwordField.waitFor({ timeout: 15000 });
-    await passwordField.fill("Test@123");
+    await passwordField.fill(TEST_PASSWORD);
 
     // Click Sign In
     const signInBtn = page.locator('button:has-text("Sign In"), button:has-text("Login"), button[type="submit"]').first();

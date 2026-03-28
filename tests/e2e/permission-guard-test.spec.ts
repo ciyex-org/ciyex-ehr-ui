@@ -3,6 +3,7 @@ import path from "path";
 
 const BASE_URL = "http://localhost:3002";
 const API_URL = "https://api-dev.ciyex.org";
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || "Test@123";
 
 const SCREENSHOTS_DIR = path.join(process.cwd(), "test-results", "screenshots");
 
@@ -59,8 +60,8 @@ test.describe("Role-Based Permission Guard", () => {
   let billingData: any;
 
   test.beforeAll(async () => {
-    adminData = await fetchAuthData("michael.chen@example.com", "Test@123");
-    billingData = await fetchAuthData("billing.davis@sunrisefamilymedicine.com", "Test@123");
+    adminData = await fetchAuthData("michael.chen@example.com", TEST_PASSWORD);
+    billingData = await fetchAuthData("billing.davis@sunrisefamilymedicine.com", TEST_PASSWORD);
     console.log(`[setup] Admin groups: ${JSON.stringify(adminData.groups)}`);
     console.log(`[setup] Billing groups: ${JSON.stringify(billingData.groups)}`);
   });
@@ -209,7 +210,7 @@ test.describe("Role-Based Permission Guard", () => {
     console.log(`[login] Password field visible after email: ${passwordVisible}`);
 
     if (passwordVisible) {
-      await page.fill('input[id="password"]', "Test@123");
+      await page.fill('input[id="password"]', TEST_PASSWORD);
       await shot(page, "06-password-filled");
       await page.click('button:has-text("Sign in")');
       await page.waitForTimeout(5000);

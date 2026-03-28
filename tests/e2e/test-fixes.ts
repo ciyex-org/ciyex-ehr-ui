@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 
 const BASE = "https://app-dev.ciyex.org";
 const EMAIL = "rose@example.com";
-const PASSWORD = "Test@123";
+const PASSWORD = process.env.TEST_USER_PASSWORD || "Test@123";
 
 async function main() {
   const browser = await chromium.launch({ headless: true });

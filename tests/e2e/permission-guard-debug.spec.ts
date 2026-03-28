@@ -6,6 +6,7 @@ import path from "path";
 
 const BASE_URL = "https://app-dev.ciyex.org";
 const API_URL = "https://api-dev.ciyex.org";
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || TEST_PASSWORD;
 const SCREENSHOTS_DIR = path.join(process.cwd(), "test-results", "screenshots");
 
 async function shot(page: Page, name: string) {
@@ -27,7 +28,7 @@ async function fetchAuthData(email: string, password: string) {
 test("Diagnose PermissionGuard - measure when contexts load vs when page renders", async ({ page }) => {
   test.setTimeout(120000);
 
-  const billingData = await fetchAuthData("billing.davis@sunrisefamilymedicine.com", "Test@123");
+  const billingData = await fetchAuthData("billing.davis@sunrisefamilymedicine.com", TEST_PASSWORD);
 
   // Capture timing of console messages
   const events: Array<{time: number, msg: string}> = [];
@@ -142,7 +143,7 @@ test("Test with real login form - billing user", async ({ page }) => {
 
   const passwordVisible = await page.locator('input[id="password"]').isVisible().catch(() => false);
   if (passwordVisible) {
-    await page.fill('input[id="password"]', "Test@123");
+    await page.fill('input[id="password"]', TEST_PASSWORD);
     await page.click('button:has-text("Sign in")');
     // Wait for redirect to calendar
     await page.waitForURL(`${BASE_URL}/calendar`, { timeout: 30000 }).catch(() => {
