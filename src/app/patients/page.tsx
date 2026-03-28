@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { usePermissions } from "@/context/PermissionContext";
 import DateInput from "@/components/ui/DateInput";
+import { formatDisplayDate } from "@/utils/dateUtils";
 
 interface Patient {
     id: number;
@@ -137,17 +138,9 @@ export default function PatientListPage() {
         setRecentPatients(filtered);
     }, []);
 
-    const formatDate = (dateString: string) => {
-        if (!dateString) return "N/A";
-        try {
-            const d = new Date(dateString.includes("T") ? dateString : dateString + "T00:00:00");
-            if (isNaN(d.getTime())) return dateString;
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            return `${mm}/${dd}/${d.getFullYear()}`;
-        } catch {
-            return dateString;
-        }
+    const formatDate = (dateValue: unknown) => {
+        if (!dateValue) return "N/A";
+        return formatDisplayDate(dateValue) || "N/A";
     };
 
     const getInitials = (firstName: string, lastName: string) =>

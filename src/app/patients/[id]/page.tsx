@@ -123,9 +123,9 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
                         allActivities.push({
                             id: `appt-${appt.id}`,
                             type: 'appointment',
-                            title: `Appointment: ${appt.visitType || 'Visit'}`,
-                            description: `With Provider at ${appt.appointmentStartTime}`,
-                            timestamp: appt.appointmentStartDate,
+                            title: `Appointment: ${typeof appt.visitType === 'string' ? appt.visitType : 'Visit'}`,
+                            description: `With Provider at ${typeof appt.appointmentStartTime === 'string' ? appt.appointmentStartTime : formatDisplayDate(appt.appointmentStartTime) || ''}`,
+                            timestamp: typeof appt.appointmentStartDate === 'string' ? appt.appointmentStartDate : (formatDisplayDate(appt.appointmentStartDate) || ''),
                             status: String(appt.status ?? 'new') as ActivityItem['status'],
                         });
                     });
@@ -135,12 +135,13 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
                     const medications = await medicationsRes.value.json();
                     const medList = Array.isArray(medications.data) ? medications.data : medications.data?.content ?? [];
                     medList.forEach((med: Record<string, any>) => {
+                        const medTs = med.dateIssued || med.startDate || med.createdDate;
                         allActivities.push({
                             id: `med-${med.id}`,
                             type: 'medication',
-                            title: `Medication: ${med.medicationName || med.name || 'Unknown'}`,
-                            description: `${med.dosage || ''}`.trim(),
-                            timestamp: med.dateIssued || med.startDate || med.createdDate,
+                            title: `Medication: ${typeof med.medicationName === 'string' ? med.medicationName : typeof med.name === 'string' ? med.name : 'Unknown'}`,
+                            description: `${typeof med.dosage === 'string' ? med.dosage : ''}`.trim(),
+                            timestamp: typeof medTs === 'string' ? medTs : (formatDisplayDate(medTs) || ''),
                             status: String(med.status ?? 'new') as ActivityItem['status'],
                         });
                     });
@@ -150,21 +151,26 @@ function RecentActivityFeed({ patientId, limit = 10 }: { patientId: number; limi
                     const labs = await labsRes.value.json();
                     const labList = Array.isArray(labs.data) ? labs.data : labs.data?.content ?? [];
                     labList.forEach((lab: Record<string, any>) => {
+                        const labTs = lab.effectiveDate || lab.issued || lab.orderDate;
                         allActivities.push({
                             id: `lab-${lab.id}`,
                             type: 'lab',
-                            title: `Lab Result: ${lab.testName || 'Unknown'}`,
-                            description: lab.conclusion || `Status: ${lab.status || 'unknown'}`,
-                            timestamp: lab.effectiveDate || lab.issued || lab.orderDate,
-                            status: lab.status?.toLowerCase() === 'completed' || lab.status === 'final' ? 'completed' : 'pending',
-                            priority: lab.conclusion?.includes('Abnormal') ? 'high' : 'medium',
+                            title: `Lab Result: ${typeof lab.testName === 'string' ? lab.testName : 'Unknown'}`,
+                            description: typeof lab.conclusion === 'string' ? lab.conclusion : `Status: ${typeof lab.status === 'string' ? lab.status : 'unknown'}`,
+                            timestamp: typeof labTs === 'string' ? labTs : (formatDisplayDate(labTs) || ''),
+                            status: (typeof lab.status === 'string' && (lab.status.toLowerCase() === 'completed' || lab.status === 'final')) ? 'completed' : 'pending',
+                            priority: (typeof lab.conclusion === 'string' && lab.conclusion.includes('Abnormal')) ? 'high' : 'medium',
                         });
                     });
                 }
 
                 setActivities(
                     allActivities
-                        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                        .sort((a, b) => {
+                            const ta = new Date(a.timestamp || 0).getTime();
+                            const tb = new Date(b.timestamp || 0).getTime();
+                            return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+                        })
                         .slice(0, limit)
                 );
             } catch (err) {
@@ -434,7 +440,7 @@ export default function PatientDashboardPage() {
         window.history.replaceState({}, "", url.toString());
     };
 
-    const formatDateLocal = (date: string) => {
+    const formatDateLocal = (date: unknown) => {
         if (!date) return "\u2014";
         return formatDisplayDate(date) || "\u2014";
     };
@@ -443,9 +449,19 @@ export default function PatientDashboardPage() {
         const map: Record<string, string> = { M: "Male", F: "Female", O: "Other", U: "Unknown", Male: "Male", Female: "Female", Other: "Other", Unknown: "Unknown" };
         return map[g] || g;
     };
-    const calculateAgeLocal = (dob: string) => {
+    const calculateAgeLocal = (dob: unknown) => {
         if (!dob) return "\u2014";
-        const birth = new Date(dob.includes("T") ? dob : dob + "T00:00:00");
+        // Handle Java date arrays [year, month, day]
+        let dobStr: string;
+        if (Array.isArray(dob)) {
+            const [y, m, d] = dob;
+            if (typeof y === "number" && typeof m === "number" && typeof d === "number") {
+                dobStr = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            } else return "\u2014";
+        } else {
+            dobStr = String(dob);
+        }
+        const birth = new Date(dobStr.includes("T") ? dobStr : dobStr + "T00:00:00");
         const now = new Date();
         let years = now.getFullYear() - birth.getFullYear();
         let months = now.getMonth() - birth.getMonth();
@@ -641,7 +657,7 @@ export default function PatientDashboardPage() {
     };
 
     return (
-        <PluginContextProvider patient={{ id: patient.id, name: `${patient.firstName} ${patient.lastName}`, birthDate: patient.dateOfBirth, gender: patient.gender }}>
+        <PluginContextProvider patient={{ id: patient.id, name: `${patient.firstName || ""} ${patient.lastName || ""}`.trim() || "Patient", birthDate: patient.dateOfBirth, gender: patient.gender }}>
         <AdminLayout>
             {/* absolute inset-0 fills the AdminLayout content area (including its padding)
                 so the patient chart goes full-bleed with no extra top whitespace.

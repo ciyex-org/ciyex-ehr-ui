@@ -3707,7 +3707,9 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
                                                     if (fv !== null && fv !== undefined && typeof fv === "object") {
                                                         try { if (!("$$typeof" in (fv as object))) return JSON.stringify(fv); } catch { return "-"; }
                                                     }
-                                                    return fv ?? "-";
+                                                    if (fv == null) return "-";
+                                                    if (typeof fv === "string" || typeof fv === "number" || typeof fv === "boolean") return String(fv);
+                                                    return fv;
                                                     } catch { return "-"; }
                                                 })()}
                                             </td>
