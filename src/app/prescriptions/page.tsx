@@ -301,10 +301,34 @@ export default function PrescriptionsPage() {
       if (res.ok && json.success) {
         // Search returns a plain List; paginated listing returns a Page with .content
         const raw: any[] = Array.isArray(json.data) ? json.data : (json.data?.content || []);
-        // Normalize prescriber name — backend may use different field names
+        // Helper: extract string from value that might be a FHIR object or array
+        const safeStr = (v: any): string => {
+          if (v == null) return "";
+          if (typeof v === "string") return v;
+          if (typeof v === "number") return String(v);
+          if (Array.isArray(v)) {
+            // dosageInstruction: [{text: "...", ...}]
+            const texts = v.map((item: any) => typeof item === "string" ? item : item?.text || item?.patientInstruction || item?.display || "").filter(Boolean);
+            return texts.join("; ") || "";
+          }
+          if (typeof v === "object") {
+            return v.coding?.[0]?.display || v.text || v.display || v.value || v.name || v.reference || "";
+          }
+          return String(v);
+        };
+        // Normalize fields — backend may return FHIR objects or different field names
         let items = raw.map((rx: any) => ({
           ...rx,
-          prescriberName: rx.prescriberName || rx.prescribingDoctor || rx.prescriber || rx.providerName || rx.renderingProvider || "",
+          medicationName: safeStr(rx.medicationName || rx.medication || rx.medicationCodeableConcept || rx.drug || rx.drugName),
+          prescriberName: safeStr(rx.prescriberName || rx.prescribingDoctor || rx.prescriber || rx.providerName || rx.renderingProvider),
+          patientName: safeStr(rx.patientName || rx.patient),
+          sig: safeStr(rx.sig || rx.sigText || rx.dosageInstruction),
+          pharmacyName: safeStr(rx.pharmacyName || rx.pharmacy),
+          status: safeStr(rx.status) || "active",
+          priority: safeStr(rx.priority) || "routine",
+          strength: safeStr(rx.strength),
+          dosageForm: safeStr(rx.dosageForm || rx.form),
+          notes: safeStr(rx.notes || rx.note),
         }));
         // Resolve fresh patient names to avoid showing stale names after patient updates
         const uniqueIds = [...new Set(items.map((rx: any) => rx.patientId).filter(Boolean))];
@@ -341,7 +365,16 @@ export default function PrescriptionsPage() {
     try {
       const res = await fetchWithAuth(`${apiBase()}/api/prescriptions/stats`);
       const json = await res.json();
-      if (res.ok && json.success) setStats(json.data);
+      if (res.ok && json.success) {
+        const d = json.data || {};
+        setStats({
+          active: Number(d.active) || 0,
+          completed: Number(d.completed) || 0,
+          cancelled: Number(d.cancelled) || 0,
+          on_hold: Number(d.on_hold ?? d.onHold) || 0,
+          discontinued: Number(d.discontinued) || 0,
+        });
+      }
     } catch {
       /* silent */
     }

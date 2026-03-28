@@ -29,8 +29,10 @@ export default function DatePicker({
 
   // Create flatpickr instance once
   useEffect(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
     const isTime = mode === "time";
-    const fp = flatpickr(`#${id}`, {
+    const fp = flatpickr(el, {
       mode: isTime ? "single" : (mode || "single"),
       static: false,
       appendTo: document.body,
