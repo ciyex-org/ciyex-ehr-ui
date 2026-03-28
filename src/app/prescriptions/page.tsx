@@ -316,20 +316,25 @@ export default function PrescriptionsPage() {
           }
           return String(v);
         };
-        // Normalize fields — backend may return FHIR objects or different field names
-        let items = raw.map((rx: any) => ({
-          ...rx,
-          medicationName: safeStr(rx.medicationName || rx.medication || rx.medicationCodeableConcept || rx.drug || rx.drugName),
-          prescriberName: safeStr(rx.prescriberName || rx.prescribingDoctor || rx.prescriber || rx.providerName || rx.renderingProvider),
-          patientName: safeStr(rx.patientName || rx.patient),
-          sig: safeStr(rx.sig || rx.sigText || rx.dosageInstruction),
-          pharmacyName: safeStr(rx.pharmacyName || rx.pharmacy),
-          status: safeStr(rx.status) || "active",
-          priority: safeStr(rx.priority) || "routine",
-          strength: safeStr(rx.strength),
-          dosageForm: safeStr(rx.dosageForm || rx.form),
-          notes: safeStr(rx.notes || rx.note),
-        }));
+        // Sanitize ALL fields — backend may return FHIR objects for any field
+        let items = raw.map((rx: any) => {
+          const safe: Record<string, any> = {};
+          for (const [k, v] of Object.entries(rx)) {
+            safe[k] = (v !== null && typeof v === "object" && !Array.isArray(v)) ? safeStr(v) : v;
+          }
+          // Normalize specific fields with fallbacks
+          safe.medicationName = safeStr(rx.medicationName || rx.medication || rx.medicationCodeableConcept || rx.drug || rx.drugName);
+          safe.prescriberName = safeStr(rx.prescriberName || rx.prescribingDoctor || rx.prescriber || rx.providerName || rx.renderingProvider);
+          safe.patientName = safeStr(rx.patientName || rx.patient);
+          safe.sig = safeStr(rx.sig || rx.sigText || rx.dosageInstruction);
+          safe.pharmacyName = safeStr(rx.pharmacyName || rx.pharmacy);
+          safe.status = safeStr(rx.status) || "active";
+          safe.priority = safeStr(rx.priority) || "routine";
+          safe.strength = safeStr(rx.strength);
+          safe.dosageForm = safeStr(rx.dosageForm || rx.form);
+          safe.notes = safeStr(rx.notes || rx.note);
+          return safe as Prescription;
+        });
         // Resolve fresh patient names to avoid showing stale names after patient updates
         const uniqueIds = [...new Set(items.map((rx: any) => rx.patientId).filter(Boolean))];
         const nameMap: Record<string, string> = {};
