@@ -5,8 +5,7 @@ import Label from '../Label';
 import Input from '../input/InputField';
 import Select from '../Select';
 import { ChevronDownIcon, EyeCloseIcon, EyeIcon, TimeIcon } from '../../../icons';
-import dynamic from "next/dynamic";
-const DatePicker = dynamic(() => import("@/components/form/date-picker"), { ssr: false });
+import DatePicker from '@/components/form/date-picker';
 
 export default function DefaultInputs() {
   const [showPassword, setShowPassword] = useState(false);

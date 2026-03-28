@@ -6,8 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Prescription, ToastState } from "./types";
 import DrugInteractionCheck from "./DrugInteractionCheck";
-import dynamic from "next/dynamic";
-const DatePicker = dynamic(() => import("@/components/form/date-picker"), { ssr: false });
+import DatePicker from "@/components/form/date-picker";
 import { usePermissions } from "@/context/PermissionContext";
 
 function blankPrescription(): Prescription {
