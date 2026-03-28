@@ -91,11 +91,31 @@ export default function MessageLog() {
         items = items.map((log: any) => ({
           ...log,
           patientName: log.patientName || log.patient_name || log.patientFullName || (log.patient && typeof log.patient === "object" ? (log.patient.name || log.patient.fullName || `${log.patient.firstName || ""} ${log.patient.lastName || ""}`.trim()) : "") || "",
+          status: (log.status || "queued").toLowerCase(),
         }));
-        // Client-side status filter fallback if backend doesn't filter
-        if (statusFilter && items.length > 0) {
-          const filtered = items.filter((l: any) => (l.status || "").toLowerCase() === statusFilter.toLowerCase());
-          if (filtered.length < items.length) items = filtered;
+        // Resolve patient names from patientId if patientName is missing
+        const needNames = items.filter((l: any) => !l.patientName && l.patientId);
+        if (needNames.length > 0) {
+          const uniqueIds = [...new Set(needNames.map((l: any) => l.patientId))];
+          const nameMap: Record<string, string> = {};
+          await Promise.allSettled(uniqueIds.map(async (id) => {
+            try {
+              const r = await fetchWithAuth(`${apiBase()}/api/patients/${id}`);
+              if (r.ok) {
+                const d = await r.json();
+                const p = d?.data || d;
+                nameMap[String(id)] = `${p.firstName || ""} ${p.lastName || ""}`.trim() || p.fullName || p.name || "";
+              }
+            } catch { /* silent */ }
+          }));
+          items = items.map((l: any) => ({
+            ...l,
+            patientName: l.patientName || (l.patientId ? nameMap[String(l.patientId)] : "") || "",
+          }));
+        }
+        // Client-side status filter
+        if (statusFilter) {
+          items = items.filter((l: any) => (l.status || "") === statusFilter);
         }
         setLogs(items);
         setTotalPages(data.totalPages || 1);
