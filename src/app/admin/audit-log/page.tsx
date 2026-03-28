@@ -170,10 +170,23 @@ export default function AuditLogPage() {
             createdAt:    e.createdAt    || e.created_at   || e.timestamp     || e.date          || "",
             patientName:  e.patientName  || e.patient_name || "",
             details:      (() => {
-              const raw = e.details || e.description || e.message || e.changeLog || e.changelog || e.changes || e.auditDetails || e.audit_details || e.metadata || e.payload || e.info || e.reason || e.comment || e.notes || e.data || null;
-              if (raw == null) return null;
-              if (typeof raw === "string") return raw;
-              try { return JSON.stringify(raw); } catch { return String(raw); }
+              const raw = e.details || e.description || e.message || e.changeLog || e.changelog || e.changes || e.auditDetails || e.audit_details || e.metadata || e.payload || e.info || e.reason || e.comment || e.notes || null;
+              if (raw != null) {
+                if (typeof raw === "string") return raw;
+                try { return JSON.stringify(raw); } catch { return String(raw); }
+              }
+              // Build details from available fields when details column is empty
+              const built: Record<string, string> = {};
+              const action = e.action || e.actionType || e.operation || "";
+              const resType = e.resourceType || e.resource_type || e.entityType || e.type || "";
+              const resName = e.resourceName || e.resource_name || e.entityName || e.name || "";
+              const resId = rawResourceId;
+              if (action) built["Action"] = action;
+              if (resType) built["Resource"] = resType;
+              if (resName) built["Name"] = resName;
+              if (resId) built["ID"] = typeof resId === "string" ? resId : String(resId);
+              if (e.ipAddress || e.ip_address || e.ip) built["IP"] = e.ipAddress || e.ip_address || e.ip;
+              return Object.keys(built).length > 0 ? JSON.stringify(built) : null;
             })(),
           };
         });
