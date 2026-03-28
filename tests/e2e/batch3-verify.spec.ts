@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'Test@123';
 const BASE = "https://app-dev.ciyex.org";
 
 async function login(page: any) {
@@ -14,7 +15,7 @@ async function login(page: any) {
   // Step 2: Enter password
   const passInput = page.locator('input[name="password"], input[type="password"]').first();
   await passInput.waitFor({ state: "visible", timeout: 10000 });
-  await passInput.fill("Test@123");
+  await passInput.fill(TEST_PASSWORD);
   await page.locator('button[type="submit"], button:has-text("Sign")').first().click();
   await page.waitForURL(/(?!.*signin).*/, { timeout: 15000 });
   await page.waitForLoadState("networkidle");

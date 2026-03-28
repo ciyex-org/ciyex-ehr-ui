@@ -27,7 +27,7 @@
 ### Sign In Flow
 1. Navigate to /signin — page loads with Keycloak login form
 2. Enter valid username (michael.chen) — field accepts input
-3. Enter valid password (Test@123) — password field masks input
+3. Enter valid password (use TEST_USER_PASSWORD env var) — password field masks input
 4. Click Sign In — redirects to /select-practice or /dashboard
 5. Sign in with invalid username — shows error message
 6. Sign in with invalid password — shows error message

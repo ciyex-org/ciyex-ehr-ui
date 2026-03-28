@@ -22,7 +22,8 @@ import * as path from "path";
 
 const BASE_URL = "https://app-dev.ciyex.org";
 const API_URL = "https://api-dev.ciyex.org";
-const PASSWORD = "Test@123";
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'Test@123';
+const PASSWORD = TEST_PASSWORD;
 
 const ADMIN_EMAIL = "michael.chen@example.com";
 const TEST_EMAIL = "frontdesk.brown@sunrisefamilymedicine.com";

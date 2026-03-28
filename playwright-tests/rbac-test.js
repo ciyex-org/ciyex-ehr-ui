@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const fs = require('fs');
 
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || TEST_PASSWORD;
 const SCREENSHOT_DIR = path.join(__dirname, 'screenshots');
 if (!fs.existsSync(SCREENSHOT_DIR)) fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
@@ -172,7 +173,7 @@ async function main() {
     console.log('PART 1: BILLING USER (billing.davis@sunrisefamilymedicine.com)');
     console.log('='.repeat(60));
 
-    await login(page, 'billing.davis@sunrisefamilymedicine.com', 'Test@123', 'billing');
+    await login(page, 'billing.davis@sunrisefamilymedicine.com', TEST_PASSWORD, 'billing');
 
     // Admin-restricted pages - billing should NOT see these
     results.push(await testPageAccess(page, '/settings/roles-permissions', 'roles-permissions', 'billing'));
@@ -192,7 +193,7 @@ async function main() {
     console.log('='.repeat(60));
 
     await logout(page, 'billing');
-    await login(page, 'michael.chen@example.com', 'Test@123', 'admin');
+    await login(page, 'michael.chen@example.com', TEST_PASSWORD, 'admin');
 
     // Same restricted pages - admin SHOULD see these
     results.push(await testPageAccess(page, '/settings/roles-permissions', 'roles-permissions', 'admin'));

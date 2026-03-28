@@ -36,7 +36,7 @@ Go to your Jenkins URL (same one used for ciyex backend)
 - Kind: "Username with password"
 - ID: `REGISTRY_CREDENTIALS`
 - Username: `dev`
-- Password: `ceffDD0qWy2gMHycsolsQBPi`
+- Password: `${REGISTRY_DEV_PASSWORD}`
 - Description: "Private Docker Registry"
 
 ### 5. Run Build

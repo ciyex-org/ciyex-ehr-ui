@@ -5,6 +5,7 @@
 import { test, expect, Page } from "@playwright/test";
 import path from "path";
 
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'Test@123';
 const BASE_URL = "https://app-dev.ciyex.org";
 const API_URL = "https://api-dev.ciyex.org";
 
@@ -70,8 +71,8 @@ test.describe("Permission Guard on Dev Environment (app-dev.ciyex.org)", () => {
   let billingData: any;
 
   test.beforeAll(async () => {
-    adminData = await fetchAuthData("michael.chen@example.com", "Test@123");
-    billingData = await fetchAuthData("billing.davis@sunrisefamilymedicine.com", "Test@123");
+    adminData = await fetchAuthData("michael.chen@example.com", TEST_PASSWORD);
+    billingData = await fetchAuthData("billing.davis@sunrisefamilymedicine.com", TEST_PASSWORD);
     console.log(`[setup] Admin groups: ${JSON.stringify(adminData.groups)}`);
     console.log(`[setup] Billing groups: ${JSON.stringify(billingData.groups)}`);
   });

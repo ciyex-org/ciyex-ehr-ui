@@ -2,7 +2,8 @@ import { test, expect } from "@playwright/test";
 
 const BASE = "https://app-dev.ciyex.org";
 const EMAIL = "rose@example.com";
-const PASSWORD = "Test@123";
+const TEST_PASSWORD = process.env.TEST_USER_PASSWORD || 'Test@123';
+const PASSWORD = TEST_PASSWORD;
 
 test.describe.configure({ mode: "serial" });
 
