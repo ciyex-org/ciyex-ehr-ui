@@ -67,9 +67,9 @@ export default function MessageItemComponent({
 
   return (
     <div
-      className={`group relative flex gap-3.5 px-6 transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-800/30 ${
-        isFirstInGroup ? "pt-3" : "pt-0.5"
-      } ${isLastInGroup ? "pb-1" : "pb-0"}`}
+      className={`group relative flex px-6 transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-800/30 ${
+        isCurrentUser ? "flex-row-reverse gap-3" : "flex-row gap-3.5"
+      } ${isFirstInGroup ? "pt-3" : "pt-0.5"} ${isLastInGroup ? "pb-1" : "pb-0"}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { setShowActions(false); setShowEmojiPicker(false); setShowMore(false); }}
     >
@@ -85,9 +85,9 @@ export default function MessageItemComponent({
       </div>
 
       {/* Content */}
-      <div className="min-w-0 flex-1">
+      <div className={`min-w-0 max-w-[75%] ${isCurrentUser ? "flex flex-col items-end" : ""}`}>
         {isFirstInGroup && (
-          <div className="mb-1 flex items-center gap-2">
+          <div className={`mb-1 flex items-center gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}>
             <span className="text-sm font-semibold text-gray-900 dark:text-white">
               {message.senderName || "Unknown"}
             </span>
@@ -113,8 +113,12 @@ export default function MessageItemComponent({
           </div>
         )}
 
-        {/* Message text */}
-        <div className="text-[14px] leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
+        {/* Message bubble */}
+        <div className={`inline-block rounded-2xl px-4 py-2 text-[14px] leading-relaxed whitespace-pre-wrap break-words ${
+          isCurrentUser
+            ? "bg-brand-500 text-white rounded-tr-sm"
+            : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 rounded-tl-sm"
+        }`}>
           <FormattedContent text={message.content} />
         </div>
 
