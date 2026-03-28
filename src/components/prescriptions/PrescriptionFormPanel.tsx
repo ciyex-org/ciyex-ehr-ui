@@ -6,7 +6,7 @@ import { fetchWithAuth } from "@/utils/fetchWithAuth";
 import { getEnv } from "@/utils/env";
 import { Prescription, ToastState } from "./types";
 import DrugInteractionCheck from "./DrugInteractionCheck";
-import DatePicker from "@/components/form/date-picker";
+import DateInput from "@/components/ui/DateInput";
 import { usePermissions } from "@/context/PermissionContext";
 
 function blankPrescription(): Prescription {
@@ -731,42 +731,21 @@ export default function PrescriptionFormPanel({ open, onClose, prescription, onS
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <DatePicker
-                  id="rx-start-date"
-                  label="Start Date"
-                  mode="single"
-                  defaultDate={form.startDate || undefined}
-                  placeholder="Select start date"
-                  onChange={(dates) => {
-                    if (dates.length > 0) {
-                      const d = dates[0];
-                      const yyyy = d.getFullYear();
-                      const mm = String(d.getMonth() + 1).padStart(2, "0");
-                      const dd = String(d.getDate()).padStart(2, "0");
-                      set("startDate", `${yyyy}-${mm}-${dd}`);
-                    } else {
-                      set("startDate", "");
-                    }
-                  }}
-                />
                 <div>
-                  <DatePicker
-                    id="rx-end-date"
-                    label="End Date"
-                    mode="single"
-                    defaultDate={form.endDate || undefined}
-                    placeholder="Select end date"
-                    onChange={(dates) => {
-                      if (dates.length > 0) {
-                        const d = dates[0];
-                        const yyyy = d.getFullYear();
-                        const mm = String(d.getMonth() + 1).padStart(2, "0");
-                        const dd = String(d.getDate()).padStart(2, "0");
-                        set("endDate", `${yyyy}-${mm}-${dd}`);
-                      } else {
-                        set("endDate", "");
-                      }
-                    }}
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Start Date</label>
+                  <DateInput
+                    value={form.startDate || ""}
+                    onChange={(e) => set("startDate", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">End Date</label>
+                  <DateInput
+                    value={form.endDate || ""}
+                    min={form.startDate || undefined}
+                    onChange={(e) => set("endDate", e.target.value)}
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   {errors.endDate && <p className="text-xs text-red-500 mt-1">{errors.endDate}</p>}
                 </div>
