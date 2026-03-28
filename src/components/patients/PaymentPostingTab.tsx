@@ -124,9 +124,8 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
     const [collectSaving, setCollectSaving] = useState(false);
     const [collectError, setCollectError] = useState<string | null>(null);
     const [collectSuccess, setCollectSuccess] = useState(false);
-    const [cardNumber, setCardNumber] = useState("");
-    const [cardExpiry, setCardExpiry] = useState("");
-    const [cardCvc, setCardCvc] = useState("");
+    const [savedMethods, setSavedMethods] = useState<{ id: number; cardBrand?: string; lastFour?: string; label?: string }[]>([]);
+    const [collectPaymentMethodId, setCollectPaymentMethodId] = useState<number | null>(null);
 
     // Fetch claims from RCM with FHIR fallback
     const fetchClaims = useCallback(async () => {
@@ -193,9 +192,21 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
         }
     }, [patientId]);
 
+    // Fetch saved payment methods for this patient
+    const fetchSavedMethods = useCallback(async () => {
+        try {
+            const res = await fetchWithAuth(`/api/payments/methods/patient/${patientId}`);
+            if (res.ok) {
+                const json = await res.json();
+                const items = Array.isArray(json?.data) ? json.data : Array.isArray(json?.data?.content) ? json.data.content : [];
+                setSavedMethods(items);
+            }
+        } catch { setSavedMethods([]); }
+    }, [patientId]);
+
     useEffect(() => {
-        Promise.all([fetchClaims(), fetchPayments()]).finally(() => setLoading(false));
-    }, [fetchClaims, fetchPayments]);
+        Promise.all([fetchClaims(), fetchPayments(), fetchSavedMethods()]).finally(() => setLoading(false));
+    }, [fetchClaims, fetchPayments, fetchSavedMethods]);
 
     // When a claim is selected, fetch detail and populate line payments
     const handleClaimSelect = async (claimId: string) => {
@@ -401,14 +412,18 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
         setCollectClaimId("");
         setCollectError(null);
         setCollectSuccess(false);
-        setCardNumber("");
-        setCardExpiry("");
-        setCardCvc("");
+        setCollectPaymentMethodId(null);
     };
+
+    const isCardCollect = collectMethod === "credit_card" || collectMethod === "debit_card";
 
     const handleCollectPayment = async () => {
         const amount = parseFloat(collectAmount);
         if (!amount || amount <= 0) return;
+        if (isCardCollect && !collectPaymentMethodId) {
+            setCollectError("Please select a saved card for card payments");
+            return;
+        }
         setCollectSaving(true);
         setCollectError(null);
 
@@ -431,6 +446,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
 
             // Step 2: Record the transaction
             const claim = claims.find(c => c.id === collectClaimId);
+            const selectedCard = savedMethods.find(m => m.id === collectPaymentMethodId);
             const txnRes = await fetchWithAuth(`/api/payments/collect`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -440,15 +456,16 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                     amount,
                     currency: "USD",
                     paymentMethodType: collectMethod,
-                    cardBrand: collectMethod === "credit_card" ? "Visa" : undefined,
-                    lastFour: cardNumber ? cardNumber.slice(-4) : undefined,
+                    paymentMethodId: collectPaymentMethodId || null,
+                    cardBrand: selectedCard?.cardBrand || undefined,
+                    lastFour: selectedCard?.lastFour || undefined,
                     description: `Patient payment${claim ? ` - ${claim.claimNumber}` : ""}`,
                     referenceType: claim ? "claim" : "self_pay",
                     referenceId: null,
                     invoiceNumber: claim?.claimNumber || null,
                     stripePaymentIntentId: intentData.paymentIntentId || null,
                     receiptEmail: null,
-                    notes: collectNotes || `${intentData.mode === "demo" ? "[DEMO] " : ""}Card ending ${cardNumber.slice(-4) || "****"}`,
+                    notes: collectNotes || `${intentData.mode === "demo" ? "[DEMO] " : ""}${selectedCard ? `Card ending ${selectedCard.lastFour || "****"}` : collectMethod}`,
                 }),
             });
 
@@ -640,7 +657,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                     <label className="block text-xs font-medium text-gray-600 mb-1">Payment Method</label>
                                     <select
                                         value={collectMethod}
-                                        onChange={(e) => setCollectMethod(e.target.value)}
+                                        onChange={(e) => { setCollectMethod(e.target.value); setCollectPaymentMethodId(null); }}
                                         className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
                                     >
                                         <option value="credit_card">Credit Card</option>
@@ -651,47 +668,28 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                 </div>
                             </div>
 
-                            {/* Card entry (demo Stripe-like form) */}
-                            {(collectMethod === "credit_card" || collectMethod === "debit_card") && (
-                                <div className="bg-gray-50 border border-gray-200 rounded-md p-3 space-y-2">
-                                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Card Details</p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <div className="col-span-3">
-                                            <input
-                                                type="text"
-                                                value={cardNumber}
-                                                onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16))}
-                                                placeholder="4242 4242 4242 4242"
-                                                className="w-full text-sm font-mono border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <input
-                                                type="text"
-                                                value={cardExpiry}
-                                                onChange={(e) => {
-                                                    let v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                                                    if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
-                                                    setCardExpiry(v);
-                                                }}
-                                                placeholder="MM/YY"
-                                                className="w-full text-sm font-mono border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
-                                            />
-                                        </div>
-                                        <div>
-                                            <input
-                                                type="text"
-                                                value={cardCvc}
-                                                onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                                                placeholder="CVC"
-                                                className="w-full text-sm font-mono border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
-                                            />
-                                        </div>
-                                        <div className="flex items-center text-[10px] text-gray-400">
-                                            <CreditCard className="w-3 h-3 mr-1" />
-                                            Stripe Test Mode
-                                        </div>
-                                    </div>
+                            {/* Saved card selection for card payments */}
+                            {isCardCollect && (
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Saved Card *</label>
+                                    {savedMethods.length > 0 ? (
+                                        <select
+                                            value={collectPaymentMethodId ?? ""}
+                                            onChange={(e) => setCollectPaymentMethodId(e.target.value ? parseInt(e.target.value) : null)}
+                                            className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-green-500"
+                                        >
+                                            <option value="">Select a saved card...</option>
+                                            {savedMethods.map((m) => (
+                                                <option key={m.id} value={m.id}>
+                                                    {m.cardBrand ? `${m.cardBrand} ` : ""}{m.lastFour ? `****${m.lastFour}` : m.label || `Card #${m.id}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <p className="text-xs text-amber-600 p-2 bg-amber-50 rounded-md">
+                                            No saved cards for this patient. Add a card in Payment Methods first, or select Cash / Check.
+                                        </p>
+                                    )}
                                 </div>
                             )}
 
@@ -732,7 +730,7 @@ export default function PaymentPostingTab({ patientId }: PaymentPostingTabProps)
                                 </button>
                                 <button
                                     onClick={handleCollectPayment}
-                                    disabled={collectSaving || !collectAmount || parseFloat(collectAmount) <= 0}
+                                    disabled={collectSaving || !collectAmount || parseFloat(collectAmount) <= 0 || (isCardCollect && !collectPaymentMethodId)}
                                     className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-xs font-medium rounded-md transition-colors"
                                 >
                                     {collectSaving ? (
