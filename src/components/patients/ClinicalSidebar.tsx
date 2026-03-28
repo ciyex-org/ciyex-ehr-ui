@@ -102,9 +102,12 @@ export default function ClinicalSidebar({
                     return name.includes("smoking") || name.includes("tobacco");
                 });
                 if (smokingRec) {
-                    setSmokingStatus(smokingRec.value || smokingRec.status || smokingRec.valueCodeableConcept?.text || smokingRec.valueCodeableConcept?.coding?.[0]?.display || smokingRec.answer || "Not recorded");
+                    const ignore = new Set(["unknown", "null", "none", "n/a", ""]);
+                    const raw = smokingRec.value || smokingRec.status || smokingRec.valueCodeableConcept?.text || smokingRec.valueCodeableConcept?.coding?.[0]?.display || smokingRec.answer || "";
+                    const val = typeof raw === "string" ? raw.trim() : String(raw ?? "");
+                    setSmokingStatus(ignore.has(val.toLowerCase()) ? "No records" : (val || "No records"));
                 } else {
-                    setSmokingStatus("Not recorded");
+                    setSmokingStatus("No records");
                 }
             }
             setLoaded(true);
@@ -220,7 +223,7 @@ export default function ClinicalSidebar({
                         <Cigarette className="w-3 h-3 shrink-0 text-amber-500" />
                         <span className="flex-1 text-left truncate">
                             <span className="font-medium">History: </span>
-                            {!loaded ? "..." : smokingStatus || "Not recorded"}
+                            {!loaded ? "..." : smokingStatus || "No records"}
                         </span>
                     </button>
 
