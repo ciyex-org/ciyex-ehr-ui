@@ -84,21 +84,60 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
   };
 
+  // Track cursor/selection so format buttons work even if textarea briefly loses focus
+  const selectionRef = useRef({ start: 0, end: 0 });
+  const saveSelection = () => {
+    const el = textareaRef.current;
+    if (el) {
+      selectionRef.current = { start: el.selectionStart, end: el.selectionEnd };
+    }
+  };
+
   const insertFormatting = (prefix: string, suffix: string) => {
     const el = textareaRef.current;
     if (!el) return;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
+    const { start, end } = selectionRef.current;
     const selected = content.substring(start, end);
+
+    // Toggle off: if selected text is already wrapped, remove the markers
+    if (suffix && selected.startsWith(prefix) && selected.endsWith(suffix)) {
+      const inner = selected.slice(prefix.length, -suffix.length || undefined);
+      const before = content.substring(0, start);
+      const after = content.substring(end);
+      setContent(`${before}${inner}${after}`);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(start, start + inner.length);
+      });
+      return;
+    }
+
+    // Toggle off: if surrounding text already has the markers around selection
+    const pLen = prefix.length;
+    const sLen = suffix.length;
+    if (suffix && start >= pLen && content.substring(start - pLen, start) === prefix && content.substring(end, end + sLen) === suffix) {
+      const before = content.substring(0, start - pLen);
+      const after = content.substring(end + sLen);
+      setContent(`${before}${selected}${after}`);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(start - pLen, start - pLen + selected.length);
+      });
+      return;
+    }
+
+    // Apply formatting
+    const placeholder = selected || "text";
     const before = content.substring(0, start);
     const after = content.substring(end);
-    const newContent = `${before}${prefix}${selected || "text"}${suffix}${after}`;
+    const newContent = `${before}${prefix}${placeholder}${suffix}${after}`;
     setContent(newContent);
-    setTimeout(() => {
+    const selStart = start + prefix.length;
+    const selEnd = selStart + placeholder.length;
+    requestAnimationFrame(() => {
       el.focus();
-      el.selectionStart = start + prefix.length;
-      el.selectionEnd = start + prefix.length + (selected.length || 4);
-    }, 0);
+      el.setSelectionRange(selStart, selEnd);
+    });
   };
 
   // Close attach menu on click outside
@@ -339,6 +378,8 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
                 setShowMentionDropdown(false);
               }
             }}
+            onSelect={saveSelection}
+            onBlur={saveSelection}
             onInput={handleInput}
             onKeyDown={(e) => {
               if (showMentionDropdown && e.key === "Escape") {

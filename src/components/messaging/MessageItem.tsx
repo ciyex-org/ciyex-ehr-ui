@@ -385,8 +385,10 @@ function FormattedContent({ text }: { text: string }) {
 /** Parse inline formatting: **bold**, _italic_, `code`, @mention, [link](url) */
 function parseInlineFormatting(text: string, keyPrefix: string): React.ReactNode[] {
   const result: React.ReactNode[] = [];
-  // Regex to match: **bold**, _italic_, `code`, @mention, [text](url)
-  const regex = /(\*\*(.+?)\*\*)|(_(.+?)_)|(`(.+?)`)|(@\w+)|(\[([^\]]+)\]\(([^)]+)\))/g;
+  // Order matters: links first, then code (so backticks inside links aren't consumed),
+  // then bold (**), then italic (_) with word-boundary constraint, then @mentions.
+  // Italic uses capture group for optional leading whitespace to avoid lookbehind.
+  const regex = /(\[([^\]]+)\]\(([^)]+)\))|(`(.+?)`)|(```([\s\S]*?)```)|(\*\*(.+?)\*\*)|((^|\s)_([^_]+?)_(?=\s|[.,!?;:]|$))|(@\w+)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -397,37 +399,46 @@ function parseInlineFormatting(text: string, keyPrefix: string): React.ReactNode
     }
 
     if (match[1]) {
-      // **bold**
-      result.push(<strong key={`${keyPrefix}-b-${match.index}`} className="font-bold">{match[2]}</strong>);
-    } else if (match[3]) {
-      // _italic_
-      result.push(<em key={`${keyPrefix}-i-${match.index}`} className="italic">{match[4]}</em>);
-    } else if (match[5]) {
-      // `code`
-      result.push(
-        <code key={`${keyPrefix}-c-${match.index}`} className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px] text-pink-600 dark:bg-gray-800 dark:text-pink-400">
-          {match[6]}
-        </code>
-      );
-    } else if (match[7]) {
-      // @mention
-      result.push(
-        <span key={`${keyPrefix}-m-${match.index}`} className="rounded bg-brand-50 px-1 py-0.5 font-semibold text-brand-600 dark:bg-brand-900/20 dark:text-brand-400">
-          {match[7]}
-        </span>
-      );
-    } else if (match[8]) {
       // [text](url)
       result.push(
         <a
           key={`${keyPrefix}-a-${match.index}`}
-          href={match[10]}
+          href={match[3]}
           target="_blank"
           rel="noopener noreferrer"
           className="text-brand-600 underline hover:text-brand-700 dark:text-brand-400"
         >
-          {match[9]}
+          {match[2]}
         </a>
+      );
+    } else if (match[4]) {
+      // `inline code`
+      result.push(
+        <code key={`${keyPrefix}-c-${match.index}`} className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px] text-pink-600 dark:bg-gray-800 dark:text-pink-400">
+          {match[5]}
+        </code>
+      );
+    } else if (match[6]) {
+      // ```code block```
+      result.push(
+        <code key={`${keyPrefix}-cb-${match.index}`} className="block rounded bg-gray-100 px-2 py-1 font-mono text-[13px] text-pink-600 dark:bg-gray-800 dark:text-pink-400 whitespace-pre-wrap">
+          {match[7]}
+        </code>
+      );
+    } else if (match[8]) {
+      // **bold**
+      result.push(<strong key={`${keyPrefix}-b-${match.index}`} className="font-bold">{match[9]}</strong>);
+    } else if (match[10]) {
+      // _italic_ (only at word boundaries — won't match underscores inside words)
+      // match[11] is the leading whitespace (or empty at start of line), match[12] is the italic content
+      if (match[11]) result.push(match[11]); // preserve leading space
+      result.push(<em key={`${keyPrefix}-i-${match.index}`} className="italic">{match[12]}</em>);
+    } else if (match[13]) {
+      // @mention
+      result.push(
+        <span key={`${keyPrefix}-m-${match.index}`} className="rounded bg-brand-50 px-1 py-0.5 font-semibold text-brand-600 dark:bg-brand-900/20 dark:text-brand-400">
+          {match[13]}
+        </span>
       );
     }
 
