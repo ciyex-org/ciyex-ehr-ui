@@ -95,41 +95,41 @@ export default function ClinicalSidebar({
                 const first = content.length > 0 ? content[0] : null;
                 setVitals(first && typeof first === "object" ? first : null);
             }
-            if (shRes.status !== "fulfilled" || !shRes.value) {
-                setSmokingStatus("No records");
-            } else {
-                const content = shRes.value.data?.content || [];
+            {
+                const shData = (shRes.status === "fulfilled" && shRes.value) ? shRes.value : null;
+                const content = shData?.data?.content || [];
+                // Helper: extract a plain string from any value shape
+                const extractStr = (v: any): string => {
+                    if (v == null) return "";
+                    if (typeof v === "string") return v.trim();
+                    if (typeof v === "object") {
+                        return (v.text || v.display || v.coding?.[0]?.display || v.value || "").toString().trim();
+                    }
+                    return String(v).trim();
+                };
+                // Helper: check if a value is meaningless
+                const isMeaningless = (s: string): boolean => {
+                    if (!s) return true;
+                    return /^(unknown|null|none|n\/a|not\s*recorded|not\s*available|not\s*specified|undefined|-)$/i.test(s);
+                };
                 const smokingRec = content.find((r: any) => {
-                    const name = (r.name || r.category || r.code || r.socialHistoryType || r.type || "").toString().toLowerCase();
+                    const name = extractStr(r.name || r.category || r.code || r.socialHistoryType || r.type).toLowerCase();
                     return name.includes("smoking") || name.includes("tobacco");
                 });
-                const ignore = /unknown|null|none|n\/a|not\s*recorded|not\s*available|not\s*specified|undefined|^-$/i;
                 if (smokingRec) {
-                    let raw = smokingRec.value || smokingRec.status || smokingRec.valueCodeableConcept?.text || smokingRec.valueCodeableConcept?.coding?.[0]?.display || smokingRec.answer || "";
-                    // Flatten object values
-                    if (raw && typeof raw === "object") {
-                        raw = raw.text || raw.display || raw.coding?.[0]?.display || raw.value || JSON.stringify(raw);
-                    }
-                    const val = typeof raw === "string" ? raw.trim() : String(raw ?? "");
-                    setSmokingStatus((!val || ignore.test(val)) ? "No records" : val);
-                } else {
-                    // No smoking record — check if ANY social history exists to display
-                    if (content.length > 0) {
-                        const first = content[0];
-                        const label = first.name || first.category || first.type || "";
-                        let val = first.value || first.status || first.answer || "";
-                        if (val && typeof val === "object") {
-                            val = val.text || val.display || val.coding?.[0]?.display || "";
-                        }
-                        const valStr = typeof val === "string" ? val.trim() : String(val ?? "");
-                        if (valStr && !ignore.test(valStr)) {
-                            setSmokingStatus(`${typeof label === "string" ? label : ""}: ${valStr}`.replace(/^:\s*/, ""));
-                        } else {
-                            setSmokingStatus("No records");
-                        }
+                    const val = extractStr(smokingRec.value) || extractStr(smokingRec.status) || extractStr(smokingRec.valueCodeableConcept) || extractStr(smokingRec.answer);
+                    setSmokingStatus(isMeaningless(val) ? "No records" : val);
+                } else if (content.length > 0) {
+                    const first = content[0];
+                    const label = extractStr(first.name || first.category || first.type);
+                    const val = extractStr(first.value) || extractStr(first.status) || extractStr(first.answer);
+                    if (!isMeaningless(val)) {
+                        setSmokingStatus(label ? `${label}: ${val}` : val);
                     } else {
                         setSmokingStatus("No records");
                     }
+                } else {
+                    setSmokingStatus("No records");
                 }
             }
             setLoaded(true);
