@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ciyex-ehr-ui-stage
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/qiaben/ciyex-ehr-ui.git
+    targetRevision: main
+    path: k8s/overlays/stage
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ciyex-stage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

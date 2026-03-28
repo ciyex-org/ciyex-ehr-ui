@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ciyex-ehr-ui-us-east-prod
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/qiaben/ciyex-ehr-ui.git
+    targetRevision: main
+    path: k8s/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ciyex-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

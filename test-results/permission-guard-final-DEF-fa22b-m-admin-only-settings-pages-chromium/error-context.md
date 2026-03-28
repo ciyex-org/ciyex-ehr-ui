@@ -1,0 +1,75 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - link "Ciyex" [ref=e6] [cursor=pointer]:
+        - /url: /calendar
+        - img "Ciyex" [ref=e7]
+      - navigation [ref=e9]:
+        - generic [ref=e11]:
+          - heading [level=2] [ref=e12]:
+            - img [ref=e13]
+          - list [ref=e15]:
+            - listitem [ref=e16]:
+              - link [ref=e17] [cursor=pointer]:
+                - /url: /patients
+                - img [ref=e19]
+            - listitem [ref=e24]:
+              - link [ref=e25] [cursor=pointer]:
+                - /url: /tasks
+                - img [ref=e27]
+            - listitem [ref=e30]:
+              - button [ref=e31] [cursor=pointer]:
+                - img [ref=e33]
+            - listitem [ref=e36]:
+              - link [ref=e37] [cursor=pointer]:
+                - /url: /reports
+                - img [ref=e39]
+            - listitem [ref=e41]:
+              - button [ref=e42] [cursor=pointer]:
+                - img [ref=e44]
+            - listitem [ref=e46]:
+              - link [ref=e47] [cursor=pointer]:
+                - /url: /hub
+                - img [ref=e49]
+            - listitem [ref=e53]:
+              - link [ref=e54] [cursor=pointer]:
+                - /url: /developer
+                - img [ref=e56]
+    - generic [ref=e60]:
+      - banner [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e63]:
+            - button [ref=e64] [cursor=pointer]:
+              - img [ref=e65]
+            - heading "General" [level=1] [ref=e67]
+          - generic [ref=e68]:
+            - generic [ref=e70]:
+              - img [ref=e72]
+              - textbox "Search or type command..." [ref=e74]
+              - button "⌘ K" [ref=e75] [cursor=pointer]
+            - button "+" [ref=e76] [cursor=pointer]:
+              - generic [ref=e77]: +
+              - img [ref=e78]
+            - button "+" [ref=e81] [cursor=pointer]:
+              - generic [ref=e82]: +
+              - img [ref=e83]
+            - button [ref=e86] [cursor=pointer]:
+              - img [ref=e87]
+            - button "BD Billing sunrise-family-medicine" [ref=e90] [cursor=pointer]:
+              - generic [ref=e91]: BD
+              - generic [ref=e92]:
+                - generic [ref=e93]: Billing
+                - generic [ref=e94]: sunrise-family-medicine
+              - img [ref=e95]
+      - generic [ref=e99]:
+        - img [ref=e101]
+        - generic [ref=e105]:
+          - heading "Access Denied" [level=2] [ref=e106]
+          - paragraph [ref=e107]: You don't have permission to view this page. Contact your administrator if you believe this is a mistake.
+        - link "Go to Dashboard" [ref=e108] [cursor=pointer]:
+          - /url: /calendar
+```

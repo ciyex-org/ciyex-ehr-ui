@@ -1,0 +1,231 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Incremental RBAC Report</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 20px; background: #f9fafb; color: #111827; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .meta { color: #6b7280; font-size: 13px; margin-bottom: 16px; }
+  h2 { font-size: 17px; margin: 24px 0 12px; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px; }
+  .stats { display: flex; gap: 12px; margin-bottom: 20px; }
+  .stat { background: white; border-radius: 8px; padding: 12px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
+  .stat .val { font-size: 28px; font-weight: 700; }
+  .stat .lbl { font-size: 12px; color: #6b7280; }
+  code { font-size: 10px; background: #f3f4f6; padding: 1px 4px; border-radius: 3px; }
+  .matrix-wrap { overflow-x: auto; }
+</style></head><body>
+<h1>Incremental RBAC Test Report — Ciyex EHR</h1>
+<p class="meta">Generated: 3/11/2026, 2:37:15 PM | Test user: frontdesk.brown@sunrisefamilymedicine.com (FRONT_DESK) | 31 routes x 8 steps</p>
+<div class="stats">
+  <div class="stat"><div class="val" style="color:#16a34a">248</div><div class="lbl">Passed</div></div>
+  <div class="stat"><div class="val" style="color:#dc2626">0</div><div class="lbl">Failed</div></div>
+  <div class="stat"><div class="val">8</div><div class="lbl">Steps</div></div>
+  <div class="stat"><div class="val">31</div><div class="lbl">Routes</div></div>
+</div>
+<h2>Permission Matrix (Route x Step)</h2>
+<div class="matrix-wrap"><table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr>
+      <th style="text-align:left;padding:6px;border:1px solid #d1d5db;background:#f8fafc;position:sticky;left:0;z-index:1">Route</th>
+      <th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;font-size:10px">Perm</th>
+      <th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:80px;font-size:10px">Step 0</th><th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:80px;font-size:10px">Step 1</th><th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:80px;font-size:10px">Step 2</th><th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:80px;font-size:10px">Step 3</th><th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:80px;font-size:10px">Step 4</th><th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:80px;font-size:10px">Step 5</th><th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:80px;font-size:10px">Step 6</th><th style="padding:6px;border:1px solid #d1d5db;background:#f8fafc;writing-mode:vertical-rl;transform:rotate(180deg);min-height:80px;font-size:10px">Step 7</th>
+    </tr></thead>
+    <tbody>
+    <tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Calendar</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">scheduling</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Appointments</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">scheduling</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Patients</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">All Encounters</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">chart</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Prescriptions</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">chart</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Labs</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">chart</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Immunizations</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">chart</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Referrals</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">chart</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Care Plans</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">chart</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Education</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">chart</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Messaging</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">messaging</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Notifications</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">messaging</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Fax</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">messaging</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Payments</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">billing</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Claim Management</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">billing</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Reports</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">reports</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Settings</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">admin</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Settings - Layout</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">admin</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Settings - Portal</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">admin</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">User Management</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">admin</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Roles & Permissions</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">admin</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#fef9c3;padding:2px">🔒</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Tasks</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Authorizations</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Recall</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Codes</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">CDS Alerts</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Consents</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Doc Scanning</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Kiosk</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Audit Log</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr><tr>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;white-space:nowrap;position:sticky;left:0;background:white;z-index:1">Ciyex Hub</td>
+      <td style="padding:4px 6px;border:1px solid #e5e7eb;color:#6b7280;font-size:10px">—</td>
+      <td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td><td style="border:1px solid #e5e7eb;text-align:center;background:#dcfce7;padding:2px">✅</td>
+    </tr>
+    </tbody></table></div>
+<h2>Step Details</h2>
+<div style="background:white;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:15px">Step 0: No permissions</h3>
+        <span style="font-size:13px;color:#16a34a;font-weight:600">31/31 pass</span>
+      </div>
+      <p style="margin:4px 0 8px;font-size:12px;color:#6b7280">All protected pages should be denied; open pages allowed</p>
+      <p style="margin:0 0 4px;font-size:11px"><b>Permissions:</b> <code>[]</code></p>
+      <p style="margin:0 0 8px;font-size:11px"><b>API returned:</b> <code>[]</code></p>
+      <p style="margin:0;font-size:12px;color:#16a34a">All checks passed</p>
+    </div><div style="background:white;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:15px">Step 1: demographics.read only</h3>
+        <span style="font-size:13px;color:#16a34a;font-weight:600">31/31 pass</span>
+      </div>
+      <p style="margin:4px 0 8px;font-size:12px;color:#6b7280">Patients is already open; no new pages should unlock (demographics not in menu perm map)</p>
+      <p style="margin:0 0 4px;font-size:11px"><b>Permissions:</b> <code>[demographics.read]</code></p>
+      <p style="margin:0 0 8px;font-size:11px"><b>API returned:</b> <code>[demographics.read]</code></p>
+      <p style="margin:0;font-size:12px;color:#16a34a">All checks passed</p>
+    </div><div style="background:white;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:15px">Step 2: + scheduling</h3>
+        <span style="font-size:13px;color:#16a34a;font-weight:600">31/31 pass</span>
+      </div>
+      <p style="margin:4px 0 8px;font-size:12px;color:#6b7280">Calendar and Appointments should now be accessible</p>
+      <p style="margin:0 0 4px;font-size:11px"><b>Permissions:</b> <code>[demographics.read, scheduling.read, scheduling.write]</code></p>
+      <p style="margin:0 0 8px;font-size:11px"><b>API returned:</b> <code>[demographics.read, scheduling.read, scheduling.write]</code></p>
+      <p style="margin:0;font-size:12px;color:#16a34a">All checks passed</p>
+    </div><div style="background:white;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:15px">Step 3: + chart</h3>
+        <span style="font-size:13px;color:#16a34a;font-weight:600">31/31 pass</span>
+      </div>
+      <p style="margin:4px 0 8px;font-size:12px;color:#6b7280">All clinical pages (encounters, prescriptions, labs, etc.) should unlock</p>
+      <p style="margin:0 0 4px;font-size:11px"><b>Permissions:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write]</code></p>
+      <p style="margin:0 0 8px;font-size:11px"><b>API returned:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write]</code></p>
+      <p style="margin:0;font-size:12px;color:#16a34a">All checks passed</p>
+    </div><div style="background:white;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:15px">Step 4: + messaging</h3>
+        <span style="font-size:13px;color:#16a34a;font-weight:600">31/31 pass</span>
+      </div>
+      <p style="margin:4px 0 8px;font-size:12px;color:#6b7280">Messaging, Notifications, Fax should unlock</p>
+      <p style="margin:0 0 4px;font-size:11px"><b>Permissions:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write, messaging.read, messaging.send]</code></p>
+      <p style="margin:0 0 8px;font-size:11px"><b>API returned:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write, messaging.read, messaging.send]</code></p>
+      <p style="margin:0;font-size:12px;color:#16a34a">All checks passed</p>
+    </div><div style="background:white;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:15px">Step 5: + billing</h3>
+        <span style="font-size:13px;color:#16a34a;font-weight:600">31/31 pass</span>
+      </div>
+      <p style="margin:4px 0 8px;font-size:12px;color:#6b7280">Payments, Claim Management should unlock</p>
+      <p style="margin:0 0 4px;font-size:11px"><b>Permissions:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write, messaging.read, messaging.send, billing.read, billing.write]</code></p>
+      <p style="margin:0 0 8px;font-size:11px"><b>API returned:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write, messaging.read, messaging.send, billing.read, billing.write]</code></p>
+      <p style="margin:0;font-size:12px;color:#16a34a">All checks passed</p>
+    </div><div style="background:white;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:15px">Step 6: + reports</h3>
+        <span style="font-size:13px;color:#16a34a;font-weight:600">31/31 pass</span>
+      </div>
+      <p style="margin:4px 0 8px;font-size:12px;color:#6b7280">Reports should unlock</p>
+      <p style="margin:0 0 4px;font-size:11px"><b>Permissions:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write, messaging.read, messaging.send, billing.read, billing.write, reports.clinical, reports.financial]</code></p>
+      <p style="margin:0 0 8px;font-size:11px"><b>API returned:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write, messaging.read, messaging.send, billing.read, billing.write, reports.clinical, reports.financial]</code></p>
+      <p style="margin:0;font-size:12px;color:#16a34a">All checks passed</p>
+    </div><div style="background:white;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0;font-size:15px">Step 7: + admin (full access)</h3>
+        <span style="font-size:13px;color:#16a34a;font-weight:600">31/31 pass</span>
+      </div>
+      <p style="margin:4px 0 8px;font-size:12px;color:#6b7280">Settings and all admin pages should unlock — full access achieved</p>
+      <p style="margin:0 0 4px;font-size:11px"><b>Permissions:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write, messaging.read, messaging.send, billing.read, billing.write, reports.clinical, reports.financial, admin.users, admin.settings, admin.roles]</code></p>
+      <p style="margin:0 0 8px;font-size:11px"><b>API returned:</b> <code>[demographics.read, scheduling.read, scheduling.write, chart.read, chart.write, messaging.read, messaging.send, billing.read, billing.write, reports.clinical, reports.financial, admin.users, admin.settings, admin.roles]</code></p>
+      <p style="margin:0;font-size:12px;color:#16a34a">All checks passed</p>
+    </div>
+</body></html>
