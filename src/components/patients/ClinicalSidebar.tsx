@@ -95,13 +95,15 @@ export default function ClinicalSidebar({
                 const first = content.length > 0 ? content[0] : null;
                 setVitals(first && typeof first === "object" ? first : null);
             }
-            if (shRes.status === "fulfilled" && shRes.value) {
+            if (shRes.status !== "fulfilled" || !shRes.value) {
+                setSmokingStatus("No records");
+            } else {
                 const content = shRes.value.data?.content || [];
                 const smokingRec = content.find((r: any) => {
                     const name = (r.name || r.category || r.code || r.socialHistoryType || r.type || "").toString().toLowerCase();
                     return name.includes("smoking") || name.includes("tobacco");
                 });
-                const ignore = /^(unknown|null|none|n\/a|not\s*recorded|not\s*available|not\s*specified|undefined|-)$/i;
+                const ignore = /unknown|null|none|n\/a|not\s*recorded|not\s*available|not\s*specified|undefined|^-$/i;
                 if (smokingRec) {
                     let raw = smokingRec.value || smokingRec.status || smokingRec.valueCodeableConcept?.text || smokingRec.valueCodeableConcept?.coding?.[0]?.display || smokingRec.answer || "";
                     // Flatten object values
