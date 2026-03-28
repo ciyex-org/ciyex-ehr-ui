@@ -366,29 +366,56 @@ export default function PriorAuthorizationsPage() {
     }
   }, [showInsuranceDropdown, insuranceResults.length]);
 
-  // Diagnosis code search
+  // Diagnosis code search — try global_codes, then ciyex-codes microservice
   useEffect(() => {
     if (!diagnosisQuery.trim() || diagnosisQuery.length < 2) { setDiagnosisResults([]); return; }
     debounceSearch("diagnosis", async () => {
       try {
         const res = await fetchWithAuth(`${base()}/api/global_codes/search?q=${encodeURIComponent(diagnosisQuery)}&codeType=ICD10`);
-        if (!res.ok) { console.warn("Diagnosis search failed:", res.status); return; }
-        const json = await res.json();
-        setDiagnosisResults(extractList(json));
+        if (res.ok) {
+          const json = await res.json();
+          const list = extractList(json);
+          if (list.length > 0) { setDiagnosisResults(list); setShowDiagnosisDropdown(true); return; }
+        }
+        // Fallback: ciyex-codes microservice
+        try {
+          const res2 = await fetchWithAuth(`${base()}/api/app-proxy/ciyex-codes/api/codes/search?q=${encodeURIComponent(diagnosisQuery)}&type=ICD10`);
+          if (res2.ok) {
+            const json2 = await res2.json();
+            const list2 = extractList(json2);
+            if (list2.length > 0) { setDiagnosisResults(list2); setShowDiagnosisDropdown(true); return; }
+          }
+        } catch { /* fallback below */ }
+        // Fallback: allow manual entry
+        setDiagnosisResults([{ code: diagnosisQuery.trim().toUpperCase(), description: "Custom ICD-10 code", shortDescription: "Manual entry" }]);
         setShowDiagnosisDropdown(true);
       } catch (err) { console.warn("Diagnosis search error:", err); }
     });
   }, [diagnosisQuery]);
 
-  // Procedure code search
+  // Procedure code search — try global_codes, then ciyex-codes microservice, then FHIR ValueSet
   useEffect(() => {
     if (!procedureQuery.trim() || procedureQuery.length < 2) { setProcedureResults([]); return; }
     debounceSearch("procedure", async () => {
       try {
+        // Try main global_codes endpoint
         const res = await fetchWithAuth(`${base()}/api/global_codes/search?q=${encodeURIComponent(procedureQuery)}&codeType=CPT4`);
-        if (!res.ok) { console.warn("Procedure search failed:", res.status); return; }
-        const json = await res.json();
-        setProcedureResults(extractList(json));
+        if (res.ok) {
+          const json = await res.json();
+          const list = extractList(json);
+          if (list.length > 0) { setProcedureResults(list); setShowProcedureDropdown(true); return; }
+        }
+        // Fallback: ciyex-codes microservice
+        try {
+          const res2 = await fetchWithAuth(`${base()}/api/app-proxy/ciyex-codes/api/codes/search?q=${encodeURIComponent(procedureQuery)}&type=CPT`);
+          if (res2.ok) {
+            const json2 = await res2.json();
+            const list2 = extractList(json2);
+            if (list2.length > 0) { setProcedureResults(list2); setShowProcedureDropdown(true); return; }
+          }
+        } catch { /* fallback below */ }
+        // Fallback: allow the typed value as a manual entry
+        setProcedureResults([{ code: procedureQuery.trim().toUpperCase(), description: "Custom CPT code", shortDescription: "Manual entry" }]);
         setShowProcedureDropdown(true);
       } catch (err) { console.warn("Procedure search error:", err); }
     });
