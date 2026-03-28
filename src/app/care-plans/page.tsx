@@ -90,10 +90,18 @@ export default function CarePlansPage() {
               } catch { /* silent */ }
             })
           );
-          const resolved = rawItems.map((p) => ({
-            ...p,
-            patientName: (p.patientId && nameMap[String(p.patientId)]) ? nameMap[String(p.patientId)] : (p.patientName || ""),
-          }));
+          const resolved = rawItems.map((p) => {
+            // Ensure interventions are populated: from plan level, or extracted from goals
+            let interventions = Array.isArray(p.interventions) ? p.interventions : [];
+            if (interventions.length === 0 && Array.isArray(p.goals)) {
+              interventions = p.goals.flatMap((g: any) => Array.isArray(g.interventions) ? g.interventions : []);
+            }
+            return {
+              ...p,
+              interventions,
+              patientName: (p.patientId && nameMap[String(p.patientId)]) ? nameMap[String(p.patientId)] : (p.patientName || ""),
+            };
+          });
           setPlans(resolved);
           setTotalPages(pd.totalPages);
           setTotalElements(pd.totalElements);
@@ -275,6 +283,12 @@ export default function CarePlansPage() {
         plan.interventions = planInterventions.length > 0
           ? planInterventions
           : (plan.goals ?? []).flatMap((g: any) => g.interventions ?? []);
+      }
+
+      // Final fallback: if interventions still empty, try extracting from goals
+      if ((!Array.isArray(plan.interventions) || plan.interventions.length === 0) && Array.isArray(plan.goals)) {
+        const fromGoals = plan.goals.flatMap((g: any) => Array.isArray(g.interventions) ? g.interventions : []);
+        if (fromGoals.length > 0) plan.interventions = fromGoals;
       }
 
       // Use String comparison to handle both number and string IDs from different API responses

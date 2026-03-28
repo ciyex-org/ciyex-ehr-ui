@@ -130,11 +130,13 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
     else if (form.title.trim().length > 200) e.title = "Title must be less than 200 characters";
     else if (!/^[A-Za-z0-9\s\-_/()&.,:'!?@#"+]+$/.test(form.title.trim())) e.title = "Title contains invalid characters";
     else if (!/[A-Za-z]/.test(form.title.trim())) e.title = "Title must contain at least one letter";
-    if (["article", "handout"].includes(form.contentType) && !form.content.trim() && !form.externalUrl.trim()) {
-      e.content = "Content or External URL is required";
-    }
-    if (["video", "pdf", "link"].includes(form.contentType) && !form.externalUrl.trim()) {
-      e.externalUrl = "External URL is required for this content type";
+    if (["video", "pdf", "link", "infographic"].includes(form.contentType)) {
+      if (!form.externalUrl.trim()) e.externalUrl = "External URL is required for this content type";
+    } else if (["article", "handout"].includes(form.contentType)) {
+      if (!form.content.trim() && !form.externalUrl.trim()) {
+        e.content = "Content or External URL is required";
+        e.externalUrl = "Content or External URL is required";
+      }
     }
     if (form.externalUrl.trim() && !isValidUrl(form.externalUrl.trim())) {
       e.externalUrl = "Please enter a valid URL (e.g. https://example.com)";
@@ -251,10 +253,10 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
             </div>
           </div>
 
-          {/* Content (for articles) */}
+          {/* Content (for articles/handouts) */}
           {["article", "handout"].includes(form.contentType) && (
             <div>
-              <label className={labelCls}>Content</label>
+              <label className={labelCls}>Content {!form.externalUrl.trim() ? "*" : "(optional)"}</label>
               <textarea
                 className={inputCls("content")}
                 rows={6}
@@ -269,7 +271,7 @@ export default function MaterialForm({ open, onClose, material, onSaved }: Props
           {/* External URL */}
           <div>
             <label className={labelCls}>
-              External URL {["video", "pdf", "link"].includes(form.contentType) ? "*" : "(optional)"}
+              External URL {["video", "pdf", "link", "infographic"].includes(form.contentType) ? "*" : ["article", "handout"].includes(form.contentType) && !form.content.trim() ? "*" : "(optional)"}
             </label>
             <input
               className={inputCls("externalUrl")}

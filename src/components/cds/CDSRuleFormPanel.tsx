@@ -35,7 +35,7 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
     name: "", description: "", ruleType: "preventive_screening", category: "preventive",
     triggerEvent: "encounter_open", actionType: "alert", severity: "info",
     message: "", recommendation: "", referenceUrl: "", isActive: true,
-    appliesTo: "all", snoozeDays: 0, conditions: {},
+    appliesTo: "all", snoozeDays: null as number | null, conditions: {},
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -43,13 +43,13 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
   useEffect(() => {
     if (rule) {
       // Normalize active/isActive field from backend (Java may return 'active' instead of 'isActive')
-      setForm({ ...rule, isActive: rule.isActive ?? (rule as any).active ?? false });
+      setForm({ ...rule, isActive: rule.isActive ?? (rule as any).active ?? false, snoozeDays: rule.snoozeDays ?? null });
     } else {
       setForm({
         name: "", description: "", ruleType: "preventive_screening", category: "preventive",
         triggerEvent: "encounter_open", actionType: "alert", severity: "info",
         message: "", recommendation: "", referenceUrl: "", isActive: true,
-        appliesTo: "all", snoozeDays: 0, conditions: {},
+        appliesTo: "all", snoozeDays: null as number | null, conditions: {},
       });
     }
   }, [rule, open]);
@@ -237,9 +237,9 @@ export default function CDSRuleFormPanel({ rule, open, onClose, onSave }: Props)
             <div>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Snooze (days)</label>
               <input
-                type="number" min={0} value={form.snoozeDays ?? ""}
-                onChange={(e) => set("snoozeDays", e.target.value === "" ? null : (parseInt(e.target.value) || 0))}
-                placeholder="0"
+                type="number" min={0} value={form.snoozeDays != null ? form.snoozeDays : ""}
+                onChange={(e) => set("snoozeDays", e.target.value === "" ? null : parseInt(e.target.value))}
+                placeholder="Leave empty for no snooze"
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

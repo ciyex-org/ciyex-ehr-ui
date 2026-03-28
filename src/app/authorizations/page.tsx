@@ -1117,15 +1117,19 @@ export default function PriorAuthorizationsPage() {
                   title="Patient Information"
                 >
                   <FormRow>
-                    <FormField
-                      label="Patient ID"
-                      value={formData.patientId}
-                      onChange={(v) =>
-                        setFormData({ ...formData, patientId: v })
-                      }
-                      placeholder="Auto-filled from patient search"
-                      readOnly
-                    />
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Patient ID</label>
+                      <input
+                        type="text"
+                        value={formData.patientId}
+                        readOnly
+                        placeholder="Auto-filled from patient search →"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 cursor-not-allowed placeholder-gray-400 dark:placeholder-gray-500"
+                      />
+                      {!formData.patientId && (
+                        <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">Search and select a patient name to auto-fill this field</p>
+                      )}
+                    </div>
                     {/* Patient Name - Searchable */}
                     <div className="relative" ref={patientInputRef}>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Patient Name</label>

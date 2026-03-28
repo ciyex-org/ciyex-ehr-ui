@@ -373,8 +373,8 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                   </td>
                   <td className={`px-4 py-3 ${valueCls(r)}`}>{r.value || "\u2014"} {r.units && <span className="text-gray-500 dark:text-gray-400 text-xs">{r.units}</span>}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{r.referenceRange || (r.referenceLow != null && r.referenceHigh != null ? `${r.referenceLow} - ${r.referenceHigh}` : "\u2014")}</td>
-                  <td className="px-4 py-3"><span className={`inline-block text-xs px-2 py-0.5 rounded-full ${abnCls(r.abnormalFlag)}`}>{(r.abnormalFlag || "Normal").toUpperCase()}</span></td>
-                  <td className="px-4 py-3"><span className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusCls(r.status)}`}>{(r.status || "\u2014").toUpperCase()}</span></td>
+                  <td className="px-4 py-3"><span className={`inline-block text-xs px-2 py-0.5 rounded-full ${abnCls(r.abnormalFlag)}`}>{(r.abnormalFlag || "Normal").charAt(0).toUpperCase() + (r.abnormalFlag || "Normal").slice(1).toLowerCase()}</span></td>
+                  <td className="px-4 py-3"><span className={`inline-block text-xs px-2 py-0.5 rounded-full ${statusCls(r.status)}`}>{(r.status || "\u2014").charAt(0).toUpperCase() + (r.status || "\u2014").slice(1).toLowerCase()}</span></td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">{fmtDate(r.collectedDate) || "\u2014"}</td>
                   <td className="px-4 py-3">{r.signed ? <span className="text-green-700 dark:text-green-400 text-xs font-medium">Signed</span> : <button onClick={() => sign(r)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Sign</button>}</td>
                   <td className="px-4 py-3">
@@ -429,8 +429,8 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                           <td className="px-4 py-2"><button onClick={() => openTrend(r)} className="hover:underline text-blue-700 dark:text-blue-400">{r.testName || "\u2014"}</button></td>
                           <td className={`px-4 py-2 ${valueCls(r)}`}>{r.value} {r.units && <span className="text-gray-400 text-xs">{r.units}</span>}</td>
                           <td className="px-4 py-2 text-xs text-gray-500">{r.referenceRange || "\u2014"}</td>
-                          <td className="px-4 py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${abnCls(r.abnormalFlag)}`}>{(r.abnormalFlag || "Normal").toUpperCase()}</span></td>
-                          <td className="px-4 py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${statusCls(r.status)}`}>{(r.status || "").toUpperCase()}</span></td>
+                          <td className="px-4 py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${abnCls(r.abnormalFlag)}`}>{(r.abnormalFlag || "Normal").charAt(0).toUpperCase() + (r.abnormalFlag || "Normal").slice(1).toLowerCase()}</span></td>
+                          <td className="px-4 py-2"><span className={`text-xs px-2 py-0.5 rounded-full ${statusCls(r.status)}`}>{(r.status || "—").charAt(0).toUpperCase() + (r.status || "—").slice(1).toLowerCase()}</span></td>
                           <td className="px-4 py-2 text-right">
                             <button onClick={() => openEdit(r)} title="Edit" className="p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 mr-1 inline-flex">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -510,8 +510,8 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                 <tr key={r.id} className="border-t dark:border-gray-700">
                   <td className="px-3 py-1.5">{fmtDate(r.collectedDate)}</td>
                   <td className={`px-3 py-1.5 ${valueCls(r)}`}>{r.value} {r.units}</td>
-                  <td className="px-3 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] ${abnCls(r.abnormalFlag)}`}>{(r.abnormalFlag || "Normal").toUpperCase()}</span></td>
-                  <td className="px-3 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] ${statusCls(r.status)}`}>{(r.status || "").toUpperCase()}</span></td>
+                  <td className="px-3 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] ${abnCls(r.abnormalFlag)}`}>{(r.abnormalFlag || "Normal").charAt(0).toUpperCase() + (r.abnormalFlag || "Normal").slice(1).toLowerCase()}</span></td>
+                  <td className="px-3 py-1.5"><span className={`px-1.5 py-0.5 rounded text-[10px] ${statusCls(r.status)}`}>{(r.status || "—").charAt(0).toUpperCase() + (r.status || "—").slice(1).toLowerCase()}</span></td>
                 </tr>
               ))}
             </tbody>

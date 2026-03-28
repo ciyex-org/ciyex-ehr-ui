@@ -967,6 +967,32 @@ function GenericFhirTabInner({ tabKey, patientId, patientName }: GenericFhirTabP
         if (typeof r.prescribingDoctor === "string" && r.prescribingDoctor.includes("/") && r.prescribingDoctorDisplay) {
             r.prescribingDoctor = r.prescribingDoctorDisplay;
         }
+        // Medications: flatten FHIR dosageInstruction array to readable string
+        if (r.dosageInstruction != null && typeof r.dosageInstruction === "object") {
+            if (Array.isArray(r.dosageInstruction)) {
+                const texts = r.dosageInstruction.map((di: any) => di?.text || di?.patientInstruction || di?.doseAndRate?.[0]?.doseQuantity?.value || "").filter(Boolean);
+                if (texts.length > 0) {
+                    if (r.dosage == null) r.dosage = texts.join("; ");
+                    if (r.dosageInstruction != null) r.dosageInstruction = texts.join("; ");
+                }
+            } else if (r.dosageInstruction.text) {
+                if (r.dosage == null) r.dosage = r.dosageInstruction.text;
+                r.dosageInstruction = r.dosageInstruction.text;
+            }
+        }
+        // Medications: flatten FHIR medicationCodeableConcept to readable name
+        if (r.medicationCodeableConcept != null && typeof r.medicationCodeableConcept === "object") {
+            const medName = r.medicationCodeableConcept?.coding?.[0]?.display || r.medicationCodeableConcept?.text || r.medicationCodeableConcept?.coding?.[0]?.code;
+            if (medName) {
+                if (r.medicationName == null) r.medicationName = medName;
+                if (r.medication == null) r.medication = medName;
+            }
+        }
+        // Medications: flatten FHIR medicationReference
+        if (r.medicationReference != null && typeof r.medicationReference === "object") {
+            const medRef = r.medicationReference?.display || r.medicationReference?.reference;
+            if (medRef && r.medicationName == null) r.medicationName = medRef;
+        }
         // Medications: dateIssued fallback
         if (r.authoredOn != null && r.dateIssued == null) r.dateIssued = r.authoredOn;
         if (r.effectiveDateTime != null && r.dateIssued == null) r.dateIssued = r.effectiveDateTime;
