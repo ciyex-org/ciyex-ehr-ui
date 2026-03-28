@@ -29,7 +29,7 @@ concurrency:
 
 env:
   IMAGE_NAME: ciyex-ehr-ui
-  REGISTRY: registry.apps-prod.us-east.in.hinisoft.com
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
 
 jobs:
   # Promote to RC - only from main
