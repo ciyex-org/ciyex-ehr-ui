@@ -48,7 +48,7 @@ const API = "/api/lab-results";
 function statusCls(s?: string) {
   const v = (s || "").toLowerCase();
   if (v === "final") return "bg-green-100 text-green-800 ring-1 ring-green-200 dark:bg-green-900/30 dark:text-green-300";
-  if (v === "preliminary" || v === "pending") return "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300";
+  if (v === "preliminary" || v === "pending" || v === "partial") return "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300";
   if (v === "corrected" || v === "amended") return "bg-blue-100 text-blue-800 ring-1 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-300";
   return "bg-gray-100 text-gray-800 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-300";
 }
@@ -337,7 +337,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search test, code, value..." className={`${inputCls} md:col-span-2`} />
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={inputCls}>
             <option value="all">All Status</option>
-            {["Pending", "Preliminary", "Final", "Corrected", "Amended"].map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
+            {["Pending", "Preliminary", "Partial", "Final", "Corrected", "Amended"].map(s => <option key={s} value={s.toLowerCase()}>{s}</option>)}
           </select>
           <select value={abnFilter} onChange={e => setAbnFilter(e.target.value)} className={inputCls}>
             <option value="all">All Flags</option>
@@ -600,7 +600,7 @@ export const LabResultsTable: React.FC<Props> = ({ patientId, encounterId }) => 
                       upd("status", e.target.value);
                       setFormErrors(prev => { const next = { ...prev }; delete next.status; return next; });
                     }} className={`${inputCls}${formErrors.status ? " border-red-400 dark:border-red-500" : ""}`}>
-                      {["Pending", "Preliminary", "Final", "Corrected", "Amended"].map(s => <option key={s}>{s}</option>)}
+                      {["Pending", "Preliminary", "Partial", "Final", "Corrected", "Amended"].map(s => <option key={s}>{s}</option>)}
                     </select>
                     {formErrors.status && <p className="text-red-500 text-xs mt-1">{formErrors.status}</p>}
                   </Inp>

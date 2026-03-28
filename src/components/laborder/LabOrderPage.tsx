@@ -518,7 +518,7 @@ export default function LabOrdersPage() {
         <div>
           <label className="block text-xs text-gray-500 mb-1">Result</label>
           <select className="border rounded-lg px-3 py-2 text-sm w-full text-gray-800 bg-white" value={resultFilter} onChange={(e) => setResultFilter(e.target.value)}>
-            <option value="all">All</option><option value="Pending">Pending</option><option value="Partial">Partial</option><option value="Final">Final</option>
+            <option value="all">All</option><option value="Pending">Pending</option><option value="Preliminary">Preliminary</option><option value="Partial">Partial</option><option value="Final">Final</option><option value="Corrected">Corrected</option><option value="Amended">Amended</option>
           </select>
         </div>
       </div>

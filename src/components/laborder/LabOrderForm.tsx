@@ -1162,12 +1162,15 @@ export default function LabOrderForm({ initial }: { initial?: Partial<LabOrder> 
                   <label className="block text-sm font-medium text-slate-700 mb-2">Result Status</label>
                   <select
                     className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    value={(draft.result || '').toLowerCase().startsWith('pending') ? 'pending' : (draft.result || '').toLowerCase().startsWith('partial') ? 'partial' : 'final'}
-                    onChange={(e) => { const v = e.target.value as string; upd('result', v === 'pending' ? 'Pending' : v === 'partial' ? 'Partial' : 'Final'); }}
+                    value={(draft.result || 'pending').toLowerCase()}
+                    onChange={(e) => { upd('result', e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1)); }}
                   >
                     <option value="pending">Pending</option>
+                    <option value="preliminary">Preliminary</option>
                     <option value="partial">Partial</option>
                     <option value="final">Final</option>
+                    <option value="corrected">Corrected</option>
+                    <option value="amended">Amended</option>
                   </select>
                 </div>
               </div>

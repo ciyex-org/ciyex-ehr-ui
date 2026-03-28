@@ -78,6 +78,7 @@ export const LabResultRow: React.FC<LabResultRowProps> = ({ result, onChange, on
         >
           <option value="Pending">Pending</option>
           <option value="Preliminary">Preliminary</option>
+          <option value="Partial">Partial</option>
           <option value="Final">Final</option>
           <option value="Corrected">Corrected</option>
           <option value="Amended">Amended</option>
