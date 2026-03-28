@@ -2,7 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  Send, Paperclip, Smile, X, Bold, Italic, Code, List, Link2, AtSign, FileText, Image, Camera,
+  Send, Paperclip, Smile, X, Bold, Italic, Underline, Strikethrough,
+  Link2, ListOrdered, List, Quote, Code, Braces, AtSign, FileText, Image, Camera,
 } from "lucide-react";
 import type { MessageItem } from "./types";
 
@@ -27,18 +28,14 @@ function formatBytes(bytes: number) {
 }
 
 export default function ComposeBar({ channelName, onSend, replyingTo, onCancelReply, mentionUsers = [], readOnly = false }: Props) {
-  const [content, setContent] = useState("");
-  const [showFormatting, setShowFormatting] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Map<string, string>>(new Map());
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState("");
-  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
-  const [mentionStartPos, setMentionStartPos] = useState(-1);
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
+  const editorRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -58,17 +55,57 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
     };
   }, [pendingFiles]);
 
-  const canSend = !readOnly && (content.trim().length > 0 || pendingFiles.length > 0);
+  const getEditorText = () => {
+    return editorRef.current?.textContent?.trim() || "";
+  };
+
+  const getEditorHtml = () => {
+    return editorRef.current?.innerHTML?.trim() || "";
+  };
+
+  const canSend = !readOnly && (getEditorText().length > 0 || pendingFiles.length > 0);
+
+  // Convert HTML to markdown-like plain text for backend storage
+  const htmlToContent = (html: string): string => {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    const walk = (node: Node): string => {
+      if (node.nodeType === Node.TEXT_NODE) return node.textContent || "";
+      if (node.nodeType !== Node.ELEMENT_NODE) return "";
+      const el = node as HTMLElement;
+      const tag = el.tagName.toLowerCase();
+      const inner = Array.from(el.childNodes).map(walk).join("");
+      if (tag === "b" || tag === "strong") return `**${inner}**`;
+      if (tag === "i" || tag === "em") return `_${inner}_`;
+      if (tag === "u") return `__${inner}__`;
+      if (tag === "s" || tag === "strike" || tag === "del") return `~~${inner}~~`;
+      if (tag === "code") return `\`${inner}\``;
+      if (tag === "pre") return `\`\`\`${inner}\`\`\``;
+      if (tag === "a") return `[${inner}](${el.getAttribute("href") || "url"})`;
+      if (tag === "li") return `- ${inner}`;
+      if (tag === "ol") return inner;
+      if (tag === "ul") return inner;
+      if (tag === "blockquote") return `> ${inner}`;
+      if (tag === "br") return "\n";
+      if (tag === "div" || tag === "p") return inner ? `${inner}\n` : "\n";
+      return inner;
+    };
+    return walk(div).replace(/\n{3,}/g, "\n\n").trim();
+  };
 
   const handleSend = useCallback(() => {
-    if (!canSend) return;
-    onSend(content.trim(), pendingFiles.length > 0 ? pendingFiles : undefined);
-    setContent("");
+    const text = getEditorText();
+    if (!text && pendingFiles.length === 0) return;
+    if (readOnly) return;
+    const html = getEditorHtml();
+    const content = htmlToContent(html);
+    onSend(content, pendingFiles.length > 0 ? pendingFiles : undefined);
     setPendingFiles([]);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "44px";
+    if (editorRef.current) {
+      editorRef.current.innerHTML = "";
     }
-  }, [content, pendingFiles, canSend, onSend]);
+    setActiveFormats(new Set());
+  }, [pendingFiles, readOnly, onSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -77,67 +114,78 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
     }
   };
 
-  const handleInput = () => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "44px";
-    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  // Track active formatting state at cursor position
+  const updateActiveFormats = () => {
+    const formats = new Set<string>();
+    if (document.queryCommandState("bold")) formats.add("bold");
+    if (document.queryCommandState("italic")) formats.add("italic");
+    if (document.queryCommandState("underline")) formats.add("underline");
+    if (document.queryCommandState("strikeThrough")) formats.add("strikeThrough");
+    if (document.queryCommandState("insertOrderedList")) formats.add("insertOrderedList");
+    if (document.queryCommandState("insertUnorderedList")) formats.add("insertUnorderedList");
+    setActiveFormats(formats);
   };
 
-  // Track cursor/selection so format buttons work even if textarea briefly loses focus
-  const selectionRef = useRef({ start: 0, end: 0 });
-  const saveSelection = () => {
-    const el = textareaRef.current;
-    if (el) {
-      selectionRef.current = { start: el.selectionStart, end: el.selectionEnd };
+  const execFormat = (command: string, value?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(command, false, value);
+    updateActiveFormats();
+  };
+
+  const insertLink = () => {
+    const url = prompt("Enter URL:");
+    if (url) {
+      editorRef.current?.focus();
+      document.execCommand("createLink", false, url);
     }
   };
 
-  const insertFormatting = (prefix: string, suffix: string) => {
-    const el = textareaRef.current;
-    if (!el) return;
-    const { start, end } = selectionRef.current;
-    const selected = content.substring(start, end);
+  const insertBlockquote = () => {
+    editorRef.current?.focus();
+    document.execCommand("formatBlock", false, "blockquote");
+  };
 
-    // Toggle off: if selected text is already wrapped, remove the markers
-    if (suffix && selected.startsWith(prefix) && selected.endsWith(suffix)) {
-      const inner = selected.slice(prefix.length, -suffix.length || undefined);
-      const before = content.substring(0, start);
-      const after = content.substring(end);
-      setContent(`${before}${inner}${after}`);
-      requestAnimationFrame(() => {
-        el.focus();
-        el.setSelectionRange(start, start + inner.length);
-      });
-      return;
+  const insertCodeInline = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    editorRef.current?.focus();
+    const range = sel.getRangeAt(0);
+    const selected = range.toString();
+    if (selected) {
+      const code = document.createElement("code");
+      code.textContent = selected;
+      code.className = "rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px] text-pink-600 dark:bg-gray-700 dark:text-pink-400";
+      range.deleteContents();
+      range.insertNode(code);
+      sel.collapseToEnd();
+    } else {
+      const code = document.createElement("code");
+      code.className = "rounded bg-gray-100 px-1 py-0.5 font-mono text-[13px] text-pink-600 dark:bg-gray-700 dark:text-pink-400";
+      code.innerHTML = "&#8203;";
+      range.insertNode(code);
+      const textNode = code.firstChild!;
+      range.setStart(textNode, 1);
+      range.setEnd(textNode, 1);
+      sel.removeAllRanges();
+      sel.addRange(range);
     }
+  };
 
-    // Toggle off: if surrounding text already has the markers around selection
-    const pLen = prefix.length;
-    const sLen = suffix.length;
-    if (suffix && start >= pLen && content.substring(start - pLen, start) === prefix && content.substring(end, end + sLen) === suffix) {
-      const before = content.substring(0, start - pLen);
-      const after = content.substring(end + sLen);
-      setContent(`${before}${selected}${after}`);
-      requestAnimationFrame(() => {
-        el.focus();
-        el.setSelectionRange(start - pLen, start - pLen + selected.length);
-      });
-      return;
+  const insertCodeBlock = () => {
+    editorRef.current?.focus();
+    const pre = document.createElement("pre");
+    pre.className = "block rounded bg-gray-100 px-2 py-1 font-mono text-[13px] text-pink-600 dark:bg-gray-700 dark:text-pink-400 whitespace-pre-wrap my-1";
+    pre.innerHTML = "<br>";
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(pre);
+      range.setStart(pre, 0);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
     }
-
-    // Apply formatting
-    const placeholder = selected || "text";
-    const before = content.substring(0, start);
-    const after = content.substring(end);
-    const newContent = `${before}${prefix}${placeholder}${suffix}${after}`;
-    setContent(newContent);
-    const selStart = start + prefix.length;
-    const selEnd = selStart + placeholder.length;
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(selStart, selEnd);
-    });
   };
 
   // Close attach menu on click outside
@@ -170,11 +218,9 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
   const openCamera = async () => {
     setShowAttachMenu(false);
     if (isMobile) {
-      // Mobile: use native camera input
       cameraInputRef.current?.click();
       return;
     }
-    // Desktop: use getUserMedia
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       streamRef.current = stream;
@@ -211,6 +257,13 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
     streamRef.current = null;
     setShowCameraModal(false);
   };
+
+  const btnCls = (cmd: string) =>
+    `rounded-lg p-1.5 transition-colors ${
+      activeFormats.has(cmd)
+        ? "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"
+        : "text-gray-500 hover:bg-gray-200/80 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+    }`;
 
   return (
     <div className="border-t border-gray-200/80 bg-white px-5 pb-4 pt-3 dark:border-gray-800 dark:bg-gray-950">
@@ -272,18 +325,41 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
         </div>
       )}
 
-      {/* Formatting toolbar */}
-      {showFormatting && (
-        <div className="mb-2 flex items-center gap-0.5 rounded-xl border border-gray-200/80 bg-gray-50/80 px-2.5 py-1.5 dark:border-gray-700 dark:bg-gray-800">
-          <FormatButton icon={<Bold className="h-3.5 w-3.5" />} title="Bold" onClick={() => insertFormatting("**", "**")} />
-          <FormatButton icon={<Italic className="h-3.5 w-3.5" />} title="Italic" onClick={() => insertFormatting("_", "_")} />
-          <FormatButton icon={<Code className="h-3.5 w-3.5" />} title="Code" onClick={() => insertFormatting("`", "`")} />
-          <FormatButton icon={<List className="h-3.5 w-3.5" />} title="List" onClick={() => insertFormatting("\n- ", "")} />
-          <FormatButton icon={<Link2 className="h-3.5 w-3.5" />} title="Link" onClick={() => insertFormatting("[", "](url)")} />
-          <div className="mx-1.5 h-4 w-px bg-gray-300/60 dark:bg-gray-600" />
-          <FormatButton icon={<AtSign className="h-3.5 w-3.5" />} title="Mention" onClick={() => insertFormatting("@", "")} />
-        </div>
-      )}
+      {/* WYSIWYG Formatting toolbar — always visible */}
+      <div className="mb-2 flex items-center gap-0.5 rounded-xl border border-gray-200/80 bg-gray-50/80 px-2.5 py-1.5 dark:border-gray-700 dark:bg-gray-800">
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => execFormat("bold")} className={btnCls("bold")} title="Bold">
+          <Bold className="h-3.5 w-3.5" />
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => execFormat("italic")} className={btnCls("italic")} title="Italic">
+          <Italic className="h-3.5 w-3.5" />
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => execFormat("underline")} className={btnCls("underline")} title="Underline">
+          <Underline className="h-3.5 w-3.5" />
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => execFormat("strikeThrough")} className={btnCls("strikeThrough")} title="Strikethrough">
+          <Strikethrough className="h-3.5 w-3.5" />
+        </button>
+        <div className="mx-1 h-4 w-px bg-gray-300/60 dark:bg-gray-600" />
+        <button onMouseDown={(e) => e.preventDefault()} onClick={insertLink} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-200/80 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700" title="Link">
+          <Link2 className="h-3.5 w-3.5" />
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => execFormat("insertOrderedList")} className={btnCls("insertOrderedList")} title="Numbered List">
+          <ListOrdered className="h-3.5 w-3.5" />
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => execFormat("insertUnorderedList")} className={btnCls("insertUnorderedList")} title="Bullet List">
+          <List className="h-3.5 w-3.5" />
+        </button>
+        <div className="mx-1 h-4 w-px bg-gray-300/60 dark:bg-gray-600" />
+        <button onMouseDown={(e) => e.preventDefault()} onClick={insertBlockquote} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-200/80 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700" title="Blockquote">
+          <Quote className="h-3.5 w-3.5" />
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={insertCodeInline} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-200/80 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700" title="Inline Code">
+          <Code className="h-3.5 w-3.5" />
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={insertCodeBlock} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-200/80 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700" title="Code Block">
+          <Braces className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
       {/* Input area */}
       <div className="flex items-end gap-2 rounded-2xl border border-gray-200/80 bg-gray-50/50 px-4 py-2 transition-all focus-within:border-brand-300 focus-within:bg-white focus-within:shadow-sm focus-within:ring-2 focus-within:ring-brand-100 dark:border-gray-700 dark:bg-gray-800/50 dark:focus-within:border-brand-600 dark:focus-within:ring-brand-900/30">
@@ -347,82 +423,21 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
             className="hidden"
             onChange={handleFileSelect}
           />
-          <button
-            onClick={() => setShowFormatting(!showFormatting)}
-            className={`rounded-lg p-1.5 transition-colors hover:bg-gray-200/80 dark:hover:bg-gray-700 ${
-              showFormatting ? "text-brand-500" : "text-gray-400 hover:text-gray-600"
-            }`}
-            title="Formatting"
-          >
-            <FileText className="h-4 w-4" />
-          </button>
         </div>
 
-        {/* Textarea + Mention dropdown */}
+        {/* Editable area */}
         <div className="relative flex-1">
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => {
-              const val = e.target.value;
-              setContent(val);
-              // Detect @mention trigger
-              const pos = e.target.selectionStart;
-              const textBefore = val.substring(0, pos);
-              const atMatch = textBefore.match(/@(\w*)$/);
-              if (atMatch && mentionUsers.length > 0) {
-                setMentionStartPos(pos - atMatch[0].length);
-                setMentionQuery(atMatch[1].toLowerCase());
-                setShowMentionDropdown(true);
-              } else {
-                setShowMentionDropdown(false);
-              }
-            }}
-            onSelect={saveSelection}
-            onBlur={saveSelection}
-            onInput={handleInput}
-            onKeyDown={(e) => {
-              if (showMentionDropdown && e.key === "Escape") {
-                e.preventDefault();
-                setShowMentionDropdown(false);
-                return;
-              }
-              handleKeyDown(e);
-            }}
-            placeholder={readOnly ? "You don't have permission to send messages" : `Message ${channelName.startsWith("#") ? channelName : "#" + channelName}...`}
-            rows={1}
-            disabled={readOnly}
-            className={`max-h-40 min-h-[44px] w-full resize-none bg-transparent py-2.5 text-sm leading-relaxed placeholder-gray-400 outline-none ${readOnly ? "cursor-not-allowed text-gray-400" : "text-gray-900 dark:text-gray-100"}`}
+          <div
+            ref={editorRef}
+            contentEditable={!readOnly}
+            suppressContentEditableWarning
+            onKeyDown={handleKeyDown}
+            onKeyUp={updateActiveFormats}
+            onMouseUp={updateActiveFormats}
+            onInput={updateActiveFormats}
+            data-placeholder={readOnly ? "You don't have permission to send messages" : `Message ${channelName.startsWith("#") ? channelName : "#" + channelName}...`}
+            className={`max-h-40 min-h-[44px] w-full overflow-y-auto bg-transparent py-2.5 text-sm leading-relaxed outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-gray-400 empty:before:pointer-events-none [&_blockquote]:border-l-2 [&_blockquote]:border-gray-300 [&_blockquote]:pl-2 [&_blockquote]:text-gray-500 [&_blockquote]:italic [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_a]:text-blue-600 [&_a]:underline ${readOnly ? "cursor-not-allowed text-gray-400" : "text-gray-900 dark:text-gray-100"}`}
           />
-          {showMentionDropdown && (
-            <div className="absolute bottom-full left-0 mb-1 w-56 max-h-40 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 z-50">
-              {mentionUsers
-                .filter((u) => u.name.toLowerCase().includes(mentionQuery))
-                .slice(0, 8)
-                .map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      const before = content.substring(0, mentionStartPos);
-                      const after = content.substring(textareaRef.current?.selectionStart || mentionStartPos);
-                      const username = u.name.replace(/\s+/g, "_");
-                      setContent(`${before}@${username} ${after}`);
-                      setShowMentionDropdown(false);
-                      setTimeout(() => textareaRef.current?.focus(), 0);
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <AtSign className="h-3.5 w-3.5 text-brand-500" />
-                    <span className="truncate">{u.name}</span>
-                  </button>
-                ))}
-              {mentionUsers.filter((u) => u.name.toLowerCase().includes(mentionQuery)).length === 0 && (
-                <div className="px-3 py-2 text-xs text-gray-400">No users found</div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Right actions */}
@@ -435,9 +450,9 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
           </button>
           <button
             onClick={handleSend}
-            disabled={!canSend}
+            disabled={readOnly}
             className={`rounded-xl p-2 transition-all ${
-              canSend
+              getEditorText() || pendingFiles.length > 0
                 ? "bg-brand-500 text-white shadow-sm hover:bg-brand-600 hover:shadow-md active:scale-95"
                 : "text-gray-300 dark:text-gray-600"
             }`}
@@ -482,18 +497,5 @@ export default function ComposeBar({ channelName, onSend, replyingTo, onCancelRe
         </div>
       )}
     </div>
-  );
-}
-
-function FormatButton({ icon, title, onClick }: { icon: React.ReactNode; title: string; onClick: () => void }) {
-  return (
-    <button
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-200/80 hover:text-gray-600 dark:hover:bg-gray-700"
-      title={title}
-    >
-      {icon}
-    </button>
   );
 }
