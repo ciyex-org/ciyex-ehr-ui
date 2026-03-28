@@ -92,8 +92,12 @@ export default function FaxQueuePage() {
             (f.subject || "").toLowerCase().includes(q) ||
             (f.patientName || "").toLowerCase().includes(q)
           );
-          // Only apply client filter if it actually reduces results (i.e., backend didn't filter)
           if (filtered.length < content.length) content = filtered;
+        }
+        // Client-side status filter fallback if backend doesn't honor &status=
+        if (statusFilter && statusFilter !== "all" && content && content.length > 0) {
+          const byStatus = content.filter((f: any) => (f.status || "").toLowerCase() === statusFilter.toLowerCase());
+          if (byStatus.length < content.length) content = byStatus;
         }
         setFaxes(content);
         setTotalPages(pd.totalPages);
@@ -365,6 +369,7 @@ export default function FaxQueuePage() {
           }}
           onSubmit={handleSendFax}
           resendFax={resendFax}
+          direction={direction === "inbound" ? "inbound" : "outbound"}
         />
 
         {/* Assign Patient Modal */}

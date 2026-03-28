@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import Label from './Label';
@@ -23,9 +23,14 @@ export default function DatePicker({
   defaultDate,
   placeholder,
 }: PropsType) {
+  const fpRef = useRef<flatpickr.Instance | null>(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  // Create flatpickr instance once
   useEffect(() => {
     const isTime = mode === "time";
-    const flatPickr = flatpickr(`#${id}`, {
+    const fp = flatpickr(`#${id}`, {
       mode: isTime ? "single" : (mode || "single"),
       static: false,
       appendTo: document.body,
@@ -37,15 +42,29 @@ export default function DatePicker({
       noCalendar: isTime,
       time_24hr: false,
       defaultDate,
-      onChange,
+      onChange: (...args) => {
+        const cb = onChangeRef.current;
+        if (Array.isArray(cb)) cb.forEach(fn => fn(...args));
+        else if (cb) cb(...args);
+      },
     });
+    fpRef.current = Array.isArray(fp) ? fp[0] : fp;
 
     return () => {
-      if (!Array.isArray(flatPickr)) {
-        flatPickr.destroy();
+      if (fpRef.current) {
+        fpRef.current.destroy();
+        fpRef.current = null;
       }
     };
-  }, [mode, onChange, id, defaultDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, id]);
+
+  // Update the date when defaultDate prop changes (e.g. switching to edit mode)
+  useEffect(() => {
+    if (fpRef.current && defaultDate !== undefined) {
+      fpRef.current.setDate(defaultDate, false);
+    }
+  }, [defaultDate]);
 
   return (
     <div>

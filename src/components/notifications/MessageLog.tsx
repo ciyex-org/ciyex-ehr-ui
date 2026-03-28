@@ -86,7 +86,18 @@ export default function MessageLog() {
       if (res.ok) {
         const json = await res.json();
         const data = json.data ?? json;
-        setLogs(Array.isArray(data) ? data : data.content || []);
+        let items: NotificationLog[] = Array.isArray(data) ? data : data.content || [];
+        // Normalize patient name from possible field variants
+        items = items.map((log: any) => ({
+          ...log,
+          patientName: log.patientName || log.patient_name || log.patientFullName || (log.patient && typeof log.patient === "object" ? (log.patient.name || log.patient.fullName || `${log.patient.firstName || ""} ${log.patient.lastName || ""}`.trim()) : "") || "",
+        }));
+        // Client-side status filter fallback if backend doesn't filter
+        if (statusFilter && items.length > 0) {
+          const filtered = items.filter((l: any) => (l.status || "").toLowerCase() === statusFilter.toLowerCase());
+          if (filtered.length < items.length) items = filtered;
+        }
+        setLogs(items);
         setTotalPages(data.totalPages || 1);
       }
     } catch {

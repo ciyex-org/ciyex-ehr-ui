@@ -169,7 +169,12 @@ export default function AuditLogPage() {
             action:       e.action       || e.actionType   || e.operation     || "",
             createdAt:    e.createdAt    || e.created_at   || e.timestamp     || e.date          || "",
             patientName:  e.patientName  || e.patient_name || "",
-            details:      e.details      || e.description  || e.message       || null,
+            details:      (() => {
+              const raw = e.details || e.description || e.message || e.changeLog || e.changelog || e.changes || e.auditDetails || e.audit_details || e.metadata || e.payload || e.info || e.reason || e.comment || e.notes || e.data || null;
+              if (raw == null) return null;
+              if (typeof raw === "string") return raw;
+              try { return JSON.stringify(raw); } catch { return String(raw); }
+            })(),
           };
         });
         setLogs(content);

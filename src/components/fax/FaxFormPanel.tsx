@@ -12,6 +12,7 @@ interface Props {
   onClose: () => void;
   onSubmit: (data: SendFaxForm) => Promise<void>;
   resendFax?: FaxMessage | null;
+  direction?: "inbound" | "outbound";
 }
 
 const EMPTY_FORM: SendFaxForm = {
@@ -24,7 +25,7 @@ const EMPTY_FORM: SendFaxForm = {
   notes: "",
 };
 
-export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Props) {
+export default function FaxFormPanel({ open, onClose, onSubmit, resendFax, direction = "outbound" }: Props) {
   const apiUrl = getEnv("NEXT_PUBLIC_API_URL") as string;
   const [patientQuery, setPatientQuery] = useState("");
   const [patientResults, setPatientResults] = useState<any[]>([]);
@@ -291,10 +292,22 @@ export default function FaxFormPanel({ open, onClose, onSubmit, resendFax }: Pro
               onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value } as any))}
               className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="pending">Pending</option>
-              <option value="sending">Sending</option>
-              <option value="sent">Sent</option>
-              <option value="delivered">Delivered</option>
+              {direction === "inbound" ? (
+                <>
+                  <option value="pending">Pending</option>
+                  <option value="received">Received</option>
+                  <option value="categorized">Categorized</option>
+                  <option value="attached">Attached</option>
+                </>
+              ) : (
+                <>
+                  <option value="pending">Pending</option>
+                  <option value="sending">Sending</option>
+                  <option value="sent">Sent</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="failed">Failed</option>
+                </>
+              )}
             </select>
           </div>
 
